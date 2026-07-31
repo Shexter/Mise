@@ -188,6 +188,17 @@ export default function SettingsScreen() {
           ) : null}
         </Card>
 
+        <Card title="Ingredients" padded={false}>
+          <SettingsRow
+            label="Needs a look"
+            onPress={() => router.push('/match-queue')}
+          />
+          <SettingsRow
+            label="Merge duplicates"
+            onPress={() => router.push('/merge-canonicals')}
+          />
+        </Card>
+
         <Card title="Your data" padded={false}>
           <SettingsRow label="Export as JSON" onPress={onExport} />
           <SettingsRow label="Delete all data" destructive onPress={onDeleteAll} />

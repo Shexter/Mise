@@ -61,12 +61,83 @@ CREATE TABLE daily_targets (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [INITIAL_SCHEMA];
+/**
+ * Migration 2: the identity layer. Canonical ingredients, their aliases and
+ * products, and the queue of references the match cascade could not resolve.
+ * Schema per `docs/identity-layer.md`; `pantry_items` and `consumption_events`
+ * arrive with the pantry-stock change, not here.
+ */
+const IDENTITY_LAYER = `
+CREATE TABLE canonical_items (
+  id                  TEXT PRIMARY KEY,
+  display_name        TEXT NOT NULL,
+  class               TEXT NOT NULL,
+  default_location    TEXT NOT NULL,
+  shelf_life_days     TEXT NOT NULL,
+  open_life_days      INTEGER,
+  typical_use_qty     REAL,
+  typical_use_unit    TEXT,
+  typical_pkg_qty     REAL,
+  typical_pkg_unit    TEXT,
+  density_g_per_ml    REAL,
+  is_seed             INTEGER NOT NULL DEFAULT 0,
+  created_at          TEXT NOT NULL
+);
+
+CREATE TABLE item_aliases (
+  id               TEXT PRIMARY KEY,
+  alias_norm       TEXT NOT NULL,
+  alias_raw        TEXT NOT NULL,
+  canonical_id     TEXT NOT NULL REFERENCES canonical_items(id) ON DELETE CASCADE,
+  source           TEXT NOT NULL,
+  locale           TEXT,
+  confidence       REAL NOT NULL DEFAULT 1,
+  times_confirmed  INTEGER NOT NULL DEFAULT 0,
+  created_at       TEXT NOT NULL
+);
+
+CREATE INDEX idx_aliases_norm ON item_aliases(alias_norm);
+CREATE UNIQUE INDEX idx_aliases_pair ON item_aliases(alias_norm, canonical_id);
+
+CREATE TABLE products (
+  id              TEXT PRIMARY KEY,
+  gtin            TEXT UNIQUE,
+  brand           TEXT,
+  name            TEXT NOT NULL,
+  pkg_qty         REAL,
+  pkg_unit        TEXT,
+  canonical_id    TEXT NOT NULL REFERENCES canonical_items(id),
+  kcal_per_100    REAL,
+  protein_per_100 REAL,
+  carbs_per_100   REAL,
+  fat_per_100     REAL,
+  source          TEXT NOT NULL,
+  fetched_at      TEXT
+);
+
+CREATE INDEX idx_products_gtin ON products(gtin);
+
+CREATE TABLE match_queue (
+  id            TEXT PRIMARY KEY,
+  raw_text      TEXT NOT NULL,
+  source        TEXT NOT NULL,
+  context       TEXT,
+  suggested_id  TEXT REFERENCES canonical_items(id),
+  confidence    REAL,
+  created_at    TEXT NOT NULL
+);
+`;
+
+export const MIGRATIONS: readonly string[] = [INITIAL_SCHEMA, IDENTITY_LAYER];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS match_queue;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS item_aliases;
+DROP TABLE IF EXISTS canonical_items;
 DROP TABLE IF EXISTS meal_items;
 DROP TABLE IF EXISTS meals;
 DROP TABLE IF EXISTS daily_targets;

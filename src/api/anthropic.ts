@@ -59,6 +59,30 @@ export async function estimateWithAnthropic(
   return text;
 }
 
+/**
+ * Text-only completion, used by ingredient resolution (`resolve.ts`). Same
+ * endpoint, error taxonomy, and timeout as the vision path.
+ */
+export async function completeWithAnthropic(
+  apiKey: string,
+  system: string,
+  user: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const body = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system,
+    messages: [{ role: 'user', content: user }],
+  };
+  const response = await post(apiKey, body, signal);
+  const text = firstTextBlock(response);
+  if (!text) {
+    throw new VisionError('malformed', 'The response came back empty.');
+  }
+  return text;
+}
+
 /** One-token round trip used by the "Test key" button. */
 export async function verifyAnthropicKey(apiKey: string): Promise<void> {
   await post(

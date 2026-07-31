@@ -117,6 +117,123 @@ export interface HiddenIngredient {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  /** Links the quick-pick to its canonical ingredient, where one exists. */
+  canonicalId?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ingredient identity                                                         */
+/* -------------------------------------------------------------------------- */
+
+/** How an ingredient depletes. Orthogonal to where it is stored. */
+export type FoodClass =
+  | 'staple'
+  | 'produce'
+  | 'protein'
+  | 'dairy'
+  | 'seasoning'
+  | 'condiment'
+  | 'frozen'
+  | 'beverage';
+
+export const FOOD_CLASSES: readonly FoodClass[] = [
+  'staple',
+  'produce',
+  'protein',
+  'dairy',
+  'seasoning',
+  'condiment',
+  'frozen',
+  'beverage',
+];
+
+/** Where an ingredient lives by default. Drives expiry, never depletion. */
+export type StorageLocation = 'pantry' | 'fridge' | 'freezer' | 'counter';
+
+export const STORAGE_LOCATIONS: readonly StorageLocation[] = [
+  'pantry',
+  'fridge',
+  'freezer',
+  'counter',
+];
+
+/** The channel a food reference or alias came from. */
+export type ReferenceSource =
+  | 'seed'
+  | 'barcode'
+  | 'receipt'
+  | 'vision'
+  | 'meal_log'
+  | 'user';
+
+export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
+  'seed',
+  'barcode',
+  'receipt',
+  'vision',
+  'meal_log',
+  'user',
+];
+
+/** The food concept — one row per real-world ingredient. `id` is the slug. */
+export interface CanonicalItem {
+  id: string;
+  displayName: string;
+  foodClass: FoodClass;
+  defaultLocation: StorageLocation;
+  /** Unopened shelf life in days, keyed by location. */
+  shelfLifeDays: Partial<Record<StorageLocation, number>>;
+  /** Days once opened; null where opening changes nothing. */
+  openLifeDays: number | null;
+  typicalUseQty: number | null;
+  typicalUseUnit: MeasureUnit | null;
+  typicalPkgQty: number | null;
+  typicalPkgUnit: MeasureUnit | null;
+  densityGPerMl: number | null;
+  isSeed: boolean;
+  createdAt: string;
+}
+
+/** One observed name for a canonical ingredient. */
+export interface ItemAlias {
+  id: string;
+  aliasNorm: string;
+  aliasRaw: string;
+  canonicalId: string;
+  source: ReferenceSource;
+  locale: string | null;
+  confidence: number;
+  timesConfirmed: number;
+  createdAt: string;
+}
+
+/** A specific purchasable SKU, always tied to one canonical ingredient. */
+export interface Product {
+  id: string;
+  gtin: string | null;
+  brand: string | null;
+  name: string;
+  pkgQty: number | null;
+  pkgUnit: MeasureUnit | null;
+  canonicalId: string;
+  kcalPer100: number | null;
+  proteinPer100: number | null;
+  carbsPer100: number | null;
+  fatPer100: number | null;
+  source: ReferenceSource;
+  fetchedAt: string | null;
+}
+
+/** A reference the cascade could not resolve, waiting for review. */
+export interface QueuedMatch {
+  id: string;
+  rawText: string;
+  source: ReferenceSource;
+  /** JSON captured at scan time: receipt id, price, quantity. */
+  context: string | null;
+  suggestedId: string | null;
+  confidence: number | null;
+  createdAt: string;
 }
 
 /** A single detected food, as returned by the vision model. */

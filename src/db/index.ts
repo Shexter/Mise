@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
+import { loadSeedData } from '@/db/queries';
 import { DROP_ALL, LATEST_VERSION, MIGRATIONS } from '@/db/schema';
 
 /**
@@ -26,6 +27,9 @@ export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
     await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
     await migrate(db);
     database = db;
+    // Idempotent, so running it on every launch is safe — and it is how a
+    // seed-version bump reaches an existing install.
+    await loadSeedData();
     opening = null;
     return db;
   })();
@@ -69,4 +73,6 @@ export async function resetDatabase(): Promise<void> {
   await handle.execAsync(DROP_ALL);
   await handle.execAsync('PRAGMA user_version = 0');
   await migrate(handle);
+  // A wiped install starts from the shipped seed set, nothing more.
+  await loadSeedData();
 }

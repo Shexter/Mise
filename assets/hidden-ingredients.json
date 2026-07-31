@@ -6,7 +6,8 @@
     "calories": 119,
     "proteinG": 0,
     "carbsG": 0,
-    "fatG": 14
+    "fatG": 14,
+    "canonicalId": "olive-oil"
   },
   {
     "name": "Butter",
@@ -15,7 +16,8 @@
     "calories": 102,
     "proteinG": 0.1,
     "carbsG": 0,
-    "fatG": 11.5
+    "fatG": 11.5,
+    "canonicalId": "butter"
   },
   {
     "name": "Ghee",
@@ -24,7 +26,8 @@
     "calories": 123,
     "proteinG": 0,
     "carbsG": 0,
-    "fatG": 14
+    "fatG": 14,
+    "canonicalId": "ghee"
   },
   {
     "name": "Sugar",
@@ -33,7 +36,8 @@
     "calories": 16,
     "proteinG": 0,
     "carbsG": 4.2,
-    "fatG": 0
+    "fatG": 0,
+    "canonicalId": "sugar"
   },
   {
     "name": "Honey",
@@ -42,7 +46,8 @@
     "calories": 64,
     "proteinG": 0.1,
     "carbsG": 17.3,
-    "fatG": 0
+    "fatG": 0,
+    "canonicalId": "honey"
   },
   {
     "name": "Mayonnaise",
@@ -51,7 +56,8 @@
     "calories": 94,
     "proteinG": 0.1,
     "carbsG": 0.1,
-    "fatG": 10.3
+    "fatG": 10.3,
+    "canonicalId": "mayonnaise"
   },
   {
     "name": "Cream",
@@ -60,7 +66,8 @@
     "calories": 103,
     "proteinG": 0.6,
     "carbsG": 0.8,
-    "fatG": 11
+    "fatG": 11,
+    "canonicalId": "heavy-cream"
   },
   {
     "name": "Cheese",
@@ -69,7 +76,8 @@
     "calories": 120,
     "proteinG": 7,
     "carbsG": 0.4,
-    "fatG": 10
+    "fatG": 10,
+    "canonicalId": "cheddar-cheese"
   },
   {
     "name": "Salad dressing",
@@ -78,7 +86,8 @@
     "calories": 145,
     "proteinG": 0.2,
     "carbsG": 2.4,
-    "fatG": 15
+    "fatG": 15,
+    "canonicalId": "salad-dressing"
   },
   {
     "name": "Cooking oil spray",
@@ -87,6 +96,7 @@
     "calories": 20,
     "proteinG": 0,
     "carbsG": 0,
-    "fatG": 2.2
+    "fatG": 2.2,
+    "canonicalId": "cooking-spray"
   }
 ]
