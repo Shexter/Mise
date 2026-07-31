@@ -1,0 +1,77 @@
+schema: spec-driven
+
+context: |
+  # Mise
+
+  A local-first food app for the home, built on top of SnapCal (a photo calorie
+  tracker). It tracks pantry stock, predicted expiry, grocery spending, and
+  eating out versus cooking at home — on top of the existing calorie logging.
+
+  The central idea: the meal log IS the pantry depletion signal. The user
+  already photographs what they eat for calorie reasons, and that tells us what
+  left the pantry. Every other pantry app dies asking users to decrement stock
+  manually.
+
+  ## Tech stack
+
+  - Expo SDK 54, React Native 0.81, React 19, TypeScript strict throughout
+  - expo-router for screens, Zustand for state
+  - expo-sqlite for all persistence; expo-secure-store for the API key
+  - Vision via the user's own API key — Google Gemini or Anthropic Claude,
+    provider auto-detected by key prefix
+  - Android ships as a sideloadable APK via the EAS `preview` profile
+
+  ## Non-negotiable conventions
+
+  - All SQL lives in `src/db/queries.ts`. No SQL anywhere else.
+  - Schema changes are forward-only migrations appended to `MIGRATIONS` in
+    `src/db/schema.ts`. Never edit a migration that has shipped.
+  - The API key is confined to `src/api/keyStore.ts`. It never reaches the
+    database, logs, or the JSON export.
+  - Every colour, font, and spacing value comes from `src/constants/theme.ts`.
+    No literals.
+  - Local-first: no server, no auth, no accounts. Household sharing was
+    considered and deliberately cut.
+
+  ## Product rules that constrain implementation
+
+  - Never display a quantity the app cannot defend. The UI says "running low",
+    never "486 g of rice left". Every stock figure is an estimate compounded
+    over many meals, and one wrong number destroys trust in the whole list.
+  - Food classes get different depletion models: staples by mass, seasonings and
+    condiments by uses with preset typical amounts, perishables by age.
+  - Storage location drives expiry prediction; food class drives depletion.
+    They are orthogonal fields and must not be merged.
+  - Deep Asian ingredient coverage is the differentiator. Aliases are stored in
+    script and never romanised.
+  - Restaurant meals must never decrement the pantry.
+
+  ## Required reading before planning any change
+
+  - `docs/product-decisions.md` — the numbered decision ledger and its open
+    questions. This is the source of truth for what has been settled and why.
+  - `docs/identity-layer.md` — how food references from vision, barcode,
+    receipt, and meal log resolve onto one row. Everything else sits on it.
+  - `docs/dinner-decision.md` — the recipe suggestion engine.
+
+rules:
+  proposal:
+    - Reference the decision numbers from docs/product-decisions.md that the
+      change implements or affects.
+    - Always include a Non-goals section.
+  design:
+    - State which existing modules are touched, using repo-relative paths.
+    - Any schema change must be expressed as a new forward-only migration
+      appended to MIGRATIONS, never as an edit to an existing one.
+  tasks:
+    - Order tasks so anything testable without network or an API key comes
+      first.
+    - Keep each task to roughly two hours or less.
+
+operations:
+  apply:
+    guidance:
+      - Run `npm run typecheck` before reporting a task complete.
+      - If a product decision turns out to be wrong during implementation, stop
+        and flag it rather than quietly deviating. Decisions get superseded in
+        docs/product-decisions.md, not ignored.

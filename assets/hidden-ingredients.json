@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Olive oil",
+    "defaultQuantity": 1,
+    "unit": "tbsp",
+    "calories": 119,
+    "proteinG": 0,
+    "carbsG": 0,
+    "fatG": 14
+  },
+  {
+    "name": "Butter",
+    "defaultQuantity": 1,
+    "unit": "tbsp",
+    "calories": 102,
+    "proteinG": 0.1,
+    "carbsG": 0,
+    "fatG": 11.5
+  },
+  {
+    "name": "Ghee",
+    "defaultQuantity": 1,
+    "unit": "tbsp",
+    "calories": 123,
+    "proteinG": 0,
+    "carbsG": 0,
+    "fatG": 14
+  },
+  {
+    "name": "Sugar",
+    "defaultQuantity": 1,
+    "unit": "tsp",
+    "calories": 16,
+    "proteinG": 0,
+    "carbsG": 4.2,
+    "fatG": 0
+  },
+  {
+    "name": "Honey",
+    "defaultQuantity": 1,
+    "unit": "tbsp",
+    "calories": 64,
+    "proteinG": 0.1,
+    "carbsG": 17.3,
+    "fatG": 0
+  },
+  {
+    "name": "Mayonnaise",
+    "defaultQuantity": 1,
+    "unit": "tbsp",
+    "calories": 94,
+    "proteinG": 0.1,
+    "carbsG": 0.1,
+    "fatG": 10.3
+  },
+  {
+    "name": "Cream",
+    "defaultQuantity": 2,
+    "unit": "tbsp",
+    "calories": 103,
+    "proteinG": 0.6,
+    "carbsG": 0.8,
+    "fatG": 11
+  },
+  {
+    "name": "Cheese",
+    "defaultQuantity": 30,
+    "unit": "g",
+    "calories": 120,
+    "proteinG": 7,
+    "carbsG": 0.4,
+    "fatG": 10
+  },
+  {
+    "name": "Salad dressing",
+    "defaultQuantity": 2,
+    "unit": "tbsp",
+    "calories": 145,
+    "proteinG": 0.2,
+    "carbsG": 2.4,
+    "fatG": 15
+  },
+  {
+    "name": "Cooking oil spray",
+    "defaultQuantity": 1,
+    "unit": "serving",
+    "calories": 20,
+    "proteinG": 0,
+    "carbsG": 0,
+    "fatG": 2.2
+  }
+]
