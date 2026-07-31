@@ -367,3 +367,61 @@ sharing on architectural grounds.
 The framing that survives regardless: this is sold as money recovered, not as
 organisation. "You saved $312 this year" is the pitch, which makes the receipt
 and spending data a revenue mechanism rather than a feature.
+
+---
+
+## Depletion
+
+Settled while designing `add-pantry-stock` and `add-stock-depletion`.
+
+**51. Leftovers log calories but never decrement.** `SETTLED`
+The counterpart to decision 10, and only correct alongside it. The servings
+multiplier debits the whole batch when it is cooked, so eating the remaining
+portions must debit nothing — otherwise a four-serving curry debits the pantry
+seven times. Modelled as one closed `venue` field (`home | out | leftovers`)
+rather than separate booleans, so the incoherent combination of a leftovers meal
+with a multiplier of four cannot be expressed.
+
+**52. Unit conversion never invents a factor.** `SETTLED`
+`convert()` returns `number | null`, and `null` means not convertible. Where a
+canonical ingredient has no density or no weight per piece, the app records the
+consumption and counts a use rather than estimating a mass. The tempting
+defaults — assume 1 g/ml, assume a 100 g piece — produce confident nonsense in
+exactly the place decision 15 forbids it. Making "I don't know" a value the type
+system forces callers to handle is what stops it being added later for
+convenience.
+
+**53. Confidence decays with estimated decrements, and the interface says so.** `SETTLED`
+Each pantry item counts estimated decrements since its last ground-truth anchor,
+where an anchor is a receipt, a fullness tap, or a user-entered quantity. Above
+a threshold the status is qualified rather than asserted, and a fullness check
+may be offered.
+
+This is what makes decision 15 honest rather than aspirational. "Running low"
+after two estimated decrements and after twenty are different claims, and a
+product sold on trustworthiness should not state them identically. A count
+rather than a computed error bound, deliberately — an error bound implies a
+rigour the inputs do not support.
+
+**54. Depletion is never retroactive.** `SETTLED`
+Meals logged before an item was catalogued do not decrement it. Replaying
+history would silently rewrite stock the user believes they set, using estimates
+they never had a chance to correct.
+
+**55. Receipts re-anchor by setting, not by adding.** `SETTLED`
+A receipt matching an existing item sets its amount to the purchased quantity
+and zeroes the drift counter. Adding to a drifted estimate compounds the error;
+setting discards it, which is the whole point of decision 21. A receipt for a
+container the user does not yet have creates a new pantry item instead.
+
+**56. One pantry item is one physical container.** `SETTLED`
+No count column. Opened state, expiry, and fullness are all per-container, and a
+count forces each of them to become either wrong or an array. Three tins of
+tomatoes are three rows, grouped by canonical ingredient for display.
+
+**57. Storage locations are a table with a closed `kind`.** `SETTLED`
+Users rename and add locations freely, but each carries a kind
+(`fridge | freezer | ambient | counter`) that the shelf-life lookup keys off. A
+"Chest freezer" and a "Garage freezer" both get freezer shelf life without the
+lookup knowing either name. A free-text location string would make renaming a
+location silently change every expiry date under it.
