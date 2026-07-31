@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
 /**
- * A build-time Anthropic key, read from `.env` (see `.env.example`).
+ * A build-time vision API key, read from `.env` (see `.env.example`).
  *
  * This exists so a developer running the project locally does not have to retype
  * their key on every fresh install. It is a convenience, not the storage mechanism:
@@ -11,28 +11,28 @@ import type { ExpoConfig } from 'expo/config';
  *
  * Leave it unset when you publish. Users add their own key in Settings.
  */
-const devApiKey = process.env.SNAP_DEV_ANTHROPIC_API_KEY ?? null;
+const devApiKey = process.env.MISE_DEV_API_KEY ?? null;
 
 const config: ExpoConfig = {
-  name: 'Snap',
-  slug: 'snap-calories',
-  scheme: 'snap',
+  name: 'Mise',
+  slug: 'mise',
+  scheme: 'mise',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   ios: {
     supportsTablet: false,
-    bundleIdentifier: 'com.snapcalories.app',
+    bundleIdentifier: 'com.mise.app',
     infoPlist: {
       NSCameraUsageDescription:
-        'Snap uses the camera to photograph your meals so it can estimate their calories.',
+        'Mise uses the camera to photograph your meals so it can estimate their calories.',
       NSPhotoLibraryUsageDescription:
-        'Snap reads photos you pick so it can estimate the calories of a meal.',
+        'Mise reads photos you pick so it can estimate the calories of a meal.',
     },
   },
   android: {
-    package: 'com.snapcalories.app',
+    package: 'com.mise.app',
     adaptiveIcon: {
       backgroundColor: '#EDEAE4',
       foregroundImage: './assets/android-icon-foreground.png',
@@ -57,14 +57,14 @@ const config: ExpoConfig = {
       'expo-camera',
       {
         cameraPermission:
-          'Snap uses the camera to photograph your meals so it can estimate their calories.',
+          'Mise uses the camera to photograph your meals so it can estimate their calories.',
       },
     ],
     [
       'expo-image-picker',
       {
         photosPermission:
-          'Snap reads photos you pick so it can estimate the calories of a meal.',
+          'Mise reads photos you pick so it can estimate the calories of a meal.',
       },
     ],
   ],

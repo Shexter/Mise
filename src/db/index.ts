@@ -2,6 +2,12 @@ import * as SQLite from 'expo-sqlite';
 
 import { DROP_ALL, LATEST_VERSION, MIGRATIONS } from '@/db/schema';
 
+/**
+ * Kept as `snap.db` after the rename to Mise, deliberately. The filename is
+ * internal — no user ever sees it — and changing it would make an existing
+ * install's meals, profile, and targets vanish rather than migrate. Rename it
+ * only alongside a migration that moves the old file.
+ */
 const DATABASE_NAME = 'snap.db';
 
 let database: SQLite.SQLiteDatabase | null = null;

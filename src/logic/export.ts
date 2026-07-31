@@ -19,12 +19,12 @@ export async function exportData(): Promise<boolean> {
   const json = JSON.stringify(bundle, null, 2);
 
   if (Platform.OS === 'ios') {
-    const file = new File(new Directory(Paths.cache), `snap-export-${randomUUID()}.json`);
+    const file = new File(new Directory(Paths.cache), `mise-export-${randomUUID()}.json`);
     file.write(json);
-    const result = await Share.share({ url: file.uri, title: 'Snap data export' });
+    const result = await Share.share({ url: file.uri, title: 'Mise data export' });
     return result.action !== Share.dismissedAction;
   }
 
-  const result = await Share.share({ message: json, title: 'Snap data export' });
+  const result = await Share.share({ message: json, title: 'Mise data export' });
   return result.action !== Share.dismissedAction;
 }

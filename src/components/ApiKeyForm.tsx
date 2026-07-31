@@ -112,7 +112,7 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
       {helpOpen ? (
         <View style={styles.helpBody}>
           <Body muted>
-            Snap calls the provider directly from your phone with your own key —
+            Mise calls the provider directly from your phone with your own key —
             no server in between. Use an Anthropic key, or a Google AI (Gemini)
             key, which has a free tier. Create one, copy it once, and paste it
             here.

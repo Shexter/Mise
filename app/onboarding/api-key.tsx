@@ -36,7 +36,7 @@ export default function ApiKeyStep() {
       <StepShell
         step="api-key"
         title="Your key is already set."
-        detail="Snap found a key in this phone’s keychain. You can replace or remove it in Settings."
+        detail="Mise found a key in this phone’s keychain. You can replace or remove it in Settings."
         primaryLabel="Continue"
         onPrimary={() => advance(false)}
       />
@@ -47,7 +47,7 @@ export default function ApiKeyStep() {
     <StepShell
       step="api-key"
       title="Add your Anthropic key."
-      detail="Snap has no server of its own. Photo estimates go straight from this phone to Anthropic, billed to your key."
+      detail="Mise has no server of its own. Photo estimates go straight from this phone to Anthropic, billed to your key."
     >
       <ApiKeyForm onSaved={() => advance(false)} saveLabel="Save and continue" />
 
@@ -58,7 +58,7 @@ export default function ApiKeyStep() {
           onPress={() => advance(true)}
         />
         <Caption muted style={styles.skipDetail}>
-          Without a key, Snap works as a manual food diary. Add one in Settings
+          Without a key, Mise works as a manual food diary. Add one in Settings
           whenever you want photo estimates.
         </Caption>
       </View>

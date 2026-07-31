@@ -26,8 +26,12 @@ Pure data and pure functions, no network.
       an `sk-proj-` key detects as OpenAI, an `AIza` key detects as Google, and
       an unrecognised string returns `null`. Add tests if a runner exists,
       otherwise verify by hand and record the result in this task.
-- [ ] 2.6 Confirm `STORAGE_KEY`, `getApiKey`, `setApiKey`, `maskKey`, and the
-      seeding path are untouched, and that an existing saved key still loads.
+- [ ] 2.6 Rename `STORAGE_KEY` from `anthropic_api_key` to a provider-neutral
+      value, and rename `SEEDED_FLAG` to match. Safe because the bundle
+      identifier moved to `com.mise.app`; an Expo Go tester re-enters a key once.
+- [ ] 2.7 Confirm `getApiKey`, `setApiKey`, `clearApiKey`, `maskKey`, and
+      `seedFromEnvironment` are otherwise untouched, and that a key still
+      round-trips through the keychain.
 
 ## 3. OpenAI transport
 

@@ -189,9 +189,18 @@ zero-cost option, which the spec requires.
 
 ## Migration Plan
 
-No schema change, no data migration, no stored-key change. `STORAGE_KEY` keeps
-its historical `anthropic_api_key` value deliberately — renaming it would orphan
-the key of every existing install for no user-visible benefit.
+No schema change and no data migration.
+
+`STORAGE_KEY` is currently `anthropic_api_key`, a name that is already wrong —
+it holds Gemini keys today and will hold OpenAI keys after this change. It
+should be renamed to something provider-neutral, and this is the moment: the
+app's bundle identifier moved to `com.mise.app` in the rename to Mise, so no
+standalone install of this app exists and there is no keychain entry to orphan.
+
+The one affected case is a developer testing through Expo Go, whose keychain is
+Expo Go's rather than the app's and therefore survives the bundle change. They
+re-enter a key once. That is worth accepting rather than carrying a misleading
+constant name indefinitely.
 
 Rollback is a straight revert. A user who saved an OpenAI key and then downgrades
 has a key the older build detects as Gemini and rejects; they would re-enter a

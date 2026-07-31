@@ -58,10 +58,12 @@ provider behaviour is specified here for the first time.
 
 ## Non-goals
 
-- **Changing how keys are stored.** `expo-secure-store`, the keychain, the
-  `STORAGE_KEY` value, and the confinement rule are all unchanged. The storage
-  key retains its historical `anthropic_api_key` name; renaming it would orphan
-  the key of every existing install for no user-visible gain.
+- **Changing where keys are stored.** `expo-secure-store`, the keychain, and the
+  confinement rule to `src/api/keyStore.ts` are unchanged. The `STORAGE_KEY`
+  *constant* is renamed from `anthropic_api_key` to something provider-neutral,
+  since that name is already wrong — it holds Gemini keys today. The bundle
+  identifier moved to `com.mise.app`, so there is no standalone install whose
+  key could be orphaned.
 - **Multiple keys at once.** One key, one provider, as today. Holding an
   Anthropic and an OpenAI key simultaneously and choosing per request is a
   larger change to the settings surface and is not proposed here.

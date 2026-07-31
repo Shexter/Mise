@@ -195,7 +195,7 @@ export default function SettingsScreen() {
 
         <View style={styles.about}>
           <Caption muted>
-            Snap {version}. Everything is stored only on this device. There is no
+            Mise {version}. Everything is stored only on this device. There is no
             account and no server.
           </Caption>
         </View>

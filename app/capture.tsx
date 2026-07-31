@@ -84,7 +84,7 @@ export default function CaptureScreen() {
       <View style={[styles.blank, { paddingTop: insets.top }]}>
         <View style={styles.permission}>
           <ScreenTitle style={styles.permissionText}>
-            Snap needs the camera
+            Mise needs the camera
           </ScreenTitle>
           <Body muted style={styles.permissionText}>
             Photographs of meals never leave your phone except in the estimate

@@ -1,7 +1,7 @@
 {
-  "name": "snap-calories",
+  "name": "mise",
   "version": "1.0.0",
-  "description": "Local-first photo calorie tracker. Runs in Expo Go, stores everything on-device, uses your own Anthropic API key.",
+  "description": "Local-first food app for the home: pantry stock, predicted expiry, grocery spending, and calorie tracking. Stores everything on-device.",
   "license": "MIT",
   "private": true,
   "main": "expo-router/entry",
