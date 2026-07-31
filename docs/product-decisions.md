@@ -332,3 +332,38 @@ than a conversation.
 
 **45. Every agreed decision lands in this file.** `SETTLED`
 Appended as it is settled, not reconstructed later.
+
+---
+
+## Money
+
+**49. Both key modes ship: bring-your-own and hosted.** `SETTLED`
+Hobbyists paste their own provider key and pay nothing. Everyone else pays a
+subscription and never learns what an API key is. These serve two populations
+that barely overlap — the people willing to create a Google AI Studio account
+are the people least likely to pay, and the people happy to pay bounce at the
+words "API key" — so serving only one of them caps the product either on
+audience or on revenue.
+
+Architectural consequence, and the reason this is recorded before it is built:
+the vision facade must route on **key mode** as well as on provider. Hosted mode
+is a transport whose credential is a session token rather than a provider key.
+`add-openai-provider` already replaces ternary dispatch with a transport
+registry, which is the right seam — keep it, and hosted mode is an added entry
+rather than a rewrite. Do not collapse the seam on the grounds that there is
+only one mode today.
+
+Local-first is preserved in the sense that matters: user data stays on device in
+either mode. Hosted mode moves only inference off the phone.
+
+**50. Monetisation shape.** `OPEN`
+Not settled, deliberately parked. The live questions: subscription price and
+period, whether a lifetime tier ships early while marginal cost is near zero,
+whether the paywall lands immediately after first-run pantry capture (the point
+of maximum sunk cost and therefore maximum willingness to pay), and whether
+household plans return as a paid upsell despite decision 6 having cut household
+sharing on architectural grounds.
+
+The framing that survives regardless: this is sold as money recovered, not as
+organisation. "You saved $312 this year" is the pitch, which makes the receipt
+and spending data a revenue mechanism rather than a feature.
