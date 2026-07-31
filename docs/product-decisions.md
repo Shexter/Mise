@@ -425,3 +425,77 @@ Users rename and add locations freely, but each carries a kind
 "Chest freezer" and a "Garage freezer" both get freezer shelf life without the
 lookup knowing either name. A free-text location string would make renaming a
 location silently change every expiry date under it.
+
+---
+
+## Positioning
+
+These came out of arguing the strongest case *against* the product. The full
+argument and the responses to it are in [`bear-case.md`](./bear-case.md). Three
+criticisms survived and produced changes; the rest were answerable.
+
+**58. Pantry is a byproduct, not the primary.** `SETTLED`
+Mise is a calorie tracker whose pantry happens to be accurate — not a pantry app
+with calories bolted on. The calorie tracker is the daily habit that keeps
+people opening the app; the pantry accrues from that habit and from receipts.
+
+Every criticism that lands hardest lands against pantry-as-primary: the
+onboarding wall, the audience mismatch, the decade of failed pantry apps. Almost
+none of them land against pantry-as-byproduct. Nothing already specified
+changes; order and emphasis do.
+
+**59. ~~The pantry is built by a large first-run capture session.~~** `SUPERSEDED by 60`
+Decision 23 assumed a forty-minute photograph-everything session as onboarding.
+Consumer completion through a setup that long is in the single digits, and the
+catalogue is close to useless below roughly 70% coverage. Batching the capture
+made it tolerable, not short.
+
+**60. The pantry populates itself first; bulk capture is optional.** `SETTLED`
+Receipts and "I cooked this" both add items as a side effect of ordinary use.
+Three weeks of normal usage gets most of a kitchen catalogued with no dedicated
+effort. Only then offer to fill the remaining gaps — a five-minute task with
+visible value, at a point where the app has already earned trust.
+
+The big capture session survives as an optional power move for someone who wants
+the full picture immediately. It is no longer the front door. Decision 23's
+batching requirement still applies when the session is used.
+
+**61. The dinner decision is the seasoning-tracking mechanism.** `SETTLED`
+Reliable seasoning depletion cannot be read from a photograph of finished food —
+gochujang in a stew is indistinguishable from tomato paste, and a vision model
+will never report two grams of white pepper. Decision 13's "count uses" fallback
+only fires when the model names the ingredient, which for the invisible
+ingredients is exactly when it does not.
+
+But when a user cooks from a suggestion, the recipe *states* what went in. That
+is exact rather than estimated. So the dinner decision is not a feature sitting
+on top of the pantry — it is how the seasoning promise gets kept, and the "I
+cooked this" tap is a higher-quality data path than the camera. This argues for
+building it earlier than the dependency chain implies.
+
+**62. Hosted mode pools alias learning; local mode does not.** `SETTLED`
+Amends decision 49. The alias table is the one asset that compounds with use,
+and decision 5 made it per-device — so every install re-learns the same retail
+abbreviations from scratch, by paid model call. That forecloses the only
+defensible moat in the category.
+
+Once hosted mode exists there is a server, and pooling *string-to-canonical
+mappings only* costs nothing and reveals nothing: `KIKKO SOY 500ML → light soy
+sauce` is a retail abbreviation, not personal data. Pantries, meals, photos, and
+profiles stay strictly on-device in both modes. Bring-your-own-key users keep
+working fully locally, without the shared learning.
+
+**63. The initial customer is meal preppers.** `SETTLED`
+The overlap between "logs calories" and "owns forty sauces" is narrower than
+assumed — careful loggers tend to eat simple repetitive food, and elaborate
+cooks find logging hardest. Meal preppers sit precisely in the intersection:
+they batch cook (decision 10's multiplier), buy in bulk (the pantry), track
+macros (the existing engine), and cook real food. Every mechanic already
+designed maps onto that behaviour unchanged.
+
+**64. The app never makes a food-safety claim.** `SETTLED`
+Predicted expiry is presented as an estimate and never as a verdict. The wording
+is "use soon", never "safe to eat" or "unsafe". Shelf-life tables vary too much
+by handling to support a safety claim, and the liability surface is not one to
+walk onto casually. `expiry_source` already distinguishes predicted dates from
+known ones; this makes the copy rule explicit.
