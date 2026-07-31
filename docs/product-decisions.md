@@ -493,6 +493,26 @@ they batch cook (decision 10's multiplier), buy in bulk (the pantry), track
 macros (the existing engine), and cook real food. Every mechanic already
 designed maps onto that behaviour unchanged.
 
+**65. Partial adoption is a normal state, not a failure.** `SETTLED`
+Nothing is gated and nothing is paywalled, so a calorie-only user who never
+opens the pantry loses nothing by not opening it, and a pantry-only user loses
+nothing by ignoring macros. The worry that a split audience makes each half
+"dead weight" to the other only bites if using half the app costs the user
+something. It does not.
+
+The halves are also asymmetric in a way that helps: the funnel runs one
+direction, from calories into pantry. Someone logging meals accrues a catalogue
+without ever deciding they wanted one — decision 58 reached from a different
+starting point.
+
+Two residuals survive, both builder-side. Unused features still cost
+engineering time, surface area, and a tab half the audience scrolls past, which
+is why decision 58's ordering is a real constraint. And "nobody loses money"
+holds only while everything is free: once decision 49's hosted mode puts a
+paywall somewhere, an audience where half the users value half the app forces
+either a price set for the half-value user or a segmentation that complicates
+the offer. Carry that into decision 50.
+
 **64. The app never makes a food-safety claim.** `SETTLED`
 Predicted expiry is presented as an estimate and never as a verdict. The wording
 is "use soon", never "safe to eat" or "unsafe". Shelf-life tables vary too much

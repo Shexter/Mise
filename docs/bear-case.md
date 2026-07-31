@@ -128,13 +128,40 @@ wisdom until friction dropped far enough, and then a great many people started
 logging their food. The open question is whether pantry friction can fall as far
 as calorie friction did — partly, which is precisely why the fix to (2) matters.
 
-### Refuted, and it names the customer: the audience split (3)
+### Refuted twice over: the audience split (3)
 
-The intersection is not empty, it is specific: meal preppers. They batch cook,
-buy in bulk, track macros, and cook real food. Every mechanic already designed
-maps onto that behaviour without modification. The criticism does not refute the
-product; it supplies the customer that had not been named. Recorded as decision
-63.
+**First,** the intersection is not empty, it is specific: meal preppers. They
+batch cook, buy in bulk, track macros, and cook real food. Every mechanic
+already designed maps onto that behaviour without modification. The criticism
+does not refute the product; it supplies the customer that had not been named.
+Recorded as decision 63.
+
+**Second, and more decisively:** the criticism called the unused half "dead
+weight", and that word smuggles in an assumption worth examining. Dead weight to
+whom? Nothing is gated and nothing is paywalled, so a calorie-only user who
+never opens the pantry loses precisely nothing by not opening it. Partial
+adoption is not a failure state — it is the normal condition of most software.
+The criticism only bites if using half the app costs the user something, and it
+does not.
+
+The two halves are also not symmetric, which is what really dissolves it. The
+funnel runs **one direction, from calories into pantry**: someone logging meals
+accrues a catalogue without ever deciding they wanted one. That is decision 58
+reached from a different starting point, which is some evidence for it.
+
+**What survives, narrowed.** Two residuals, both builder-side rather than
+user-side:
+
+- Unused features are free for the user and not for the builder. Engineering
+  time, surface area, bugs, and a tab that half the audience scrolls past are
+  real costs. Products die of being for everyone more often than of being too
+  narrow — which is why decision 58's ordering is a real constraint rather than
+  a cosmetic one.
+- The "nobody loses money" argument holds only while everything is free.
+  Decision 49 puts hosted inference in the plan, so a paywall lands somewhere.
+  At that point, an audience where half the users value half the app forces
+  either a price set for the half-value user or a segmentation that complicates
+  the offer. Worth carrying into decision 50 when it is un-parked.
 
 ### Refuted: the engineering burden (6)
 
