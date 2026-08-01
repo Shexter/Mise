@@ -131,7 +131,7 @@ function EntryRow({
           {entry.locationName}
           {entry.opened ? ' · opened' : ''}
           {' · '}
-          {statusLabel(entry.status)}
+          {statusLabel(entry.status, entry.statusConfident)}
         </Caption>
         <Caption style={urgent ? styles.urgent : undefined} muted={!urgent}>
           {expiryLabel(entry)}

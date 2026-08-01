@@ -6,14 +6,20 @@ import type { StockStatus } from '@/types';
  * safety verdict — "use soon", never "safe to eat".
  */
 
-export function statusLabel(status: StockStatus): string {
+/**
+ * Status wording, qualified when the app has drifted past what it can
+ * defend (decision 53). "Probably low" and "Running low" are different
+ * claims and must not read identically — that difference is the whole
+ * point of tracking drift.
+ */
+export function statusLabel(status: StockStatus, confident = true): string {
   switch (status) {
     case 'in_stock':
-      return 'In stock';
+      return confident ? 'In stock' : 'Probably still have some';
     case 'running_low':
-      return 'Running low';
+      return confident ? 'Running low' : 'Probably low';
     case 'out':
-      return 'Out';
+      return confident ? 'Out' : 'Probably out';
     case 'discarded':
       return 'Discarded';
   }

@@ -10,11 +10,14 @@ import {
   freezeExpiry,
   predictExpiry,
 } from '@/logic/expiry';
+import type { Decrement } from '@/logic/deplete';
 import { macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
 import type {
   CanonicalItem,
   Confidence,
+  ConsumptionEvent,
+  ConsumptionKind,
   DailyTarget,
   ExpirySource,
   FoodClass,
@@ -27,6 +30,7 @@ import type {
   MealItem,
   MealSource,
   MealType,
+  MealVenue,
   MealWithItems,
   PantryItem,
   Product,
@@ -37,6 +41,19 @@ import type {
   StockStatus,
   StorageLocation,
 } from '@/types';
+
+/**
+ * The transaction handle `withExclusiveTransactionAsync` hands back. Typed
+ * structurally so the Node test stand-in satisfies it without importing
+ * `expo-sqlite`.
+ */
+type BindParams = (string | number | null)[];
+
+interface TransactionHandle {
+  runAsync(sql: string, params: BindParams): Promise<unknown>;
+  getFirstAsync<T>(sql: string, params: BindParams): Promise<T | null>;
+  getAllAsync<T>(sql: string, params: BindParams): Promise<T[]>;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Row shapes                                                                  */
@@ -66,6 +83,8 @@ interface MealRow {
   photo_uri: string | null;
   source: string;
   confidence: string | null;
+  venue: string;
+  servings_mult: number;
   created_at: string;
 }
 
@@ -122,6 +141,8 @@ function toMeal(row: MealRow): Meal {
     photoUri: row.photo_uri,
     source: row.source as MealSource,
     confidence: row.confidence as Confidence | null,
+    venue: row.venue as MealVenue,
+    servingsMult: row.servings_mult,
     createdAt: row.created_at,
   };
 }
@@ -273,6 +294,10 @@ export interface NewMeal {
   photoUri: string | null;
   source: MealSource;
   confidence: Confidence | null;
+  /** Defaults to home — the assumption every existing caller was making. */
+  venue?: MealVenue;
+  /** Servings the cooking produced. Forced to 1 for non-home venues. */
+  servingsMult?: number;
   items: NewMealItem[];
 }
 
@@ -294,6 +319,9 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     sortOrder: index,
   }));
 
+  // A non-home meal never debits the pantry, so a multiplier on one would be
+  // meaningless — forced to 1 here so the stored row cannot express it.
+  const venue = meal.venue ?? 'home';
   const stored: MealWithItems = {
     id: mealId,
     loggedAt: meal.loggedAt,
@@ -303,6 +331,8 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     photoUri: meal.photoUri,
     source: meal.source,
     confidence: meal.confidence,
+    venue,
+    servingsMult: venue === 'home' ? Math.max(1, meal.servingsMult ?? 1) : 1,
     createdAt,
     items,
   };
@@ -320,8 +350,9 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
       `INSERT INTO meals
-         (id, logged_at, local_date, meal_type, name, photo_uri, source, confidence, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, logged_at, local_date, meal_type, name, photo_uri, source, confidence,
+          venue, servings_mult, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         meal.id,
         meal.loggedAt,
@@ -331,6 +362,8 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
         meal.photoUri,
         meal.source,
         meal.confidence,
+        meal.venue,
+        meal.servingsMult,
         meal.createdAt,
       ],
     );
@@ -1018,6 +1051,8 @@ interface PantryItemRow {
   price_cents: number | null;
   photo_uri: string | null;
   status: string;
+  estimated_decrements_since_anchor: number;
+  last_anchor_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1049,6 +1084,8 @@ function toPantryItem(row: PantryItemRow): PantryItem {
     priceCents: row.price_cents,
     photoUri: row.photo_uri,
     status: row.status as StockStatus,
+    estimatedDecrementsSinceAnchor: row.estimated_decrements_since_anchor,
+    lastAnchorAt: row.last_anchor_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1317,10 +1354,56 @@ export async function setItemFullness(
   id: string,
   fullness: Fullness,
 ): Promise<void> {
-  await touchPantryItem(id, 'fullness = ?, status = ?', [
-    fullness,
-    fullness === 'out' ? 'out' : 'in_stock',
-  ]);
+  // A fullness tap is ground truth (decision 14), so it is an anchor: the
+  // drift counter resets and the app may speak confidently again.
+  await touchPantryItem(
+    id,
+    `fullness = ?, status = ?,
+     estimated_decrements_since_anchor = 0, last_anchor_at = ?`,
+    [fullness, fullness === 'out' ? 'out' : 'in_stock', new Date().toISOString()],
+  );
+}
+
+/**
+ * A quantity the user typed. The other ground-truth anchor: it zeroes
+ * drift, and it restores `qty_source` to `user`, which is what makes the
+ * pantry screen echo the figure back to them again (decision 74).
+ */
+export async function setItemQuantity(
+  id: string,
+  qtyRemaining: number,
+  qtyUnit: MeasureUnit,
+): Promise<void> {
+  await touchPantryItem(
+    id,
+    `qty_remaining = ?, qty_unit = ?, qty_source = 'user',
+     estimated_decrements_since_anchor = 0, last_anchor_at = ?`,
+    [qtyRemaining, qtyUnit, new Date().toISOString()],
+  );
+}
+
+/**
+ * A receipt re-anchor (decision 55): the purchased quantity *sets* the
+ * amount rather than adding to it, and drift zeroes. Adding to a drifted
+ * estimate compounds the error; setting discards it, which is the point of
+ * receipts being the ground-truth re-anchor.
+ *
+ * Note the boundary with decision 68: this applies when a receipt matches
+ * an *existing* item. A purchase of a container the user does not yet have
+ * creates a new pantry item instead, which `add-receipt-import` owns.
+ */
+export async function reanchorFromReceipt(
+  id: string,
+  qtyRemaining: number,
+  qtyUnit: MeasureUnit,
+): Promise<void> {
+  await touchPantryItem(
+    id,
+    `qty_remaining = ?, qty_unit = ?, qty_source = 'user', status = 'in_stock',
+     uses_count = 0, fullness = NULL,
+     estimated_decrements_since_anchor = 0, last_anchor_at = ?`,
+    [qtyRemaining, qtyUnit, new Date().toISOString()],
+  );
 }
 
 export async function markItemUsedUp(id: string): Promise<void> {
@@ -1334,6 +1417,298 @@ export async function markItemRunningLow(id: string): Promise<void> {
 /** Discarded, not consumed — the raw material for waste figures later. */
 export async function discardItem(id: string): Promise<void> {
   await touchPantryItem(id, "status = 'discarded'", []);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Depletion                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The servings a dish made last time, so a repeated dish remembers its
+ * yield. Matched on the normalised meal name, which is how the same dish
+ * typed slightly differently still finds its own history.
+ */
+export async function lastServingsForDish(
+  mealName: string,
+): Promise<number | null> {
+  const row = await db().getFirstAsync<{ servings_mult: number }>(
+    `SELECT servings_mult FROM meals
+     WHERE venue = 'home' AND LOWER(TRIM(name)) = ?
+     ORDER BY logged_at DESC LIMIT 1`,
+    [mealName.trim().toLowerCase()],
+  );
+  return row?.servings_mult ?? null;
+}
+
+/** The venue the user chose most recently, for defaulting the control. */
+export async function lastVenue(): Promise<MealVenue | null> {
+  const row = await db().getFirstAsync<{ venue: string }>(
+    'SELECT venue FROM meals ORDER BY logged_at DESC LIMIT 1',
+  );
+  return (row?.venue as MealVenue) ?? null;
+}
+
+interface ConsumptionEventRow {
+  id: string;
+  pantry_item_id: string | null;
+  canonical_id: string;
+  meal_id: string | null;
+  qty: number | null;
+  unit: string | null;
+  uses: number;
+  servings_mult: number;
+  kind: string;
+  created_at: string;
+}
+
+function toConsumptionEvent(row: ConsumptionEventRow): ConsumptionEvent {
+  return {
+    id: row.id,
+    pantryItemId: row.pantry_item_id,
+    canonicalId: row.canonical_id,
+    mealId: row.meal_id,
+    qty: row.qty,
+    unit: row.unit as MeasureUnit | null,
+    uses: row.uses,
+    servingsMult: row.servings_mult,
+    kind: row.kind as ConsumptionKind,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getConsumptionEvents(
+  mealId: string,
+): Promise<ConsumptionEvent[]> {
+  const rows = await db().getAllAsync<ConsumptionEventRow>(
+    'SELECT * FROM consumption_events WHERE meal_id = ? ORDER BY created_at ASC',
+    [mealId],
+  );
+  return rows.map(toConsumptionEvent);
+}
+
+export async function getConsumptionEventsForItem(
+  pantryItemId: string,
+): Promise<ConsumptionEvent[]> {
+  const rows = await db().getAllAsync<ConsumptionEventRow>(
+    'SELECT * FROM consumption_events WHERE pantry_item_id = ? ORDER BY created_at ASC',
+    [pantryItemId],
+  );
+  return rows.map(toConsumptionEvent);
+}
+
+/**
+ * Writes a planned set of decrements and applies them, in one transaction.
+ *
+ * Three rules are enforced here rather than in the planner, because they are
+ * about the stored row rather than the intention:
+ *
+ * - **Clamping.** A decrement larger than what is left empties the item and
+ *   marks it out, rather than storing a negative amount. The clamp is drift
+ *   evidence — the estimate was already wrong.
+ * - **Drift.** Every estimated decrement increments the counter that gates
+ *   how confidently the interface speaks (decision 53).
+ * - **Provenance.** The first estimated decrement against a user-entered
+ *   quantity flips `qty_source` to `estimated` (decision 74). Leaving it as
+ *   `user` would let the pantry screen render a decremented estimate
+ *   labelled as the figure the user typed.
+ */
+export async function applyDepletion(
+  mealId: string,
+  decrements: readonly Decrement[],
+  servingsMult: number,
+): Promise<void> {
+  if (decrements.length === 0) return;
+  const now = new Date().toISOString();
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    for (const decrement of decrements) {
+      const applied = decrement.pantryItemId
+        ? await applyToItem(txn, decrement, now)
+        : decrement.qty;
+      await txn.runAsync(
+        `INSERT INTO consumption_events
+           (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
+            servings_mult, kind, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          randomUUID(),
+          decrement.pantryItemId,
+          decrement.canonicalId,
+          mealId,
+          applied,
+          decrement.unit,
+          decrement.uses,
+          servingsMult,
+          decrement.kind,
+          now,
+        ],
+      );
+    }
+  });
+}
+
+/**
+ * Applies one decrement to its pantry item and reports the amount actually
+ * removed, which is not always the amount intended: a decrement larger than
+ * what is left empties the item rather than going negative.
+ *
+ * The *applied* figure is what the consumption event stores, so reversing a
+ * clamped decrement restores exactly what it took and not the larger amount
+ * it wanted. Recording the intention instead would hand an item free stock
+ * every time an over-decrement was undone.
+ */
+async function applyToItem(
+  txn: TransactionHandle,
+  decrement: Decrement,
+  now: string,
+): Promise<number | null> {
+  const row = await txn.getFirstAsync<PantryItemRow>(
+    'SELECT * FROM pantry_items WHERE id = ?',
+    [decrement.pantryItemId],
+  );
+  if (!row) return decrement.qty;
+
+  const uses = row.uses_count + decrement.uses;
+
+  if (decrement.qty === null) {
+    // Uses-tracked, or unconvertible: the count moves, the amount does not.
+    await txn.runAsync(
+      `UPDATE pantry_items
+         SET uses_count = ?,
+             estimated_decrements_since_anchor = estimated_decrements_since_anchor + 1,
+             updated_at = ?
+       WHERE id = ?`,
+      [uses, now, decrement.pantryItemId],
+    );
+    return null;
+  }
+
+  const remaining = row.qty_remaining ?? 0;
+  const next = remaining - decrement.qty;
+  const clamped = next <= 0;
+  const applied = clamped ? remaining : decrement.qty;
+
+  await txn.runAsync(
+    `UPDATE pantry_items
+       SET qty_remaining = ?,
+           qty_unit = COALESCE(qty_unit, ?),
+           qty_source = 'estimated',
+           uses_count = ?,
+           status = CASE WHEN ? THEN 'out' ELSE status END,
+           estimated_decrements_since_anchor = estimated_decrements_since_anchor + 1,
+           updated_at = ?
+     WHERE id = ?`,
+    [
+      clamped ? 0 : next,
+      decrement.unit,
+      uses,
+      clamped ? 1 : 0,
+      now,
+      decrement.pantryItemId,
+    ],
+  );
+  return applied;
+}
+
+/**
+ * Reverses a meal's depletion: restores what its events recorded, then
+ * deletes them. Drift counters unwind with the amounts, so a reversed meal
+ * leaves no trace of confidence it should not have cost.
+ */
+export async function reverseDepletion(mealId: string): Promise<void> {
+  const rows = await db().getAllAsync<ConsumptionEventRow>(
+    'SELECT * FROM consumption_events WHERE meal_id = ?',
+    [mealId],
+  );
+  if (rows.length === 0) return;
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await reverseRows(txn, rows, mealId);
+  });
+}
+
+async function reverseRows(
+  txn: TransactionHandle,
+  rows: readonly ConsumptionEventRow[],
+  mealId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  for (const row of rows) {
+    if (row.pantry_item_id) {
+      const item = await txn.getFirstAsync<PantryItemRow>(
+        'SELECT * FROM pantry_items WHERE id = ?',
+        [row.pantry_item_id],
+      );
+      if (item) {
+        const restoredQty =
+          row.qty === null ? item.qty_remaining : (item.qty_remaining ?? 0) + row.qty;
+        await txn.runAsync(
+          `UPDATE pantry_items
+             SET qty_remaining = ?,
+                 uses_count = MAX(0, uses_count - ?),
+                 status = CASE WHEN status = 'out' AND ? > 0 THEN 'in_stock' ELSE status END,
+                 estimated_decrements_since_anchor =
+                   MAX(0, estimated_decrements_since_anchor - 1),
+                 updated_at = ?
+           WHERE id = ?`,
+          [restoredQty, row.uses, restoredQty ?? 0, now, row.pantry_item_id],
+        );
+      }
+    }
+  }
+  await txn.runAsync('DELETE FROM consumption_events WHERE meal_id = ?', [
+    mealId,
+  ]);
+}
+
+/**
+ * Re-commits an edited meal: reverse, then reapply, in one transaction.
+ *
+ * Deliberately not a computed delta between the old and new meals. A diff
+ * would have to be simultaneously correct for added items, removed items,
+ * changed quantities, and a changed multiplier, and it drifts out of
+ * agreement with itself the moment one of those cases is handled slightly
+ * differently. Reverse-then-reapply has one code path, and the events table
+ * exists precisely to make it cheap.
+ */
+export async function reapplyDepletion(
+  mealId: string,
+  decrements: readonly Decrement[],
+  servingsMult: number,
+): Promise<void> {
+  const existing = await db().getAllAsync<ConsumptionEventRow>(
+    'SELECT * FROM consumption_events WHERE meal_id = ?',
+    [mealId],
+  );
+  const now = new Date().toISOString();
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    if (existing.length > 0) {
+      await reverseRows(txn, existing, mealId);
+    }
+    for (const decrement of decrements) {
+      const applied = decrement.pantryItemId
+        ? await applyToItem(txn, decrement, now)
+        : decrement.qty;
+      await txn.runAsync(
+        `INSERT INTO consumption_events
+           (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
+            servings_mult, kind, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          randomUUID(),
+          decrement.pantryItemId,
+          decrement.canonicalId,
+          mealId,
+          applied,
+          decrement.unit,
+          decrement.uses,
+          servingsMult,
+          decrement.kind,
+          now,
+        ],
+      );
+    }
+  });
 }
 
 /* -------------------------------------------------------------------------- */

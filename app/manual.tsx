@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,16 +10,28 @@ import { Field } from '@/components/Field';
 import { Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
-import { MEASURE_UNITS, MEAL_TYPES } from '@/types';
+import { MEASURE_UNITS, MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
-import type { MeasureUnit, MealType } from '@/types';
+import { lastVenue } from '@/db/queries';
+import type { MeasureUnit, MealType, MealVenue } from '@/types';
 
 const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
   value: type,
   label: type.charAt(0).toUpperCase() + type.slice(1),
+}));
+
+const VENUE_LABELS: Record<MealVenue, string> = {
+  home: 'Cooked in',
+  out: 'Ate out',
+  leftovers: 'Leftovers',
+};
+
+const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
+  value: venue,
+  label: VENUE_LABELS[venue],
 }));
 
 
@@ -41,7 +53,14 @@ export default function ManualScreen() {
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
   const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
+  const [venue, setVenue] = useState<MealVenue>('home');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void lastVenue().then((last) => {
+      if (last) setVenue(last);
+    });
+  }, []);
 
   const kcal = Number.parseFloat(calories);
   const valid = name.trim().length > 0 && Number.isFinite(kcal) && kcal >= 0;
@@ -63,6 +82,7 @@ export default function ManualScreen() {
       photoUri,
       source: 'manual',
       confidence: null,
+      venue,
       items: [
         {
           name: name.trim(),
@@ -161,6 +181,13 @@ export default function ManualScreen() {
             Meal
           </SectionLabel>
           <Segmented options={MEAL_TYPE_OPTIONS} value={mealType} onChange={setMealType} />
+        </View>
+
+        <View style={styles.mealType}>
+          <SectionLabel muted style={styles.mealTypeLabel}>
+            Where from
+          </SectionLabel>
+          <Segmented options={VENUE_OPTIONS} value={venue} onChange={setVenue} />
         </View>
       </View>
 

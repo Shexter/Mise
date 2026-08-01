@@ -1,6 +1,7 @@
 import { differenceInCalendarDays } from 'date-fns';
 
 import { localDateString, parseLocalDate } from '@/logic/dates';
+import { convert, usesPerContainer } from '@/logic/measures';
 import type { CanonicalItem, FoodClass, Fullness, PantryItem, StockStatus } from '@/types';
 
 /**
@@ -20,12 +21,46 @@ export const LOW_STAPLE_FRACTION = 0.15;
 export const LOW_SEASONING_FRACTION = 0.75;
 /** Perishables within this many days of expiry read as "use soon". */
 export const EXPIRING_SOON_DAYS = 3;
+/**
+ * Estimated decrements an item may accumulate before the app stops
+ * asserting and starts qualifying (decision 53). A guess, like the others —
+ * tuning it changes no interface and no schema.
+ */
+export const DRIFT_LIMIT = 8;
+
+/** The slice of a canonical the status math reads. */
+export type StatusCanonical = Pick<
+  CanonicalItem,
+  | 'foodClass'
+  | 'typicalUseQty'
+  | 'typicalUseUnit'
+  | 'typicalPkgQty'
+  | 'typicalPkgUnit'
+  | 'densityGPerMl'
+>;
 
 /** The slice of an item the status math reads. */
 export type StatusInputs = Pick<
   PantryItem,
   'status' | 'fullness' | 'qtyRemaining' | 'qtyUnit' | 'usesCount' | 'expiresAt'
->;
+> &
+  Partial<Pick<PantryItem, 'estimatedDecrementsSinceAnchor'>>;
+
+/**
+ * A status plus how much to trust it.
+ *
+ * `confident` is false once an item has drifted past `DRIFT_LIMIT`
+ * estimated decrements without a ground-truth anchor. "Running low" after
+ * two estimated decrements and after twenty are different claims, and the
+ * interface must not state them identically — which is what makes
+ * decision 15 honest rather than aspirational.
+ */
+export interface StatusResult {
+  status: StockStatus;
+  confident: boolean;
+  /** True when the app should ask for a fullness check, on suspicion only. */
+  suggestFullnessCheck: boolean;
+}
 
 /** Classes whose depletion is counted in uses, not mass (decision 12). */
 const USES_TRACKED: readonly FoodClass[] = ['seasoning', 'condiment'];
@@ -70,10 +105,7 @@ function fullnessStatus(fullness: Fullness): StockStatus {
  */
 export function stockStatus(
   item: StatusInputs,
-  canonical: Pick<
-    CanonicalItem,
-    'foodClass' | 'typicalUseQty' | 'typicalUseUnit' | 'typicalPkgQty' | 'typicalPkgUnit'
-  >,
+  canonical: StatusCanonical,
   today: string = localDateString(),
 ): StockStatus {
   if (item.status !== 'in_stock') return item.status;
@@ -108,51 +140,71 @@ export function stockStatus(
 }
 
 /**
- * Typical uses in a container, where package and use figures share a unit.
- * Unit conversion deliberately does not exist here — a mismatch means no
- * estimate, never an invented factor (decision 52).
+ * Low-water mark for a staple: the larger of three typical uses and 15% of
+ * a typical package, expressed in the unit the item is stocked in.
+ *
+ * Both figures now route through `convert`, so a use in tbsp against a
+ * stock figure in grams reconciles when the ingredient carries a density —
+ * and still returns null when it does not. The refusal to guess is intact;
+ * what changed is that it no longer fires on every mismatched pair
+ * (decision 73).
  */
-function usesPerContainer(
-  canonical: Pick<
-    CanonicalItem,
-    'typicalUseQty' | 'typicalUseUnit' | 'typicalPkgQty' | 'typicalPkgUnit'
-  >,
-): number | null {
-  const { typicalUseQty, typicalUseUnit, typicalPkgQty, typicalPkgUnit } =
-    canonical;
-  if (
-    typicalUseQty == null ||
-    typicalPkgQty == null ||
-    typicalUseQty <= 0 ||
-    typicalUseUnit == null ||
-    typicalUseUnit !== typicalPkgUnit
-  ) {
-    return null;
-  }
-  return typicalPkgQty / typicalUseQty;
-}
-
-/** Low-water mark for a staple: max of three uses and 15% of a package. */
 function stapleLowThreshold(
   item: Pick<StatusInputs, 'qtyUnit'>,
-  canonical: Pick<
-    CanonicalItem,
-    'typicalUseQty' | 'typicalUseUnit' | 'typicalPkgQty' | 'typicalPkgUnit'
-  >,
+  canonical: StatusCanonical,
 ): number | null {
+  if (item.qtyUnit == null) return null;
+
+  const useInStockUnit =
+    canonical.typicalUseQty != null && canonical.typicalUseUnit != null
+      ? convert(
+          canonical.typicalUseQty,
+          canonical.typicalUseUnit,
+          item.qtyUnit,
+          canonical,
+        )
+      : null;
+  const pkgInStockUnit =
+    canonical.typicalPkgQty != null && canonical.typicalPkgUnit != null
+      ? convert(
+          canonical.typicalPkgQty,
+          canonical.typicalPkgUnit,
+          item.qtyUnit,
+          canonical,
+        )
+      : null;
+
   const useThreshold =
-    canonical.typicalUseQty != null &&
-    canonical.typicalUseUnit != null &&
-    canonical.typicalUseUnit === item.qtyUnit
-      ? LOW_STAPLE_USES * canonical.typicalUseQty
-      : null;
+    useInStockUnit != null ? LOW_STAPLE_USES * useInStockUnit : null;
   const pkgThreshold =
-    canonical.typicalPkgQty != null &&
-    canonical.typicalPkgUnit != null &&
-    canonical.typicalPkgUnit === item.qtyUnit
-      ? LOW_STAPLE_FRACTION * canonical.typicalPkgQty
-      : null;
+    pkgInStockUnit != null ? LOW_STAPLE_FRACTION * pkgInStockUnit : null;
 
   if (useThreshold === null && pkgThreshold === null) return null;
   return Math.max(useThreshold ?? 0, pkgThreshold ?? 0);
+}
+
+/**
+ * The status an item should be shown with, and whether the app has earned
+ * the right to assert it.
+ *
+ * A fullness check is offered only when the item is both drifted and
+ * already looking low — the one moment the question is worth asking. Never
+ * on a schedule, which is nagging.
+ */
+export function stockStatusWithConfidence(
+  item: StatusInputs,
+  canonical: StatusCanonical,
+  today: string = localDateString(),
+): StatusResult {
+  const status = stockStatus(item, canonical, today);
+  const drift = item.estimatedDecrementsSinceAnchor ?? 0;
+  // An explicit user action is ground truth regardless of drift.
+  const userSet = item.fullness !== null || item.status !== 'in_stock';
+  const confident = userSet || drift <= DRIFT_LIMIT;
+  return {
+    status,
+    confident,
+    suggestFullnessCheck:
+      !confident && (status === 'running_low' || status === 'out'),
+  };
 }

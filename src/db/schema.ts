@@ -175,16 +175,53 @@ CREATE INDEX idx_pantry_expires   ON pantry_items(expires_at);
 CREATE INDEX idx_pantry_canonical ON pantry_items(canonical_id);
 `;
 
+/**
+ * Migration 4: depletion. The consumption ledger that makes every automatic
+ * stock change explainable and reversible (decision 9), the drift counters
+ * that let the app say less when it knows less (decision 53), and the meal
+ * venue that decides whether a meal debits the pantry at all.
+ *
+ * `venue` defaults existing meals to `home`, which is the assumption they
+ * were logged under. Harmless because depletion is never retroactive — no
+ * past meal will be replayed against the catalogue.
+ */
+const STOCK_DEPLETION = `
+CREATE TABLE consumption_events (
+  id             TEXT PRIMARY KEY,
+  pantry_item_id TEXT REFERENCES pantry_items(id) ON DELETE SET NULL,
+  canonical_id   TEXT NOT NULL,
+  meal_id        TEXT REFERENCES meals(id) ON DELETE CASCADE,
+  qty            REAL,
+  unit           TEXT,
+  uses           INTEGER NOT NULL DEFAULT 0,
+  servings_mult  REAL NOT NULL DEFAULT 1,
+  kind           TEXT NOT NULL,
+  created_at     TEXT NOT NULL
+);
+
+CREATE INDEX idx_consumption_meal      ON consumption_events(meal_id);
+CREATE INDEX idx_consumption_item      ON consumption_events(pantry_item_id);
+CREATE INDEX idx_consumption_canonical ON consumption_events(canonical_id);
+
+ALTER TABLE pantry_items ADD COLUMN estimated_decrements_since_anchor INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pantry_items ADD COLUMN last_anchor_at TEXT;
+
+ALTER TABLE meals ADD COLUMN venue TEXT NOT NULL DEFAULT 'home';
+ALTER TABLE meals ADD COLUMN servings_mult REAL NOT NULL DEFAULT 1;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
   PANTRY_STOCK,
+  STOCK_DEPLETION,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS consumption_events;
 DROP TABLE IF EXISTS pantry_items;
 DROP TABLE IF EXISTS locations;
 DROP TABLE IF EXISTS match_queue;

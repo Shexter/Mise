@@ -17,6 +17,19 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export type MealSource = 'photo' | 'manual';
 
+/**
+ * Where a meal came from, and therefore whether it debits the pantry.
+ *
+ * One closed field rather than two booleans (decisions 10 and 11): the
+ * servings multiplier debits the whole batch when it is cooked, so eating
+ * the remaining portions must debit nothing. Modelling leftovers as a venue
+ * makes the incoherent combination — a leftovers meal that also claims to
+ * have produced four servings — impossible to express.
+ */
+export type MealVenue = 'home' | 'out' | 'leftovers';
+
+export const MEAL_VENUES: readonly MealVenue[] = ['home', 'out', 'leftovers'];
+
 export type Confidence = 'high' | 'medium' | 'low';
 
 export type MeasureUnit =
@@ -86,6 +99,9 @@ export interface Meal {
   photoUri: string | null;
   source: MealSource;
   confidence: Confidence | null;
+  venue: MealVenue;
+  /** How many servings the cooking produced. Always 1 for non-home venues. */
+  servingsMult: number;
   createdAt: string;
 }
 
@@ -297,8 +313,49 @@ export interface PantryItem {
   priceCents: number | null;
   photoUri: string | null;
   status: StockStatus;
+  /**
+   * Estimated decrements applied since the last ground-truth anchor — a
+   * receipt, a fullness tap, or a quantity the user entered. A count rather
+   * than an error bound, deliberately: a bound would imply a rigour the
+   * inputs do not support (decision 53).
+   */
+  estimatedDecrementsSinceAnchor: number;
+  lastAnchorAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Depletion                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** What produced a consumption event. */
+export type ConsumptionKind =
+  | 'meal_item'
+  | 'hidden_ingredient'
+  | 'manual'
+  | 'correction';
+
+/**
+ * One recorded decrement. The ledger is what makes an automatic change
+ * explainable and reversible: negating an event is its own undo, which is
+ * why editing a meal reverses its events and replays rather than computing
+ * a delta.
+ */
+export interface ConsumptionEvent {
+  id: string;
+  /** Null where the ingredient was consumed but is not in the catalogue. */
+  pantryItemId: string | null;
+  canonicalId: string;
+  mealId: string | null;
+  /** The amount removed, in `unit`. Null where only a use was counted. */
+  qty: number | null;
+  unit: MeasureUnit | null;
+  /** Uses counted against a uses-tracked item, already scaled by servings. */
+  uses: number;
+  servingsMult: number;
+  kind: ConsumptionKind;
+  createdAt: string;
 }
 
 /** A reference the cascade could not resolve, waiting for review. */

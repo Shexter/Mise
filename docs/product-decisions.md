@@ -805,3 +805,113 @@ data-quality difference, not a structural one, and it needs no new machinery.
 
 It also means the batch case is already solved: the multiplier debits four
 servings, and decision 51's leftovers venue stops the rest debiting again.
+---
+
+## Depletion, learned during implementation
+
+**81. `DRIFT_LIMIT` is 8, and confidence is a property of the claim.** `OPEN`
+Set while building `add-stock-depletion`, named in `src/logic/stockStatus.ts`
+beside the other thresholds. Eight estimated decrements without a
+ground-truth anchor and the app stops asserting: `stockStatusWithConfidence`
+returns `confident: false`, and the wording changes from "Running low" to
+"Probably low". Still a guess — tuning it changes no interface and no schema.
+
+Two rules fell out of implementing it, both worth keeping:
+
+- **An explicit user action is always confident.** A fullness tap or a
+  status tap is ground truth, so drift accumulated before it is irrelevant.
+  Only estimates decay.
+- **Reversal unwinds drift with the amount.** Deleting a meal restores what
+  it took *and* the confidence it cost. Leaving the counter raised would
+  make an undone action permanently expensive.
+
+The fullness check is offered only when an item is both drifted and already
+reading low — the one moment the question earns its interruption. Never on a
+schedule, which is the nagging decision 14 rules out.
+
+**82. A consumption event records what was applied, not what was intended.** `SETTLED`
+Found by the clamp test. An item with 100 g left, hit by a 500 g decrement,
+clamps to empty — but the event was storing the intended 500 g, so reversing
+that meal handed the item 500 g it never had. A delete-then-undo cycle was
+quietly a stock generator.
+
+The event now stores the amount actually removed. The intention is not worth
+keeping: nothing reads it, and the one thing the ledger exists for —
+restoring exactly what was taken — needs the applied figure. The clamp
+itself remains drift evidence, which is what the spec asks it to be.
+
+This is the same shape as decisions 66 and 74 one more time: a value that
+means one thing in one place, read as if it meant something stronger in
+another. Third instance, so the rule stands on its own — **when a value
+crosses a boundary, carry what actually happened, not what was asked for.**
+
+**83. The servings control asks on every home-cooked meal, for now.** `OPEN`
+The design left open whether to ask always or only on meals that look
+cooked. Shipping "always", because the control is optional, defaulted, and
+remembered per dish — a repeated dish offers its previous yield, so the
+common case is zero taps and the fallback costs nothing to add later.
+
+The alternative needs a definition of "looks cooked" (item count? manual
+additions? meal type?) and every candidate is a guess that would be wrong
+for someone. Deferred until real usage shows the friction is real.
+
+---
+
+---
+
+## Day selection, learned in the build
+
+**84. `fix-day-selection` shipped as a mode, not a comparison.** `SETTLED`
+Implemented per the change's design: `dayStore` gained `following: boolean`
+rather than snapping `selectedDate` to today whenever it drifted. A
+compare-and-snap approach cannot tell "27 July because that is today" apart
+from "27 July because I deliberately scrubbed back to it" — which is the
+exact ambiguity that shipped the original bug — so the mode is what lets a
+long-running app self-correct and a chosen day hold at the same time.
+
+`syncToToday()` runs on Today-tab focus and on the app returning to the
+foreground; either alone leaves a window (tab focus misses midnight passing
+while the tab stays open, foreground misses nothing extra but costs nothing
+to add). `addMeal`'s mismatch branch — previously touching only
+`loggedDates` and leaving the view on whatever day was selected — now sets
+`selectedDate` to the saved meal's day and re-enables `following`, which
+makes the original failure structurally unreachable through that path
+rather than merely handled.
+
+The two regression tests specified in the design (`src/logic/dates.ts`
+already takes an injectable date, so no fake-timers library was needed
+beyond `vi.setSystemTime`) were confirmed failing against the pre-fix store
+before the fix landed, per decisions 76/79's pattern of writing the test
+first. Three more were added covering the same-visit no-drift guarantee and
+the leave-and-return reset, since the design's minimum bar left those two
+scenarios from the spec otherwise unverified. All five pass; `npm test` is
+166/166 and `npm run typecheck` is clean.
+
+**Not verified here:** task 6.6 calls for a standalone APK test — background
+the app, advance the device clock, reopen, confirm the new day shows. Expo
+Go's reload cycle is what hid this bug originally, so that check needs a
+real device or emulator build and could not run in this environment. Flagged
+for the next on-device pass alongside `add-identity-layer`'s keyed run and
+`add-pantry-stock`'s hand verification.
+
+**85. Reversal hard-deletes; there is no reversal marker.** `SETTLED`
+`add-stock-depletion` task 1.1 asked for "a reversal marker" on
+`consumption_events`. The implementation instead deletes the rows on reversal,
+which is the better choice — a deleted meal genuinely should not count toward
+"used in 23 meals since you opened it", so there is nothing a tombstone would
+earn.
+
+But the column shipped alongside the behaviour: `reversed_at` existed, was
+inserted as NULL, and one query filtered `WHERE reversed_at IS NULL` as though
+it meant something. It never could, because reversed rows do not survive to be
+filtered.
+
+Removed before merge, and the timing is the point. Migrations are forward-only
+and never edited once shipped, so the moment before merge is the *last* moment
+that column could be removed at all. Dead schema with a query pretending to use
+it is exactly what convinces the next reader that reversal is a soft delete and
+that they can build on it.
+
+**86. Decision 73 is fixed in mechanism and half-delivered in data.** `OPEN`
+`convert()` closed the conversion gap: 13 of 29 uses-tracked seed canonicals can
+now compute a container size, up from **0**. The regression test runs against the

@@ -102,6 +102,33 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 3 gains the ledger and the drift columns', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 3);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('m1', '2026-01-01T12:00:00Z', '2026-01-01', 'dinner', 'Curry', 'manual', '2026-01-01T12:00:00Z')`,
+    ).run();
+
+    migrate(db, 3, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('consumption_events');
+    // Existing meals default to home — the assumption they were logged under,
+    // and safe because depletion is never retroactive.
+    const meal = db
+      .prepare("SELECT venue, servings_mult FROM meals WHERE id = 'm1'")
+      .get() as { venue: string; servings_mult: number };
+    expect(meal.venue).toBe('home');
+    expect(meal.servings_mult).toBe(1);
+
+    const columns = (
+      db.prepare('PRAGMA table_info(pantry_items)').all() as { name: string }[]
+    ).map((row) => row.name);
+    expect(columns).toContain('estimated_decrements_since_anchor');
+    expect(columns).toContain('last_anchor_at');
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

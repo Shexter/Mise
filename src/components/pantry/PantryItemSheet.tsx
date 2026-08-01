@@ -55,12 +55,21 @@ export function PantryItemSheet({ entry, onClose }: Props) {
           {entry.locationName}
           {entry.opened ? ' · opened' : ''}
         </Caption>
-        <ScreenTitle>{statusLabel(entry.status)}</ScreenTitle>
+        <ScreenTitle>
+          {statusLabel(entry.status, entry.statusConfident)}
+        </ScreenTitle>
         <Caption muted>{expiryLabel(entry)}</Caption>
         {entry.userEnteredQty ? (
           <Caption muted>Your entry: {entry.userEnteredQty}</Caption>
         ) : null}
       </View>
+
+      {entry.suggestFullnessCheck ? (
+        <Caption muted style={styles.check}>
+          It's been a while since this was checked — a quick look keeps the
+          list honest.
+        </Caption>
+      ) : null}
 
       {USES_TRACKED.includes(entry.foodClass) ? (
         <View style={styles.section}>
@@ -115,5 +124,6 @@ export function PantryItemSheet({ entry, onClose }: Props) {
 const styles = StyleSheet.create({
   facts: { gap: space.xs },
   section: { gap: space.sm, marginTop: space.base },
+  check: { marginTop: space.base },
   actions: { gap: space.sm, marginTop: space.lg },
 });
