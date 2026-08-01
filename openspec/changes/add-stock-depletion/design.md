@@ -11,7 +11,9 @@ What already exists and is reused unchanged:
   total, which is what makes this possible at all.
 - `likely_hidden_ingredients` and the quick-pick grid already capture the oils
   and sauces a camera cannot see, with a typical amount per entry.
-- `src/logic/units.ts` exists and is extended rather than replaced.
+- `src/logic/units.ts` exists but is **not** the home for this work — it holds
+  body measurements (`cmToFeetInches`, `kgToLb`, `formatHeight`) and shares
+  nothing with food measures but the word "units".
 
 The governing constraint is that every input is an estimate. Vision portion
 figures carry substantial error, and the design's job is to stay useful under
@@ -140,6 +142,28 @@ reset rather than a sum. The catalogue models one item per container, so the
 correct behaviour is a new pantry item for the new bottle — resetting applies
 when the receipt matches an existing item rather than creating one. This
 boundary is where the two changes meet and is called out in the tasks.
+
+### A decrement demotes `qty_source` away from `user`
+
+`pantry_items.qty_source` distinguishes a figure the user typed from one the app
+estimated. `pantryStore` gates its `userEnteredQty` field on it, rendering the
+raw `qty_remaining` back as "your entry" only when the source is `user`.
+
+So the first estimated decrement against a user-entered quantity must flip
+`qty_source` to `estimated`.
+
+*Why this is not a detail:* leave it as `user` and the pantry screen shows a
+decremented estimate labelled as the figure the user typed. That is decision 15
+violated through the write path — the view model was carefully built so no
+component could render an indefensible number, and this would hand it one that
+looks defensible. It is the same class of failure as the confirm-band leak in
+`add-identity-layer`: a value laundering its provenance by travelling through a
+route that restores trust it no longer deserves.
+
+*Consequence:* a user who typed a quantity loses their echo after the first
+meal that touches the item. Correct — it is no longer their figure. Setting
+fullness or typing a new quantity restores it, and both are already anchors that
+zero drift.
 
 ### Uncatalogued consumption is recorded with a null item
 

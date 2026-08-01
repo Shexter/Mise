@@ -691,3 +691,25 @@ So this is a cross-change dependency neither spec caught: pantry status silently
 needs depletion's converter. Closed by `add-stock-depletion` rather than
 patched here, because building a second partial converter would mean two things
 to keep in agreement.
+
+**74. An estimated decrement demotes `qty_source` away from `user`.** `SETTLED`
+Found reconciling the depletion plan against the pantry code that now exists.
+`pantry_items.qty_source` distinguishes a figure the user typed from one the app
+estimated, and `pantryStore` gates its `userEnteredQty` echo on it.
+
+So the first estimated decrement against a user-entered quantity must flip the
+column to `estimated`. Leave it as `user` and the pantry screen renders a
+decremented estimate labelled as the figure the user typed — decision 15
+violated through the write path. The view model was built so no component could
+reach an indefensible number; this would hand it one wearing a badge that says
+otherwise.
+
+Same class of failure as the confirm-band leak in `add-identity-layer`
+(decision 66): a value laundering its provenance by travelling a route that
+restores trust it no longer deserves. That is twice now, which makes it a
+pattern worth naming rather than a coincidence — **whenever a value moves
+between stores, check whether its confidence moved with it.**
+
+A user who typed a quantity loses their echo after the first meal that touches
+the item. Correct: it is no longer their figure. Setting fullness or typing a
+new quantity restores it, and both already zero drift.

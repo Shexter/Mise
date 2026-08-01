@@ -19,10 +19,12 @@
 
 Pure logic. No database, no network.
 
-- [ ] 2.1 Extend `src/logic/units.ts` with
+- [ ] 2.1 Create `src/logic/measures.ts` with
       `convert(qty, from, to, canonical): number | null`, where `null` means not
       convertible. The optional return is what enforces the refusal to guess —
-      do not add a fallback factor.
+      do not add a fallback factor. **New module, not `src/logic/units.ts`** —
+      that one holds body measurements (`cmToFeetInches`, `kgToLb`) and shares
+      nothing with food measures but the word.
 - [ ] 2.2 Implement the fixed volume conversions (tbsp, tsp, cup to millilitres).
 - [ ] 2.3 Implement ingredient-dependent conversions from the canonical
       ingredient: density for mass to volume, weight per piece, per slice, per
@@ -67,6 +69,14 @@ Pure logic. No database, no network.
       status to out, and record the clamp as drift evidence.
 - [ ] 4.3 Increment `estimated_decrements_since_anchor` on each estimated
       decrement.
+- [ ] 4.3a Flip `pantry_items.qty_source` from `user` to `estimated` on the
+      first decrement that touches a user-entered quantity. `pantryStore` gates
+      `userEnteredQty` on that column, so leaving it as `user` makes the pantry
+      screen show a decremented estimate labelled as the figure the user typed —
+      decision 15 violated through the write path.
+- [ ] 4.3b Test it: set a user quantity, confirm the screen echoes it, apply one
+      decrement, confirm the echo is gone. This is the read-side proof, not just
+      the column value.
 - [ ] 4.4 Implement reversal: delete a meal's consumption events and restore the
       amounts they recorded.
 - [ ] 4.5 Implement edit as reverse-then-reapply inside one transaction — not a
@@ -81,8 +91,12 @@ Pure logic. No database, no network.
 - [ ] 5.2 Define `DRIFT_LIMIT` (initially 8) beside the existing threshold
       constants.
 - [ ] 5.3 Extend `stockStatus` to mark its result unconfident above
-      `DRIFT_LIMIT`, and qualify the wording in the interface rather than
-      asserting it.
+      `DRIFT_LIMIT`. It currently returns a bare `StockStatus`, so this changes
+      the return shape and ripples through `PantryEntry` and the pantry screen —
+      plan for that rather than bolting a second function alongside it.
+- [ ] 5.3a Qualify the wording in the interface for an unconfident status.
+      "Probably low" and "low" are different claims and must not read
+      identically.
 - [ ] 5.4 Offer a fullness check when an item is both drifted and approaching
       low — on suspicion, never on a schedule.
 - [ ] 5.5 Add the receipt re-anchor path: a receipt matching an existing item

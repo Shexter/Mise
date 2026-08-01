@@ -83,8 +83,11 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 **Code.**
 - `src/db/queries.ts` — consumption event writes, reversal, and the drift
   counters.
-- `src/logic/units.ts` — extended with cross-type conversion, which is where the
-  refusal-to-guess rule lives. This module already exists.
+- `src/logic/measures.ts` — **new**, holding cross-type conversion and the
+  refusal-to-guess rule. Deliberately not `src/logic/units.ts`: that module is
+  body measurements and shares nothing with food measures but the word.
+- `src/logic/stockStatus.ts` — gains the drift-aware result, and the
+  `usesPerContainer` fix that closes decision 73.
 - `src/logic/deplete.ts` — new, pure: given a meal, a multiplier, and a
   catalogue, produce the list of decrements to apply. Testable with no database.
 - `app/review.tsx` — the servings control and the home-or-out flag.
