@@ -16,7 +16,8 @@ export function dbMatchStore(): MatchStore {
     },
     async exactAliasCanonical(norm) {
       const alias = await getBestAliasByNorm(norm);
-      return alias?.canonicalId ?? null;
+      if (!alias) return null;
+      return { canonicalId: alias.canonicalId, confidence: alias.confidence };
     },
     async candidateAliases(norm) {
       const aliases = await getCandidateAliases(norm);

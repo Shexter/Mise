@@ -172,20 +172,26 @@ describe('the offline cascade', () => {
     }
   });
 
-  test('an approximate resolution writes an alias back, making the second lookup exact', async () => {
+  test('an accepted approximate match writes an alias back, making the second lookup exact', async () => {
     const store = dbMatchStore();
-    const [first] = await resolve([{ raw: 'GOCHUJANG PASTE 500G' }], 'receipt', {
+    // Accept band on the fixture corpus (see decision 32), so resolving the
+    // second sighting outright is correct. The confirm-band case deliberately
+    // does *not* behave this way — see the `confirm-band write-back` suite.
+    const [first] = await resolve([{ raw: 'KECAP MANIS ABC' }], 'receipt', {
       store,
     });
-    expect(first?.status).toBe('needs_confirmation');
+    expect(first?.status).toBe('resolved');
+    if (first?.status === 'resolved') {
+      expect(first.method).toBe('approximate');
+    }
 
-    const [second] = await resolve([{ raw: 'GOCHUJANG PASTE 500G' }], 'receipt', {
+    const [second] = await resolve([{ raw: 'KECAP MANIS ABC' }], 'receipt', {
       store,
     });
     expect(second?.status).toBe('resolved');
     if (second?.status === 'resolved') {
       expect(second.method).toBe('exact_alias');
-      expect(second.canonicalId).toBe('gochujang');
+      expect(second.canonicalId).toBe('kecap-manis');
     }
   });
 
@@ -337,5 +343,55 @@ describe('merge', () => {
     await expect(
       mergeCanonicals('soy-sauce-light', 'soy-sauce-light'),
     ).rejects.toThrow();
+  });
+});
+
+describe('confirm-band write-back', () => {
+  /**
+   * Step 3 writes an alias back even when it only reached the confirm band,
+   * so the reference is cheap to score next time. That remembered alias must
+   * not be mistaken for a confirmed one: receipts repeat the same
+   * abbreviations every shop, so a guess that silently hardened into an
+   * answer on second sight would defeat the confirm band for exactly the
+   * strings it exists to catch.
+   */
+  test('an unconfirmed match still asks on the second sighting', async () => {
+    const store = dbMatchStore();
+
+    const [first] = await resolve([{ raw: 'kikko soy sce' }], 'receipt', {
+      store,
+    });
+    expect(first?.status).toBe('needs_confirmation');
+
+    // Nobody confirmed anything in between.
+    const [second] = await resolve([{ raw: 'kikko soy sce' }], 'receipt', {
+      store,
+    });
+    expect(second?.status).toBe('needs_confirmation');
+    if (second?.status === 'needs_confirmation') {
+      expect(second.confidence).toBeLessThan(MATCH_ACCEPT);
+    }
+  });
+
+  test('confirming it once makes every later sighting silent', async () => {
+    const store = dbMatchStore();
+    const raw = 'kikko soy sce';
+
+    const [first] = await resolve([{ raw }], 'receipt', { store });
+    expect(first?.status).toBe('needs_confirmation');
+
+    await recordUserResolution(raw, 'soy-sauce-light');
+
+    const [after] = await resolve([{ raw }], 'receipt', { store });
+    expect(after?.status).toBe('resolved');
+    expectCanonical(after!, 'soy-sauce-light');
+  });
+
+  test('a seeded alias resolves outright, never asking', async () => {
+    const store = dbMatchStore();
+    const [outcome] = await resolve([{ raw: 'gochujang' }], 'meal_log', {
+      store,
+    });
+    expect(outcome?.status).toBe('resolved');
   });
 });

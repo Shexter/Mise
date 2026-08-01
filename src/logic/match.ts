@@ -58,7 +58,12 @@ export type MatchOutcome =
       norm: string;
       canonicalId: string;
       confidence: number;
-      method: 'approximate' | 'model';
+      /**
+       * `exact_alias` belongs here as well as under `resolved`: an alias
+       * written back from an unconfirmed approximate match is an exact hit on
+       * a value the user never agreed to, so it comes back asking.
+       */
+      method: 'approximate' | 'model' | 'exact_alias';
     }
   | {
       status: 'unresolved';
@@ -78,7 +83,15 @@ export interface AliasCandidate {
 /** What the cascade needs from persistence. `src/logic/matchStore.ts` binds it to the real queries. */
 export interface MatchStore {
   productCanonicalByBarcode(gtin: string): Promise<string | null>;
-  exactAliasCanonical(norm: string): Promise<string | null>;
+  /**
+   * An exact hit on the normalised form, carrying the alias's own stored
+   * confidence. The confidence matters: a seeded or user-confirmed alias is
+   * trustworthy, but a write-back from an unconfirmed approximate match is
+   * only as good as the score that produced it.
+   */
+  exactAliasCanonical(
+    norm: string,
+  ): Promise<{ canonicalId: string; confidence: number } | null>;
   candidateAliases(norm: string): Promise<AliasCandidate[]>;
   rememberAlias(entry: {
     aliasRaw: string;
@@ -218,19 +231,43 @@ export async function resolve(
       }
     }
 
-    // Step 2: exact normalised alias.
+    // Step 2: exact normalised alias, banded by the alias's own confidence.
+    //
+    // Banding here rather than trusting every hit is what stops an
+    // unconfirmed guess laundering itself into certainty. Step 3 writes an
+    // alias back even when it only reached the confirm band, so without this
+    // the second sighting of that same string would hit this step and resolve
+    // silently — and receipts repeat the same abbreviations every week, so
+    // "second sighting" is the common case, not the rare one. A seeded or
+    // user-confirmed alias carries confidence 1 and still resolves outright.
     if (norm.length > 0) {
-      const canonicalId = await store.exactAliasCanonical(norm);
-      if (canonicalId) {
-        outcomes[index] = {
-          status: 'resolved',
-          raw: reference.raw,
-          norm,
-          canonicalId,
-          confidence: EXACT_ALIAS_CONFIDENCE,
-          method: 'exact_alias',
-        };
-        continue;
+      const hit = await store.exactAliasCanonical(norm);
+      if (hit) {
+        const confidence = Math.min(hit.confidence, EXACT_ALIAS_CONFIDENCE);
+        if (confidence >= MATCH_ACCEPT) {
+          outcomes[index] = {
+            status: 'resolved',
+            raw: reference.raw,
+            norm,
+            canonicalId: hit.canonicalId,
+            confidence,
+            method: 'exact_alias',
+          };
+          continue;
+        }
+        if (confidence >= MATCH_CONFIRM) {
+          outcomes[index] = {
+            status: 'needs_confirmation',
+            raw: reference.raw,
+            norm,
+            canonicalId: hit.canonicalId,
+            confidence,
+            method: 'exact_alias',
+          };
+          continue;
+        }
+        // Below the confirm band the remembered alias is not good enough to
+        // act on. Fall through and let steps 3 to 5 have another go.
       }
     }
 

@@ -546,3 +546,36 @@ is "use soon", never "safe to eat" or "unsafe". Shelf-life tables vary too much
 by handling to support a safety claim, and the liability surface is not one to
 walk onto casually. `expiry_source` already distinguishes predicted dates from
 known ones; this makes the copy rule explicit.
+
+---
+
+## Matching, learned during implementation
+
+**66. A remembered alias is a cached candidate, not a cached answer.** `SETTLED`
+Found reviewing `add-identity-layer`. Step 3 writes an alias back even when it
+only reached the confirm band, so the string is cheap to score next time. But
+the exact-alias step then returned a flat high confidence for any hit, so the
+*second* sighting of that string resolved silently — the confirmation the user
+never gave was never asked for again.
+
+Receipts repeat the same abbreviations every shop, so second sightings are the
+common case, not the rare one. A single ignored prompt would have hardened a
+0.62 guess into permanent truth, which is precisely the silent mismatch
+decision 32 calls worse than nagging.
+
+The exact-alias step now bands on the alias's *own* stored confidence. Seeded
+and user-confirmed aliases carry 1 and resolve outright; a write-back carries
+the score that produced it and comes back asking. The general rule: **confidence
+travels with the fact, and is never restored by the route used to reach it.**
+
+**67. Trigram similarity is structurally weak on CJK.** `OPEN`
+Measured during `add-identity-layer`: `李錦記 蠔油` scored **0.27** against its
+own canonical. A four-character phrase yields two trigrams, so Dice similarity
+over ideographic scripts is close to meaningless — the scorer was designed for
+Latin receipt abbreviations and quietly does not transfer.
+
+Exact CJK aliases work, so seeded strings resolve. Everything else falls to the
+model, which is correct behaviour but means offline CJK matching effectively
+does not exist and every unseeded CJK reference costs a call until learned.
+That undercuts decisions 4 and 31, where in-script coverage is the
+differentiator. Tracked as its own change.
