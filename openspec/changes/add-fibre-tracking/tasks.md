@@ -48,6 +48,33 @@
 - [ ] 5.4 Present the target as the user's own, making no health claim about the
       default (decision 64's spirit).
 
+## 5a. The gap that must not be computed
+
+`add-macro-gap-suggestions` turns a shortfall into a suggestion. A fibre
+shortfall computed from an incomplete day would say "you need 12 g more fibre"
+when the truth is that the app does not know what you have had — which is the
+one sentence this whole change exists to prevent, arriving through a different
+door.
+
+- [ ] 5a.1 Make the shortfall calculation return no fibre gap when the day's
+      fibre is null. Not a gap of zero, and not a gap computed from the known
+      part.
+- [ ] 5a.2 Say why rather than showing nothing. "Fibre isn't fully known for
+      today" is a state the user can act on by editing a meal; a silently absent
+      row is not.
+- [ ] 5a.3 Leave the other macros' gaps unaffected — an unknown fibre figure says
+      nothing about protein.
+- [ ] 5a.4 Test an incomplete day, a complete day with a gap, and a complete day
+      with none.
+
+## 5b. Export
+
+- [ ] 5b.1 Confirm `exportEverything` carries `fibre_g`, adding it if the export
+      enumerates columns.
+- [ ] 5b.2 Confirm unknown exports as null, not `0`. The export is the copy the
+      user keeps; a zero there outlives the app's own careful handling.
+- [ ] 5b.3 Test an export containing both a meal with fibre and one without.
+
 ## 6. Verification
 
 - [ ] 6.1 Log a meal with a real key and confirm fibre is estimated and stored.

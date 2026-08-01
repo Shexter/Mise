@@ -80,6 +80,52 @@ The handler nothing else in the queue owns.
       later, leave manual entry working.
 - [ ] 7.4 Confirm a cached barcode resolves with no request at all.
 
+## 7a. Receipts longer than a frame
+
+A weekly supermarket shop prints a till roll that does not fit in one legible
+photograph. The change currently assumes one capture is one thing, which holds
+for a barcode and a bag of onions and fails for the input the receipt path most
+wants — the big shop, which is also the one that fills a pantry.
+
+- [ ] 7a.1 Let further captures be added to the same receipt from the review
+      surface, showing what has been captured so far.
+- [ ] 7a.2 Send each frame for interpretation and merge the returned lines into
+      one receipt, rather than asking the model to stitch images.
+- [ ] 7a.3 De-duplicate across the overlap. People overlap deliberately to avoid
+      missing a line, so overlap is the normal case, not the error case. Match on
+      line text, price, and position rather than text alone — receipts repeat
+      items legitimately, and decision 111 says a repeat is two purchases.
+- [ ] 7a.4 Prefer the receipt's own printed total from whichever frame carries
+      the tail, and let decision 113's arithmetic check catch a merge that
+      dropped or duplicated a line. The check earns its keep here.
+- [ ] 7a.5 Allow a frame to be retaken or removed without losing the others.
+- [ ] 7a.6 Do not prompt for more frames when one sufficed. An extra step on
+      every small receipt to serve the occasional long one is the friction this
+      change exists to remove.
+- [ ] 7a.7 Add a two-frame and a three-frame receipt to the fixtures, one pair
+      with deliberate overlap.
+
+## 7b. The pending queue
+
+The spec retains an offline capture; nothing yet says what the queue *is*.
+
+- [ ] 7b.1 Persist pending captures with their images, so the queue survives the
+      app being closed. A queue in memory loses the capture at the moment the
+      user is least able to retake it — they have put the shopping away.
+- [ ] 7b.2 Interpret a pending capture when a connection returns **to review, not
+      to the pantry.** The requirement that nothing is written before review does
+      not weaken because the write happens later.
+- [ ] 7b.3 Show pending captures with a count and a thumbnail, and allow
+      individual discard including the retained image.
+- [ ] 7b.4 Release the queue when a key is configured, not only when a connection
+      returns — no-key and offline are different waits with the same shape.
+- [ ] 7b.5 Bound retries and report a persistently failing capture as failing.
+      "Still pending" for a week is a lie by omission.
+- [ ] 7b.6 Include pending capture images in *Delete all data*, alongside meal
+      photos and receipt images.
+- [ ] 7b.7 Cap the queue, and say so when it is reached rather than accepting
+      captures that will never be interpreted.
+
 ## 8. Amend the sibling changes
 
 Both are unstarted, so nothing is discarded.
@@ -102,6 +148,11 @@ Both are unstarted, so nothing is discarded.
 - [ ] 9.4 Photograph something with no food and confirm it is reported rather
       than forced into items.
 - [ ] 9.5 Confirm one action reaches all three outcomes with no method choice.
+- [ ] 9.5a Photograph a real weekly-shop receipt across three frames with overlap
+      and confirm one receipt, no duplicated lines, and a balanced total.
+- [ ] 9.5b Capture with aeroplane mode on, restart the app, restore the
+      connection, and confirm the capture is interpreted and lands on review
+      rather than in the pantry.
 - [ ] 9.6 Record classification accuracy per kind in
       `docs/product-decisions.md`.
 - [ ] 9.7 Run `npm run typecheck` and `npm test`.

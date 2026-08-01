@@ -50,6 +50,58 @@ overwhelming the other.
 - **WHEN** a reference uses full-width Latin or half-width Kana characters
 - **THEN** it matches the stored alias written in ordinary forms
 
+### Requirement: Han variant forms match one another
+
+The system SHALL match a Han reference against a stored alias written in the
+other variant form, so that a traditional-character reference and a
+simplified-character alias for the same ingredient resolve to the same canonical
+ingredient.
+
+Variant folding SHALL apply to matching only. Stored aliases and displayed names
+SHALL keep the form they were written in.
+
+#### Scenario: A simplified reference matches a traditional alias
+
+- **WHEN** a reference is written in simplified characters
+- **AND** the stored alias for that ingredient is written in traditional
+  characters
+- **THEN** they match
+
+#### Scenario: The reverse also matches
+
+- **WHEN** a reference is written in traditional characters
+- **AND** the stored alias is written in simplified characters
+- **THEN** they match
+
+#### Scenario: Display keeps the original form
+
+- **WHEN** a reference is matched through variant folding
+- **THEN** neither the stored alias nor the displayed name is converted
+
+### Requirement: Romanised references resolve to the ingredients they name
+
+The system SHALL resolve a Latin-script reference that romanises a non-Latin
+ingredient name to that ingredient, including where the romanisation differs
+from the seeded one in spelling, spacing, or hyphenation.
+
+#### Scenario: A spelling variant resolves
+
+- **WHEN** a reference romanises an ingredient with a spelling other than the
+  seeded one
+- **THEN** it resolves to that ingredient
+
+#### Scenario: Spacing and hyphenation do not defeat a match
+
+- **WHEN** a romanised reference differs from the seeded form only in spacing or
+  hyphenation
+- **THEN** it resolves to the same ingredient
+
+#### Scenario: Distinct ingredients with similar romanisations stay distinct
+
+- **GIVEN** two different ingredients whose romanisations are similar
+- **WHEN** either is referenced
+- **THEN** it does not resolve to the other
+
 ### Requirement: Candidate retrieval is script-independent
 
 The system SHALL retrieve candidate aliases for scoring using a method that

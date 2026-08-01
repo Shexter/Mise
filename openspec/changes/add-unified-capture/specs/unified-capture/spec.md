@@ -160,6 +160,37 @@ inconclusive.
 - **THEN** the user is told
 - **AND** no items are invented from it
 
+### Requirement: A receipt too long for one frame is captured in several
+
+Where a receipt does not fit legibly in a single frame, the system SHALL allow
+further captures to be added to the same receipt, and SHALL produce one receipt
+from them.
+
+The system SHALL show what has been captured so far, and SHALL allow a capture
+to be retaken or removed before interpretation.
+
+#### Scenario: Several frames make one receipt
+
+- **WHEN** a receipt is captured across more than one frame
+- **THEN** one receipt is produced
+- **AND** its lines span the frames captured
+
+#### Scenario: Overlapping frames do not duplicate lines
+
+- **GIVEN** two captures of one receipt that overlap
+- **WHEN** they are interpreted
+- **THEN** a line appearing in both is not recorded twice
+
+#### Scenario: A frame can be retaken
+
+- **WHEN** the user retakes one of several captures
+- **THEN** the others are retained
+
+#### Scenario: A single-frame receipt asks for nothing extra
+
+- **WHEN** a receipt fits in one frame
+- **THEN** no additional capture is requested
+
 ### Requirement: Capture degrades without a provider or a connection
 
 Where an image cannot be interpreted — no key configured, or no connection —
@@ -179,3 +210,41 @@ possible, and leave manual entry available.
 - **WHEN** the user captures an image
 - **THEN** it is retained for interpretation when a connection returns
 - **AND** the user is told it is pending
+
+### Requirement: A pending capture lands on review, never on the pantry
+
+The system SHALL hold pending captures until they can be interpreted, SHALL
+present each interpreted result for review, and MUST NOT apply a pending capture
+without the user reviewing it.
+
+Pending captures SHALL be visible, countable, and individually discardable.
+
+#### Scenario: An interpreted pending capture waits for review
+
+- **GIVEN** a pending capture
+- **WHEN** it is interpreted after a connection returns
+- **THEN** its result is presented for review
+- **AND** nothing is written until the user accepts
+
+#### Scenario: Pending captures are visible
+
+- **WHEN** captures are pending
+- **THEN** the user can see how many and what they are
+
+#### Scenario: A pending capture can be discarded
+
+- **WHEN** the user discards a pending capture
+- **THEN** it is not interpreted
+- **AND** its retained image is removed
+
+#### Scenario: Interpretation that keeps failing is reported
+
+- **GIVEN** a pending capture whose interpretation fails repeatedly
+- **WHEN** the user views pending captures
+- **THEN** they are told it is failing rather than told it is still waiting
+
+#### Scenario: Adding a key releases the queue
+
+- **GIVEN** captures pending because no key was configured
+- **WHEN** a key is configured
+- **THEN** they become interpretable

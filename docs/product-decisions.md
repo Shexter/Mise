@@ -1268,3 +1268,76 @@ ask for and hides a prompt problem that ought to be visible.
 The wait is visible and cancellable. A silent thirty-second pause is
 indistinguishable from a hung app, and the rational response to a hung app is to
 kill it — losing the retry that was about to succeed.
+
+## Matching, planned deeper
+
+**117. Han variant forms fold for matching and never for storage.** `SETTLED`
+`蠔油` and `蚝油` are the same oyster sauce; a Hong Kong bottle prints one and a
+mainland bottle the other, and the same shopper buys both. A mapping table
+restricted to characters the catalogue actually uses, generated from the
+catalogue — not a dependency, which would be disproportionate for a set this
+small. Folding applies to comparison only: decision 31 keeps the composed
+original, and showing a Hong Kong user a simplified name they did not write is
+the same class of mistake as romanising it for them.
+
+**118. Romanised references are the gap script-awareness does not close.** `SETTLED`
+Decision 4's audience frequently types `gochujang`, not `고추장` — an
+English-language phone keyboard, a recipe site's spelling, a Western
+supermarket's receipt line. These are Latin strings, so script detection sends
+them down the Latin path, where they meet a seeded romanisation that may be
+spelled differently. Strip diacritics, collapse spacing and hyphenation, and
+**seed the variants people actually write as aliases** rather than inventing a
+transliteration algorithm — romanisation systems disagree with each other and
+with common usage, and a table of what people write is truer than a rule for
+what they ought to write.
+
+Loosening a Latin matcher is how over-matching gets introduced, and short
+romanised words collide readily, so the near-miss pairs are asserted and the
+Latin corpus is re-measured after every loosening step. This work must not be
+paid for by the English path.
+
+## Fibre, planned deeper
+
+**119. An incomplete day yields no fibre shortfall.** `SETTLED`
+Decision 89's macro-gap engine turns a shortfall into a suggestion. A fibre
+shortfall computed from a day whose fibre is partly unknown would say "you need
+12 g more fibre" when the truth is the app does not know what you have eaten —
+which is the exact sentence this change exists to prevent, arriving through a
+different door. No gap, not a gap of zero, and not a gap over the known part.
+Say why: "fibre isn't fully known for today" is a state the user can act on by
+editing a meal.
+
+**120. Unknown fibre exports as unknown.** `SETTLED`
+The export is the copy the user keeps and the one that outlives the app's own
+careful handling. A null that becomes a zero on the way out undoes the whole
+change for anyone who ever looks at their data elsewhere.
+
+## Capture, planned deeper
+
+**121. A receipt too long for one frame is captured in several.** `SETTLED`
+A weekly supermarket shop prints a till roll that does not fit in one legible
+photograph, and the plan assumed one capture is one thing — true for a barcode
+and a bag of onions, false for the input the receipt path most wants, which is
+also the one that fills a pantry.
+
+Each frame is interpreted separately and the lines are merged locally; the model
+is not asked to stitch images. Overlap is the normal case rather than the error
+case, because people overlap deliberately to avoid missing a line, so
+de-duplication matches on text, price and position together — text alone would
+collapse a legitimate repeat, and decision 111 says a repeat is two purchases.
+Decision 113's arithmetic check earns its keep here: it is what catches a merge
+that dropped or duplicated a line.
+
+No prompt for more frames when one sufficed. An extra step on every small
+receipt to serve the occasional long one is the friction decision 92 removed.
+
+**122. A pending capture lands on review, never on the pantry.** `SETTLED`
+The queue is persisted with its images, because a queue in memory loses the
+capture at the moment the user is least able to retake it — they have put the
+shopping away. It releases on a key being configured as well as on a connection
+returning, since no-key and offline are different waits with the same shape.
+
+Decision 95 does not weaken because the write happens later: an interpretation
+that completes in the background still lands on review. Retries are bounded and
+a persistently failing capture is reported as failing, because "still pending"
+for a week is a lie by omission. The images are covered by *Delete all data*.

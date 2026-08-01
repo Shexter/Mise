@@ -100,6 +100,43 @@ without saying so.
 - **WHEN** that day is displayed
 - **THEN** its fibre total is shown against the target without qualification
 
+### Requirement: An incomplete day yields no fibre shortfall
+
+The system SHALL NOT compute, state, or act on a fibre shortfall for a day whose
+fibre is incomplete.
+
+Where a surface would otherwise offer to close a fibre gap, it SHALL instead
+report that the day's fibre is not fully known.
+
+#### Scenario: No gap is stated for an incomplete day
+
+- **GIVEN** a day whose fibre is incomplete
+- **WHEN** shortfalls are computed
+- **THEN** no fibre shortfall is produced
+
+#### Scenario: The reason is given rather than the surface going blank
+
+- **GIVEN** a day whose fibre is incomplete
+- **WHEN** the user asks what they are short of
+- **THEN** they are told the day's fibre is not fully known
+
+#### Scenario: A complete day produces a gap normally
+
+- **GIVEN** a day where every meal carries fibre
+- **WHEN** shortfalls are computed
+- **THEN** a fibre shortfall is produced where one exists
+
+### Requirement: Unknown fibre survives export as unknown
+
+The system SHALL represent unrecorded fibre in exported data as unknown, and
+MUST NOT export it as zero.
+
+#### Scenario: Exported unknown fibre is distinguishable from zero
+
+- **WHEN** data containing meals with unrecorded fibre is exported
+- **THEN** those meals' fibre is exported as unknown
+- **AND** not as a zero value
+
 ### Requirement: Fibre appears alongside the existing macros
 
 The system SHALL display fibre with the other macros on the day view, using the
