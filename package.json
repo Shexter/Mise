@@ -2,6 +2,7 @@
   "name": "mise",
   "version": "1.0.0",
   "description": "Local-first food app for the home: pantry stock, predicted expiry, grocery spending, and calorie tracking. Stores everything on-device.",
+  "author": "Timothy Lauw",
   "license": "MIT",
   "private": true,
   "main": "expo-router/entry",
