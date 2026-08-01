@@ -219,6 +219,33 @@ escalate to the model below. Needs tuning against real receipts. The middle band
 is what matters — too wide and the app nags, too narrow and it silently
 mismatches, which is worse.
 
+*Measured while building `add-identity-layer`* against the 74-string fixture
+corpus (`src/logic/__fixtures__/`), scored with the trigram Dice +
+length-ratio scorer in `src/logic/similarity.ts` against the seeded aliases.
+The placeholders held up and ship unchanged:
+
+- **Accept band (> 0.85):** word-order and truncation noise landed here
+  correctly — `CHKN THGH BNLS` 0.91, `ATLANTIC SALMON FIL` 0.89,
+  `GREEK YOG PLAIN` 0.89, `SIG OLIVE OIL EV` 0.87, `SHREDDED CHED CHSE` 0.86,
+  `KECAP MANIS ABC` 0.86. No wrong canonical scored above 0.85.
+- **Confirm band (0.60–0.85), 15 fixtures:** every one pointed at the right
+  canonical, so the band nags but never misleads on this corpus. Range
+  0.67–0.84: `NAPA CABBAGE HEAD` 0.84, `HVY CREAM PINT` 0.83,
+  `SHRMP RAW` 0.82, `MISO PASTE WHT` 0.81, `TOFU FIRM` 0.80,
+  `cooking wine` 0.79, `CJ GOCHUJANG` 0.78, `GOCHUJANG PASTE` 0.77,
+  `PORK BELLY SLCD` 0.76, `coriander leaves` 0.74, `365 ORG PNUT BUTTER`
+  0.72, `ORG CHKN BRST BNLS` 0.71, `steamed jasmine rice` 0.71,
+  `3 CRABS FISH SAUCE` 0.67, `Kikkoman soy sauce, 500ml bottle` 0.84.
+- **Below 0.60:** real foods that fell through were brand-prefixed or very
+  short — `KS ORG EVOO` 0.30, `李錦記 蠔油` 0.27, `fried egg` 0.29. Those
+  are the model's job (step 4), and alias write-back makes each one a
+  one-time cost. Non-food lines all scored < 0.60 against everything.
+
+Evidence lives in `src/logic/similarity.test.ts` (the confirm-band list is
+asserted there, so a scorer change that moves the band fails the build).
+Still OPEN: the corpus is authored, not harvested — revisit once real
+receipts flow through the scanner.
+
 ---
 
 ## The dinner decision
@@ -519,3 +546,36 @@ is "use soon", never "safe to eat" or "unsafe". Shelf-life tables vary too much
 by handling to support a safety claim, and the liability surface is not one to
 walk onto casually. `expiry_source` already distinguishes predicted dates from
 known ones; this makes the copy rule explicit.
+
+---
+
+## Matching, learned during implementation
+
+**66. A remembered alias is a cached candidate, not a cached answer.** `SETTLED`
+Found reviewing `add-identity-layer`. Step 3 writes an alias back even when it
+only reached the confirm band, so the string is cheap to score next time. But
+the exact-alias step then returned a flat high confidence for any hit, so the
+*second* sighting of that string resolved silently — the confirmation the user
+never gave was never asked for again.
+
+Receipts repeat the same abbreviations every shop, so second sightings are the
+common case, not the rare one. A single ignored prompt would have hardened a
+0.62 guess into permanent truth, which is precisely the silent mismatch
+decision 32 calls worse than nagging.
+
+The exact-alias step now bands on the alias's *own* stored confidence. Seeded
+and user-confirmed aliases carry 1 and resolve outright; a write-back carries
+the score that produced it and comes back asking. The general rule: **confidence
+travels with the fact, and is never restored by the route used to reach it.**
+
+**67. Trigram similarity is structurally weak on CJK.** `OPEN`
+Measured during `add-identity-layer`: `李錦記 蠔油` scored **0.27** against its
+own canonical. A four-character phrase yields two trigrams, so Dice similarity
+over ideographic scripts is close to meaningless — the scorer was designed for
+Latin receipt abbreviations and quietly does not transfer.
+
+Exact CJK aliases work, so seeded strings resolve. Everything else falls to the
+model, which is correct behaviour but means offline CJK matching effectively
+does not exist and every unseeded CJK reference costs a call until learned.
+That undercuts decisions 4 and 31, where in-script coverage is the
+differentiator. Tracked as its own change.

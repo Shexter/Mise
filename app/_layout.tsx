@@ -94,6 +94,8 @@ export default function RootLayout() {
             />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="match-queue" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="merge-canonicals" options={{ presentation: 'modal' }} />
             <Stack.Screen name="debug/tokens" options={{ presentation: 'modal' }} />
           </Stack>
         </ToastProvider>
