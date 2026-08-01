@@ -64,7 +64,9 @@ openspec show add-identity-layer  # proposal, specs, design, tasks
 
 ## Running it
 
-Requirements: **Node 20+** and the **Expo Go** app, or a built APK.
+Requirements: **Node 22.5+** and the **Expo Go** app, or a built APK. The
+version floor is the test suite, not the app: `test/stubs/db.ts` runs the real
+SQL against `node:sqlite`, a built-in that does not exist before 22.5.
 
 ```bash
 npm install

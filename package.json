@@ -5,6 +5,9 @@
   "license": "MIT",
   "private": true,
   "main": "expo-router/entry",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",

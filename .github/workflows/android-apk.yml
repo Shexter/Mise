@@ -1,0 +1,78 @@
+name: Android APK
+
+# Builds a sideloadable APK and attaches it to the run as an artifact.
+# Run it from the Actions tab, or it runs on every push to main.
+#
+# No Expo account and no EAS credits are used: the native project is generated
+# with `expo prebuild` and built with Gradle on the runner's Android SDK.
+#
+# The APK is signed with the debug keystore that the React Native template
+# generates. That is fine for sideloading and testing, and deliberately not
+# fine for the Play Store — a real release needs its own keystore.
+#
+# No API key is baked in. Whoever installs this adds their own in
+# Settings → API key, which is also what stops a shared build leaking one.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22, not 20: the test harness stubs expo-sqlite with `node:sqlite`,
+      # a built-in that does not exist before 22.5. On 20 every database test
+      # fails to import with "No such built-in module".
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install --clean
+        env:
+          EXPO_NO_TELEMETRY: '1'
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Name the artifact after the commit
+        id: name
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mise-${{ steps.name.outputs.sha }}-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30

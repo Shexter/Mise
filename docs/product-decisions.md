@@ -718,7 +718,7 @@ new quantity restores it, and both already zero drift.
 
 ## Depletion, learned during implementation
 
-**75. `DRIFT_LIMIT` is 8, and confidence is a property of the claim.** `OPEN`
+**78. `DRIFT_LIMIT` is 8, and confidence is a property of the claim.** `OPEN`
 Set while building `add-stock-depletion`, named in `src/logic/stockStatus.ts`
 beside the other thresholds. Eight estimated decrements without a
 ground-truth anchor and the app stops asserting: `stockStatusWithConfidence`
@@ -738,7 +738,7 @@ The fullness check is offered only when an item is both drifted and already
 reading low — the one moment the question earns its interruption. Never on a
 schedule, which is the nagging decision 14 rules out.
 
-**76. A consumption event records what was applied, not what was intended.** `SETTLED`
+**79. A consumption event records what was applied, not what was intended.** `SETTLED`
 Found by the clamp test. An item with 100 g left, hit by a 500 g decrement,
 clamps to empty — but the event was storing the intended 500 g, so reversing
 that meal handed the item 500 g it never had. A delete-then-undo cycle was
@@ -754,7 +754,7 @@ means one thing in one place, read as if it meant something stronger in
 another. Third instance, so the rule stands on its own — **when a value
 crosses a boundary, carry what actually happened, not what was asked for.**
 
-**77. The servings control asks on every home-cooked meal, for now.** `OPEN`
+**80. The servings control asks on every home-cooked meal, for now.** `OPEN`
 The design left open whether to ask always or only on meals that look
 cooked. Shipping "always", because the control is optional, defaulted, and
 remembered per dish — a repeated dish offers its previous yield, so the
@@ -763,3 +763,51 @@ common case is zero taps and the fallback costs nothing to add later.
 The alternative needs a definition of "looks cooked" (item count? manual
 additions? meal type?) and every candidate is a guess that would be wrong
 for someone. Deferred until real usage shows the friction is real.
+
+---
+
+## Bugs that taught us something
+
+**75. Date shown and date written must be reconciled, not merely computed.** `SETTLED`
+The first standalone APK produced "adding meals doesn't work at all". Meals were
+saving correctly — four of them, on 31 July at 23:25 — while the Today screen sat
+on 27 July reading "Nothing logged yet" under a toast saying "Meal saved".
+
+Two independent causes, both real:
+
+`dayStore.ts:43` initialises `selectedDate` at module-evaluation time and nothing
+ever advances it. Expo Go reloads the bundle constantly so the value is always
+fresh, which is why this shipped; a standalone build keeps the JS context alive
+for days and the value ages with it.
+
+Separately, `addMeal` compared the saved meal's date to the viewed date and, on
+mismatch, deliberately refreshed only the strip dots. The divergence was
+anticipated and handled by showing the user nothing — no stale state required,
+just a user browsing back through the week.
+
+Neither the write nor the read was wrong in isolation. What was missing was any
+rule reconciling them. Recorded because it generalises: **when one value is
+computed at write time and another at read time, specify what happens when they
+disagree — "handled" is not the same as "resolved".**
+
+Tracked as `fix-day-selection`.
+
+**76. A confirmation that the screen contradicts is the bug, whatever the data says.** `SETTLED`
+"Meal saved." over "Nothing logged yet" is what turned a navigational quirk into
+a report that the core feature was broken. The database was right the whole time
+and it did not matter.
+
+So: no success confirmation may be shown over a screen that does not evidence it.
+Ordering feedback after the resulting state is on screen is now a rule rather
+than an accident of where the call happened to sit.
+
+**77. Development-only invisibility is a category of risk to test for.** `SETTLED`
+This bug could not be seen in Expo Go and could not be caught by the suite,
+because every existing test runs at a single instant and no test simulates the
+passage of time or an application lifecycle.
+
+`src/logic/dates.ts` already takes an injectable date on every function, so the
+regression test costs almost nothing — it simply had never been written. Any
+behaviour that depends on the clock, on app lifecycle, or on a long-lived process
+needs a test that manipulates those directly, and verification for such fixes
+must happen on a standalone build rather than in Expo Go.
