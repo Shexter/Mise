@@ -161,6 +161,43 @@ hint, and validation message are composed from provider display names. The
 free-tier provider is labelled from its `freeTier` flag rather than a hardcoded
 "(free)".
 
+### Retry belongs to the facade, and it happens once
+
+`rate_limited` has existed in the taxonomy since the beginning and nothing has
+ever acted on it. The error says "try again" and the user does it by hand. That
+was tolerable with two providers and a paid key; it is not with three, one of
+which has a free tier limited by requests per minute — a user logging breakfast,
+a coffee, and a snack in quick succession will hit it.
+
+*Why in `vision.ts` rather than in each transport:* the policy is not
+provider-specific. What is provider-specific is the *shape* of the stated delay,
+and that is exactly the kind of difference a transport exists to normalise —
+each one converts its provider's header into milliseconds, and the facade holds
+the one policy. Three copies of a backoff would drift, and the drift would be
+invisible until someone's provider behaved differently for no reason they could
+see.
+
+*Why once, and not exponential backoff:* the standard argument for a retry loop
+assumes a background job where a user is not waiting. Here a user is holding a
+phone looking at a photograph of their lunch. A second failure is worth more to
+them as information than as a third attempt, and a loop turns a rate limit into
+a minute of apparent breakage. Once is enough to absorb the common case — a
+burst that crossed a per-minute boundary — and honest about the rest.
+
+*Why only `rate_limited`:* every other kind is a fact about the world that a
+retry will not change. `unauthorized` and `billing` need the user to go
+somewhere and do something. `cancelled` is a request not to. `malformed` is the
+subtle one, because retrying it feels reasonable — the model might answer better
+next time — and it is still wrong: it spends the user's money on a coin flip
+they did not ask for, and it hides a prompt problem that ought to be visible.
+
+*Why the wait must be visible:* a silent thirty-second pause is
+indistinguishable from a hung app, and the user's rational response is to kill
+it — which loses the retry that was about to succeed. Saying "the provider asked
+us to wait a moment" costs one line and converts a bug report into a shrug. It
+also has to be cancellable, because sometimes thirty seconds is genuinely too
+long and the honest answer is to let them out.
+
 ## Risks / Trade-offs
 
 **Prefix ordering silently breaks every existing Anthropic user** → matching

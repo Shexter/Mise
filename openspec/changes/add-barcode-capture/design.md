@@ -107,6 +107,61 @@ physical code being read repeatedly in a fraction of a second; a deliberate
 rescan seconds later is a second tin. A short debounce window separates them,
 and the review screen lets a wrong count be fixed either way.
 
+### Three kinds of code are not products, and each fails differently
+
+The lookup client's first job is deciding whether to look anything up.
+
+**A misread code** — the camera resolved a barcode that fails its check digit.
+Nothing is wrong with the shelf; the scan is simply not a scan yet.
+
+**A store-local code** — the range retailers reserve for goods they price
+in-store, printed at the deli counter and the produce scales. It is a valid
+barcode that means something only inside one shop, and often encodes a price or
+a weight rather than an identity.
+
+**An unknown product code** — a real, globally meaningful GTIN that the remote
+source has never heard of. This one is genuinely a miss, and is the only one of
+the three that should be cached as one.
+
+*Why the distinction is load-bearing rather than pedantic:* the existing design
+already caches a miss as a marked row for a month, and already binds a
+user-supplied identification to a barcode so a rescan stops asking. Both are
+right for an unknown product and actively harmful for the other two. A cached
+miss on a misread makes a perfectly good tin unscannable for a month. A canonical
+bound to a store-local code makes the deli counter's sticker mean "chicken
+thighs" in every shop the user ever visits, forever, because the range repeats
+across retailers.
+
+*Why validation happens before the request rather than after the failure:* it is
+free, it is pure, and the failure it prevents is indistinguishable from a real
+miss once the request has been made.
+
+*Why an embedded weight is not read:* the encodings are retailer-specific and
+undocumented, and the field that looks like a weight is frequently a price.
+Decision 15's principle again — a quantity the app cannot defend is worse than
+no quantity.
+
+### A multi-pack expands into its containers
+
+Six cans of coconut milk scanned once is six pantry items, not one item of
+quantity six.
+
+*Why:* decision 56 makes a pantry item a container, and the whole expiry model
+rests on it. Five unopened cans and one opened one have different expiries and
+different statuses, and a single item of quantity six can only represent one of
+those states. The expansion is what keeps decision 3's promise honest for
+anything bought in packs, which in a supermarket is a great deal.
+
+*Why only when the count is known:* a package size of `6 x 400 ml` states the
+count; `2.4 l` does not, and dividing one by a guessed container size to recover
+it is inventing a fact. Unknown makes one item, and the review screen shows the
+count so the user can correct either way.
+
+*Consistency with rapid scan:* scanning the same tin three times in a session
+already produces three items. A three-pack scanned once produces the same three.
+The two paths agree, which is the point — a user should not get a different
+pantry depending on whether the shop shrink-wrapped their tins.
+
 ## Risks / Trade-offs
 
 **Remote data quality is uneven** → wrong weights and missing brands create

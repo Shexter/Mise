@@ -147,6 +147,129 @@ SHALL be left alone.
 - **THEN** its estimated-decrement count is zero
 - **AND** its quantity is the purchased quantity
 
+### Requirement: A line's quantity is read in the unit the line prices it in
+
+Where a line is priced by weight or volume, the system SHALL take the quantity
+as the measured amount in that unit, and MUST NOT treat it as a count.
+
+Where a line is priced per unit with a multiple, the system SHALL take the
+quantity as that count.
+
+#### Scenario: A weight-priced line records mass
+
+- **WHEN** a line shows a weight, a unit price per weight, and a line total
+- **THEN** the quantity recorded is that weight
+- **AND** the created pantry item holds that weight
+
+#### Scenario: A weight-priced line is not counted as one item
+
+- **WHEN** a line shows less than one kilogram priced by weight
+- **THEN** the quantity is not recorded as a count
+- **AND** the pantry item is not created holding a single unit
+
+#### Scenario: A counted multiple stays a count
+
+- **WHEN** a line shows a multiple of a per-unit price
+- **THEN** the quantity recorded is that count
+
+#### Scenario: An unreadable measure is left unknown
+
+- **WHEN** a line's measure cannot be read
+- **THEN** the quantity is recorded as unknown rather than assumed
+
+### Requirement: A repeated purchase creates one pantry item per container
+
+Where a receipt records more than one container of the same ingredient — as a
+multiple on one line, or as the same ingredient on separate lines — the system
+SHALL create one pantry item per container rather than one item holding the
+total.
+
+Where the purchase is a divisible amount rather than a count of containers, the
+system SHALL create a single item holding that amount.
+
+#### Scenario: A multiple creates separate items
+
+- **WHEN** a line records two containers of one ingredient
+- **THEN** two pantry items are created
+
+#### Scenario: The same ingredient on two lines creates two items
+
+- **WHEN** a receipt shows the same ingredient on two separate lines
+- **THEN** each line creates its own pantry item
+- **AND** neither line is treated as a duplicate to be discarded
+
+#### Scenario: A divisible amount stays one item
+
+- **WHEN** a line records a weight of one ingredient
+- **THEN** one pantry item is created holding that weight
+
+#### Scenario: Price is divided across the containers created
+
+- **WHEN** a multiple line creates several pantry items
+- **THEN** each carries its share of the line total
+
+### Requirement: Money-only lines change spending, never stock
+
+The system SHALL treat discounts, loyalty adjustments, deposits, levies, and
+refunded or voided lines as affecting recorded spending only, and MUST NOT let
+any of them create, alter, or remove a pantry item.
+
+Where a discount is attributable to a specific line, the system SHALL apply it
+to that line's recorded price.
+
+#### Scenario: A discount reduces a price without touching stock
+
+- **GIVEN** a receipt with a discount attributable to a food line
+- **WHEN** it is imported
+- **THEN** that line's recorded price reflects the discount
+- **AND** the pantry item it creates is unchanged in quantity
+
+#### Scenario: An unattributable discount reduces the receipt total only
+
+- **WHEN** a receipt carries a discount that names no line
+- **THEN** the receipt total reflects it
+- **AND** no line's price is altered
+
+#### Scenario: A refunded line creates nothing
+
+- **WHEN** a receipt shows a line as refunded or voided
+- **THEN** no pantry item is created for it
+
+#### Scenario: A deposit is not an ingredient
+
+- **WHEN** a receipt shows a container deposit or a bag levy
+- **THEN** it is recorded as spending
+- **AND** it is not resolved as an ingredient
+
+#### Scenario: A wholly negative receipt creates no stock
+
+- **WHEN** a receipt records only returns
+- **THEN** its spending is recorded as negative
+- **AND** no pantry item is created
+
+### Requirement: The receipt's own arithmetic is checked and reported, not corrected
+
+The system SHALL compare the sum of its extracted lines against the receipt's
+printed total, and SHALL surface a discrepancy during review.
+
+The system MUST NOT alter an extracted line to make the arithmetic agree.
+
+#### Scenario: A mismatch is surfaced
+
+- **GIVEN** extracted lines that do not sum to the printed total
+- **WHEN** the receipt is reviewed
+- **THEN** the discrepancy is shown
+
+#### Scenario: No line is silently adjusted
+
+- **WHEN** a discrepancy is found
+- **THEN** no extracted line's price or quantity is changed to resolve it
+
+#### Scenario: Agreement is not remarked upon
+
+- **WHEN** the lines sum to the printed total
+- **THEN** no discrepancy is shown
+
 ### Requirement: Prices are recorded per line and per receipt
 
 The system SHALL record the total price of each line and the receipt total,

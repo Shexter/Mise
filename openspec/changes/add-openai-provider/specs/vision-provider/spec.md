@@ -129,6 +129,76 @@ the same status code for both.
 - **THEN** the failure is reported as a rejected key
 - **AND** the suggested action directs the user to Settings
 
+### Requirement: A rate limit is retried once, at the provider's stated delay
+
+Where a provider reports a temporary rate limit and states how long to wait, the
+system SHALL wait at least that long and retry the request once.
+
+Where no delay is stated, the system SHALL wait a bounded default before its
+single retry. The system MUST NOT retry more than once, and MUST NOT retry
+faster than the provider asked.
+
+#### Scenario: A stated delay is honoured
+
+- **GIVEN** a provider reports a rate limit with a delay
+- **WHEN** the request is retried
+- **THEN** the retry occurs no sooner than that delay
+
+#### Scenario: A retry that succeeds is not reported as a failure
+
+- **GIVEN** a request was rate limited and its retry succeeded
+- **WHEN** the result is returned
+- **THEN** no error is surfaced
+
+#### Scenario: A second rate limit is surfaced
+
+- **GIVEN** a retried request is rate limited again
+- **WHEN** it fails
+- **THEN** the failure is reported as rate limited
+- **AND** no further retry is made
+
+#### Scenario: A cancelled request is not retried
+
+- **GIVEN** the user cancels while a retry is pending
+- **WHEN** the cancellation is observed
+- **THEN** no retry is made
+
+### Requirement: Failures that will not change are never retried
+
+The system SHALL retry only temporary failures, and MUST NOT retry a rejected
+key, a billing failure, a malformed response, or a cancellation.
+
+#### Scenario: A rejected key fails immediately
+
+- **WHEN** a provider rejects the credentials
+- **THEN** no retry is attempted
+
+#### Scenario: A billing failure fails immediately
+
+- **WHEN** a provider reports the account is out of credit
+- **THEN** no retry is attempted
+
+#### Scenario: A malformed response is not re-requested
+
+- **WHEN** a provider returns a response the parser cannot read
+- **THEN** no retry is attempted
+
+### Requirement: Waiting is visible and interruptible
+
+Where the system is waiting before a retry, it SHALL tell the user it is
+waiting, and SHALL allow the wait to be cancelled.
+
+#### Scenario: The user is told rather than left waiting
+
+- **WHEN** a retry is pending
+- **THEN** the user is told the provider asked the app to wait
+
+#### Scenario: The wait can be abandoned
+
+- **WHEN** a retry is pending
+- **THEN** the user can cancel
+- **AND** no retry request is made
+
 ### Requirement: Error messages name the user's own provider
 
 Where an error message refers to a provider — its account, its billing page, or

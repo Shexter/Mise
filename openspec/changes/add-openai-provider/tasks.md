@@ -68,6 +68,39 @@ Pure data and pure functions, no network.
 - [ ] 4.7 Verify a Gemini user seeing a billing error is no longer told their
       Anthropic account is out of credits.
 
+## 4a. Retry, in the facade and nowhere else
+
+Today the taxonomy names `rate_limited` and nothing acts on it: the user is told
+to retry and does it by hand. Three providers make that worse — an OpenAI free
+tier limits by requests per minute, and a burst of logging hits it easily.
+
+- [ ] 4a.1 Have each transport surface the provider's stated retry delay
+      alongside the `rate_limited` error, rather than discarding the header.
+      Every provider states it and the shape differs; normalise to milliseconds
+      at the transport boundary.
+- [ ] 4a.2 Implement the retry **once, in `src/api/vision.ts`**, not per
+      transport. Three copies of a backoff policy is three places for it to
+      differ, and the policy is not provider-specific.
+- [ ] 4a.3 Wait at least the stated delay. Retrying sooner than the provider
+      asked is how an account earns a longer limit.
+- [ ] 4a.4 Use a bounded default when no delay is stated, as a named constant.
+- [ ] 4a.5 **Retry once.** Not a loop, not exponential. A vision call is
+      seconds of a user staring at a spinner, and a second failure is
+      information — the user should get it rather than wait through a third
+      attempt.
+- [ ] 4a.6 Retry `rate_limited` only. Never `unauthorized`, `billing`,
+      `malformed`, or `cancelled` — none of them will come out differently, and
+      retrying a malformed response spends money to be disappointed twice.
+- [ ] 4a.7 Honour the existing abort signal through the wait, so cancelling
+      during a pending retry issues no request.
+- [ ] 4a.8 Tell the user the wait is a wait — the provider asked the app to
+      pause — rather than showing an indefinite spinner. Waiting silently for
+      thirty seconds is indistinguishable from being broken.
+- [ ] 4a.9 Unit-test with a fake clock: stated delay honoured, default used when
+      absent, exactly one retry, success after retry surfaces no error, second
+      rate limit surfaces, non-retryable kinds pass straight through, and
+      cancellation mid-wait makes no request.
+
 ## 5. Key entry
 
 - [ ] 5.1 Replace the hardcoded console URLs in
@@ -91,6 +124,10 @@ Pure data and pure functions, no network.
       key and a Gemini key must behave exactly as before.
 - [ ] 6.3 Verify an out-of-credit OpenAI key produces billing copy naming
       OpenAI, and that a rate-limited response produces retry copy.
-- [ ] 6.4 Run `npm run typecheck`, then update `docs/product-decisions.md` with
+- [ ] 6.4 Trip a real rate limit — a burst of estimates on a free tier will do
+      it — and confirm the app waits, says it is waiting, retries once, and
+      succeeds without the user touching anything.
+- [ ] 6.5 Cancel during a pending retry and confirm no request is made.
+- [ ] 6.6 Run `npm run typecheck`, then update `docs/product-decisions.md` with
       a decision recording that three providers are supported, that detection
       is longest-prefix-first, and that subscription sign-in is not possible.

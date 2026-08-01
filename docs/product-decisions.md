@@ -1019,3 +1019,252 @@ Photographing dinner to log calories and photographing shopping to stock the
 pantry are different intents, and a plate of food is genuinely ambiguous between
 them. The model can describe the image; it cannot know which the user meant, and
 guessing wrong writes to the wrong place. Separate tabs, separate actions.
+
+## Venue inference
+
+**97. The venue control gets a guess, not a question.** `SETTLED`
+Every logged meal asks whether it was cooked, eaten out, or is leftovers, and
+the answer currently defaults to whatever was chosen last — right exactly as
+often as habits are consistent. The app can do better than stickiness, so it
+should, but the guess is a *preselection* and never a decision taken from the
+user: it arrives already chosen, changing it is one tap, and the user's choice
+always wins. Less friction is the entire point; removing the choice would be a
+different and worse product.
+
+**98. The venue assessment rides in the estimate request.** `SETTLED`
+The model is already looking at the photograph in order to name the food, and
+whether the plate is on a restaurant table is visible in the same image. One
+optional field in the existing schema, parsed optionally so a response without
+it is still a valid estimate — the calorie path is the core and must not
+regress for a secondary field. Same argument as decision 94.
+
+**99. An uncertain venue resolves to home.** `SETTLED`
+The two mistakes are not symmetric. Guessing *out* when the meal was cooked at
+home means the pantry is not debited, so the app believes you still have the soy
+sauce you just finished — which is the failure decision 3 exists to prevent, and
+it is discovered mid-cook. Guessing *home* when the meal was eaten out debits
+food that never left, which is annoying and self-correcting twice over: decision
+55's receipt re-anchor resets the amount on the next shop, and decision 53's
+drift counter softens the claim in the meantime.
+
+The commoner case and the cheaper mistake happen to agree, which is convenient
+but not the reason. The reason is that a missed decrement breaks the promise and
+a phantom one does not.
+
+**100. Three signals, combined in a pure function.** `SETTLED`
+The model's assessment, the share of the meal's ingredients matching current
+stock, and whether an earlier batch of the same dish still has portions
+outstanding. The last two are already recorded and were never read — decision 10
+knows a batch made four portions, decision 51 knows leftovers are a venue, and
+the arithmetic between them is what lets the app *offer* leftovers rather than
+waiting for the user to remember the option exists.
+
+Stock match is a ratio, not a boolean: a restaurant dish containing chicken you
+also own is the case a boolean gets wrong, and a threshold on a ratio is tunable
+where a boolean is not.
+
+**101. A learned per-dish default is a signal, not an override.** `SETTLED`
+Venue is a property of what you are eating far more than of the day. Someone
+cooks at home most nights and always buys the same Friday takeaway; a global
+sticky default gets that wrong every week and a per-dish one gets it right
+without being told. But it is ranked *with* the other signals rather than above
+them, so a learned "out" does not survive a photograph plainly showing a home
+kitchen and a meal made entirely of stock. A later correction replaces an
+earlier one, so an accidental correction is not permanent.
+
+## Dietary rules
+
+**102. Dietary rules are three kinds, and merging them is the mistake.** `SETTLED`
+Allergen, restriction, dislike. They look like one list and behave like three,
+because the cost of a mistake differs by orders of magnitude.
+
+An **allergen** is a safety matter: uncertainty must exclude, the match must
+cover derivatives, the filter must be local. A **restriction** — vegetarian,
+halal, no pork — is a rule the user holds and the app has no business softening;
+it filters hard, but the app may state it plainly because the user is the
+authority on their own rule. A **dislike** is a preference, and filtering on it
+is the wrong response — someone lukewarm on coriander has not asked never to be
+shown a dish containing a little.
+
+A single list would have to pick one policy, and whichever it picked would be
+wrong twice.
+
+**103. Exclusion is enforced locally, after the model returns.** `SETTLED`
+The prompt is told the rules as well, and it will usually work. It is not the
+mechanism. A suggestion engine that relies on a model to enforce an allergy has
+built a safety-adjacent guarantee out of a probabilistic system, over a network,
+from a provider the user chose in Settings and may swap tomorrow. Decision 66
+says confidence travels with the fact; this is the same instinct taken to its
+end — where being wrong costs a hospital visit rather than a wrong number, the
+check is local and deterministic or it is not a check.
+
+**104. Unknown is not absent — for allergens only.** `SETTLED`
+When a suggestion names an ingredient the app cannot resolve, assuming it is
+fine makes the feature fail exactly when identification is hardest: an
+unfamiliar ingredient, a regional name, a transliteration. Decision 4 makes
+Asian coverage the differentiator, so unresolved names are not a rare edge here
+— they are the audience. An unresolved ingredient therefore excludes the
+suggestion when any allergen is recorded. The cost is one lost suggestion and
+there are others.
+
+Scoped to allergens deliberately. Applying it to dislikes would cost suggestions
+for someone who merely dislikes coriander — attrition with no payoff.
+
+This is the mirror of decision 99, run the other way because the costs run the
+other way. There, uncertainty resolves to the action. Here, to inaction.
+
+**105. Exclusion covers derivatives, held as a general relation.** `SETTLED`
+Avoiding milk must also avoid butter, ghee, paneer and condensed milk, which a
+string match on "milk" does not. Modelled as a parent/child relation between
+canonical ingredients rather than as allergen groups, because "butter is derived
+from milk" is the general fact and it is reusable — a dairy restriction reads
+the same edges, and so will substitution.
+
+Seeded for the common families *and* for the Asian edges the catalogue already
+has canonicals for: fish sauce from fish, oyster sauce and shrimp paste from
+shellfish, hoisin and gochujang from soy and wheat. A Western-only seed would
+miss exactly the ingredients this app claims to be good at.
+
+**106. Dislikes down-rank; they never filter.** `SETTLED`
+Decision 33 puts three suggestions in front of the user and decision 34's
+use-first constraint has already narrowed the pool once. Removing candidates
+from a pool that small collapses it. A dislike should lose a close contest, and
+a high value at risk should sometimes beat it — a dish using the mushrooms
+expiring tomorrow is a reasonable thing to offer someone lukewarm on mushrooms.
+Which is the whole reason it is a weight and not a filter.
+
+**107. Logging is never filtered by a dietary rule.** `SETTLED`
+If the user eats it, the app records it — no block, no confirmation step, no
+warning that obstructs. The core promise is a record of what was eaten, and a
+tracker that makes it harder to record a meal because it disapproves is broken
+as a tracker. The user already knows; they were there. A note is the ceiling.
+The pantry is unaffected too: people buy and store food they do not eat.
+
+**108. The app never says food is safe.** `SETTLED`
+Never *safe*, never *suitable*, never *free from*. It reports what it excluded —
+"nothing suggested contains peanut" — because that is the only thing it actually
+did. Anything stronger is a promise about a recipe it did not test, from a model
+it does not control, cooked in a kitchen it cannot see. This is a spec
+requirement and a test asserting the forbidden words appear in no dietary
+string, not a style guideline: copy drifts, and this is the one place where
+drifting upward in confidence is dangerous.
+
+**109. An unresolvable rule is recorded anyway, and labelled.** `SETTLED`
+Refusing to record an allergy the catalogue does not know is the worst failure
+available here — it happens most for the least common allergens and the least
+Western ingredients, at the moment the user is telling the app the most
+important thing they will ever tell it. So take the rule, match it by normalised
+name, and show which rules resolved to a catalogue ingredient and which did not.
+A user who can see their rule matched only literally can add a second one.
+
+## Receipts, planned deeper
+
+**110. A receipt quantity is either a count or a measure, and the receipt says
+which.** `SETTLED`
+`2 @ £1.79` is two jars. `0.834 kg @ £12.99/kg` is 834 grams. The unit price
+distinguishes them, and the weight-priced line contains a number that reads
+exactly like a quantity — using it as one creates a pantry item holding 0.834 of
+something, or rounds it to one. Loose produce, meat and fish are all priced this
+way, which is most of the fresh food in a shop, and that is precisely the stock
+the dinner decision chases by expiry. Getting it wrong makes the best feature
+run on nonsense.
+
+Where neither is legible the measure is unknown, not defaulted. Decision 15
+forbids displaying an indefensible quantity; storing one is the same mistake
+earlier and harder to find.
+
+**111. A count creates one pantry item per container.** `SETTLED`
+Decision 56 makes a pantry item a container. Two jars of gochujang are two
+items, consumed one after the other; merging them into one item of quantity two
+makes the second jar's expiry a lie, because it is unopened. The same ingredient
+on two separate lines is treated the same way — two purchases, not a duplicate
+to collapse. Collapsing is the tempting defence against extraction reading a
+line twice, and it is wrong more often than right, because receipts genuinely
+repeat items.
+
+**112. Money-only lines move money and never stock.** `SETTLED`
+Discounts, loyalty adjustments, deposits, levies, refunds. Each is a real line
+and none is a thing that entered the kitchen. They need naming rather than
+sweeping into `non_food`, because `non_food` means "a thing that is not food" —
+washing-up liquid — whereas a discount is not a thing at all, and it changes
+what a food line *cost*, which is the number decision 35 ranks urgency by.
+
+An unattributable basket discount stays at the receipt level rather than being
+spread across lines: spreading is a guess that, once written, is
+indistinguishable from a price read off a receipt. A refund moves no stock — it
+says money came back, not which item to remove or whether the food was ever put
+away.
+
+**113. The receipt's printed total is a free correctness check, and is never
+enforced.** `SETTLED`
+Extraction either dropped a line, invented one, or misread a price, and the
+receipt prints a figure that disagrees when it did. Surfacing the mismatch
+localises the problem — the difference between "check these thirty lines" and
+"something here is wrong by £4.20". Correcting it would mean choosing a line to
+alter, which is a guess dressed as arithmetic, and the altered line would then
+look like extracted truth. Silence when it agrees, because a check that
+announces itself when nothing is wrong trains people to dismiss it.
+
+## Barcodes, planned deeper
+
+**114. Three kinds of scanned code are not products, and each fails
+differently.** `SETTLED`
+A **misread** fails its check digit: nothing is wrong with the shelf, the scan
+is simply not a scan yet. A **store-local code** is a valid barcode from the
+range retailers reserve for goods priced in-store, meaningful inside one shop
+and often encoding a price or weight rather than an identity. An **unknown
+product code** is a real GTIN the remote source has never heard of — and it is
+the only one of the three that should be cached as a miss.
+
+The distinction is load-bearing because decision-level behaviour already in the
+plan is right for the third and harmful for the first two: a cached miss on a
+misread makes a good tin unscannable for a month, and a canonical bound to a
+store-local code makes a deli sticker mean "chicken thighs" in every shop the
+user ever visits, since the range repeats across retailers. Validation happens
+before the request because it is free, pure, and prevents a failure
+indistinguishable from a real miss once the request is made.
+
+An embedded weight is not read as a quantity: the encodings are
+retailer-specific and undocumented, and the field that looks like a weight is
+frequently a price.
+
+**115. A multi-pack expands into its containers.** `SETTLED`
+Six cans scanned once is six pantry items, not one item of quantity six.
+Decision 56 again, and the expiry model rests on it: five unopened cans and one
+opened one have different expiries and statuses, and a single item of quantity
+six can only represent one of those states. Only when the count is known —
+`6 x 400 ml` states it, `2.4 l` does not, and dividing by a guessed container
+size is inventing a fact.
+
+It also keeps the two paths consistent: scanning the same tin three times
+already produces three items, and a three-pack scanned once now produces the
+same three. A user should not get a different pantry depending on whether the
+shop shrink-wrapped their tins.
+
+## Providers, planned deeper
+
+**116. A rate limit retries once, in the facade, at the provider's stated
+delay.** `SETTLED`
+`rate_limited` has been in the taxonomy since the beginning and nothing ever
+acted on it — the error says "try again" and the user does it by hand. Three
+providers makes that worse, since one has a free tier limited by requests per
+minute and a user logging breakfast, a coffee and a snack in succession will hit
+it.
+
+The policy lives in `vision.ts`, not in each transport: what is provider-specific
+is the *shape* of the stated delay, which is exactly what a transport exists to
+normalise. Three copies of a backoff would drift invisibly.
+
+Once, not exponential. The usual argument for a retry loop assumes a background
+job; here a user is holding a phone looking at a photograph of their lunch, and
+a second failure is worth more to them as information than as a third attempt.
+
+Only `rate_limited`. `unauthorized` and `billing` need the user to go and do
+something; `cancelled` is a request not to. `malformed` is the subtle one —
+retrying it feels reasonable because the model might answer better next time,
+and it is still wrong: it spends the user's money on a coin flip they did not
+ask for and hides a prompt problem that ought to be visible.
+
+The wait is visible and cancellable. A silent thirty-second pause is
+indistinguishable from a hung app, and the rational response to a hung app is to
+kill it — losing the retry that was about to succeed.

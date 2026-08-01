@@ -149,6 +149,86 @@ canonical ingredient's default location, with no accumulated estimation drift.
 - **WHEN** a scanning session is abandoned
 - **THEN** no pantry item is created
 
+### Requirement: A malformed code is rejected before any lookup
+
+The system SHALL validate a scanned code's structure and check digit before
+looking it up, and SHALL treat a code failing validation as an unread scan
+rather than as an unknown product.
+
+A code failing validation MUST NOT be cached as a miss.
+
+#### Scenario: A misread is not looked up
+
+- **WHEN** a scanned code fails its check digit
+- **THEN** no lookup request is made
+
+#### Scenario: A misread is not remembered as absent
+
+- **WHEN** a scanned code fails validation
+- **THEN** it is not recorded as a known miss
+
+#### Scenario: A misread invites another scan
+
+- **WHEN** a code cannot be validated
+- **THEN** the user is invited to scan again
+
+### Requirement: Store-local codes are recognised as local, not as missing products
+
+The system SHALL recognise codes reserved for restricted circulation — those a
+retailer prints in-store for loose or variable-weight goods — and SHALL route
+them to identification by photograph or by hand rather than to a remote lookup.
+
+Such a code MUST NOT be cached as a miss, and MUST NOT be bound to a canonical
+ingredient as though it identified a product globally.
+
+#### Scenario: A store-local code is not looked up remotely
+
+- **WHEN** a code in the restricted-circulation range is scanned
+- **THEN** no remote lookup is made
+- **AND** the user is offered identification by photograph or by hand
+
+#### Scenario: A store-local code is not learned as a product
+
+- **GIVEN** the user identifies an item behind a store-local code
+- **WHEN** the same code range is scanned later
+- **THEN** the earlier identification is not applied to it
+
+#### Scenario: An embedded weight is not read as a product quantity
+
+- **WHEN** a store-local code carries an embedded price or weight
+- **THEN** it is not used as the created item's quantity
+
+### Requirement: A multi-pack creates one pantry item per container
+
+Where a scanned product is a multi-pack and the number of containers it holds is
+known, the system SHALL create that many pantry items, each holding one
+container's size.
+
+Where the count is not known, the system SHALL create a single item and SHALL
+NOT infer a count.
+
+#### Scenario: A known multi-pack creates its containers
+
+- **GIVEN** a scanned product known to hold several containers
+- **WHEN** the batch is applied
+- **THEN** one pantry item is created per container
+
+#### Scenario: Each container carries a single container's size
+
+- **WHEN** a multi-pack is applied
+- **THEN** each created item's quantity is one container's size
+- **AND** not the pack's total
+
+#### Scenario: An unknown pack count creates one item
+
+- **WHEN** a product's container count is not known
+- **THEN** one pantry item is created
+
+#### Scenario: The user can correct the pack count
+
+- **WHEN** a multi-pack's container count is shown during review
+- **THEN** the user can change it before the batch is applied
+
 ### Requirement: Remote data is attributed and its quality is not assumed
 
 The system SHALL attribute the remote product source where its data is shown,
