@@ -4,10 +4,18 @@ A running ledger. Every decision we settle gets appended here with its
 reasoning, so no context is lost between sessions or between the planning model
 and the implementing one.
 
-**Format:** decisions are numbered and never renumbered. A reversed decision is
-struck through and gets a superseding entry rather than being deleted — the
-reasoning for a rejected path is worth as much as the reasoning for the taken
-one.
+**Format:** decisions are numbered and never renumbered *once merged*. A
+reversed decision is struck through and gets a superseding entry rather than
+being deleted — the reasoning for a rejected path is worth as much as the
+reasoning for the taken one.
+
+**Numbering across parallel work:** a branch cut before another branch's
+decisions were merged will pick the same next number, and both are legitimate.
+The number is only claimed once it reaches `main`. Renumber the later-merged
+branch during conflict resolution — the earlier number stays with whatever
+landed first, since anything already referencing it is right. Before recording a
+decision on a branch, pull `main` and take the next free number; it makes the
+collision rare rather than routine.
 
 **Status key:** `SETTLED` decided, build against it · `OPEN` needs a call ·
 `DEFERRED` deliberately out of scope for now
@@ -580,7 +588,63 @@ does not exist and every unseeded CJK reference costs a call until learned.
 That undercuts decisions 4 and 31, where in-script coverage is the
 differentiator. Tracked as its own change.
 
-**68. Stock status thresholds.** `OPEN`
+---
+
+## Input channels, planned
+
+**68. A purchase always creates a new pantry item; reconciliation depends on state.** `SETTLED`
+Planning `add-receipt-import` exposed a conflict between two settled decisions.
+Decision 55 says a receipt matching an existing item *sets* its amount and zeroes
+drift. Decision 56 says one pantry item is one physical container. Buying a
+bottle while you already own one is a second container, not a correction to the
+first — so as written, the two cannot both hold.
+
+Resolved: a purchase **always** creates a new pantry item, at a known quantity
+with zero drift. Re-anchoring is then automatic rather than a special case,
+which is what decision 55 was reaching for.
+
+Reconciliation against existing items of the same canonical depends on their
+state: items at `out` are marked replaced, an item at `running_low` prompts once
+and is otherwise left alone, and items `in_stock` are untouched. The automatic
+branch is the only one where the app already believes there is nothing left.
+
+This keeps decision 56 intact and stops the catalogue quietly accumulating
+phantom half-empty containers.
+
+**69. Non-food is a classification, not a failed match.** `SETTLED`
+A receipt carries paper towels, carrier bags, tax, subtotals, and payment lines.
+These score near zero against every canonical — but so does an unknown Filipino
+sauce, and the two must not be treated alike. Routing non-food to the review
+queue would fill it with rubbish and teach the user to ignore it, which costs
+the queue its value for the unknown foods it exists to catch.
+
+So extraction classifies each line as food, non-food, arithmetic, or discount,
+and only food lines reach the matcher. The prompt is biased toward calling
+ambiguous lines food: a misclassified food line disappears silently, while a
+misclassified non-food line is merely visible clutter.
+
+**70. A cached miss is cached.** `SETTLED`
+A barcode absent from the remote source is stored as a marked not-found row with
+a timestamp, not left absent. Otherwise every rescan repeats a request that will
+fail again — and the fallback path is exactly where a user is most likely to
+rescan out of hope. Honoured for a month before retrying, since the remote
+database gains entries constantly.
+
+**71. Reused error vocabulary, without reused routing.** `SETTLED`
+The barcode lookup client is not an inference call and has no API key, so it
+does not join the provider registry. But it throws the same
+`src/api/errors.ts` kinds, because every caller already knows how to handle
+them and a second vocabulary for "the network is down" is one too many.
+
+`VisionError` is a poor name for a barcode failure. Not worth renaming now; if a
+third non-vision caller appears, it should become `AppError` with `VisionError`
+as an alias.
+
+---
+
+## Stock status
+
+**72. Stock status thresholds.** `OPEN`
 Set while building `add-pantry-stock`, named in `src/logic/stockStatus.ts`
 beside the match thresholds, and like decision 32 these are placeholders
 until real usage exists. The values that survived the fixture tests:
