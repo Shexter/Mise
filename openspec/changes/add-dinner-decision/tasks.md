@@ -100,37 +100,37 @@ depletion data than a photograph can.
 
 ## 8. Surface
 
-- [ ] 8.1 Build the suggestion surface: three dishes, each with calories, reason
+- [x] 8.1 Build the suggestion surface: three dishes, each with calories, reason
       chips, effort, and what it uses. Components from `src/components`, tokens
       from `src/constants/theme.ts`, no literals.
-- [ ] 8.2 Show missing ingredients as missing rather than hiding the suggestion.
-- [ ] 8.3 Show fit against remaining calories, offering a smaller portion where a
+- [x] 8.2 Show missing ingredients as missing rather than hiding the suggestion.
+- [x] 8.3 Show fit against remaining calories, offering a smaller portion where a
       dish overshoots rather than withholding it.
-- [ ] 8.4 Frame method as an idea, never as a tested recipe.
-- [ ] 8.5 Handle no-key and offline plainly, leaving pantry and calorie features
+- [x] 8.4 Frame method as an idea, never as a tested recipe.
+- [x] 8.5 Handle no-key and offline plainly, leaving pantry and calorie features
       working, and keep cached suggestions readable offline.
-- [ ] 8.6 Show canonical display names throughout.
+- [x] 8.6 Show canonical display names throughout.
 
 ## 9. Make it to Sunday
 
-- [ ] 9.1 Add the stretch mode: N dinners from current stock requiring no
+- [x] 9.1 Add the stretch mode: N dinners from current stock requiring no
       shopping, reusing overlapping ingredients.
-- [ ] 9.2 State the shortfall honestly where stock does not reach the chosen day.
+- [x] 9.2 State the shortfall honestly where stock does not reach the chosen day.
       Padding the plan with uncookable dishes is the failure to avoid.
-- [ ] 9.3 Reuse the same payload and engine; only the objective differs.
+- [x] 9.3 Reuse the same payload and engine; only the objective differs.
 
 ## 10. Verification
 
-- [ ] 10.1 Shape-assert across the fixture kitchens using the recorded responses:
+- [x] 10.1 Shape-assert across the fixture kitchens using the recorded responses:
       every suggestion uses an urgent item where one exists, none repeats a
       recently-eaten dish, and the set mixes familiar with unfamiliar.
-- [ ] 10.2 Confirm the nothing-urgent kitchen still produces suggestions.
+- [x] 10.2 Confirm the nothing-urgent kitchen still produces suggestions.
 - [ ] 10.3 Cook a suggestion end to end with a real key and confirm the seasoning
       it named is debited.
-- [ ] 10.4 Confirm a four-serving batch debits four servings' worth, and a
+- [x] 10.4 Confirm a four-serving batch debits four servings' worth, and a
       leftover portion afterwards debits nothing.
-- [ ] 10.5 Confirm no rendered surface shows a computed quantity or an estimated
+- [x] 10.5 Confirm no rendered surface shows a computed quantity or an estimated
       remaining mass. A price paid is allowed; an estimated gram figure is not.
-- [ ] 10.6 Run `npm run typecheck` and `npm test`, then record suggestion quality
+- [x] 10.6 Run `npm run typecheck` and `npm test`, then record suggestion quality
       observations and the history window that survived in
       `docs/product-decisions.md`.

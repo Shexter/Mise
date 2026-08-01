@@ -173,6 +173,16 @@ export default function TodayScreen() {
           </View>
         ) : null}
 
+        <Pressable
+          onPress={() => router.push('/dinner')}
+          accessibilityRole="button"
+          accessibilityLabel="What's for dinner?"
+          style={({ pressed }) => [styles.banner, pressed && { opacity: opacity.pressed }]}
+        >
+          <Body>What's for dinner?</Body>
+          <Caption muted>Ideas from what's already in your pantry.</Caption>
+        </Pressable>
+
         {keyMissing ? (
           <Pressable
             onPress={() => router.push('/(tabs)/settings')}

@@ -180,4 +180,29 @@ describe('mealFromSuggestion — "I cooked this"', () => {
     expect(item?.usesCount).toBe(1);
     expect(item?.qtyRemaining).toBe(500);
   });
+
+  test('a doubled batch debits mass-tracked ingredients twofold', async () => {
+    const chicken = await insertPantryItem({
+      canonicalId: 'chicken-breast',
+      locationId: 'fridge',
+      qtyRemaining: 2000,
+      qtyUnit: 'g',
+    });
+    const proteinSuggestion: Suggestion = {
+      ...FAKE_SUGGESTION,
+      uses: [{ canonicalId: 'chicken-breast', qty: 300, unit: 'g' }],
+    };
+
+    const meal = mealFromSuggestion({
+      suggestion: proteinSuggestion,
+      servingsMade: proteinSuggestion.servings * 2,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    const stored = await insertMeal(meal);
+    await depleteForMeal(stored);
+
+    // 300 g stated at the suggestion's own servings, doubled by the batch.
+    expect((await getPantryItem(chicken.id))?.qtyRemaining).toBe(1400);
+  });
 });

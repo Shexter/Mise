@@ -915,3 +915,41 @@ that they can build on it.
 **86. Decision 73 is fixed in mechanism and half-delivered in data.** `OPEN`
 `convert()` closed the conversion gap: 13 of 29 uses-tracked seed canonicals can
 now compute a container size, up from **0**. The regression test runs against the
+<!-- pre-existing: entry ends mid-sentence in the source this was branched from -->
+
+---
+
+## The dinner decision, learned during implementation
+
+**87. A dish's calories live on one item; the ingredients it carries are zero.** `SETTLED`
+`add-dinner-decision` task 7.1 turns a suggestion into `meal_items`. The model
+gives `kcal_per_serving` for the dish as a whole, never a per-ingredient split —
+it was never asked to estimate one, and estimating one now would be exactly the
+fabrication decision 52 refuses elsewhere.
+
+So `mealFromSuggestion` writes one dish-level item carrying the eaten calories
+and no canonical id, plus one item per `uses` entry carrying its canonical id
+and stated quantity at zero calories. The split keeps the two jobs separate:
+the dish item is what the calorie total reads, the ingredient items are what
+depletion reads, and neither number pretends to know what the other one knows.
+
+Servings made scales `servingsMult`, not the logged calories — matching decision
+10's existing split between "what depletion took" and "what was eaten now"; the
+review screen's own "servings this made" stepper works the same way.
+
+**88. The suggestion engine's thresholds are named guesses, not measurements.** `OPEN`
+`src/logic/suggest.ts` picks numbers nothing in the design measures against real
+usage: `USE_FIRST_DAYS = 3`, `USE_SOON_DAYS = 10`, `DEFAULT_VALUE_CENTS = 500`,
+`FREEZABLE_DISCOUNT = 0.5`, `RECENTLY_EATEN_DAYS = 7`, `REPEAT_THRESHOLD = 2`.
+Same posture as decision 81's `DRIFT_LIMIT`: named and exported rather than
+buried inline, so the next pass tunes one constant instead of re-deriving the
+formula.
+
+`HISTORY_WINDOW_DAYS = 60` is the one with a real constraint behind it rather
+than a guess: it has to reach back far enough for `REPEAT_THRESHOLD = 2` to
+ever fire (a dish cooked every three or four weeks needs two months of history
+to show up as a repeat at all), while staying short enough that a personalisation
+summary answers "what do you actually cook" rather than "what did you cook once
+in January." No usage data existed to fit either number against, so both are
+placeholders the same way `DRIFT_LIMIT` was — expect them to move once real
+suggestion-quality feedback exists to move them against.
