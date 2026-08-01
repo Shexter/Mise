@@ -915,3 +915,56 @@ that they can build on it.
 **86. Decision 73 is fixed in mechanism and half-delivered in data.** `OPEN`
 `convert()` closed the conversion gap: 13 of 29 uses-tracked seed canonicals can
 now compute a container size, up from **0**. The regression test runs against the
+
+---
+
+## Macro gaps
+
+**87. Fibre does not exist yet, and adding it is its own change.** `SETTLED`
+Asking which macro is short can only answer for protein, carbohydrate, and fat,
+because those are the only three the app has ever recorded. Fibre is absent from
+`Macros`, from `meal_items`, from the estimation prompt, and from the profile's
+targets.
+
+Adding it is not a field. Fibre is **not a share of calories** — protein, carbs
+and fat are percentage splits summing to one, while fibre is grams per day
+irrespective of intake — so it cannot join `macroTargets` and needs its own
+column and default.
+
+The part that carries risk: `meal_items.fibre_g` must be nullable, and `Macros`
+must carry `number | null`. Every meal logged before the change has *unknown*
+fibre, not zero, and widening a type used across aggregation, the day store,
+scaling and review means the compiler flags many sites at once — where the
+tempting fix is `?? 0`. A day the app cannot total reading "0 / 30 g" is
+decision 15's failure in a new place. Tracked as `add-fibre-tracking`.
+
+**88. Macro-gap suggestions rank contribution first, expiry second.** `SETTLED`
+The exact inverse of the dinner decision, and the inversion is why the engine
+needs an objective rather than a second implementation.
+
+The dinner decision optimises for clearing stock, with calories as context. A
+macro-gap request optimises for closing a nutritional gap, with expiry as a
+tiebreak among comparable contributors. An expiring cucumber is a good answer to
+"what should I cook tonight" and a useless one to "I need 127 g of protein".
+Getting it backwards produces suggestions responsive to the wrong question,
+which is worse than none because it still looks like an answer.
+
+**89. The answer is scaled to the gap and the hour.** `SETTLED`
+127 g of protein short at 11pm is answered by yoghurt and eggs; the same gap at
+6pm may be answered by a meal. Fixing the output shape at "a meal" makes the
+feature useless at one of those times, and `mealTypeForTime` already computes
+what is needed to tell them apart.
+
+**90. A shortfall the kitchen cannot close is said so.** `SETTLED`
+Offering a 20 g suggestion against a 127 g gap, framed as "here's what to eat",
+implies the problem is solved. The number is real and the impression is false —
+decision 15's family. "This adds 20 g of the 127 you're short" is the same
+suggestion told honestly and costs nothing.
+
+**91. Macro suggestions are pull-only.** `SETTLED`
+No prompt, no notification, no badge. The bar is pressable and nothing urges it.
+
+A macro sits below target most days — that is what a target means — so an app
+remarking on it daily is decision 14's nagging in a new place, with more force:
+the shortfall is usually not even a problem. Decision 14's rule generalises to
+**offer on suspicion, never on a schedule, and let the user come to it.**

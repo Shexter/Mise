@@ -66,6 +66,11 @@ Pure logic. No database, no network.
 - [ ] 5.6 Instruct against food-safety guidance, per decision 64.
 - [ ] 5.7 Implement `src/api/suggest.ts` through the existing provider facade and
       `src/api/errors.ts`, following `src/api/resolve.ts`.
+- [ ] 5.7a Take the objective as a parameter from the outset — `dinner` and
+      `stretch` here, with `macro_gap` following in
+      `add-macro-gap-suggestions`. Retrofitting one into a single-purpose engine
+      means unpicking its signature, and the identity layer's ownership-bias
+      seam is the precedent: ship the mechanism, let the later change fill it.
 - [ ] 5.8 Reject canonical ids not present in the candidate list at parse time,
       as `resolve.ts` already does for invented ids.
 
