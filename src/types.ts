@@ -88,6 +88,14 @@ export interface MealItem {
   fatG: number;
   isManualAddition: boolean;
   sortOrder: number;
+  /**
+   * The exact ingredient this item means, when the source already knows it
+   * — a cooked dinner suggestion states its ingredients precisely. Null
+   * means "resolve by name", which is every other source's honest state: a
+   * photograph produces "soy sauce" and genuinely cannot say which bottle.
+   * Depletion prefers this over name matching whenever it is present.
+   */
+  canonicalId: string | null;
 }
 
 export interface Meal {
@@ -387,4 +395,81 @@ export interface MealEstimate {
   confidence: Confidence;
   items: EstimatedItem[];
   likelyHiddenIngredients: string[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dinner decision                                                             */
+/* -------------------------------------------------------------------------- */
+
+/** How pressing an in-stock ingredient is to use (decision 34). */
+export type UrgencyBucket = 'use_first' | 'use_soon' | 'available';
+
+export const URGENCY_BUCKETS: readonly UrgencyBucket[] = [
+  'use_first',
+  'use_soon',
+  'available',
+];
+
+/** One ingredient a suggestion consumes, named by identity, not description. */
+export interface SuggestionUse {
+  canonicalId: string;
+  qty: number;
+  unit: MeasureUnit;
+}
+
+/** An ingredient a suggestion needs but the kitchen does not have. */
+export interface SuggestionMissing {
+  canonicalId: string | null;
+  /** A free-text name, used when the model named something with no candidate id. */
+  name: string;
+  note: string | null;
+}
+
+/** Why a suggestion was chosen, in the user's own terms. */
+export type SuggestionReasonKind =
+  | 'clears_stock'
+  | 'saves_value'
+  | 'fits_calories'
+  | 'matches_history';
+
+export interface SuggestionReason {
+  kind: SuggestionReasonKind;
+  /** Rendered text, e.g. "saves $8 of stock". */
+  label: string;
+}
+
+/** One idea, never presented as a tested recipe. */
+export interface Suggestion {
+  dish: string;
+  reasons: SuggestionReason[];
+  kcalPerServing: number;
+  servings: number;
+  effortMinutes: number;
+  uses: SuggestionUse[];
+  missing: SuggestionMissing[];
+  method: string[];
+}
+
+/** The objective a generated set was produced for. */
+export type SuggestionMode = 'tonight' | 'stretch';
+
+export const SUGGESTION_MODES: readonly SuggestionMode[] = ['tonight', 'stretch'];
+
+/** "Make it to Sunday": a plan rather than three independent dishes. */
+export interface StretchPlan {
+  dinners: Suggestion[];
+  /** The honest gap, e.g. "Sunday needs one protein." Null when stock reaches the date. */
+  shortfall: string | null;
+  untilDate: string;
+}
+
+/** A generated, cached set — either tonight's three ideas or a stretch plan. */
+export interface SuggestionSet {
+  id: string;
+  localDate: string;
+  mode: SuggestionMode;
+  fingerprint: string;
+  suggestions: Suggestion[];
+  stretch: StretchPlan | null;
+  createdAt: string;
 }

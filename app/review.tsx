@@ -244,6 +244,7 @@ export default function ReviewScreen() {
         carbsG: item.carbsG,
         fatG: item.fatG,
         isManualAddition: item.isManualAddition,
+        canonicalId: item.canonicalId,
       })),
     };
     const stored = await addMeal(meal);
@@ -480,6 +481,7 @@ function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {
     fatG: estimated.fatG,
     isManualAddition: manual,
     sortOrder: 0,
+    canonicalId: null,
   };
 }
 

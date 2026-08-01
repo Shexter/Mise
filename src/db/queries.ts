@@ -1,3 +1,4 @@
+import { subDays } from 'date-fns';
 import { randomUUID } from 'expo-crypto';
 
 import canonicalSeed from '../../assets/canonical-items.json';
@@ -16,6 +17,10 @@ import { normalise } from '@/logic/normalise';
 import type {
   CanonicalItem,
   Confidence,
+  SuggestionMode,
+  SuggestionSet,
+  Suggestion,
+  StretchPlan,
   ConsumptionEvent,
   ConsumptionKind,
   DailyTarget,
@@ -100,6 +105,7 @@ interface MealItemRow {
   fat_g: number;
   is_manual_addition: number;
   sort_order: number;
+  canonical_id: string | null;
 }
 
 interface DailyTargetRow {
@@ -160,6 +166,7 @@ function toMealItem(row: MealItemRow): MealItem {
     fatG: row.fat_g,
     isManualAddition: row.is_manual_addition === 1,
     sortOrder: row.sort_order,
+    canonicalId: row.canonical_id,
   };
 }
 
@@ -284,6 +291,8 @@ export interface NewMealItem {
   carbsG: number;
   fatG: number;
   isManualAddition: boolean;
+  /** Carried identity from a cooked suggestion (decision 61). Optional; every existing caller omits it and gets today's resolve-by-name behaviour. */
+  canonicalId?: string | null;
 }
 
 export interface NewMeal {
@@ -317,6 +326,7 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     fatG: item.fatG,
     isManualAddition: item.isManualAddition,
     sortOrder: index,
+    canonicalId: item.canonicalId ?? null,
   }));
 
   // A non-home meal never debits the pantry, so a multiplier on one would be
@@ -371,8 +381,8 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
       await txn.runAsync(
         `INSERT INTO meal_items
            (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
-            is_manual_addition, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            is_manual_addition, sort_order, canonical_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           item.id,
           item.mealId,
@@ -385,6 +395,7 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
           item.fatG,
           item.isManualAddition ? 1 : 0,
           item.sortOrder,
+          item.canonicalId,
         ],
       );
     }
@@ -435,6 +446,39 @@ export async function getMeal(id: string): Promise<MealWithItems | null> {
 
 export async function deleteMeal(id: string): Promise<void> {
   await db().runAsync('DELETE FROM meals WHERE id = ?', [id]);
+}
+
+/**
+ * Meals logged in the last `days` days (inclusive of today). Nothing reads
+ * a window today — `getMealsForDate` reads one day and `getLoggedDates`
+ * reads none of the content — so personalisation has no source without it.
+ */
+export async function getRecentMeals(days: number): Promise<MealWithItems[]> {
+  const since = localDateString(subDays(new Date(), days));
+  const mealRows = await db().getAllAsync<MealRow>(
+    'SELECT * FROM meals WHERE local_date >= ? ORDER BY logged_at ASC',
+    [since],
+  );
+  if (mealRows.length === 0) return [];
+
+  const placeholders = mealRows.map(() => '?').join(', ');
+  const itemRows = await db().getAllAsync<MealItemRow>(
+    `SELECT * FROM meal_items WHERE meal_id IN (${placeholders})
+     ORDER BY sort_order ASC`,
+    mealRows.map((row) => row.id),
+  );
+
+  const itemsByMeal = new Map<string, MealItem[]>();
+  for (const row of itemRows) {
+    const list = itemsByMeal.get(row.meal_id) ?? [];
+    list.push(toMealItem(row));
+    itemsByMeal.set(row.meal_id, list);
+  }
+
+  return mealRows.map((row) => ({
+    ...toMeal(row),
+    items: itemsByMeal.get(row.id) ?? [],
+  }));
 }
 
 /** Every date that has at least one logged meal. */
@@ -1754,4 +1798,85 @@ export async function exportEverything(
       items: itemsByMeal.get(row.id) ?? [],
     })),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dinner decision: suggestion cache                                          */
+/* -------------------------------------------------------------------------- */
+
+interface SuggestionCacheRow {
+  id: string;
+  local_date: string;
+  mode: string;
+  fingerprint: string;
+  payload: string;
+  created_at: string;
+}
+
+interface CachedPayload {
+  suggestions: Suggestion[];
+  stretch: StretchPlan | null;
+}
+
+function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
+  const payload = JSON.parse(row.payload) as CachedPayload;
+  return {
+    id: row.id,
+    localDate: row.local_date,
+    mode: row.mode as SuggestionMode,
+    fingerprint: row.fingerprint,
+    suggestions: payload.suggestions,
+    stretch: payload.stretch,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * The cached set for today and this mode, whatever its fingerprint — the
+ * caller compares fingerprints to decide reuse versus regeneration
+ * (decision 40). Returns the most recent row if more than one somehow
+ * exists for the same day and mode.
+ */
+export async function getSuggestionCache(
+  localDate: string,
+  mode: SuggestionMode,
+): Promise<SuggestionSet | null> {
+  const row = await db().getFirstAsync<SuggestionCacheRow>(
+    `SELECT * FROM suggestion_cache
+     WHERE local_date = ? AND mode = ?
+     ORDER BY created_at DESC LIMIT 1`,
+    [localDate, mode],
+  );
+  return row ? toSuggestionSet(row) : null;
+}
+
+/**
+ * Replaces the cached set for a day and mode. One active set per
+ * (local_date, mode): the old row is cleared first so reopening after a
+ * regeneration never reads a stale one.
+ */
+export async function saveSuggestionCache(
+  localDate: string,
+  mode: SuggestionMode,
+  fingerprint: string,
+  suggestions: Suggestion[],
+  stretch: StretchPlan | null,
+): Promise<SuggestionSet> {
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  const payload: CachedPayload = { suggestions, stretch };
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(
+      'DELETE FROM suggestion_cache WHERE local_date = ? AND mode = ?',
+      [localDate, mode],
+    );
+    await txn.runAsync(
+      `INSERT INTO suggestion_cache (id, local_date, mode, fingerprint, payload, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, localDate, mode, fingerprint, JSON.stringify(payload), createdAt],
+    );
+  });
+
+  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt };
 }

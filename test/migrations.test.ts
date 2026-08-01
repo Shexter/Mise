@@ -129,6 +129,30 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 4 gains canonical_id on meal_items and the suggestion cache', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 4);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('m1', '2026-01-01T12:00:00Z', '2026-01-01', 'dinner', 'Curry', 'manual', '2026-01-01T12:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO meal_items (id, meal_id, name, quantity, unit, calories)
+       VALUES ('i1', 'm1', 'Rice', 200, 'g', 260)`,
+    ).run();
+
+    migrate(db, 4, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('suggestion_cache');
+    // A pre-existing item has no carried identity — null means resolve by
+    // name, which is exactly its behaviour before this migration existed.
+    const item = db
+      .prepare("SELECT canonical_id FROM meal_items WHERE id = 'i1'")
+      .get() as { canonical_id: string | null };
+    expect(item.canonical_id).toBeNull();
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

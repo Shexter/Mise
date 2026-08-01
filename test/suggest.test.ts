@@ -1,0 +1,209 @@
+import { describe, expect, test } from 'vitest';
+
+import { parseSuggestResponse } from '../src/api/suggest';
+import { buildSuggestUserPrompt } from '../src/api/suggestPrompt';
+import { KITCHENS } from '../src/logic/__fixtures__/kitchens';
+import { bucketStock, shapeStockPayload, summarisePersonalisation } from '../src/logic/suggest';
+
+/**
+ * Shape assertions against the fixture kitchens' recorded responses — no
+ * provider in the loop. This is the corpus the design calls for: the
+ * honest risk here is boredom, not a crash, and nothing that only checks
+ * for exceptions catches four days of stir fry.
+ */
+
+function payloadFor(kitchen: (typeof KITCHENS)[number]) {
+  const canonicals = new Map(kitchen.canonicals.map((c) => [c.id, c]));
+  const bucketed = bucketStock(kitchen.items, canonicals, kitchen.today);
+  const stock = shapeStockPayload(bucketed);
+  const personalisation = summarisePersonalisation(kitchen.history, kitchen.today);
+  return { bucketed, stock, personalisation };
+}
+
+describe('parseSuggestResponse, against every fixture kitchen', () => {
+  test('every recorded response parses into at least one usable suggestion', () => {
+    for (const kitchen of KITCHENS) {
+      const { stock } = payloadFor(kitchen);
+      const candidateIds = new Set(
+        [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+      );
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      expect(result.suggestions.length, kitchen.name).toBeGreaterThan(0);
+    }
+  });
+
+  test('every suggestion in every kitchen uses at least one urgent item, where one exists', () => {
+    for (const kitchen of KITCHENS) {
+      const { bucketed, stock } = payloadFor(kitchen);
+      if (bucketed.use_first.length === 0) continue; // covered separately below
+
+      const urgentIds = new Set(bucketed.use_first.map((entry) => entry.canonical.id));
+      const candidateIds = new Set(
+        [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+      );
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+
+      for (const suggestion of result.suggestions) {
+        const usesUrgent = suggestion.uses.some((use) => urgentIds.has(use.canonicalId));
+        expect(usesUrgent, `${kitchen.name}: "${suggestion.dish}"`).toBe(true);
+      }
+    }
+  });
+
+  test('the nothing-urgent kitchen still yields suggestions with no use_first constraint to satisfy', () => {
+    const kitchen = KITCHENS.find((k) => k.name === 'nothing urgent')!;
+    const { bucketed, stock } = payloadFor(kitchen);
+    expect(bucketed.use_first).toEqual([]);
+
+    const candidateIds = new Set(
+      [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+    );
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+    expect(result.suggestions.length).toBeGreaterThan(0);
+  });
+
+  test('no suggestion repeats a recently-eaten dish', () => {
+    for (const kitchen of KITCHENS) {
+      const { stock, personalisation } = payloadFor(kitchen);
+      const candidateIds = new Set(
+        [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+      );
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      const recentlyEaten = new Set(personalisation.recentlyEaten);
+
+      for (const suggestion of result.suggestions) {
+        expect(recentlyEaten.has(suggestion.dish), kitchen.name).toBe(false);
+      }
+    }
+  });
+
+  test('the set mixes familiar with unfamiliar in the personalised kitchen', () => {
+    const kitchen = KITCHENS.find((k) => k.name === 'well-stocked Asian pantry')!;
+    const { stock } = payloadFor(kitchen);
+    const candidateIds = new Set(
+      [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+    );
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+
+    // At least one dish resembles the frequent "Gochujang pork stir-fry",
+    // and at least one departs from it — asserted on the reason tags,
+    // which the fixture wrote to say so honestly.
+    const familiar = result.suggestions.some((s) =>
+      s.reasons.some((r) => r.label.toLowerCase().includes('make this a lot')),
+    );
+    const unfamiliar = result.suggestions.some((s) =>
+      s.reasons.some((r) => r.label.toLowerCase().includes('stretch')),
+    );
+    expect(familiar).toBe(true);
+    expect(unfamiliar).toBe(true);
+  });
+
+  test('every suggestion carries at least one reason grounded in a real fact', () => {
+    for (const kitchen of KITCHENS) {
+      const { stock } = payloadFor(kitchen);
+      const candidateIds = new Set(
+        [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
+      );
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      for (const suggestion of result.suggestions) {
+        expect(suggestion.reasons.length, `${kitchen.name}: ${suggestion.dish}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test('the prompt states the use_first constraint as a rule, not an ordering', () => {
+    const kitchen = KITCHENS.find((k) => k.name === 'costly protein expiring tomorrow')!;
+    const { stock, personalisation } = payloadFor(kitchen);
+    const prompt = buildSuggestUserPrompt({
+      mode: 'tonight',
+      stock,
+      personalisation,
+      remainingCalories: 800,
+      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+    });
+    const parsed = JSON.parse(prompt) as { use_first: unknown[] };
+    expect(parsed.use_first.length).toBeGreaterThan(0);
+  });
+});
+
+describe('parseSuggestResponse — the refusal to invent an id', () => {
+  test('a uses entry citing an unknown canonical id is dropped, not the suggestion', () => {
+    const candidateIds = new Set(['real-id']);
+    const raw = JSON.stringify({
+      suggestions: [
+        {
+          dish: 'Test dish',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [
+            { canonical_id: 'real-id', qty: 1, unit: 'g' },
+            { canonical_id: 'invented-id', qty: 1, unit: 'g' },
+          ],
+          missing: [],
+          method: [],
+        },
+      ],
+    });
+    const result = parseSuggestResponse(raw, candidateIds);
+    expect(result.suggestions.length).toBe(1);
+    expect(result.suggestions[0]?.uses).toEqual([{ canonicalId: 'real-id', qty: 1, unit: 'g' }]);
+  });
+
+  test('a suggestion left with no valid uses is dropped entirely', () => {
+    const candidateIds = new Set(['real-id']);
+    const raw = JSON.stringify({
+      suggestions: [
+        {
+          dish: 'All invented',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [{ canonical_id: 'invented-id', qty: 1, unit: 'g' }],
+          missing: [],
+          method: [],
+        },
+        {
+          dish: 'Real dish',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [{ canonical_id: 'real-id', qty: 1, unit: 'g' }],
+          missing: [],
+          method: [],
+        },
+      ],
+    });
+    const result = parseSuggestResponse(raw, candidateIds);
+    expect(result.suggestions.map((s) => s.dish)).toEqual(['Real dish']);
+  });
+
+  test('a missing entry with an invented id keeps the name but nulls the id', () => {
+    const candidateIds = new Set(['real-id']);
+    const raw = JSON.stringify({
+      suggestions: [
+        {
+          dish: 'Test dish',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [{ canonical_id: 'real-id', qty: 1, unit: 'g' }],
+          missing: [{ canonical_id: 'invented-id', name: 'egg', note: null }],
+          method: [],
+        },
+      ],
+    });
+    const result = parseSuggestResponse(raw, candidateIds);
+    expect(result.suggestions[0]?.missing).toEqual([
+      { canonicalId: null, name: 'egg', note: null },
+    ]);
+  });
+
+  test('prose instead of JSON throws so the caller can fail the batch, not the app', () => {
+    expect(() => parseSuggestResponse('Sorry, I cannot help.', new Set())).toThrow();
+  });
+});

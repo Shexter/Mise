@@ -1,0 +1,157 @@
+import { generateSuggestions } from '@/api/suggest';
+import { hasApiKey } from '@/api/keyStore';
+import {
+  ensureDailyTarget,
+  getAllCanonicals,
+  getMealsForDate,
+  getProfile,
+  getRecentMeals,
+  getSuggestionCache,
+  listPantryItems,
+  saveSuggestionCache,
+} from '@/db/queries';
+import { localDateString } from '@/logic/dates';
+import { macrosOfMeals } from '@/logic/scaling';
+import {
+  bucketStock,
+  computeFingerprint,
+  HISTORY_WINDOW_DAYS,
+  shapeStockPayload,
+  summarisePersonalisation,
+  type StockPayload,
+} from '@/logic/suggest';
+import type { CanonicalItem, Macros, SuggestionMode, SuggestionSet } from '@/types';
+
+/**
+ * Binds the pure engine in `suggest.ts` to the database, the identity
+ * layer, and the model call — the same shape as `depletionService.ts`.
+ * This is where caching happens: reuse when nothing material has changed,
+ * regenerate when it has, and only an explicit refresh spends a call on
+ * demand outside that rule (decision 40).
+ */
+
+export interface SuggestionRequestContext {
+  localDate: string;
+  mode: SuggestionMode;
+  /** Required, and only meaningful, for `mode: 'stretch'`. */
+  untilDate?: string;
+  /** Bypasses the cache. The only on-demand path that spends a call. */
+  forceRefresh?: boolean;
+}
+
+export type SuggestionOutcome =
+  | { status: 'ready'; set: SuggestionSet; fromCache: boolean }
+  | { status: 'no_key' }
+  | { status: 'error'; message: string };
+
+async function remainingCalories(localDate: string): Promise<{
+  remaining: number;
+  macroGap: Macros;
+}> {
+  const profile = await getProfile();
+  if (!profile) {
+    return { remaining: 0, macroGap: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 } };
+  }
+  const target = await ensureDailyTarget(localDate, profile);
+  const meals = await getMealsForDate(localDate);
+  const consumed = macrosOfMeals(meals);
+  return {
+    remaining: target.targetCalories - consumed.calories,
+    macroGap: {
+      calories: target.targetCalories - consumed.calories,
+      proteinG: target.proteinG - consumed.proteinG,
+      carbsG: target.carbsG - consumed.carbsG,
+      fatG: target.fatG - consumed.fatG,
+    },
+  };
+}
+
+async function buildStockPayload(
+  localDate: string,
+): Promise<{ payload: StockPayload; canonicals: Map<string, CanonicalItem> }> {
+  const [items, canonicalList] = await Promise.all([
+    listPantryItems(),
+    getAllCanonicals(),
+  ]);
+  const canonicals = new Map(canonicalList.map((c) => [c.id, c]));
+  const bucketed = bucketStock(items, canonicals, localDate);
+  return { payload: shapeStockPayload(bucketed), canonicals };
+}
+
+/**
+ * Gets today's suggestions, reusing the cache when nothing material has
+ * changed and generating fresh ones otherwise.
+ */
+export async function getOrGenerateSuggestions(
+  context: SuggestionRequestContext,
+): Promise<SuggestionOutcome> {
+  const localDate = context.localDate;
+  const { payload: stock } = await buildStockPayload(localDate);
+  const { remaining, macroGap } = await remainingCalories(localDate);
+  const recentMeals = await getRecentMeals(HISTORY_WINDOW_DAYS);
+  const personalisation = summarisePersonalisation(recentMeals, localDate);
+
+  const urgentStock = [...stock.full]
+    .filter((line) => line.bucket !== 'available')
+    .map((line) => ({ canonicalId: line.canonicalId, qtyRemaining: null }));
+  const fingerprint = computeFingerprint({
+    urgentStock,
+    remainingCalories: remaining,
+    recentlyEaten: personalisation.recentlyEaten,
+  });
+
+  if (!context.forceRefresh) {
+    const cached = await getSuggestionCache(localDate, context.mode);
+    if (cached && cached.fingerprint === fingerprint) {
+      return { status: 'ready', set: cached, fromCache: true };
+    }
+  }
+
+  if (!(await hasApiKey())) {
+    return { status: 'no_key' };
+  }
+
+  try {
+    const result = await generateSuggestions({
+      mode: context.mode,
+      stock,
+      personalisation,
+      remainingCalories: remaining,
+      macroGap,
+      untilDate: context.untilDate,
+    });
+    const stretch =
+      context.mode === 'stretch' && context.untilDate
+        ? {
+            dinners: result.suggestions,
+            shortfall: result.shortfall,
+            untilDate: context.untilDate,
+          }
+        : null;
+    const set = await saveSuggestionCache(
+      localDate,
+      context.mode,
+      fingerprint,
+      context.mode === 'stretch' ? [] : result.suggestions,
+      stretch,
+    );
+    return { status: 'ready', set, fromCache: false };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Suggestions failed.',
+    };
+  }
+}
+
+/** Today's suggestions, following the app's local-date convention. */
+export function todaysSuggestions(
+  mode: SuggestionMode = 'tonight',
+  options: { untilDate?: string; forceRefresh?: boolean } = {},
+): Promise<SuggestionOutcome> {
+  return getOrGenerateSuggestions({
+    localDate: localDateString(),
+    mode,
+    ...options,
+  });
+}

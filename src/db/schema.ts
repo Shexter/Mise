@@ -210,17 +210,43 @@ ALTER TABLE meals ADD COLUMN venue TEXT NOT NULL DEFAULT 'home';
 ALTER TABLE meals ADD COLUMN servings_mult REAL NOT NULL DEFAULT 1;
 `;
 
+/**
+ * Migration 5: the dinner decision. `meal_items.canonical_id` lets a recipe
+ * carry the exact ingredient identity it means, rather than having it
+ * re-derived by name matching (decision 61) — nullable and defaulting to
+ * null, which is exactly today's resolve-by-name behaviour, so no backfill.
+ * `suggestion_cache` holds a generated set keyed by a fingerprint of the
+ * inputs that would change the answer, so opening the tab does not spend a
+ * model call when nothing material has changed (decision 40).
+ */
+const DINNER_DECISION = `
+ALTER TABLE meal_items ADD COLUMN canonical_id TEXT REFERENCES canonical_items(id);
+
+CREATE TABLE suggestion_cache (
+  id           TEXT PRIMARY KEY,
+  local_date   TEXT NOT NULL,
+  mode         TEXT NOT NULL,
+  fingerprint  TEXT NOT NULL,
+  payload      TEXT NOT NULL,
+  created_at   TEXT NOT NULL
+);
+
+CREATE INDEX idx_suggestion_cache_date ON suggestion_cache(local_date, mode);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
   PANTRY_STOCK,
   STOCK_DEPLETION,
+  DINNER_DECISION,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS suggestion_cache;
 DROP TABLE IF EXISTS consumption_events;
 DROP TABLE IF EXISTS pantry_items;
 DROP TABLE IF EXISTS locations;

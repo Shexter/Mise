@@ -3,80 +3,80 @@
 The failure mode here is boredom, not exceptions. Nothing that only checks for
 crashes will catch it, so the corpus comes before the feature.
 
-- [ ] 1.1 Create `src/logic/__fixtures__/kitchens.ts` with at least 6 whole
+- [x] 1.1 Create `src/logic/__fixtures__/kitchens.ts` with at least 6 whole
       kitchen states: a well-stocked Asian pantry, a nearly-empty fridge, one
       with a costly protein expiring tomorrow, one with nothing urgent, one with
       only staples and seasonings, one with a freezable item expiring beside a
       non-freezable one.
-- [ ] 1.2 Pair each with a meal history — cuisine lean, repeat dishes, and
+- [x] 1.2 Pair each with a meal history — cuisine lean, repeat dishes, and
       something eaten yesterday that must not be suggested again.
-- [ ] 1.3 Record a model response per kitchen, so shape assertions run without a
+- [x] 1.3 Record a model response per kitchen, so shape assertions run without a
       provider in the loop.
 
 ## 2. Schema
 
-- [ ] 2.1 Append a migration adding nullable `meal_items.canonical_id`
+- [x] 2.1 Append a migration adding nullable `meal_items.canonical_id`
       referencing `canonical_items`. Nullable is load-bearing: null means
       "resolve by name", which is today's behaviour, so no backfill.
-- [ ] 2.2 Add the suggestion cache table, holding the generated set, its date,
+- [x] 2.2 Add the suggestion cache table, holding the generated set, its date,
       and a fingerprint of the inputs that would change the answer.
-- [ ] 2.3 Extend `DROP_ALL` with the cache table.
-- [ ] 2.4 Add `Suggestion`, `SuggestionSet`, and `UrgencyBucket` to
+- [x] 2.3 Extend `DROP_ALL` with the cache table.
+- [x] 2.4 Add `Suggestion`, `SuggestionSet`, and `UrgencyBucket` to
       `src/types.ts` with their `readonly` value arrays.
-- [ ] 2.5 Verify the migration runs from the current head and `npm run typecheck`
+- [x] 2.5 Verify the migration runs from the current head and `npm run typecheck`
       passes.
 
 ## 3. Urgency and bucketing
 
 Pure logic. No database, no network.
 
-- [ ] 3.1 Implement `urgency(item, canonical)` in `src/logic/suggest.ts` from
+- [x] 3.1 Implement `urgency(item, canonical)` in `src/logic/suggest.ts` from
       days remaining, `price_cents`, and freezability via `isFreezable`.
-- [ ] 3.2 Discount freezable items — freezing rescues them without cooking, so
+- [x] 3.2 Discount freezable items — freezing rescues them without cooking, so
       they are genuinely less pressing (decision 20).
-- [ ] 3.3 Weight by value at risk, so a costly item outranks a cheap one
+- [x] 3.3 Weight by value at risk, so a costly item outranks a cheap one
       expiring the same day (decision 35).
-- [ ] 3.4 Bucket stock into `use_first`, `use_soon`, and `available`.
-- [ ] 3.5 Unit-test against the fixture kitchens, including the equal-date
+- [x] 3.4 Bucket stock into `use_first`, `use_soon`, and `available`.
+- [x] 3.5 Unit-test against the fixture kitchens, including the equal-date
       different-value case and the freezable-versus-not case.
 
 ## 4. History and personalisation
 
-- [ ] 4.1 Add `getRecentMeals(days)` to `src/db/queries.ts`. Nothing reads a
+- [x] 4.1 Add `getRecentMeals(days)` to `src/db/queries.ts`. Nothing reads a
       window today — `getMealsForDate` and `getLoggedDates` are all that exist.
-- [ ] 4.2 Implement a pure summariser producing cuisine lean, frequent dishes,
+- [x] 4.2 Implement a pure summariser producing cuisine lean, frequent dishes,
       and a recently-eaten list.
-- [ ] 4.3 Pass summaries in the payload, never the raw history. It is cheaper,
+- [x] 4.3 Pass summaries in the payload, never the raw history. It is cheaper,
       and the user's full eating record then never leaves the device.
-- [ ] 4.4 Unit-test the summariser against the fixture histories.
+- [x] 4.4 Unit-test the summariser against the fixture histories.
 
 ## 5. Payload and prompt
 
-- [ ] 5.1 Read stock through a dedicated query carrying `qtyRemaining` and
+- [x] 5.1 Read stock through a dedicated query carrying `qtyRemaining` and
       `priceCents` — **not** through `PantryEntry`, which omits both by design.
       Decision 15 constrains display, not computation.
-- [ ] 5.2 Compress staples and seasonings to a summary line; send urgent stock,
+- [x] 5.2 Compress staples and seasonings to a summary line; send urgent stock,
       proteins, and produce in full.
-- [ ] 5.3 Write `src/api/suggestPrompt.ts` following `src/api/prompt.ts`: raw
+- [x] 5.3 Write `src/api/suggestPrompt.ts` following `src/api/prompt.ts`: raw
       JSON only, explicit schema, ingredients identified by canonical id.
-- [ ] 5.4 State the use-first constraint as a rule in the prompt, not as an
+- [x] 5.4 State the use-first constraint as a rule in the prompt, not as an
       ordering. Sorting hopes for the behaviour; a rule produces it.
-- [ ] 5.5 Include remaining calories and the macro gap as context, with an
+- [x] 5.5 Include remaining calories and the macro gap as context, with an
       explicit instruction not to exclude dishes for exceeding them.
-- [ ] 5.6 Instruct against food-safety guidance, per decision 64.
-- [ ] 5.7 Implement `src/api/suggest.ts` through the existing provider facade and
+- [x] 5.6 Instruct against food-safety guidance, per decision 64.
+- [x] 5.7 Implement `src/api/suggest.ts` through the existing provider facade and
       `src/api/errors.ts`, following `src/api/resolve.ts`.
-- [ ] 5.8 Reject canonical ids not present in the candidate list at parse time,
+- [x] 5.8 Reject canonical ids not present in the candidate list at parse time,
       as `resolve.ts` already does for invented ids.
 
 ## 6. Caching
 
-- [ ] 6.1 Compute an input fingerprint over urgent stock, remaining calories, and
+- [x] 6.1 Compute an input fingerprint over urgent stock, remaining calories, and
       recently eaten.
-- [ ] 6.2 Reuse a cached set when the fingerprint matches; regenerate when it
+- [x] 6.2 Reuse a cached set when the fingerprint matches; regenerate when it
       does not.
-- [ ] 6.3 Make explicit refresh the only on-demand path that spends a call.
-- [ ] 6.4 Confirm reopening the surface with nothing changed makes no request.
+- [x] 6.3 Make explicit refresh the only on-demand path that spends a call.
+- [x] 6.4 Confirm reopening the surface with nothing changed makes no request.
 
 ## 7. Cooking a suggestion
 
