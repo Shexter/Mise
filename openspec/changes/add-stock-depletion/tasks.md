@@ -30,6 +30,14 @@ Pure logic. No database, no network.
 - [ ] 2.4 Return `null` whenever a required factor is absent.
 - [ ] 2.5 Unit-test each conversion path, and explicitly test that a missing
       factor returns `null` rather than a number.
+- [ ] 2.6 Close decision 73: wire `convert` into `usesPerContainer` in
+      `src/logic/stockStatus.ts`, so a seasoning whose use is in tbsp and whose
+      package is in ml or g can finally report running low. Measured at review
+      time, **0 of 29** uses-tracked seed canonicals had matching units, so this
+      path has never once fired.
+- [ ] 2.7 Add a regression test asserting a seeded seasoning reaches
+      `running_low` from its use count alone — seeded gochujang read `in_stock`
+      at a `usesCount` of 1,000 before this fix.
 
 ## 3. The depletion planner
 

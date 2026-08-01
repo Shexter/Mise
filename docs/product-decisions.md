@@ -654,9 +654,9 @@ until real usage exists. The values that survived the fixture tests:
   package. On the seeded 5 kg rice bag the package fraction governs (750 g);
   on a small container the uses figure does, so both behave sensibly.
 - `LOW_SEASONING_FRACTION = 0.75` — a uses-tracked item reads low after 75%
-  of a typical container's worth of uses (≈25 of 33 for the seeded
-  gochujang tub). An explicit fullness tap overrides this estimate
-  unconditionally (decision 14).
+  of a typical container's worth of uses. An explicit fullness tap overrides
+  this estimate unconditionally (decision 14). **Currently unreachable — see
+  decision 73.**
 - `EXPIRING_SOON_DAYS = 3` — perishables inside three days of their date
   read "running low" regardless of quantity, and the catalogue tints them.
 
@@ -665,3 +665,29 @@ missing, the status makes no claim (decision 52 applied to status — no
 invented conversion factor), and the pantry view model physically omits
 `qtyRemaining`/`usesCount` so no screen can render a number (decision 15).
 Boundary evidence lives in `src/logic/stockStatus.test.ts`.
+
+**73. Seasoning status is dead until unit conversion exists.** `OPEN`
+Found reviewing `add-pantry-stock`. `usesPerContainer` only computes when a
+canonical's `typicalUseUnit` equals its `typicalPkgUnit`, correctly refusing to
+invent a factor (decision 52). Measured against the seed set: **0 of 29**
+uses-tracked canonicals satisfy that. Uses are expressed in tbsp and tsp,
+packages in ml and g, so the two never meet.
+
+Verified rather than inferred — seeded gochujang reads `in_stock` at a
+`usesCount` of 1,000.
+
+The consequence is that decision 12's uses model and the "never lose track of
+seasonings running out" promise are non-functional. Fullness taps still work, so
+the manual override is fine; it is the automatic estimate that never fires.
+
+Neither the seed data nor the status code is wrong. A use *is* naturally a
+tablespoon and a package *is* naturally 500 ml — forcing them to match would
+make the data worse. What is missing is the conversion between them, and
+`convert(qty, from, to, canonical)` is already specified in
+`add-stock-depletion` task 2.1, where tbsp-to-ml is fixed and g-to-ml uses the
+`densityGPerMl` these canonicals already carry.
+
+So this is a cross-change dependency neither spec caught: pantry status silently
+needs depletion's converter. Closed by `add-stock-depletion` rather than
+patched here, because building a second partial converter would mean two things
+to keep in agreement.
