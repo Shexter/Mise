@@ -33,9 +33,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22, not 20: the test harness stubs expo-sqlite with `node:sqlite`,
+      # a built-in that does not exist before 22.5. On 20 every database test
+      # fails to import with "No such built-in module".
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: actions/setup-java@v4
