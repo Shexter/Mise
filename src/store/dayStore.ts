@@ -26,6 +26,13 @@ export const UNDO_WINDOW_MS = 5_000;
 
 interface DayState {
   selectedDate: string;
+  /**
+   * `true` means "track today"; a deliberate day pick sets it `false`. One
+   * date field cannot express the difference between "27 July because that
+   * is today" and "27 July because I asked" — this is what lets both a
+   * long-running app stay current and a chosen day stay put.
+   */
+  following: boolean;
   loading: boolean;
   meals: MealWithItems[];
   target: DailyTarget | null;
@@ -38,6 +45,16 @@ interface DayState {
   lastDepletion: DepletionSummary | null;
 
   selectDate: (localDate: string) => Promise<void>;
+  /**
+   * When `following`, moves `selectedDate` to today and refreshes. A no-op
+   * when already there, so overlapping focus and foreground triggers cost
+   * nothing. Called by lifecycle events (tab focus, app foreground), not
+   * derived on every read — a getter that recomputed "today" on each render
+   * would fight the existing `refresh()` flow for no benefit.
+   */
+  syncToToday: () => Promise<void>;
+  /** Resumes tracking today. Call when the Today screen loses focus. */
+  resumeFollowing: () => void;
   refresh: () => Promise<void>;
   addMeal: (meal: NewMeal) => Promise<MealWithItems>;
   clearLastDepletion: () => void;
@@ -48,7 +65,11 @@ interface DayState {
 }
 
 export const useDayStore = create<DayState>((set, get) => ({
+  // Captured once, at module evaluation — a seed only, always overwritten
+  // before display by `syncToToday`. Removing it would leave an undefined
+  // day on first render, which is worse than a seed that can age.
   selectedDate: localDateString(),
+  following: true,
   loading: true,
   meals: [],
   target: null,
@@ -58,9 +79,20 @@ export const useDayStore = create<DayState>((set, get) => ({
   lastDepletion: null,
 
   selectDate: async (localDate) => {
-    set({ selectedDate: localDate });
+    // A tap is a deliberate pick and must survive the next re-sync.
+    set({ selectedDate: localDate, following: false });
     await get().refresh();
   },
+
+  syncToToday: async () => {
+    if (!get().following) return;
+    const today = localDateString();
+    if (get().selectedDate === today) return;
+    set({ selectedDate: today });
+    await get().refresh();
+  },
+
+  resumeFollowing: () => set({ following: true }),
 
   refresh: async () => {
     const { selectedDate } = get();
@@ -94,11 +126,13 @@ export const useDayStore = create<DayState>((set, get) => ({
     } catch {
       set({ lastDepletion: null });
     }
-    if (stored.localDate === get().selectedDate) {
-      await get().refresh();
-    } else {
-      set({ loggedDates: await getLoggedDates() });
-    }
+    // The user pressed Save and must see the result — showing them nothing
+    // because they happened to be viewing another day is the original bug.
+    // The meal is filed under today (review.tsx computes that correctly and
+    // this must not second-guess it), so after logging the view is on today
+    // and tracking it again.
+    set({ selectedDate: stored.localDate, following: true });
+    await get().refresh();
     return stored;
   },
 

@@ -811,3 +811,36 @@ regression test costs almost nothing — it simply had never been written. Any
 behaviour that depends on the clock, on app lifecycle, or on a long-lived process
 needs a test that manipulates those directly, and verification for such fixes
 must happen on a standalone build rather than in Expo Go.
+
+**81. `fix-day-selection` shipped as a mode, not a comparison.** `SETTLED`
+Implemented per the change's design: `dayStore` gained `following: boolean`
+rather than snapping `selectedDate` to today whenever it drifted. A
+compare-and-snap approach cannot tell "27 July because that is today" apart
+from "27 July because I deliberately scrubbed back to it" — which is the
+exact ambiguity that shipped the original bug — so the mode is what lets a
+long-running app self-correct and a chosen day hold at the same time.
+
+`syncToToday()` runs on Today-tab focus and on the app returning to the
+foreground; either alone leaves a window (tab focus misses midnight passing
+while the tab stays open, foreground misses nothing extra but costs nothing
+to add). `addMeal`'s mismatch branch — previously touching only
+`loggedDates` and leaving the view on whatever day was selected — now sets
+`selectedDate` to the saved meal's day and re-enables `following`, which
+makes the original failure structurally unreachable through that path
+rather than merely handled.
+
+The two regression tests specified in the design (`src/logic/dates.ts`
+already takes an injectable date, so no fake-timers library was needed
+beyond `vi.setSystemTime`) were confirmed failing against the pre-fix store
+before the fix landed, per decisions 76/79's pattern of writing the test
+first. Three more were added covering the same-visit no-drift guarantee and
+the leave-and-return reset, since the design's minimum bar left those two
+scenarios from the spec otherwise unverified. All five pass; `npm test` is
+166/166 and `npm run typecheck` is clean.
+
+**Not verified here:** task 6.6 calls for a standalone APK test — background
+the app, advance the device clock, reopen, confirm the new day shows. Expo
+Go's reload cycle is what hid this bug originally, so that check needs a
+real device or emulator build and could not run in this environment. Flagged
+for the next on-device pass alongside `add-identity-layer`'s keyed run and
+`add-pantry-stock`'s hand verification.

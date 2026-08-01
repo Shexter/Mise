@@ -1,6 +1,13 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type AppStateStatus,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hasApiKey } from '@/api/keyStore';
@@ -39,6 +46,8 @@ export default function TodayScreen() {
     consumed,
     loggedDates,
     selectDate,
+    syncToToday,
+    resumeFollowing,
     refresh,
     removeMeal,
     undoRemove,
@@ -47,12 +56,29 @@ export default function TodayScreen() {
   const [keyMissing, setKeyMissing] = useState(false);
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
 
+  // The Today tab opens on today: sync (which resets `selectedDate` only
+  // when `following` is true) before refreshing, so a day chosen earlier in
+  // this same visit still holds while a stale or day-old context corrects
+  // itself. Leaving the tab restores tracking, so the exception is scoped to
+  // one continuous visit rather than surviving until explicitly cleared.
   useFocusEffect(
     useCallback(() => {
-      void refresh();
+      void syncToToday().then(() => refresh());
       void hasApiKey().then((present) => setKeyMissing(!present));
-    }, [refresh]),
+      return () => resumeFollowing();
+    }, [syncToToday, refresh, resumeFollowing]),
   );
+
+  // Tab focus alone misses the app sitting open on this tab across midnight;
+  // foreground alone misses nothing extra but costs nothing to add. Together
+  // the stale value has no window to be observed in.
+  useEffect(() => {
+    const onChange = (state: AppStateStatus) => {
+      if (state === 'active') void syncToToday();
+    };
+    const subscription = AppState.addEventListener('change', onChange);
+    return () => subscription.remove();
+  }, [syncToToday]);
 
   // A meal saved from the review flow arrives as a route param; highlight its
   // new segment for the entering animation, then clear so revisits don't replay.
