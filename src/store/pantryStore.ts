@@ -1,0 +1,188 @@
+import { create } from 'zustand';
+
+import {
+  addLocation,
+  discardItem,
+  freezeItem,
+  getAllCanonicals,
+  getLocations,
+  insertPantryItem,
+  listPantryItems,
+  markItemOpened,
+  markItemRunningLow,
+  markItemUsedUp,
+  removeLocation,
+  renameLocation,
+  setItemFullness,
+  type NewPantryItem,
+} from '@/db/queries';
+import { isFreezable } from '@/logic/expiry';
+import { daysUntil, stockStatus } from '@/logic/stockStatus';
+import type {
+  CanonicalItem,
+  FoodClass,
+  Fullness,
+  Location,
+  LocationKind,
+  PantryItem,
+  StockStatus,
+} from '@/types';
+
+/**
+ * The catalogue's view model. Deliberately narrow (decision 15): it carries
+ * status, expiry, names, and locations — and NOT `qtyRemaining` or
+ * `usesCount`, so no component can render a quantity the app cannot
+ * defend. The one exception the spec allows — echoing a figure the user
+ * typed themselves — travels as the explicitly-named `userEnteredQty`.
+ */
+export interface PantryEntry {
+  id: string;
+  canonicalId: string;
+  /** The canonical ingredient's display name — never raw observed text. */
+  name: string;
+  foodClass: FoodClass;
+  status: StockStatus;
+  locationId: string;
+  locationName: string;
+  expiresAt: string | null;
+  /** Negative when past. Null when there is no date. */
+  daysLeft: number | null;
+  /** True when predicted rather than user- or label-supplied. */
+  expiryIsPredicted: boolean;
+  opened: boolean;
+  freezable: boolean;
+  /** Uses-tracked items only; the user's own four-state setting. */
+  fullness: Fullness | null;
+  /** Set only when the user typed the figure themselves, e.g. "5000 g". */
+  userEnteredQty: string | null;
+}
+
+/** One canonical ingredient's items, so twelve tins read as one row. */
+export interface PantryGroup {
+  canonicalId: string;
+  name: string;
+  count: number;
+  entries: PantryEntry[];
+  /** The most urgent expiry across the group's items. */
+  soonestDaysLeft: number | null;
+}
+
+interface PantryState {
+  loading: boolean;
+  groups: PantryGroup[];
+  locations: Location[];
+
+  refresh: () => Promise<void>;
+  addItem: (input: NewPantryItem) => Promise<void>;
+  markOpened: (id: string) => Promise<void>;
+  freeze: (id: string) => Promise<void>;
+  setFullness: (id: string, fullness: Fullness) => Promise<void>;
+  markUsedUp: (id: string) => Promise<void>;
+  markRunningLow: (id: string) => Promise<void>;
+  discard: (id: string) => Promise<void>;
+  addLocation: (name: string, kind: LocationKind) => Promise<void>;
+  renameLocation: (id: string, name: string) => Promise<void>;
+  removeLocation: (id: string, destinationId: string) => Promise<void>;
+}
+
+export const usePantryStore = create<PantryState>((set, get) => {
+  const act = async (work: () => Promise<unknown>) => {
+    await work();
+    await get().refresh();
+  };
+
+  return {
+    loading: true,
+    groups: [],
+    locations: [],
+
+    refresh: async () => {
+      set({ loading: true });
+      const [items, canonicals, locations] = await Promise.all([
+        listPantryItems(),
+        getAllCanonicals(),
+        getLocations(),
+      ]);
+      const canonicalById = new Map(canonicals.map((c) => [c.id, c]));
+      const locationById = new Map(locations.map((l) => [l.id, l]));
+
+      const entries: PantryEntry[] = [];
+      for (const item of items) {
+        const canonical = canonicalById.get(item.canonicalId);
+        const location = locationById.get(item.locationId);
+        if (!canonical || !location) continue;
+        entries.push(toEntry(item, canonical, location));
+      }
+      set({ groups: groupByCanonical(entries), locations, loading: false });
+    },
+
+    addItem: (input) => act(() => insertPantryItem(input)),
+    markOpened: (id) => act(() => markItemOpened(id)),
+    freeze: (id) => act(() => freezeToDefaultFreezer(id, get().locations)),
+    setFullness: (id, fullness) => act(() => setItemFullness(id, fullness)),
+    markUsedUp: (id) => act(() => markItemUsedUp(id)),
+    markRunningLow: (id) => act(() => markItemRunningLow(id)),
+    discard: (id) => act(() => discardItem(id)),
+    addLocation: (name, kind) => act(() => addLocation(name, kind)),
+    renameLocation: (id, name) => act(() => renameLocation(id, name)),
+    removeLocation: (id, destinationId) =>
+      act(() => removeLocation(id, destinationId)),
+  };
+});
+
+function toEntry(
+  item: PantryItem,
+  canonical: CanonicalItem,
+  location: Location,
+): PantryEntry {
+  return {
+    id: item.id,
+    canonicalId: item.canonicalId,
+    name: canonical.displayName,
+    foodClass: canonical.foodClass,
+    status: stockStatus(item, canonical),
+    locationId: location.id,
+    locationName: location.name,
+    expiresAt: item.expiresAt,
+    daysLeft: daysUntil(item.expiresAt),
+    expiryIsPredicted: item.expirySource === 'predicted',
+    opened: item.openedAt !== null,
+    freezable: isFreezable(canonical) && location.kind !== 'freezer',
+    fullness: item.fullness,
+    userEnteredQty:
+      item.qtySource === 'user' && item.qtyRemaining !== null
+        ? `${item.qtyRemaining} ${item.qtyUnit ?? ''}`.trim()
+        : null,
+  };
+}
+
+/** Groups entries by canonical, keeping the incoming soonest-first order. */
+function groupByCanonical(entries: PantryEntry[]): PantryGroup[] {
+  const groups = new Map<string, PantryGroup>();
+  for (const entry of entries) {
+    const existing = groups.get(entry.canonicalId);
+    if (existing) {
+      existing.entries.push(entry);
+      existing.count += 1;
+    } else {
+      groups.set(entry.canonicalId, {
+        canonicalId: entry.canonicalId,
+        name: entry.name,
+        count: 1,
+        entries: [entry],
+        soonestDaysLeft: entry.daysLeft,
+      });
+    }
+  }
+  return [...groups.values()];
+}
+
+/** The freeze action targets the first freezer-kind location. */
+async function freezeToDefaultFreezer(
+  id: string,
+  locations: Location[],
+): Promise<void> {
+  const freezer = locations.find((location) => location.kind === 'freezer');
+  if (!freezer) return;
+  await freezeItem(id, freezer.id);
+}

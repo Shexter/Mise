@@ -4,10 +4,18 @@ A running ledger. Every decision we settle gets appended here with its
 reasoning, so no context is lost between sessions or between the planning model
 and the implementing one.
 
-**Format:** decisions are numbered and never renumbered. A reversed decision is
-struck through and gets a superseding entry rather than being deleted — the
-reasoning for a rejected path is worth as much as the reasoning for the taken
-one.
+**Format:** decisions are numbered and never renumbered *once merged*. A
+reversed decision is struck through and gets a superseding entry rather than
+being deleted — the reasoning for a rejected path is worth as much as the
+reasoning for the taken one.
+
+**Numbering across parallel work:** a branch cut before another branch's
+decisions were merged will pick the same next number, and both are legitimate.
+The number is only claimed once it reaches `main`. Renumber the later-merged
+branch during conflict resolution — the earlier number stays with whatever
+landed first, since anything already referencing it is right. Before recording a
+decision on a branch, pull `main` and take the next free number; it makes the
+collision rare rather than routine.
 
 **Status key:** `SETTLED` decided, build against it · `OPEN` needs a call ·
 `DEFERRED` deliberately out of scope for now
@@ -631,3 +639,55 @@ them and a second vocabulary for "the network is down" is one too many.
 `VisionError` is a poor name for a barcode failure. Not worth renaming now; if a
 third non-vision caller appears, it should become `AppError` with `VisionError`
 as an alias.
+
+---
+
+## Stock status
+
+**72. Stock status thresholds.** `OPEN`
+Set while building `add-pantry-stock`, named in `src/logic/stockStatus.ts`
+beside the match thresholds, and like decision 32 these are placeholders
+until real usage exists. The values that survived the fixture tests:
+
+- `LOW_STAPLE_USES = 3` and `LOW_STAPLE_FRACTION = 0.15` — a staple is low
+  below whichever is larger of three typical uses or 15% of a typical
+  package. On the seeded 5 kg rice bag the package fraction governs (750 g);
+  on a small container the uses figure does, so both behave sensibly.
+- `LOW_SEASONING_FRACTION = 0.75` — a uses-tracked item reads low after 75%
+  of a typical container's worth of uses. An explicit fullness tap overrides
+  this estimate unconditionally (decision 14). **Currently unreachable — see
+  decision 73.**
+- `EXPIRING_SOON_DAYS = 3` — perishables inside three days of their date
+  read "running low" regardless of quantity, and the catalogue tints them.
+
+Two rules the tests enforce structurally: where units mismatch or data is
+missing, the status makes no claim (decision 52 applied to status — no
+invented conversion factor), and the pantry view model physically omits
+`qtyRemaining`/`usesCount` so no screen can render a number (decision 15).
+Boundary evidence lives in `src/logic/stockStatus.test.ts`.
+
+**73. Seasoning status is dead until unit conversion exists.** `OPEN`
+Found reviewing `add-pantry-stock`. `usesPerContainer` only computes when a
+canonical's `typicalUseUnit` equals its `typicalPkgUnit`, correctly refusing to
+invent a factor (decision 52). Measured against the seed set: **0 of 29**
+uses-tracked canonicals satisfy that. Uses are expressed in tbsp and tsp,
+packages in ml and g, so the two never meet.
+
+Verified rather than inferred — seeded gochujang reads `in_stock` at a
+`usesCount` of 1,000.
+
+The consequence is that decision 12's uses model and the "never lose track of
+seasonings running out" promise are non-functional. Fullness taps still work, so
+the manual override is fine; it is the automatic estimate that never fires.
+
+Neither the seed data nor the status code is wrong. A use *is* naturally a
+tablespoon and a package *is* naturally 500 ml — forcing them to match would
+make the data worse. What is missing is the conversion between them, and
+`convert(qty, from, to, canonical)` is already specified in
+`add-stock-depletion` task 2.1, where tbsp-to-ml is fixed and g-to-ml uses the
+`densityGPerMl` these canonicals already carry.
+
+So this is a cross-change dependency neither spec caught: pantry status silently
+needs depletion's converter. Closed by `add-stock-depletion` rather than
+patched here, because building a second partial converter would mean two things
+to keep in agreement.
