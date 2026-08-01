@@ -93,8 +93,10 @@ Pure logic. No database, no network.
 
 - [ ] 7.1 Extend `src/media/photos.ts` with a receipts subdirectory, reusing the
       existing resize and compress path rather than duplicating it.
-- [ ] 7.2 Build receipt capture — camera and library pick — following the
-      existing capture screen's conventions.
+- [ ] 7.2 Build the receipt handler and its review surface — **not a capture
+      screen**. Receipts arrive from the shared Add to pantry surface in
+      `add-unified-capture`, which routes to this handler. A library pick still
+      belongs here for images not taken live.
 - [ ] 7.3 Retain a receipt captured with no connection and complete extraction
       when one returns, without asking the user to re-photograph.
 - [ ] 7.4 Tell the user a receipt is pending rather than failing silently.

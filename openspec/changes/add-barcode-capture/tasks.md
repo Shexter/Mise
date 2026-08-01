@@ -47,8 +47,11 @@
 
 ## 5. Scanning
 
-- [ ] 5.1 Build the scan screen on `expo-camera`'s native barcode support. No
-      new dependency.
+- [ ] 5.1 Build lookup, caching, and batch review — **not a scan screen**.
+      Barcodes arrive from the shared Add to pantry surface in
+      `add-unified-capture`, which detects them natively and routes here only
+      when one resolves. Rapid multi-scan remains this change's, reached from
+      that surface.
 - [ ] 5.2 Give immediate feedback on a successful read — haptic and visual,
       following the existing capture screen's conventions.
 - [ ] 5.3 Debounce a code held in frame so it is not read repeatedly, while

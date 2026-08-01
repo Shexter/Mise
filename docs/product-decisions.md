@@ -968,3 +968,54 @@ A macro sits below target most days — that is what a target means — so an ap
 remarking on it daily is decision 14's nagging in a new place, with more force:
 the shortfall is usually not even a problem. Decision 14's rule generalises to
 **offer on suspicion, never on a schedule, and let the user come to it.**
+
+---
+
+## Capture
+
+**92. One action adds to the pantry; the app decides the method.** `SETTLED`
+The queue was heading for three doors — a scan screen, a receipt screen, and a
+grocery photo screen that nothing actually planned — each requiring the user to
+classify their own input before the app would help.
+
+That decision belongs to the app, which can make it better than they can. A
+barcode is recognisable by the camera in milliseconds and a receipt does not
+look like a bag of onions. Asking a person to sort it out first is friction the
+product invents and then charges them for.
+
+Routing is tiered by cost: a product barcode resolves locally with no model call
+at all, and only a capture without one is interpreted. Since packaged goods are
+a large share of what enters a pantry, the most repeated action in the app
+mostly pays nothing.
+
+**93. A detected barcode routes only if it resolves.** `SETTLED`
+Receipts carry barcodes — supermarkets print one at the foot for returns. A
+router trusting detection alone would send every receipt to a product lookup,
+fail, and report a bad scan, for the input it was most meant to help with.
+Requiring resolution makes the receipt's own barcode a harmless non-event, and
+an unknown product code falls through to image interpretation, which is the
+right outcome anyway since the label is in frame.
+
+**94. Classification and extraction are one request, returning a tagged result.** `SETTLED`
+Not classify-then-extract. Two calls double the cost and latency of every
+capture to answer a question the extraction pass already answers — a model
+transcribing an image knows whether it is reading a till roll or a bag of
+onions.
+
+The result is a discriminated union rather than a superset object carrying both
+`lines` and `items` with most fields empty, because that shape invites a caller
+to read the wrong one. The tag forces the branch.
+
+**95. Automatic routing is only safe because every route lands on review.** `SETTLED`
+A menu makes a wrong choice the user's; a router makes it the app's. The honest
+compensation is that nothing is written before the user sees what was found.
+
+Which also sets the bar correctly: classification does not have to be perfect to
+beat a menu — it has to be **recoverable**. A misrouted receipt would otherwise
+produce a catalogue of line-item nonsense.
+
+**96. Capture is not unified with meal logging.** `SETTLED`
+Photographing dinner to log calories and photographing shopping to stock the
+pantry are different intents, and a plate of food is genuinely ambiguous between
+them. The model can describe the image; it cannot know which the user meant, and
+guessing wrong writes to the wrong place. Separate tabs, separate actions.
