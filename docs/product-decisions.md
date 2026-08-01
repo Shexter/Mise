@@ -761,3 +761,47 @@ regression test costs almost nothing — it simply had never been written. Any
 behaviour that depends on the clock, on app lifecycle, or on a long-lived process
 needs a test that manipulates those directly, and verification for such fixes
 must happen on a standalone build rather than in Expo Go.
+
+---
+
+## The dinner decision
+
+**78. Decision 15 constrains display, not computation.** `SETTLED`
+Surfaced planning `add-dinner-decision`. The suggestion engine must rank urgency
+by value at risk (decision 35), which needs `price_cents` and `qty_remaining` —
+both of which `PantryEntry` deliberately omits.
+
+That is not a conflict. The engine computes with those numbers and renders none
+of them: a reason chip reads "saves $8 of stock", which is a price the user paid
+at a till, never an estimated remaining mass. So the engine reads stock through
+its own query rather than the pantry view model, and the view model stays narrow.
+
+Widening `PantryEntry` to serve the engine would have been the mistake — it would
+put an indefensible number one autocomplete away from every component.
+
+**79. A known canonical identity is carried, never re-derived.** `SETTLED`
+`meal_items` gains a nullable `canonical_id`. Null means "resolve by name", which
+is today's behaviour and correct for photographed meals — a photo produces "soy
+sauce" and genuinely cannot say which bottle.
+
+A recipe can. It produces `soy-sauce-light` and says so, and pushing that back
+through fuzzy string matching discards exactly the precision that made decision
+61's argument work. The whole reason the recipe path beats the camera for
+seasonings is that it states its ingredients; throwing the identity away at the
+last step would waste it.
+
+Generalises decision 66's rule to identity as well as confidence: **a value that
+arrives already known should not be re-derived by a lossier route.**
+
+**80. Cooking a suggestion produces an ordinary meal.** `SETTLED`
+Not a parallel "cooked recipe" path. The suggestion's ingredients become
+`meal_items` with canonical ids attached, the servings figure becomes decision
+10's multiplier, and it commits through the existing flow.
+
+Depletion, calorie totals, reversal, and editing already work on meals. A second
+path would need all four rebuilt and would drift from the first. The recipe's
+advantage is that its quantities are *stated* rather than estimated — a
+data-quality difference, not a structural one, and it needs no new machinery.
+
+It also means the batch case is already solved: the multiplier debits four
+servings, and decision 51's leftovers venue stops the rest debiting again.
