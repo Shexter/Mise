@@ -844,3 +844,40 @@ Go's reload cycle is what hid this bug originally, so that check needs a
 real device or emulator build and could not run in this environment. Flagged
 for the next on-device pass alongside `add-identity-layer`'s keyed run and
 `add-pantry-stock`'s hand verification.
+
+**81. Reversal hard-deletes; there is no reversal marker.** `SETTLED`
+`add-stock-depletion` task 1.1 asked for "a reversal marker" on
+`consumption_events`. The implementation instead deletes the rows on reversal,
+which is the better choice — a deleted meal genuinely should not count toward
+"used in 23 meals since you opened it", so there is nothing a tombstone would
+earn.
+
+But the column shipped alongside the behaviour: `reversed_at` existed, was
+inserted as NULL, and one query filtered `WHERE reversed_at IS NULL` as though
+it meant something. It never could, because reversed rows do not survive to be
+filtered.
+
+Removed before merge, and the timing is the point. Migrations are forward-only
+and never edited once shipped, so the moment before merge is the *last* moment
+that column could be removed at all. Dead schema with a query pretending to use
+it is exactly what convinces the next reader that reversal is a soft delete and
+that they can build on it.
+
+**82. Decision 73 is fixed in mechanism and half-delivered in data.** `OPEN`
+`convert()` closed the conversion gap: 13 of 29 uses-tracked seed canonicals can
+now compute a container size, up from **0**. The regression test runs against the
+real seed file rather than fixtures — correctly, since the original failure was
+in the data's shape and a fixture with matching units would have passed
+throughout.
+
+The remaining 16 return null because they carry no `typicalPkgQty` at all, which
+is missing data rather than an unreconciled unit, and they correctly make no
+claim (decision 52). The test asserts exactly that distinction rather than
+settling for "some now work".
+
+The catch worth naming: those 16 skew toward the differentiator. Belacan,
+doubanjiang, gochugaru, XO sauce, tamari, hoisin, tamarind paste, five-spice and
+white pepper are all among them. So the ingredients decision 4 is built on are
+disproportionately the ones that still cannot report running low.
+
+Closes when the seed data gains package figures. Authoring, not engineering.

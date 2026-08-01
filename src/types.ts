@@ -355,7 +355,6 @@ export interface ConsumptionEvent {
   uses: number;
   servingsMult: number;
   kind: ConsumptionKind;
-  reversedAt: string | null;
   createdAt: string;
 }
 

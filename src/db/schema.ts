@@ -196,7 +196,6 @@ CREATE TABLE consumption_events (
   uses           INTEGER NOT NULL DEFAULT 0,
   servings_mult  REAL NOT NULL DEFAULT 1,
   kind           TEXT NOT NULL,
-  reversed_at    TEXT,
   created_at     TEXT NOT NULL
 );
 

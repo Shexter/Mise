@@ -1458,7 +1458,6 @@ interface ConsumptionEventRow {
   uses: number;
   servings_mult: number;
   kind: string;
-  reversed_at: string | null;
   created_at: string;
 }
 
@@ -1473,7 +1472,6 @@ function toConsumptionEvent(row: ConsumptionEventRow): ConsumptionEvent {
     uses: row.uses,
     servingsMult: row.servings_mult,
     kind: row.kind as ConsumptionKind,
-    reversedAt: row.reversed_at,
     createdAt: row.created_at,
   };
 }
@@ -1530,8 +1528,8 @@ export async function applyDepletion(
       await txn.runAsync(
         `INSERT INTO consumption_events
            (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
-            servings_mult, kind, reversed_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+            servings_mult, kind, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           randomUUID(),
           decrement.pantryItemId,
@@ -1619,7 +1617,7 @@ async function applyToItem(
  */
 export async function reverseDepletion(mealId: string): Promise<void> {
   const rows = await db().getAllAsync<ConsumptionEventRow>(
-    'SELECT * FROM consumption_events WHERE meal_id = ? AND reversed_at IS NULL',
+    'SELECT * FROM consumption_events WHERE meal_id = ?',
     [mealId],
   );
   if (rows.length === 0) return;
@@ -1694,8 +1692,8 @@ export async function reapplyDepletion(
       await txn.runAsync(
         `INSERT INTO consumption_events
            (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
-            servings_mult, kind, reversed_at, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+            servings_mult, kind, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           randomUUID(),
           decrement.pantryItemId,
