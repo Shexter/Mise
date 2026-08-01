@@ -713,3 +713,51 @@ between stores, check whether its confidence moved with it.**
 A user who typed a quantity loses their echo after the first meal that touches
 the item. Correct: it is no longer their figure. Setting fullness or typing a
 new quantity restores it, and both already zero drift.
+
+---
+
+## Bugs that taught us something
+
+**75. Date shown and date written must be reconciled, not merely computed.** `SETTLED`
+The first standalone APK produced "adding meals doesn't work at all". Meals were
+saving correctly — four of them, on 31 July at 23:25 — while the Today screen sat
+on 27 July reading "Nothing logged yet" under a toast saying "Meal saved".
+
+Two independent causes, both real:
+
+`dayStore.ts:43` initialises `selectedDate` at module-evaluation time and nothing
+ever advances it. Expo Go reloads the bundle constantly so the value is always
+fresh, which is why this shipped; a standalone build keeps the JS context alive
+for days and the value ages with it.
+
+Separately, `addMeal` compared the saved meal's date to the viewed date and, on
+mismatch, deliberately refreshed only the strip dots. The divergence was
+anticipated and handled by showing the user nothing — no stale state required,
+just a user browsing back through the week.
+
+Neither the write nor the read was wrong in isolation. What was missing was any
+rule reconciling them. Recorded because it generalises: **when one value is
+computed at write time and another at read time, specify what happens when they
+disagree — "handled" is not the same as "resolved".**
+
+Tracked as `fix-day-selection`.
+
+**76. A confirmation that the screen contradicts is the bug, whatever the data says.** `SETTLED`
+"Meal saved." over "Nothing logged yet" is what turned a navigational quirk into
+a report that the core feature was broken. The database was right the whole time
+and it did not matter.
+
+So: no success confirmation may be shown over a screen that does not evidence it.
+Ordering feedback after the resulting state is on screen is now a rule rather
+than an accident of where the call happened to sit.
+
+**77. Development-only invisibility is a category of risk to test for.** `SETTLED`
+This bug could not be seen in Expo Go and could not be caught by the suite,
+because every existing test runs at a single instant and no test simulates the
+passage of time or an application lifecycle.
+
+`src/logic/dates.ts` already takes an injectable date on every function, so the
+regression test costs almost nothing — it simply had never been written. Any
+behaviour that depends on the clock, on app lifecycle, or on a long-lived process
+needs a test that manipulates those directly, and verification for such fixes
+must happen on a standalone build rather than in Expo Go.
