@@ -713,3 +713,53 @@ between stores, check whether its confidence moved with it.**
 A user who typed a quantity loses their echo after the first meal that touches
 the item. Correct: it is no longer their figure. Setting fullness or typing a
 new quantity restores it, and both already zero drift.
+
+---
+
+## Depletion, learned during implementation
+
+**75. `DRIFT_LIMIT` is 8, and confidence is a property of the claim.** `OPEN`
+Set while building `add-stock-depletion`, named in `src/logic/stockStatus.ts`
+beside the other thresholds. Eight estimated decrements without a
+ground-truth anchor and the app stops asserting: `stockStatusWithConfidence`
+returns `confident: false`, and the wording changes from "Running low" to
+"Probably low". Still a guess — tuning it changes no interface and no schema.
+
+Two rules fell out of implementing it, both worth keeping:
+
+- **An explicit user action is always confident.** A fullness tap or a
+  status tap is ground truth, so drift accumulated before it is irrelevant.
+  Only estimates decay.
+- **Reversal unwinds drift with the amount.** Deleting a meal restores what
+  it took *and* the confidence it cost. Leaving the counter raised would
+  make an undone action permanently expensive.
+
+The fullness check is offered only when an item is both drifted and already
+reading low — the one moment the question earns its interruption. Never on a
+schedule, which is the nagging decision 14 rules out.
+
+**76. A consumption event records what was applied, not what was intended.** `SETTLED`
+Found by the clamp test. An item with 100 g left, hit by a 500 g decrement,
+clamps to empty — but the event was storing the intended 500 g, so reversing
+that meal handed the item 500 g it never had. A delete-then-undo cycle was
+quietly a stock generator.
+
+The event now stores the amount actually removed. The intention is not worth
+keeping: nothing reads it, and the one thing the ledger exists for —
+restoring exactly what was taken — needs the applied figure. The clamp
+itself remains drift evidence, which is what the spec asks it to be.
+
+This is the same shape as decisions 66 and 74 one more time: a value that
+means one thing in one place, read as if it meant something stronger in
+another. Third instance, so the rule stands on its own — **when a value
+crosses a boundary, carry what actually happened, not what was asked for.**
+
+**77. The servings control asks on every home-cooked meal, for now.** `OPEN`
+The design left open whether to ask always or only on meals that look
+cooked. Shipping "always", because the control is optional, defaulted, and
+remembered per dish — a repeated dish offers its previous yield, so the
+common case is zero taps and the fallback costs nothing to add later.
+
+The alternative needs a definition of "looks cooked" (item count? manual
+additions? meal type?) and every candidate is a guess that would be wrong
+for someone. Deferred until real usage shows the friction is real.

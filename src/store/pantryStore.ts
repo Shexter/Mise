@@ -17,7 +17,7 @@ import {
   type NewPantryItem,
 } from '@/db/queries';
 import { isFreezable } from '@/logic/expiry';
-import { daysUntil, stockStatus } from '@/logic/stockStatus';
+import { daysUntil, stockStatusWithConfidence } from '@/logic/stockStatus';
 import type {
   CanonicalItem,
   FoodClass,
@@ -42,6 +42,14 @@ export interface PantryEntry {
   name: string;
   foodClass: FoodClass;
   status: StockStatus;
+  /**
+   * False once the item has drifted past `DRIFT_LIMIT` estimated decrements
+   * without an anchor. The interface qualifies rather than asserts — see
+   * `statusLabel` (decision 53).
+   */
+  statusConfident: boolean;
+  /** True when a fullness check is worth offering, on suspicion only. */
+  suggestFullnessCheck: boolean;
   locationId: string;
   locationName: string;
   expiresAt: string | null;
@@ -135,12 +143,15 @@ function toEntry(
   canonical: CanonicalItem,
   location: Location,
 ): PantryEntry {
+  const status = stockStatusWithConfidence(item, canonical);
   return {
     id: item.id,
     canonicalId: item.canonicalId,
     name: canonical.displayName,
     foodClass: canonical.foodClass,
-    status: stockStatus(item, canonical),
+    status: status.status,
+    statusConfident: status.confident,
+    suggestFullnessCheck: status.suggestFullnessCheck,
     locationId: location.id,
     locationName: location.name,
     expiresAt: item.expiresAt,

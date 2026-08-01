@@ -21,6 +21,7 @@ const RICE: CanonicalSlice = {
   typicalUseUnit: 'g',
   typicalPkgQty: 5000,
   typicalPkgUnit: 'g',
+  densityGPerMl: null,
 };
 
 const GOCHUJANG: CanonicalSlice = {
@@ -29,6 +30,7 @@ const GOCHUJANG: CanonicalSlice = {
   typicalUseUnit: 'g',
   typicalPkgQty: 500,
   typicalPkgUnit: 'g',
+  densityGPerMl: 1.2,
 };
 
 const CHICKEN: CanonicalSlice = {
@@ -37,6 +39,7 @@ const CHICKEN: CanonicalSlice = {
   typicalUseUnit: 'g',
   typicalPkgQty: null,
   typicalPkgUnit: null,
+  densityGPerMl: null,
 };
 
 function item(overrides: Partial<StatusInputs> = {}): StatusInputs {

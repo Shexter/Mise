@@ -42,18 +42,21 @@ import {
   space,
 } from '@/constants/theme';
 import { matchSuggestion } from '@/constants/hiddenIngredients';
-import { MEAL_TYPES } from '@/types';
+import { MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
+import { lastServingsForDish, lastVenue } from '@/db/queries';
+import { Stepper } from '@/components/Stepper';
 import type {
   Confidence,
   EstimatedItem,
   MealItem,
   MealType,
+  MealVenue,
 } from '@/types';
 
 type Phase =
@@ -64,6 +67,17 @@ type Phase =
 const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
   value: type,
   label: type.charAt(0).toUpperCase() + type.slice(1),
+}));
+
+const VENUE_LABELS: Record<MealVenue, string> = {
+  home: 'Cooked in',
+  out: 'Ate out',
+  leftovers: 'Leftovers',
+};
+
+const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
+  value: venue,
+  label: VENUE_LABELS[venue],
 }));
 
 export default function ReviewScreen() {
@@ -88,12 +102,36 @@ export default function ReviewScreen() {
     estimate?.likelyHiddenIngredients ?? [],
   );
   const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
+  const [venue, setVenue] = useState<MealVenue>('home');
+  const [servings, setServings] = useState(1);
 
   const [editing, setEditing] = useState<MealItem | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+
+  // The venue control defaults to whatever was chosen last — most people
+  // eat the same way most days, so the common case costs no taps.
+  useEffect(() => {
+    void lastVenue().then((last) => {
+      if (last) setVenue(last);
+    });
+  }, []);
+
+  // A repeated dish remembers its yield, so the batch cook that made four
+  // portions last time offers four again.
+  useEffect(() => {
+    const dish = mealName.trim();
+    if (dish.length === 0) return;
+    let active = true;
+    void lastServingsForDish(dish).then((remembered) => {
+      if (active && remembered) setServings(remembered);
+    });
+    return () => {
+      active = false;
+    };
+  }, [mealName]);
 
   const runEstimate = useCallback(async () => {
     if (!base64) {
@@ -195,6 +233,8 @@ export default function ReviewScreen() {
       photoUri,
       source: 'photo',
       confidence,
+      venue,
+      servingsMult: venue === 'home' ? servings : 1,
       items: items.map((item) => ({
         name: item.name,
         quantity: item.quantity,
@@ -211,7 +251,10 @@ export default function ReviewScreen() {
     // The success haptic completes the save sequence in §7.6; the segment
     // scale-in and hero count-down play once Today re-renders with the new meal.
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.show({ message: 'Meal saved.' });
+    // An automatic pantry change should be visible, not silent — the user
+    // needs to know why their stock moved.
+    const depleted = useDayStore.getState().lastDepletion;
+    toast.show({ message: savedMessage(depleted?.names ?? []) });
     router.dismissAll();
     router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
   };
@@ -355,6 +398,39 @@ export default function ReviewScreen() {
             onChange={setMealType}
           />
         </View>
+
+        <View style={styles.mealType}>
+          <SectionLabel muted style={styles.mealTypeLabel}>
+            Where from
+          </SectionLabel>
+          <Segmented options={VENUE_OPTIONS} value={venue} onChange={setVenue} />
+          <Caption muted style={styles.venueHint}>
+            {venue === 'home'
+              ? 'Cooking at home takes what you used out of the pantry.'
+              : venue === 'out'
+                ? 'Eating out leaves your pantry alone.'
+                : 'Leftovers were already taken out when you cooked the batch.'}
+          </Caption>
+        </View>
+
+        {venue === 'home' ? (
+          <View style={styles.mealType}>
+            <SectionLabel muted style={styles.mealTypeLabel}>
+              Servings this made
+            </SectionLabel>
+            <Stepper
+              value={servings}
+              onChange={setServings}
+              step={1}
+              min={1}
+              max={20}
+              label="Servings this made"
+            />
+            <Caption muted style={styles.venueHint}>
+              Cooked more than you ate? The pantry loses the whole batch.
+            </Caption>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
@@ -379,6 +455,16 @@ export default function ReviewScreen() {
       />
     </View>
   );
+}
+
+/** Names what moved, in words, and stays short enough for a toast. */
+function savedMessage(names: readonly string[]): string {
+  if (names.length === 0) return 'Meal saved.';
+  if (names.length === 1) return `Meal saved — ${names[0]} updated.`;
+  if (names.length === 2) {
+    return `Meal saved — ${names[0]} and ${names[1]} updated.`;
+  }
+  return `Meal saved — ${names.length} pantry items updated.`;
 }
 
 function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {
@@ -466,6 +552,7 @@ const styles = StyleSheet.create({
   },
   mealType: { gap: space.sm },
   mealTypeLabel: { marginLeft: space.xs },
+  venueHint: { marginLeft: space.xs },
   footer: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.sm,

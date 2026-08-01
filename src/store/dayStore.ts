@@ -10,6 +10,11 @@ import {
   type NewMeal,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
+import {
+  depleteForMeal,
+  undepleteForMeal,
+  type DepletionSummary,
+} from '@/logic/depletionService';
 import { macroTargets } from '@/logic/macros';
 import { macrosOfMeals } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
@@ -29,10 +34,13 @@ interface DayState {
   loggedDates: string[];
   /** The last deleted meal, held until the undo window closes. */
   pendingUndo: MealWithItems | null;
+  /** What the last commit decremented, so the change is visible not silent. */
+  lastDepletion: DepletionSummary | null;
 
   selectDate: (localDate: string) => Promise<void>;
   refresh: () => Promise<void>;
   addMeal: (meal: NewMeal) => Promise<MealWithItems>;
+  clearLastDepletion: () => void;
   removeMeal: (id: string) => Promise<void>;
   undoRemove: () => Promise<void>;
   /** Makes the pending delete permanent and removes its photo. */
@@ -47,6 +55,7 @@ export const useDayStore = create<DayState>((set, get) => ({
   consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   loggedDates: [],
   pendingUndo: null,
+  lastDepletion: null,
 
   selectDate: async (localDate) => {
     set({ selectedDate: localDate });
@@ -76,6 +85,15 @@ export const useDayStore = create<DayState>((set, get) => ({
       await ensureDailyTarget(meal.localDate, profile);
     }
     const stored = await insertMeal(meal);
+    // Depletion runs here, on commit — never while the user is still
+    // correcting the estimate on the review screen. A failure must not cost
+    // the user their meal, so it is caught rather than propagated.
+    try {
+      const summary = await depleteForMeal(stored);
+      set({ lastDepletion: summary.names.length > 0 ? summary : null });
+    } catch {
+      set({ lastDepletion: null });
+    }
     if (stored.localDate === get().selectedDate) {
       await get().refresh();
     } else {
@@ -89,6 +107,8 @@ export const useDayStore = create<DayState>((set, get) => ({
     get().commitRemove();
 
     const meal = get().meals.find((candidate) => candidate.id === id) ?? null;
+    // Reverse before the row goes: the ledger cascades with the meal.
+    await undepleteForMeal(id);
     await deleteMeal(id);
     set({ pendingUndo: meal });
     await get().refresh();
@@ -99,8 +119,16 @@ export const useDayStore = create<DayState>((set, get) => ({
     if (!meal) return;
     set({ pendingUndo: null });
     await restoreMeal(meal);
+    // Undo restores the meal, so its depletion has to come back with it.
+    try {
+      await depleteForMeal(meal);
+    } catch {
+      // Stock stays as it was; the meal itself is what the user asked back.
+    }
     await get().refresh();
   },
+
+  clearLastDepletion: () => set({ lastDepletion: null }),
 
   commitRemove: () => {
     const meal = get().pendingUndo;
