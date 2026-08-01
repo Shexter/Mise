@@ -31,17 +31,54 @@ const IDENTITY_TABLES = [
   'products',
 ];
 
+const PANTRY_TABLES = ['locations', 'pantry_items'];
+
 describe('migrations', () => {
   test('a fresh install reaches the latest version with every table', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);
 
     const tables = tableNames(db);
-    for (const table of IDENTITY_TABLES) {
+    for (const table of [...IDENTITY_TABLES, ...PANTRY_TABLES]) {
       expect(tables).toContain(table);
     }
     expect(tables).toContain('meals');
     expect(tables).toContain('profile');
+    db.close();
+  });
+
+  test('a fresh install seeds the four default locations', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, LATEST_VERSION);
+    const rows = db
+      .prepare('SELECT id, kind FROM locations ORDER BY sort_order')
+      .all() as { id: string; kind: string }[];
+    expect(rows).toEqual([
+      { id: 'fridge', kind: 'fridge' },
+      { id: 'freezer', kind: 'freezer' },
+      { id: 'pantry', kind: 'ambient' },
+      { id: 'counter', kind: 'counter' },
+    ]);
+    db.close();
+  });
+
+  test('an install at user_version 2 upgrades and gains the pantry tables', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 2);
+    db.prepare(
+      `INSERT INTO canonical_items (id, display_name, class, default_location, shelf_life_days, created_at)
+       VALUES ('miso', 'Miso', 'condiment', 'fridge', '{"fridge":365}', '2026-01-01')`,
+    ).run();
+
+    migrate(db, 2, LATEST_VERSION);
+
+    const kept = db.prepare("SELECT display_name FROM canonical_items WHERE id = 'miso'").get() as {
+      display_name: string;
+    };
+    expect(kept.display_name).toBe('Miso');
+    for (const table of PANTRY_TABLES) {
+      expect(tableNames(db)).toContain(table);
+    }
     db.close();
   });
 

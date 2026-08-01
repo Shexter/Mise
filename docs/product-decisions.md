@@ -579,3 +579,25 @@ model, which is correct behaviour but means offline CJK matching effectively
 does not exist and every unseeded CJK reference costs a call until learned.
 That undercuts decisions 4 and 31, where in-script coverage is the
 differentiator. Tracked as its own change.
+
+**68. Stock status thresholds.** `OPEN`
+Set while building `add-pantry-stock`, named in `src/logic/stockStatus.ts`
+beside the match thresholds, and like decision 32 these are placeholders
+until real usage exists. The values that survived the fixture tests:
+
+- `LOW_STAPLE_USES = 3` and `LOW_STAPLE_FRACTION = 0.15` — a staple is low
+  below whichever is larger of three typical uses or 15% of a typical
+  package. On the seeded 5 kg rice bag the package fraction governs (750 g);
+  on a small container the uses figure does, so both behave sensibly.
+- `LOW_SEASONING_FRACTION = 0.75` — a uses-tracked item reads low after 75%
+  of a typical container's worth of uses (≈25 of 33 for the seeded
+  gochujang tub). An explicit fullness tap overrides this estimate
+  unconditionally (decision 14).
+- `EXPIRING_SOON_DAYS = 3` — perishables inside three days of their date
+  read "running low" regardless of quantity, and the catalogue tints them.
+
+Two rules the tests enforce structurally: where units mismatch or data is
+missing, the status makes no claim (decision 52 applied to status — no
+invented conversion factor), and the pantry view model physically omits
+`qtyRemaining`/`usesCount` so no screen can render a number (decision 15).
+Boundary evidence lives in `src/logic/stockStatus.test.ts`.

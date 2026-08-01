@@ -128,12 +128,65 @@ CREATE TABLE match_queue (
 );
 `;
 
-export const MIGRATIONS: readonly string[] = [INITIAL_SCHEMA, IDENTITY_LAYER];
+/**
+ * Migration 3: the pantry catalogue. Physical items in the kitchen and the
+ * user-editable storage locations they live in. Locations are a table, not
+ * an enum (decision 57): `kind` is the closed set the shelf-life lookup
+ * keys off, `name` is free text the user owns. The four defaults are seeded
+ * here so a fresh install has them before any screen loads.
+ */
+const PANTRY_STOCK = `
+CREATE TABLE locations (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  sort_order  INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT INTO locations (id, name, kind, sort_order) VALUES
+  ('fridge',  'Fridge',  'fridge',  0),
+  ('freezer', 'Freezer', 'freezer', 1),
+  ('pantry',  'Pantry',  'ambient', 2),
+  ('counter', 'Counter', 'counter', 3);
+
+CREATE TABLE pantry_items (
+  id            TEXT PRIMARY KEY,
+  canonical_id  TEXT NOT NULL REFERENCES canonical_items(id),
+  product_id    TEXT REFERENCES products(id),
+  location_id   TEXT NOT NULL REFERENCES locations(id),
+  qty_remaining REAL,
+  qty_unit      TEXT,
+  qty_source    TEXT,
+  fullness      TEXT,
+  uses_count    INTEGER NOT NULL DEFAULT 0,
+  purchased_at  TEXT NOT NULL,
+  opened_at     TEXT,
+  expires_at    TEXT,
+  expiry_source TEXT,
+  price_cents   INTEGER,
+  photo_uri     TEXT,
+  status        TEXT NOT NULL DEFAULT 'in_stock',
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+
+CREATE INDEX idx_pantry_status    ON pantry_items(status);
+CREATE INDEX idx_pantry_expires   ON pantry_items(expires_at);
+CREATE INDEX idx_pantry_canonical ON pantry_items(canonical_id);
+`;
+
+export const MIGRATIONS: readonly string[] = [
+  INITIAL_SCHEMA,
+  IDENTITY_LAYER,
+  PANTRY_STOCK,
+];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS pantry_items;
+DROP TABLE IF EXISTS locations;
 DROP TABLE IF EXISTS match_queue;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS item_aliases;

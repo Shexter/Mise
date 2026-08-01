@@ -4,24 +4,37 @@ import canonicalSeed from '../../assets/canonical-items.json';
 import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
+import { localDateString } from '@/logic/dates';
+import {
+  canRecomputeExpiry,
+  freezeExpiry,
+  predictExpiry,
+} from '@/logic/expiry';
 import { macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
 import type {
   CanonicalItem,
   Confidence,
   DailyTarget,
+  ExpirySource,
   FoodClass,
+  Fullness,
   ItemAlias,
+  Location,
+  LocationKind,
   MeasureUnit,
   Meal,
   MealItem,
   MealSource,
   MealType,
   MealWithItems,
+  PantryItem,
   Product,
   Profile,
+  QuantitySource,
   QueuedMatch,
   ReferenceSource,
+  StockStatus,
   StorageLocation,
 } from '@/types';
 
@@ -975,6 +988,352 @@ export async function mergeCanonicals(
       absorbedId,
     ]);
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pantry: row shapes and mappers                                              */
+/* -------------------------------------------------------------------------- */
+
+interface LocationRow {
+  id: string;
+  name: string;
+  kind: string;
+  sort_order: number;
+}
+
+interface PantryItemRow {
+  id: string;
+  canonical_id: string;
+  product_id: string | null;
+  location_id: string;
+  qty_remaining: number | null;
+  qty_unit: string | null;
+  qty_source: string | null;
+  fullness: string | null;
+  uses_count: number;
+  purchased_at: string;
+  opened_at: string | null;
+  expires_at: string | null;
+  expiry_source: string | null;
+  price_cents: number | null;
+  photo_uri: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function toLocation(row: LocationRow): Location {
+  return {
+    id: row.id,
+    name: row.name,
+    kind: row.kind as LocationKind,
+    sortOrder: row.sort_order,
+  };
+}
+
+function toPantryItem(row: PantryItemRow): PantryItem {
+  return {
+    id: row.id,
+    canonicalId: row.canonical_id,
+    productId: row.product_id,
+    locationId: row.location_id,
+    qtyRemaining: row.qty_remaining,
+    qtyUnit: row.qty_unit as MeasureUnit | null,
+    qtySource: row.qty_source as QuantitySource | null,
+    fullness: row.fullness as Fullness | null,
+    usesCount: row.uses_count,
+    purchasedAt: row.purchased_at,
+    openedAt: row.opened_at,
+    expiresAt: row.expires_at,
+    expirySource: row.expiry_source as ExpirySource | null,
+    priceCents: row.price_cents,
+    photoUri: row.photo_uri,
+    status: row.status as StockStatus,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Locations                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export async function getLocations(): Promise<Location[]> {
+  const rows = await db().getAllAsync<LocationRow>(
+    'SELECT * FROM locations ORDER BY sort_order ASC, name ASC',
+  );
+  return rows.map(toLocation);
+}
+
+export async function addLocation(
+  name: string,
+  kind: LocationKind,
+): Promise<Location> {
+  const id = randomUUID();
+  const row = await db().getFirstAsync<{ top: number | null }>(
+    'SELECT MAX(sort_order) AS top FROM locations',
+  );
+  const sortOrder = (row?.top ?? -1) + 1;
+  await db().runAsync(
+    'INSERT INTO locations (id, name, kind, sort_order) VALUES (?, ?, ?, ?)',
+    [id, name, kind, sortOrder],
+  );
+  return { id, name, kind, sortOrder };
+}
+
+export async function renameLocation(id: string, name: string): Promise<void> {
+  await db().runAsync('UPDATE locations SET name = ? WHERE id = ?', [name, id]);
+}
+
+/**
+ * Removes a location by first moving its items to a destination the user
+ * chose — never deleting them, never leaving them locationless. One
+ * transaction; expiry is recomputed for the moved items because their
+ * location kind may have changed.
+ */
+export async function removeLocation(
+  id: string,
+  destinationId: string,
+): Promise<void> {
+  if (id === destinationId) {
+    throw new Error('Cannot move a location’s items into itself.');
+  }
+  const destination = await db().getFirstAsync<LocationRow>(
+    'SELECT * FROM locations WHERE id = ?',
+    [destinationId],
+  );
+  if (!destination) {
+    throw new Error('The destination location does not exist.');
+  }
+
+  const moved = await db().getAllAsync<PantryItemRow>(
+    'SELECT * FROM pantry_items WHERE location_id = ?',
+    [id],
+  );
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(
+      'UPDATE pantry_items SET location_id = ?, updated_at = ? WHERE location_id = ?',
+      [destinationId, new Date().toISOString(), id],
+    );
+    await txn.runAsync('DELETE FROM locations WHERE id = ?', [id]);
+  });
+  for (const row of moved) {
+    await recomputeExpiry(row.id);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pantry items                                                                */
+/* -------------------------------------------------------------------------- */
+
+export interface NewPantryItem {
+  canonicalId: string;
+  locationId: string;
+  /** Local date (yyyy-MM-dd). Defaults to today. */
+  purchasedAt?: string;
+  productId?: string | null;
+  /** A quantity the user typed, echoable back to them. */
+  qtyRemaining?: number | null;
+  qtyUnit?: MeasureUnit | null;
+  /** A date from a label or the user; suppresses prediction. */
+  expiresAt?: string | null;
+  expirySource?: Exclude<ExpirySource, 'predicted'>;
+  priceCents?: number | null;
+  photoUri?: string | null;
+}
+
+/**
+ * Inserts a pantry item, predicting its expiry from the canonical shelf
+ * life and the location kind unless the caller supplied a date.
+ */
+export async function insertPantryItem(
+  input: NewPantryItem,
+): Promise<PantryItem> {
+  const canonical = await getCanonicalById(input.canonicalId);
+  if (!canonical) {
+    throw new Error(`Unknown canonical ingredient: ${input.canonicalId}`);
+  }
+  const location = await db().getFirstAsync<LocationRow>(
+    'SELECT * FROM locations WHERE id = ?',
+    [input.locationId],
+  );
+  if (!location) {
+    throw new Error(`Unknown location: ${input.locationId}`);
+  }
+
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const purchasedAt = input.purchasedAt ?? localDateString();
+
+  let expiresAt: string | null;
+  let expirySource: ExpirySource | null;
+  if (input.expiresAt != null) {
+    expiresAt = input.expiresAt;
+    expirySource = input.expirySource ?? 'user';
+  } else {
+    expiresAt = predictExpiry(
+      canonical,
+      location.kind as LocationKind,
+      purchasedAt,
+      null,
+    );
+    expirySource = expiresAt != null ? 'predicted' : null;
+  }
+
+  await db().runAsync(
+    `INSERT INTO pantry_items
+       (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
+        qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
+        expiry_source, price_cents, photo_uri, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, ?, 'in_stock', ?, ?)`,
+    [
+      id,
+      input.canonicalId,
+      input.productId ?? null,
+      input.locationId,
+      input.qtyRemaining ?? null,
+      input.qtyUnit ?? null,
+      input.qtyRemaining != null ? 'user' : null,
+      purchasedAt,
+      expiresAt,
+      expirySource,
+      input.priceCents ?? null,
+      input.photoUri ?? null,
+      now,
+      now,
+    ],
+  );
+  const stored = await getPantryItem(id);
+  if (!stored) throw new Error('Pantry item vanished on insert.');
+  return stored;
+}
+
+export async function getPantryItem(id: string): Promise<PantryItem | null> {
+  const row = await db().getFirstAsync<PantryItemRow>(
+    'SELECT * FROM pantry_items WHERE id = ?',
+    [id],
+  );
+  return row ? toPantryItem(row) : null;
+}
+
+/**
+ * The catalogue, soonest expiry first; undated items follow dated ones and
+ * discarded items are excluded.
+ */
+export async function listPantryItems(): Promise<PantryItem[]> {
+  const rows = await db().getAllAsync<PantryItemRow>(
+    `SELECT * FROM pantry_items
+     WHERE status != 'discarded'
+     ORDER BY expires_at IS NULL ASC, expires_at ASC, created_at ASC`,
+  );
+  return rows.map(toPantryItem);
+}
+
+async function touchPantryItem(
+  id: string,
+  fields: string,
+  params: (string | number | null)[],
+): Promise<void> {
+  await db().runAsync(
+    `UPDATE pantry_items SET ${fields}, updated_at = ? WHERE id = ?`,
+    [...params, new Date().toISOString(), id],
+  );
+}
+
+/**
+ * Recomputes and stores a predicted expiry from the item's current state.
+ * One of the few writers of `expires_at` — creation, opening, moving, and
+ * freezing route through here or set it directly. A user or label date is
+ * left alone (`canRecomputeExpiry`).
+ */
+async function recomputeExpiry(id: string): Promise<void> {
+  const item = await getPantryItem(id);
+  if (!item || !canRecomputeExpiry(item.expirySource)) return;
+  const canonical = await getCanonicalById(item.canonicalId);
+  const location = await db().getFirstAsync<LocationRow>(
+    'SELECT * FROM locations WHERE id = ?',
+    [item.locationId],
+  );
+  if (!canonical || !location) return;
+
+  const expiresAt = predictExpiry(
+    canonical,
+    location.kind as LocationKind,
+    item.purchasedAt,
+    item.openedAt,
+  );
+  await touchPantryItem(id, 'expires_at = ?, expiry_source = ?', [
+    expiresAt,
+    expiresAt != null ? 'predicted' : null,
+  ]);
+}
+
+/** Marks an item opened today and recomputes its (predicted) expiry. */
+export async function markItemOpened(id: string): Promise<void> {
+  await touchPantryItem(id, 'opened_at = ?', [localDateString()]);
+  await recomputeExpiry(id);
+}
+
+/** Moves an item and recomputes its (predicted) expiry for the new kind. */
+export async function updateItemLocation(
+  id: string,
+  locationId: string,
+): Promise<void> {
+  await touchPantryItem(id, 'location_id = ?', [locationId]);
+  await recomputeExpiry(id);
+}
+
+/**
+ * The freeze action (decision 20): move to a freezer location and recount
+ * expiry from the freezer shelf life as of today. A user or label date
+ * still wins over the recount.
+ */
+export async function freezeItem(
+  id: string,
+  freezerLocationId: string,
+): Promise<void> {
+  const item = await getPantryItem(id);
+  if (!item) return;
+  const canonical = await getCanonicalById(item.canonicalId);
+  if (!canonical) return;
+
+  if (canRecomputeExpiry(item.expirySource)) {
+    const expiresAt = freezeExpiry(canonical, localDateString());
+    await touchPantryItem(
+      id,
+      'location_id = ?, expires_at = ?, expiry_source = ?',
+      [freezerLocationId, expiresAt, expiresAt != null ? 'predicted' : null],
+    );
+  } else {
+    await touchPantryItem(id, 'location_id = ?', [freezerLocationId]);
+  }
+}
+
+/**
+ * A fullness tap (decision 14): authoritative over any estimate at the
+ * moment it is given, so the stored advisory status is reset to match.
+ */
+export async function setItemFullness(
+  id: string,
+  fullness: Fullness,
+): Promise<void> {
+  await touchPantryItem(id, 'fullness = ?, status = ?', [
+    fullness,
+    fullness === 'out' ? 'out' : 'in_stock',
+  ]);
+}
+
+export async function markItemUsedUp(id: string): Promise<void> {
+  await touchPantryItem(id, "status = 'out'", []);
+}
+
+export async function markItemRunningLow(id: string): Promise<void> {
+  await touchPantryItem(id, "status = 'running_low'", []);
+}
+
+/** Discarded, not consumed — the raw material for waste figures later. */
+export async function discardItem(id: string): Promise<void> {
+  await touchPantryItem(id, "status = 'discarded'", []);
 }
 
 /* -------------------------------------------------------------------------- */

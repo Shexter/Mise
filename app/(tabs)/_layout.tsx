@@ -30,6 +30,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="pantry"
+        options={{
+          title: 'Pantry',
+          tabBarIcon: ({ color: tint, size }) => (
+            <Feather name="archive" size={size} color={tint} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
