@@ -9,8 +9,10 @@ import {
   getSuggestionCache,
   listPantryItems,
   saveSuggestionCache,
+  type NewMeal,
+  type NewMealItem,
 } from '@/db/queries';
-import { localDateString } from '@/logic/dates';
+import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { macrosOfMeals } from '@/logic/scaling';
 import {
   bucketStock,
@@ -20,7 +22,14 @@ import {
   summarisePersonalisation,
   type StockPayload,
 } from '@/logic/suggest';
-import type { CanonicalItem, Macros, SuggestionMode, SuggestionSet } from '@/types';
+import type {
+  CanonicalItem,
+  Macros,
+  MealType,
+  Suggestion,
+  SuggestionMode,
+  SuggestionSet,
+} from '@/types';
 
 /**
  * Binds the pure engine in `suggest.ts` to the database, the identity
@@ -142,6 +151,73 @@ export async function getOrGenerateSuggestions(
       message: error instanceof Error ? error.message : 'Suggestions failed.',
     };
   }
+}
+
+export interface CookSuggestionInput {
+  suggestion: Suggestion;
+  /** Servings the cooking made, defaulting to the suggestion's own figure. */
+  servingsMade: number;
+  localDate: string;
+  mealType?: MealType;
+  canonicals: ReadonlyMap<string, CanonicalItem>;
+}
+
+/**
+ * Turns a suggestion into a meal ready for the existing commit path — "I
+ * cooked this" (task 7.1). No parallel path: this is the same `NewMeal`
+ * shape `review.tsx` and `manual.tsx` build, so depletion, totals,
+ * reversal, and editing all just work.
+ *
+ * The suggestion states amounts for its own `servings`; `servingsMade`
+ * scales the batch the same way "servings this made" does on the review
+ * screen (decision 10) — as a ratio fed into `servingsMult`, not baked
+ * into the item quantities, so `planDepletion` applies it once.
+ *
+ * The model gives calories per serving for the dish as a whole, not per
+ * ingredient, so calories land on one dish-level item and the ingredient
+ * items that carry the canonical ids for depletion carry zero — the
+ * refusal to fabricate a per-ingredient split (decision 62).
+ */
+export function mealFromSuggestion(input: CookSuggestionInput): NewMeal {
+  const servingsMult =
+    Math.max(1, input.servingsMade) / Math.max(1, input.suggestion.servings);
+
+  const items: NewMealItem[] = [
+    {
+      name: input.suggestion.dish,
+      quantity: 1,
+      unit: 'serving',
+      calories: input.suggestion.kcalPerServing,
+      proteinG: 0,
+      carbsG: 0,
+      fatG: 0,
+      isManualAddition: false,
+    },
+    ...input.suggestion.uses.map((use) => ({
+      name: input.canonicals.get(use.canonicalId)?.displayName ?? use.canonicalId,
+      quantity: use.qty,
+      unit: use.unit,
+      calories: 0,
+      proteinG: 0,
+      carbsG: 0,
+      fatG: 0,
+      isManualAddition: false,
+      canonicalId: use.canonicalId,
+    })),
+  ];
+
+  return {
+    loggedAt: new Date().toISOString(),
+    localDate: input.localDate,
+    mealType: input.mealType ?? mealTypeForTime(),
+    name: input.suggestion.dish,
+    photoUri: null,
+    source: 'suggestion',
+    confidence: null,
+    venue: 'home',
+    servingsMult,
+    items,
+  };
 }
 
 /** Today's suggestions, following the app's local-date convention. */

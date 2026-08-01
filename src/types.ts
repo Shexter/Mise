@@ -15,7 +15,7 @@ export type Units = 'metric' | 'imperial';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export type MealSource = 'photo' | 'manual';
+export type MealSource = 'photo' | 'manual' | 'suggestion';
 
 /**
  * Where a meal came from, and therefore whether it debits the pantry.

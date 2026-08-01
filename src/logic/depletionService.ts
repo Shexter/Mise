@@ -28,9 +28,12 @@ export interface DepletionSummary {
 /**
  * Resolves a meal's items to canonical ingredients.
  *
- * A quick-pick carries its `canonicalId` directly (added to
+ * An item that already carries a `canonicalId` — a cooked suggestion, which
+ * knows exactly what it used — is debited by that identity directly and
+ * never re-derived from its name (decision 61). Everything else resolves as
+ * before: a quick-pick carries its `canonicalId` directly (added to
  * `hidden-ingredients.json` by the identity layer), so it skips matching
- * entirely. An unmapped quick-pick resolves by name like any other item and
+ * entirely; an unmapped quick-pick resolves by name like any other item and
  * simply decrements nothing when it finds no match — the pre-existing
  * behaviour, not a regression.
  */
@@ -48,6 +51,15 @@ async function resolveIngredients(
   const needsMatching: { index: number; name: string }[] = [];
 
   for (const [index, item] of meal.items.entries()) {
+    if (item.canonicalId) {
+      resolved[index] = {
+        canonicalId: item.canonicalId,
+        quantity: item.quantity,
+        unit: item.unit,
+        kind: 'meal_item',
+      };
+      continue;
+    }
     const quickPick = quickPickByName.get(item.name.toLowerCase());
     if (quickPick) {
       resolved[index] = {

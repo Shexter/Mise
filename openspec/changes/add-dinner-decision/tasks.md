@@ -83,19 +83,19 @@ Pure logic. No database, no network.
 The point of the change (decision 61). This is the path that produces better
 depletion data than a photograph can.
 
-- [ ] 7.1 Build "I cooked this": turn the suggestion into `meal_items` carrying
+- [x] 7.1 Build "I cooked this": turn the suggestion into `meal_items` carrying
       the suggestion's amounts **and** its canonical ids.
-- [ ] 7.2 Ask how many servings it made, defaulting to the suggestion's own
+- [x] 7.2 Ask how many servings it made, defaulting to the suggestion's own
       figure, feeding decision 10's multiplier.
-- [ ] 7.3 Commit through the existing meal flow. Do not add a parallel path —
+- [x] 7.3 Commit through the existing meal flow. Do not add a parallel path —
       depletion, totals, reversal, and editing already work on meals.
-- [ ] 7.4 Extend `planDepletion` to prefer a carried `canonicalId` over name
+- [x] 7.4 Extend `planDepletion` to prefer a carried `canonicalId` over name
       resolution, keeping name resolution for items without one.
-- [ ] 7.5 Test that a cooked suggestion debits a seasoning by identity, and that
+- [x] 7.5 Test that a cooked suggestion debits a seasoning by identity, and that
       a photographed meal still resolves by name.
-- [ ] 7.6 Test that an item whose name is ambiguous but whose canonical is
+- [x] 7.6 Test that an item whose name is ambiguous but whose canonical is
       carried debits the carried ingredient.
-- [ ] 7.7 Confirm photographing the finished dish overrides the suggestion's
+- [x] 7.7 Confirm photographing the finished dish overrides the suggestion's
       figures.
 
 ## 8. Surface

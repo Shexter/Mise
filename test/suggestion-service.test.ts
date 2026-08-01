@@ -9,10 +9,20 @@ vi.mock('../src/api/keyStore', () => ({
 
 import { generateSuggestions } from '../src/api/suggest';
 import { hasApiKey } from '../src/api/keyStore';
-import { loadSeedData } from '../src/db/queries';
-import { getOrGenerateSuggestions } from '../src/logic/suggestionService';
+import {
+  getAllCanonicals,
+  getPantryItem,
+  insertMeal,
+  insertPantryItem,
+  loadSeedData,
+} from '../src/db/queries';
+import { depleteForMeal } from '../src/logic/depletionService';
+import {
+  getOrGenerateSuggestions,
+  mealFromSuggestion,
+} from '../src/logic/suggestionService';
 import { localDateString } from '../src/logic/dates';
-import type { Suggestion } from '../src/types';
+import type { CanonicalItem, Suggestion } from '../src/types';
 import { openTestDatabase } from './stubs/db';
 
 /**
@@ -27,7 +37,7 @@ const FAKE_SUGGESTION: Suggestion = {
   kcalPerServing: 400,
   servings: 2,
   effortMinutes: 15,
-  uses: [{ canonicalId: 'soy-sauce', qty: 10, unit: 'ml' }],
+  uses: [{ canonicalId: 'soy-sauce-light', qty: 10, unit: 'ml' }],
   missing: [],
   method: [],
 };
@@ -98,5 +108,76 @@ describe('getOrGenerateSuggestions caching', () => {
     const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
     expect(result.status).toBe('no_key');
     expect(generateSuggestions).not.toHaveBeenCalled();
+  });
+});
+
+describe('mealFromSuggestion — "I cooked this"', () => {
+  let canonicals: Map<string, CanonicalItem>;
+
+  beforeEach(async () => {
+    canonicals = new Map((await getAllCanonicals()).map((c) => [c.id, c]));
+  });
+
+  test('unchanged servings makes no extra multiplier', () => {
+    const meal = mealFromSuggestion({
+      suggestion: FAKE_SUGGESTION,
+      servingsMade: FAKE_SUGGESTION.servings,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    expect(meal.servingsMult).toBe(1);
+    expect(meal.venue).toBe('home');
+    expect(meal.source).toBe('suggestion');
+  });
+
+  test('a doubled batch feeds decision 10\'s multiplier', () => {
+    const meal = mealFromSuggestion({
+      suggestion: FAKE_SUGGESTION,
+      servingsMade: FAKE_SUGGESTION.servings * 2,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    expect(meal.servingsMult).toBe(2);
+  });
+
+  test('carries the suggestion\'s amounts and canonical ids into the items', () => {
+    const meal = mealFromSuggestion({
+      suggestion: FAKE_SUGGESTION,
+      servingsMade: FAKE_SUGGESTION.servings,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    const ingredientItems = meal.items.filter((item) => item.canonicalId);
+    expect(ingredientItems).toEqual([
+      expect.objectContaining({ canonicalId: 'soy-sauce-light', quantity: 10, unit: 'ml' }),
+    ]);
+    // Calories land on the dish item; ingredient items are not double-counted.
+    const dishItem = meal.items.find((item) => !item.canonicalId);
+    expect(dishItem?.calories).toBe(FAKE_SUGGESTION.kcalPerServing);
+    expect(ingredientItems.every((item) => item.calories === 0)).toBe(true);
+  });
+
+  test('a cooked suggestion commits through the ordinary meal flow and debits by identity', async () => {
+    const soySauce = await insertPantryItem({
+      canonicalId: 'soy-sauce-light',
+      locationId: 'pantry',
+      qtyRemaining: 500,
+      qtyUnit: 'ml',
+    });
+
+    const meal = mealFromSuggestion({
+      suggestion: FAKE_SUGGESTION,
+      servingsMade: FAKE_SUGGESTION.servings,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    const stored = await insertMeal(meal);
+    const summary = await depleteForMeal(stored);
+
+    expect(summary.uncatalogued).toBe(0);
+    const item = await getPantryItem(soySauce.id);
+    // Soy sauce is a condiment — uses-tracked, not mass-tracked.
+    expect(item?.usesCount).toBe(1);
+    expect(item?.qtyRemaining).toBe(500);
   });
 });
