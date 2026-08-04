@@ -63,6 +63,7 @@ export function item(
     status: 'in_stock',
     estimatedDecrementsSinceAnchor: 0,
     lastAnchorAt: null,
+    replacementAsked: false,
     createdAt: '2026-06-01T00:00:00Z',
     updatedAt: '2026-06-01T00:00:00Z',
     ...overrides,

@@ -3,64 +3,64 @@
 The matcher's corpus covers line *text*. Nothing yet covers whole receipts, and
 extraction is the part with no local ground truth.
 
-- [ ] 1.1 Create `src/logic/__fixtures__/receipts.ts` with at least 8 whole
+- [x] 1.1 Create `src/logic/__fixtures__/receipts.ts` with at least 8 whole
       receipts as structured extraction output: two supermarkets, one Asian
       grocer, one warehouse club, one restaurant, one with no legible date, one
       with heavy non-food content, one with multi-quantity lines.
-- [ ] 1.2 Include the arithmetic and payment tails — subtotal, tax, total,
+- [x] 1.2 Include the arithmetic and payment tails — subtotal, tax, total,
       change, card digits — since classifying those is a stated requirement.
-- [ ] 1.3 Reuse `NON_FOOD_LINES` from `receipt-lines.ts` rather than authoring a
+- [x] 1.3 Reuse `NON_FOOD_LINES` from `receipt-lines.ts` rather than authoring a
       second list.
 
 ## 2. Schema
 
-- [ ] 2.1 Append the migration creating `receipts` and `receipt_lines` per the
+- [x] 2.1 Append the migration creating `receipts` and `receipt_lines` per the
       design's migration plan, with indexes on receipt id and purchase date.
-- [ ] 2.2 Add the asked-once replacement flag to `pantry_items` in the same
+- [x] 2.2 Add the asked-once replacement flag to `pantry_items` in the same
       migration.
-- [ ] 2.3 Extend `DROP_ALL`, and extend the delete-all path to remove stored
+- [x] 2.3 Extend `DROP_ALL`, and extend the delete-all path to remove stored
       receipt images — dropping rows while leaving image files behind would
       strand the most sensitive artefact this app holds.
-- [ ] 2.4 Add `Receipt`, `ReceiptLine`, `ReceiptType`, and `ReceiptLineKind` to
+- [x] 2.4 Add `Receipt`, `ReceiptLine`, `ReceiptType`, and `ReceiptLineKind` to
       `src/types.ts` with their `readonly` value arrays.
-- [ ] 2.5 Verify the migration runs from the current head and that
+- [x] 2.5 Verify the migration runs from the current head and that
       `npm run typecheck` passes.
 
 ## 3. Extraction
 
-- [ ] 3.1 Write `src/api/receiptPrompt.ts` following `src/api/prompt.ts`: raw
+- [x] 3.1 Write `src/api/receiptPrompt.ts` following `src/api/prompt.ts`: raw
       JSON only, explicit schema, per-line `kind` of
       `food | non_food | arithmetic | discount`, plus header fields and a
       receipt type.
-- [ ] 3.2 Bias the prompt toward classifying ambiguous lines as food. A
+- [x] 3.2 Bias the prompt toward classifying ambiguous lines as food. A
       misclassified food line disappears silently; a misclassified non-food line
       is merely visible clutter.
-- [ ] 3.3 Implement `src/api/receipt.ts` through the existing provider facade
+- [x] 3.3 Implement `src/api/receipt.ts` through the existing provider facade
       and `src/api/errors.ts`. One call per receipt. Do not touch `keyStore.ts`.
-- [ ] 3.4 Parse defensively — a missing date falls back to capture date, a
+- [x] 3.4 Parse defensively — a missing date falls back to capture date, a
       missing price leaves the line priced-unknown rather than zero.
-- [ ] 3.5 Unit-test parsing against the fixtures, including a malformed
+- [x] 3.5 Unit-test parsing against the fixtures, including a malformed
       response.
 
 ## 4. Line planning
 
 Pure logic. No database, no network.
 
-- [ ] 4.1 Implement `src/logic/receipt.ts`: turn extracted lines into references
+- [x] 4.1 Implement `src/logic/receipt.ts`: turn extracted lines into references
       for the matcher, excluding every line whose kind is not `food`.
-- [ ] 4.2 Extend `normalise` to accept an optional store, consulting that
+- [x] 4.2 Extend `normalise` to accept an optional store, consulting that
       store's prefixes first and falling back to `STORE_BRAND_PREFIXES`. Keep
       the existing single-argument signature working so no caller moves.
-- [ ] 4.3 Implement `planReceiptApply(lines, catalogue): PantryChange[]`,
+- [x] 4.3 Implement `planReceiptApply(lines, catalogue): PantryChange[]`,
       mirroring the shape `add-stock-depletion` uses for `planDepletion`.
-- [ ] 4.4 Encode decision 68's reconciliation: create a new pantry item always;
+- [x] 4.4 Encode decision 68's reconciliation: create a new pantry item always;
       mark existing `out` items replaced; flag a `running_low` item for the
       asked-once prompt; leave `in_stock` items alone.
-- [ ] 4.5 Set new items to the purchased quantity with zero estimation drift.
-- [ ] 4.6 Carry line price onto the created pantry item, distinguishing line
+- [x] 4.5 Set new items to the purchased quantity with zero estimation drift.
+- [x] 4.6 Carry line price onto the created pantry item, distinguishing line
       total from per-unit price where quantity exceeds one.
-- [ ] 4.7 Return an empty plan for receipts whose type is not grocery.
-- [ ] 4.8 Unit-test every reconciliation branch, the non-grocery case, and the
+- [x] 4.7 Return an empty plan for receipts whose type is not grocery.
+- [x] 4.8 Unit-test every reconciliation branch, the non-grocery case, and the
       multi-quantity price split.
 
 ## 5. Resolution

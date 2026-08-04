@@ -60,6 +60,49 @@ export async function estimateWithAnthropic(
 }
 
 /**
+ * Vision completion with a caller-supplied prompt, used by receipt
+ * extraction (`receipt.ts`). Same request shape as `estimateWithAnthropic`,
+ * generalised the way `completeWithAnthropic` generalises the text-only
+ * path — the meal-estimate prompt stays the one hard-coded caller.
+ */
+export async function completeVisionWithAnthropic(
+  apiKey: string,
+  system: string,
+  user: string,
+  base64Jpeg: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const body = {
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: base64Jpeg,
+            },
+          },
+          { type: 'text', text: user },
+        ],
+      },
+    ],
+  };
+
+  const response = await post(apiKey, body, signal);
+  const text = firstTextBlock(response);
+  if (!text) {
+    throw new VisionError('malformed', 'The response came back empty.');
+  }
+  return text;
+}
+
+/**
  * Text-only completion, used by ingredient resolution (`resolve.ts`). Same
  * endpoint, error taxonomy, and timeout as the vision path.
  */

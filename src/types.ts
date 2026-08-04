@@ -284,14 +284,26 @@ export const FULLNESS_LEVELS: readonly Fullness[] = [
   'out',
 ];
 
-/** Advisory only (decision 15) — never rendered as a number. */
-export type StockStatus = 'in_stock' | 'running_low' | 'out' | 'discarded';
+/**
+ * Advisory only (decision 15) — never rendered as a number.
+ *
+ * `replaced` is distinct from `discarded`: a receipt reconciling against an
+ * empty item superseded it with a new purchase, which is not the same claim
+ * as the old item being thrown away uneaten (decision 68).
+ */
+export type StockStatus =
+  | 'in_stock'
+  | 'running_low'
+  | 'out'
+  | 'discarded'
+  | 'replaced';
 
 export const STOCK_STATUSES: readonly StockStatus[] = [
   'in_stock',
   'running_low',
   'out',
   'discarded',
+  'replaced',
 ];
 
 /** Where an item's expiry date came from. A user or label date is never
@@ -329,6 +341,13 @@ export interface PantryItem {
    */
   estimatedDecrementsSinceAnchor: number;
   lastAnchorAt: string | null;
+  /**
+   * Whether the "is the old one finished?" prompt has already been shown
+   * for this item. Set the first time a receipt reconciles against it while
+   * it is `running_low`, regardless of the answer, so it is asked at most
+   * once (decision 68, decision 14's anti-nagging rule).
+   */
+  replacementAsked: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -472,4 +491,81 @@ export interface SuggestionSet {
   suggestions: Suggestion[];
   stretch: StretchPlan | null;
   createdAt: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Receipt import                                                              */
+/* -------------------------------------------------------------------------- */
+
+/** Only a grocery receipt creates pantry items (decision 11 arriving through a second door). */
+export type ReceiptType = 'grocery' | 'restaurant' | 'other';
+
+export const RECEIPT_TYPES: readonly ReceiptType[] = [
+  'grocery',
+  'restaurant',
+  'other',
+];
+
+/** Extraction never writes; review commits — `pending` until the review is accepted. */
+export type ReceiptStatus = 'pending' | 'applied' | 'discarded';
+
+export const RECEIPT_STATUSES: readonly ReceiptStatus[] = [
+  'pending',
+  'applied',
+  'discarded',
+];
+
+/**
+ * What kind of line this is, decided by the extraction call itself — the
+ * only step with the context to tell an unmatched food from a household
+ * good (decision 69).
+ */
+export type ReceiptLineKind = 'food' | 'non_food' | 'arithmetic' | 'discount';
+
+export const RECEIPT_LINE_KINDS: readonly ReceiptLineKind[] = [
+  'food',
+  'non_food',
+  'arithmetic',
+  'discount',
+];
+
+/** A photographed receipt's header, before its lines resolve or apply. */
+export interface Receipt {
+  id: string;
+  type: ReceiptType;
+  store: string | null;
+  /** Local date (yyyy-MM-dd). Falls back to the capture date when illegible. */
+  purchasedAt: string;
+  totalCents: number | null;
+  imageUri: string;
+  status: ReceiptStatus;
+  createdAt: string;
+}
+
+/**
+ * One printed line, carrying both what was extracted and what the user made
+ * of it — the audit trail decision 21's re-anchoring depends on, and why
+ * this is a table rather than a JSON blob on the receipt (design.md).
+ */
+export interface ReceiptLine {
+  id: string;
+  receiptId: string;
+  rawText: string;
+  kind: ReceiptLineKind;
+  /** Purchased quantity, in the app's own unit vocabulary — the model's best estimate, same as a photographed meal's. */
+  qty: number | null;
+  unit: MeasureUnit | null;
+  lineTotalCents: number | null;
+  /** Per-unit price where the line showed a multiple. Provenance only — the pantry item is priced from the line total. */
+  unitPriceCents: number | null;
+  canonicalId: string | null;
+  /** Set once the review is accepted and this line created a pantry item. */
+  pantryItemId: string | null;
+  /** The user excluded this line during review. */
+  excluded: boolean;
+  createdAt: string;
+}
+
+export interface ReceiptWithLines extends Receipt {
+  lines: ReceiptLine[];
 }

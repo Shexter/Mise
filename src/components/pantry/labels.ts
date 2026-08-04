@@ -22,6 +22,8 @@ export function statusLabel(status: StockStatus, confident = true): string {
       return confident ? 'Out' : 'Probably out';
     case 'discarded':
       return 'Discarded';
+    case 'replaced':
+      return 'Replaced';
   }
 }
 

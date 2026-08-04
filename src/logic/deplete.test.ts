@@ -59,6 +59,7 @@ function pantryItem(overrides: Partial<PantryItem> & { id: string; canonicalId: 
     status: 'in_stock',
     estimatedDecrementsSinceAnchor: 0,
     lastAnchorAt: null,
+    replacementAsked: false,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,

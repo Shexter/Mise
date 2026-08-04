@@ -153,6 +153,32 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 5 gains receipts, receipt_lines, and the replacement flag', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 5);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('soy-sauce-light', 'Light soy sauce', 'condiment', 'pantry', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO pantry_items
+         (id, canonical_id, location_id, purchased_at, status, created_at, updated_at)
+       VALUES ('p1', 'soy-sauce-light', 'pantry', '2026-01-01', 'in_stock', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 5, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('receipts');
+    expect(tableNames(db)).toContain('receipt_lines');
+    const item = db
+      .prepare('SELECT replacement_asked FROM pantry_items WHERE id = ?')
+      .get('p1') as { replacement_asked: number };
+    // A pre-existing item has never been asked — the flag starts unset.
+    expect(item.replacement_asked).toBe(0);
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

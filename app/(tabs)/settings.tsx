@@ -97,7 +97,8 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: () => {
           void (async () => {
-            deleteAllPhotos();
+            deleteAllPhotos('meals');
+            deleteAllPhotos('receipts');
             await resetDatabase();
             useProfileStore.setState({ profile: null });
             router.replace('/onboarding/welcome');

@@ -46,6 +46,24 @@ describe('normalise', () => {
     expect(normalise('李錦記 蠔油')).toBe('李錦記 蠔油');
   });
 
+  test('a known store strips its own prefix even when the generic list would not', () => {
+    // "gg" (Target's Good & Gather) is not in STORE_BRAND_PREFIXES.
+    expect(normalise('GG GREEK YOGURT')).toBe('gg greek yogurt');
+    expect(normalise('GG GREEK YOGURT', { store: 'Target' })).toBe(
+      'greek yogurt',
+    );
+  });
+
+  test('an unknown store falls back to the generic prefix list unchanged', () => {
+    expect(normalise("TJ'S FRZ DUMPLINGS", { store: 'Some Random Shop' })).toBe(
+      normalise("TJ'S FRZ DUMPLINGS"),
+    );
+  });
+
+  test('the single-argument call keeps working exactly as before', () => {
+    expect(normalise('GV SOY SAUCE 15OZ')).toBe('soy sauce');
+  });
+
   test('is idempotent over every fixture', () => {
     const all = [
       ...RECEIPT_LINES,

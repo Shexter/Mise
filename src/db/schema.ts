@@ -234,18 +234,66 @@ CREATE TABLE suggestion_cache (
 CREATE INDEX idx_suggestion_cache_date ON suggestion_cache(local_date, mode);
 `;
 
+/**
+ * Migration 6: receipt import. `receipts` and `receipt_lines` hold a draft
+ * until review is accepted — extraction never writes, review commits (design
+ * doc). A line keeps both what was extracted and what the user made of it,
+ * which is why this is a table rather than a JSON blob on the receipt: it is
+ * the audit trail decision 21's re-anchoring depends on.
+ *
+ * `pantry_items` gains `replacement_asked`, the asked-once flag for decision
+ * 68's "is the old one finished?" prompt. Defaults to 0, which is correct
+ * for every item that already exists — none of them has been asked yet.
+ */
+const RECEIPT_IMPORT = `
+CREATE TABLE receipts (
+  id           TEXT PRIMARY KEY,
+  type         TEXT NOT NULL DEFAULT 'grocery',
+  store        TEXT,
+  purchased_at TEXT NOT NULL,
+  total_cents  INTEGER,
+  image_uri    TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  created_at   TEXT NOT NULL
+);
+
+CREATE INDEX idx_receipts_purchased ON receipts(purchased_at);
+
+CREATE TABLE receipt_lines (
+  id                TEXT PRIMARY KEY,
+  receipt_id        TEXT NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+  raw_text          TEXT NOT NULL,
+  kind              TEXT NOT NULL,
+  qty               REAL,
+  unit              TEXT,
+  line_total_cents  INTEGER,
+  unit_price_cents  INTEGER,
+  canonical_id      TEXT REFERENCES canonical_items(id),
+  pantry_item_id    TEXT REFERENCES pantry_items(id) ON DELETE SET NULL,
+  excluded          INTEGER NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL
+);
+
+CREATE INDEX idx_receipt_lines_receipt ON receipt_lines(receipt_id);
+
+ALTER TABLE pantry_items ADD COLUMN replacement_asked INTEGER NOT NULL DEFAULT 0;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
   PANTRY_STOCK,
   STOCK_DEPLETION,
   DINNER_DECISION,
+  RECEIPT_IMPORT,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS receipt_lines;
+DROP TABLE IF EXISTS receipts;
 DROP TABLE IF EXISTS suggestion_cache;
 DROP TABLE IF EXISTS consumption_events;
 DROP TABLE IF EXISTS pantry_items;

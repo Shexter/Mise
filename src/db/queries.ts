@@ -1097,6 +1097,7 @@ interface PantryItemRow {
   status: string;
   estimated_decrements_since_anchor: number;
   last_anchor_at: string | null;
+  replacement_asked: number;
   created_at: string;
   updated_at: string;
 }
@@ -1130,6 +1131,7 @@ function toPantryItem(row: PantryItemRow): PantryItem {
     status: row.status as StockStatus,
     estimatedDecrementsSinceAnchor: row.estimated_decrements_since_anchor,
     lastAnchorAt: row.last_anchor_at,
+    replacementAsked: row.replacement_asked === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1216,6 +1218,13 @@ export interface NewPantryItem {
   /** A quantity the user typed, echoable back to them. */
   qtyRemaining?: number | null;
   qtyUnit?: MeasureUnit | null;
+  /**
+   * Defaults to `'user'` when a quantity is given, matching manual add.
+   * A receipt line's quantity is a model read of a photograph, not
+   * something the user typed, so the receipt-import path overrides this
+   * to `'estimate'` — the same distinction decision 74 already draws.
+   */
+  qtySource?: QuantitySource;
   /** A date from a label or the user; suppresses prediction. */
   expiresAt?: string | null;
   expirySource?: Exclude<ExpirySource, 'predicted'>;
@@ -1274,7 +1283,7 @@ export async function insertPantryItem(
       input.locationId,
       input.qtyRemaining ?? null,
       input.qtyUnit ?? null,
-      input.qtyRemaining != null ? 'user' : null,
+      input.qtyRemaining != null ? (input.qtySource ?? 'user') : null,
       purchasedAt,
       expiresAt,
       expirySource,
@@ -1298,13 +1307,15 @@ export async function getPantryItem(id: string): Promise<PantryItem | null> {
 }
 
 /**
- * The catalogue, soonest expiry first; undated items follow dated ones and
- * discarded items are excluded.
+ * The catalogue, soonest expiry first; undated items follow dated ones.
+ * Discarded and replaced items are excluded — a replaced item was
+ * superseded by the new purchase that created it, so it is no longer a
+ * live container either (decision 68).
  */
 export async function listPantryItems(): Promise<PantryItem[]> {
   const rows = await db().getAllAsync<PantryItemRow>(
     `SELECT * FROM pantry_items
-     WHERE status != 'discarded'
+     WHERE status NOT IN ('discarded', 'replaced')
      ORDER BY expires_at IS NULL ASC, expires_at ASC, created_at ASC`,
   );
   return rows.map(toPantryItem);

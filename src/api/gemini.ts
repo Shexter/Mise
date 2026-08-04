@@ -52,6 +52,40 @@ export async function estimateWithGemini(
 }
 
 /**
+ * Vision completion with a caller-supplied prompt, used by receipt
+ * extraction (`receipt.ts`). Same request shape as `estimateWithGemini`,
+ * generalised the way `completeWithGemini` generalises the text-only path.
+ */
+export async function completeVisionWithGemini(
+  apiKey: string,
+  system: string,
+  user: string,
+  base64Jpeg: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const body = {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { inline_data: { mime_type: 'image/jpeg', data: base64Jpeg } },
+          { text: user },
+        ],
+      },
+    ],
+    generationConfig: { responseMimeType: 'application/json' },
+  };
+
+  const response = await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
+  const text = firstPartText(response);
+  if (!text) {
+    throw new VisionError('malformed', 'The response came back empty.');
+  }
+  return text;
+}
+
+/**
  * Text-only completion, used by ingredient resolution (`resolve.ts`). Same
  * endpoint, error taxonomy, and timeout as the vision path.
  */

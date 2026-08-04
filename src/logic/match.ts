@@ -29,6 +29,8 @@ export interface RawReference {
   barcode?: string;
   /** JSON context captured at scan time — receipt id, price, quantity. */
   context?: string;
+  /** The receipt's own store name, when known — consulted by `normalise`. */
+  store?: string;
 }
 
 export type MatchMethod = 'barcode' | 'exact_alias' | 'approximate' | 'model';
@@ -211,7 +213,7 @@ export async function resolve(
   for (let index = 0; index < references.length; index += 1) {
     const reference = references[index];
     if (!reference) continue;
-    const norm = normalise(reference.raw);
+    const norm = normalise(reference.raw, { store: reference.store });
 
     // Step 1: exact barcode. Certainty 1, and nothing costlier runs.
     if (reference.barcode) {

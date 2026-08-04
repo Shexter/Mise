@@ -3,14 +3,18 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 /**
- * Meal photos live in the app's document directory, one JPEG per meal, named by
- * UUID. They are resized and compressed before anything else touches them —
- * a full-resolution camera frame is several megabytes of base64 nobody needs.
+ * Meal and receipt photos live in the app's document directory, one JPEG
+ * per photo, named by UUID, each kind in its own subdirectory. They are
+ * resized and compressed before anything else touches them — a
+ * full-resolution camera frame is several megabytes of base64 nobody needs.
  */
 
 const MEALS_DIRECTORY = 'meals';
+const RECEIPTS_DIRECTORY = 'receipts';
 const MAX_EDGE = 1024;
 const JPEG_QUALITY = 0.7;
+
+export type PhotoKind = 'meals' | 'receipts';
 
 export interface SourceImage {
   uri: string;
@@ -25,8 +29,12 @@ export interface PreparedPhoto {
   base64: string;
 }
 
-function mealsDirectory(): Directory {
-  const directory = new Directory(Paths.document, MEALS_DIRECTORY);
+function directoryName(kind: PhotoKind): string {
+  return kind === 'receipts' ? RECEIPTS_DIRECTORY : MEALS_DIRECTORY;
+}
+
+function photoDirectory(kind: PhotoKind): Directory {
+  const directory = new Directory(Paths.document, directoryName(kind));
   if (!directory.exists) {
     directory.create({ intermediates: true, idempotent: true });
   }
@@ -48,6 +56,7 @@ function resizeTarget({ width, height }: SourceImage): {
  */
 export async function preparePhoto(
   source: SourceImage,
+  kind: PhotoKind = 'meals',
 ): Promise<PreparedPhoto> {
   const context = ImageManipulator.manipulate(source.uri);
   const target = resizeTarget(source);
@@ -62,7 +71,7 @@ export async function preparePhoto(
     base64: true,
   });
 
-  const destination = new File(mealsDirectory(), `${randomUUID()}.jpg`);
+  const destination = new File(photoDirectory(kind), `${randomUUID()}.jpg`);
   await new File(result.uri).move(destination);
 
   return { uri: destination.uri, base64: result.base64 ?? '' };
@@ -79,10 +88,10 @@ export function deletePhoto(uri: string | null): void {
   }
 }
 
-/** Deletes every stored meal photo. Used by "Delete all data". */
-export function deleteAllPhotos(): void {
+/** Deletes every stored photo of one kind. Used by "Delete all data". */
+export function deleteAllPhotos(kind: PhotoKind = 'meals'): void {
   try {
-    const directory = new Directory(Paths.document, MEALS_DIRECTORY);
+    const directory = new Directory(Paths.document, directoryName(kind));
     if (directory.exists) directory.delete();
   } catch {
     // Same reasoning as deletePhoto.

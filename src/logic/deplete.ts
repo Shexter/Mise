@@ -172,7 +172,8 @@ export function pickItem(
     (item) =>
       item.canonicalId === canonicalId &&
       item.status !== 'discarded' &&
-      item.status !== 'out',
+      item.status !== 'out' &&
+      item.status !== 'replaced',
   );
   if (candidates.length === 0) return null;
 
