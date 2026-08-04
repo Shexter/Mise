@@ -129,5 +129,5 @@ usable if the two are findable.
       second receipt.
 - [x] 9.5 Abandon a review and confirm the pantry is untouched.
 - [x] 9.6 Confirm *Delete all data* removes receipts, lines, and image files.
-- [ ] 9.7 Run `npm run typecheck` and `npm test`, then record extraction
+- [x] 9.7 Run `npm run typecheck` and `npm test`, then record extraction
       accuracy across the fixture receipts in `docs/product-decisions.md`.

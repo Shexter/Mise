@@ -953,3 +953,55 @@ summary answers "what do you actually cook" rather than "what did you cook once
 in January." No usage data existed to fit either number against, so both are
 placeholders the same way `DRIFT_LIMIT` was — expect them to move once real
 suggestion-quality feedback exists to move them against.
+
+---
+
+## The receipt import, learned during implementation
+
+**89. `replaced` is a fifth stock status, not a reuse of `discarded`.** `SETTLED`
+Decision 68 says a receipt reconciling against an `out` item marks it
+"replaced." Implementing it exposed a choice the decision itself left open:
+what that word means in the schema.
+
+`discarded` already exists and means something specific — "the raw material
+for waste figures later" (decision 85's neighbour). A bottle superseded by a
+fresh purchase was not thrown away uneaten; conflating the two would corrupt
+a waste statistic that does not exist yet but is worth not poisoning in
+advance. So `StockStatus` gained `replaced` instead, and `listPantryItems`
+excludes it the same way it excludes `discarded` — a replaced item is not a
+phantom container either.
+
+**90. Receipt capture is a two-step write, because extraction is not
+guaranteed to happen at capture time.** `SETTLED`
+Task 7.3 requires that a receipt photographed offline is retained and
+completes later "without asking the user to re-photograph." That forced the
+schema question of what a captured-but-unextracted receipt *is*: a row with
+an image and no lines, `insertCapturedReceipt` and `attachExtractedLines` as
+two calls rather than one. Zero lines already means "not yet extracted"
+truthfully, so no separate status was needed to say it twice — `pending`
+covers a receipt from the moment it is captured through review, whatever
+extraction has or has not managed to do to it.
+
+Retrying reads the stored photo back through `photoBase64` rather than
+threading a fresh capture through; there is no background task
+infrastructure in this app, so the retry is wired to the Pantry tab's
+focus effect, the same shape `dayStore`'s `syncToToday` already uses for
+"catch up when the user is next looking."
+
+**91. Extraction accuracy, as far as the fixture corpus can say.** `OPEN`
+`src/logic/__fixtures__/receipts.ts`'s 8 receipts draw their food lines from
+`receipt-lines.ts` — the matcher's own corpus — rather than inventing new
+ones, so the resolution rate a receipt sees is exactly the identity layer's
+existing rate: of that corpus's 47 reference strings, 34 resolve silently
+offline, 11 need one-tap confirmation, and 2 reach the model or the review
+queue. Nothing about receipt import changes that number; it inherits it.
+
+What is new and untested against anything real: whether the extraction
+prompt itself reads a photographed receipt as faithfully as these fixtures
+assume, and whether the multi-quantity price split and non-food bias hold up
+against a real store's paper and lighting. `add-receipt-import`'s own design
+doc names this the right worry — "thirty lines with two wrong is a worse
+experience than one wrong meal estimate, because the user must find the
+two" — and no fixture corpus can settle it. Left open for the same reason
+decision 88 left the dinner engine's thresholds open: there is no usage data
+yet to measure against.
