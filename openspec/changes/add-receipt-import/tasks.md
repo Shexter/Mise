@@ -57,7 +57,7 @@ extraction is the part with no local ground truth.
       distinction between clutter and arithmetic.
 - [ ] 3.7 Ask for the printed subtotal, tax, and total as header fields, since
       the arithmetic check needs the receipt's own figure rather than a sum.
-- [x] 3.5 Unit-test parsing against the fixtures, including a malformed
+- [x] 3.8 Unit-test parsing against the fixtures, including a malformed
       response.
 
 ## 4. Line planning

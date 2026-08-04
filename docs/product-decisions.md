@@ -1519,3 +1519,29 @@ experience than one wrong meal estimate, because the user must find the
 two" — and no fixture corpus can settle it. Left open for the same reason
 decision 132 left the dinner engine's thresholds open: there is no usage data
 yet to measure against.
+
+## Found in review
+
+**136. Decision 34's constraint is stated to the model and never checked.** `OPEN`
+`add-dinner-decision` shipped 51 of 52 tasks with the use-first constraint
+living entirely in `src/api/suggestPrompt.ts:19`, as a sentence telling the model
+it MUST use at least one expiring ingredient. Nothing downstream verifies it.
+`parseSuggestions` does drop a suggestion whose `uses` cite no known candidate,
+which is good hygiene and a different thing.
+
+The spec's wording is a promise about what the app *offers*, not about what it
+*asked for*, so the requirement is currently unmet even though every test passes
+— the tests cover bucketing exhaustively and never assert the property of a
+returned suggestion.
+
+This is decision 103's argument arriving somewhere it was not applied: the
+prompt is a request, the local check is the guarantee. It is worth more here
+than the parallel to allergens suggests, because decision 34 is the whole
+difference between this feature and a recipe chatbot, and the failure is
+invisible — a suggestion that quietly ignores the expiring pork still reads as a
+perfectly good dinner idea.
+
+Open rather than settled because the fix is planned (`add-dinner-decision` group
+11) and unimplemented, and because the compliance rate is unmeasured: if a real
+model obeys the sentence essentially always, the check is cheap insurance, and
+if it does not, the prompt needs strengthening as well as the check.

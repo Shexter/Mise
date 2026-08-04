@@ -143,3 +143,35 @@ depletion data than a photograph can.
 - [x] 10.6 Run `npm run typecheck` and `npm test`, then record suggestion quality
       observations and the history window that survived in
       `docs/product-decisions.md`.
+
+## 11. The use-first constraint is not yet enforced locally
+
+Found in review after group 10 landed. `src/api/suggestPrompt.ts:19` states the
+constraint to the model as a hard requirement, and nothing downstream checks
+that the model obeyed it. `parseSuggestions` in `src/api/suggest.ts` validates
+that every `uses` entry cites a known candidate and drops a suggestion left with
+no valid uses — good hygiene, and not this. The spec says *every suggestion it
+offers SHALL use at least one ingredient from the most urgent group whenever
+that group is non-empty*, which is a promise about what the app shows, not about
+what it asked for.
+
+This is the same shape as decision 103, argued there for allergens: the prompt
+is a request and the local check is the guarantee. It matters more here than it
+looks, because decision 34 is what separates this feature from a recipe chatbot,
+and a silent drift into "mostly uses expiring stock" is invisible — the
+suggestions still look plausible.
+
+- [ ] 11.1 After parsing, drop any suggestion whose `uses` intersect the
+      `use_first` bucket emptily, whenever that bucket is non-empty.
+- [ ] 11.2 Do not repair a dropped suggestion by substituting an ingredient.
+      Returning fewer is honest; rewriting the model's dish is not.
+- [ ] 11.3 When dropping leaves fewer than the surface expects, say the
+      constraint was applied rather than silently showing two.
+- [ ] 11.4 Leave the prompt sentence in place. Asking and checking are both
+      worth doing — the ask is what makes the check rarely fire.
+- [ ] 11.5 Test with a stubbed response that ignores the constraint, and assert
+      the offending suggestions do not reach the caller. This is the test that
+      would have caught it.
+- [ ] 11.6 Record the observed compliance rate — how often a real model returns
+      a suggestion the check has to drop. If it is near zero the check is cheap
+      insurance; if it is not, decision 34 needs a louder prompt as well.
