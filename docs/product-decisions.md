@@ -1341,3 +1341,91 @@ Decision 95 does not weaken because the write happens later: an interpretation
 that completes in the background still lands on review. Retries are bounded and
 a persistently failing capture is reported as failing, because "still pending"
 for a week is a lie by omission. The images are covered by *Delete all data*.
+
+## Suggestion templates
+
+**123. The engine's objective is a named template, chosen from a fixed set.** `SETTLED`
+Decision 89's engine already takes an objective so that one engine, one prompt
+and one cache serve more than one question — and then defined exactly one
+objective beyond the default. The objective the user actually has is usually
+bigger than tonight's protein number: eat lighter, eat more, get it done in
+twenty minutes, clear the fridge.
+
+Six, each answering a question the others answer differently: `use_it_up`,
+`lean`, `strength`, `balanced`, `quick`, `stretch`. A seventh that reorders
+nothing is a label, and labels that do nothing are how a picker becomes noise.
+
+The set is not user-editable. Someone who can build an arbitrary objective will
+build a bad one and blame the suggestions.
+
+**124. A template is a weight vector, not a code path.** `SETTLED`
+The scorer reads weights from the active template and never branches on which
+one is active. Six code paths through the ranker is six places for decision 34's
+use-first constraint to be forgotten; a weight vector cannot forget a constraint,
+because the constraint is not in the weights.
+
+Every template weights the same facts — urgency, value at risk, familiarity,
+effort, macro fit. A template introducing a private input would make its results
+incomparable and its bugs unreproducible under any other template.
+
+**125. No template may relax the use-first constraint.** `SETTLED`
+Decision 34 is the difference between this feature and a recipe chatbot. A
+template that could relax it would be relaxed immediately — `strength` wants the
+chicken thighs and the rice, not the coriander wilting in the drawer — and the
+feature would quietly become a generic recipe generator with a nutrition filter,
+which is what decision 33 rejected and which any free chatbot does better.
+
+So the constraint holds under every template, and a template that cannot be
+served within it returns fewer suggestions and says so. `use_it_up` exists
+precisely so a user who wants the constraint to be the *whole* objective can say
+so — it raises the floor to be the objective rather than changing the rules.
+
+**126. A template expresses calories through portion, never through weight.** `SETTLED`
+Decision 36 says calories inform and never filter. Weighting dishes by calories
+would quietly become that filter with extra steps: a low enough weight on a high
+enough count is exclusion. So `lean` sizes the offered portion toward the
+remaining allowance and `strength` sizes up and allows the overshoot — every
+dish stays reachable, and the adjustment is somewhere the user can see and
+change it.
+
+More generally: templates change ranking and portion, never availability. The
+only thing that excludes is a dietary rule, and a dietary rule is not a template.
+
+**127. The template defaults from `Profile.goal` and never writes back.** `SETTLED`
+`goal` is already collected at onboarding and currently drives exactly one
+thing, a number in `energyTargets`. Defaulting from it means the objective is
+stated once or never, which is the entire argument for templates.
+
+The write-back prohibition is the sharp half. Picking `strength` for one dinner
+because there is a lot of chicken to use is not a decision to gain weight, and
+`profileStore.update` recalculates `targetCalories` on every write — so a leak
+here would silently move the user's calorie target. Invisible, and serious. The
+two concepts touch at exactly one point and must not touch anywhere else.
+Remembering the last selection is fine; it lives in suggestion state, not in the
+profile.
+
+**128. Dietary rules exclude first, templates rank second.** `SETTLED`
+Both features "affect which suggestions appear" and it would be easy to
+implement them as one pass. They are not the same kind of thing: decision 103
+makes exclusion a local, deterministic guarantee and a template is a preference.
+One pass risks a weight being able to outrank an exclusion, which must never
+happen.
+
+**129. Templates describe their bias, never an outcome.** `SETTLED`
+The app can honestly say a template prefers dishes with more protein for their
+calories and sizes portions against what is left in the day. It cannot say what
+that achieves, because that depends on everything the user eats rather than on
+three dinner ideas, and this is a diary with a suggestion screen rather than
+anything clinical.
+
+So `lean` is not called *fat loss* in the interface even though that is what a
+user asking for it would call it, and `strength` is not *muscle gain*. Same
+refusal as decision 64, and enforced the same way as decision 108 — a copy audit
+and a test asserting the outcome words appear in no template string.
+
+**130. "Make it to Sunday" becomes a template.** `SETTLED`
+Decision 41 planned it as its own mode. It is an objective over the same engine
+with the same payload and the same cache, which is exactly what a template is.
+One surface, one control, one less concept. It answers a weekly question from a
+screen that answers a nightly one, which is noted as an open question rather
+than settled.
