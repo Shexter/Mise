@@ -121,6 +121,68 @@ prompt improves, which is worth more than the storage costs.
 it carries a store, a date, a payment method tail, and sometimes a name. It
 inherits *Delete all data*, and the spec requires images go with it.
 
+### Quantity is two different things, and the receipt says which
+
+A line's quantity is either a **count of containers** or a **measure of a
+divisible amount**, and a receipt distinguishes them by what the unit price is
+per: `2 @ £1.79` is two jars; `0.834 kg @ £12.99/kg` is 834 grams.
+
+*Why this matters more than it looks:* the weight-priced line contains a number
+that reads exactly like a quantity — `0.834` — and using it as one creates a
+pantry item holding 0.834 of something, or rounds it to one. Loose produce, meat,
+and fish are all priced this way, which is most of the fresh food in a shop, and
+that is precisely the stock whose expiry the dinner decision is built to chase.
+Getting it wrong makes the product's best feature run on nonsense quantities.
+
+*Why unknown rather than a default:* decision 15 forbids displaying an
+indefensible quantity. Storing one is the same mistake earlier, and harder to
+find later.
+
+### A count creates several items; a measure creates one
+
+Decision 56 says one pantry item is one container. Two jars of gochujang are two
+items, consumed one after the other, and merging them into one item of quantity
+two makes the second jar's expiry a lie — it is unopened.
+
+The same ingredient appearing on two separate lines is treated the same way: two
+purchases, not a duplicate to be collapsed. Collapsing is the tempting
+defensive move against extraction reading one line twice, and it is wrong more
+often than it is right — receipts genuinely repeat items.
+
+### Money-only lines move money and nothing else
+
+Discounts, deposits, levies, refunds. Each is a real line on a real receipt, and
+none of them is a thing that entered the kitchen.
+
+*Why they need naming rather than being swept into `non_food`:* `non_food` means
+"a thing that is not food" — washing-up liquid. A discount is not a thing at
+all, and the difference matters because a discount changes what a food line
+*cost*, which is the number decision 35 ranks urgency by. Sweeping it into
+clutter throws away price accuracy on exactly the items people bought on offer.
+
+*Why an unattributable discount is not spread across lines:* spreading is a
+guess, and once written it is indistinguishable from a price the app read off a
+receipt. Decision 66 — confidence travels with the fact — argues for leaving it
+at the receipt level where it is honestly a basket-wide figure.
+
+*Why a return moves no stock:* a refund line says money came back. It does not
+say which pantry item to remove, whether the food was ever put away, or whether
+it was the one going off. The honest action is on the money only.
+
+### The receipt's own total is a free correctness check
+
+Extraction either dropped a line, invented one, or misread a price, and the
+receipt prints a total that would disagree if it did.
+
+*Why surface rather than correct:* a mismatch localises the problem for the user
+in a way nothing else in this change does — it is the difference between "check
+these thirty lines" and "something here is wrong by £4.20". Correcting it would
+mean choosing a line to alter, which is a guess dressed as arithmetic, and the
+altered line would then look like extracted truth.
+
+*Why silence when it agrees:* a check that announces itself when nothing is
+wrong trains people to dismiss it.
+
 ## Risks / Trade-offs
 
 **Extraction quality varies by store, paper, and lighting** → thirty lines with

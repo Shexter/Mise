@@ -9,6 +9,10 @@
       the rate-limit and user-agent expectations.
 - [ ] 1.3 Collect at least 15 real barcodes as fixtures spanning Western and
       Asian packaged goods, deliberately including two known to be absent.
+- [ ] 1.4 Include a multi-pack, a store-printed variable-weight code from a
+      supermarket deli or produce counter, and a code with a deliberately wrong
+      check digit. These are the three shapes that are not "a product", and each
+      fails differently.
 
 ## 2. Lookup client
 
@@ -22,6 +26,32 @@
 - [ ] 2.4 Set a descriptive user-agent, as the service asks of clients.
 - [ ] 2.5 Unit-test parsing against the fixture responses including the
       malformed one.
+
+## 2a. Codes that are not products
+
+Three cases the lookup client must dispose of before it makes a request. Each
+would otherwise cost a round trip and then poison the cache with a miss that is
+not a miss.
+
+- [ ] 2a.1 Validate structure and check digit in `src/logic/barcode.ts` for
+      EAN-13, EAN-8, UPC-A, and UPC-E. Pure, and worth having as its own tested
+      function.
+- [ ] 2a.2 Treat a validation failure as an **unread scan**, not an unknown
+      product. The camera misread; the shelf is fine.
+- [ ] 2a.3 Detect restricted-circulation prefixes — the ranges retailers print
+      in-store for loose and variable-weight goods — and route them to
+      photograph or manual entry without a lookup.
+- [ ] 2a.4 **Never cache either as a miss.** A store-local code means something
+      different in every shop, and a misread means nothing anywhere. Caching
+      them makes a rescan fail permanently for no reason.
+- [ ] 2a.5 Never bind a canonical to a store-local code, for the same reason.
+      This is the one place where the learn-once-and-stop-asking behaviour is
+      actively wrong.
+- [ ] 2a.6 Do not read an embedded price or weight out of a store-local code as
+      a quantity. The encoding is retailer-specific and the number is often the
+      price.
+- [ ] 2a.7 Unit-test all three against the 1.4 fixtures, including that a valid
+      code still passes.
 
 ## 3. Cache
 
@@ -47,8 +77,11 @@
 
 ## 5. Scanning
 
-- [ ] 5.1 Build the scan screen on `expo-camera`'s native barcode support. No
-      new dependency.
+- [ ] 5.1 Build lookup, caching, and batch review — **not a scan screen**.
+      Barcodes arrive from the shared Add to pantry surface in
+      `add-unified-capture`, which detects them natively and routes here only
+      when one resolves. Rapid multi-scan remains this change's, reached from
+      that surface.
 - [ ] 5.2 Give immediate feedback on a successful read — haptic and visual,
       following the existing capture screen's conventions.
 - [ ] 5.3 Debounce a code held in frame so it is not read repeatedly, while
@@ -68,6 +101,14 @@
 - [ ] 6.4 Apply as one transaction: create a pantry item per scan using package
       size as quantity and the canonical's default location, with zero
       estimation drift.
+- [ ] 6.4a Expand a known multi-pack into one item per container, each holding a
+      single container's size. Decision 56 is the reason: six unopened cans have
+      six independent expiries, and one item of quantity six has one wrong.
+- [ ] 6.4b Create a single item when the container count is unknown. Inferring a
+      count from a package size is guessing.
+- [ ] 6.4c Show the pack count in review and let the user change it — lookup data
+      is the least reliable field the remote source returns and this one
+      multiplies.
 - [ ] 6.5 Confirm an abandoned session creates nothing.
 - [ ] 6.6 Attribute the remote data source wherever its data is shown, per 1.1.
 - [ ] 6.7 Components from `src/components`, tokens from
@@ -95,6 +136,10 @@ The path that carries the differentiator audience, not an edge case.
       and the batch reviews once.
 - [ ] 8.4 Scan an item absent from the remote source and confirm the fallback,
       then confirm a rescan does not ask again.
+- [ ] 8.4a Scan a supermarket's own variable-weight sticker and confirm it goes
+      straight to photograph or manual entry with no failed-lookup message.
+- [ ] 8.4b Scan a multi-pack and confirm the pantry holds its containers
+      separately.
 - [ ] 8.5 Confirm scanning an Asian packaged good either resolves or falls back
       cleanly — record the hit rate across the fixture set, since it is the
       evidence for how load-bearing the fallback is.

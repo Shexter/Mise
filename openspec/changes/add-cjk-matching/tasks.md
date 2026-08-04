@@ -45,6 +45,54 @@ exists because a scoring assumption went unmeasured.
       identical to decision 32's recorded evidence. Any movement is a
       regression, not a new baseline.
 
+## 4a. Han variant forms
+
+`蠔油` and `蚝油` are the same oyster sauce. A Hong Kong bottle prints one, a
+mainland bottle prints the other, and the same shopper buys both.
+
+- [ ] 4a.1 Add a simplified/traditional fold to `src/logic/normalise.ts`, applied
+      **for matching only** — a mapping table, not a library, since the set of
+      characters the food catalogue actually uses is small and a dependency for
+      this is disproportionate.
+- [ ] 4a.2 Restrict the table to characters appearing in the catalogue, and
+      generate it from the catalogue so it stays honest as the catalogue grows.
+- [ ] 4a.3 **Never convert stored aliases or displayed names.** Decision 31 keeps
+      the composed original; showing a Hong Kong user a simplified name they did
+      not write is the same class of mistake as romanising it for them.
+- [ ] 4a.4 Fold on both sides of the comparison, so the direction of the
+      difference does not matter.
+- [ ] 4a.5 Add both variants of at least five ingredients to the corpus and test
+      the fold in both directions.
+
+## 4b. Romanised references
+
+The gap the rest of this change does not close. Decision 4's audience frequently
+types `gochujang`, not `고추장` — an English-language phone keyboard, a recipe
+site's spelling, a receipt line printed in Latin by a Western supermarket. These
+are Latin-script strings, so script detection sends them down the Latin path,
+where they are compared against a seeded romanisation that may be spelled
+differently.
+
+- [ ] 4b.1 Audit the corpus for romanisation variants the catalogue would miss:
+      `gochujang` / `kochujang` / `go chu jang`, `doenjang` / `dwenjang`,
+      `shoyu` / `shôyu` / `shoyu sauce`, `char siu` / `char siew` / `chashu`,
+      `bok choy` / `pak choi` / `bak choy`. Record which resolve today.
+- [ ] 4b.2 Strip diacritics and macrons in normalisation — `shōyu` and `shoyu`
+      are one word, and only one of them is typeable on a phone.
+- [ ] 4b.3 Collapse spacing and hyphenation before scoring, so `char siu`,
+      `char-siu`, and `charsiu` reach the same form. This is where the trigram
+      scorer loses most: a space changes several trigrams in a short string.
+- [ ] 4b.4 Seed the common romanisation variants as aliases rather than
+      inventing a transliteration algorithm. Romanisation systems disagree with
+      each other and with how people actually spell; a table of what people
+      write is truer than a rule for what they ought to write.
+- [ ] 4b.5 **Test the near-misses.** Loosening a Latin matcher for romanisations
+      is exactly how over-matching gets introduced, and short romanised words
+      collide readily. Assert the 1.2 near-miss pairs stay apart.
+- [ ] 4b.6 Re-run the Latin corpus after each loosening step. Band placement must
+      be identical to decision 32's evidence — this work must not be paid for by
+      the English path.
+
 ## 5. Candidate retrieval
 
 The scorer is worthless if the right candidate is never retrieved. This is the
