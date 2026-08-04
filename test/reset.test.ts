@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import {
+  attachExtractedLines,
   enqueueMatch,
   getAllCanonicals,
   getBestAliasByNorm,
   getMatchQueue,
   getProductByBarcode,
   insertCanonicalItem,
+  insertCapturedReceipt,
   insertProduct,
+  listReceipts,
   loadSeedData,
   recordUserResolution,
 } from '../src/db/queries';
@@ -55,5 +58,31 @@ describe('delete all data', () => {
     expect(await getBestAliasByNorm('my weird label')).toBeNull();
     expect(await getProductByBarcode('999')).toBeNull();
     expect(await getMatchQueue()).toEqual([]);
+  });
+
+  test('clears receipts and their lines (task 9.6)', async () => {
+    const receipt = await insertCapturedReceipt('file://receipt.jpg', '2026-06-01');
+    await attachExtractedLines(receipt.id, {
+      store: 'Test Store',
+      purchasedAt: '2026-06-01',
+      receiptType: 'grocery',
+      totalCents: 500,
+      lines: [
+        {
+          rawText: 'TEST ITEM',
+          kind: 'food',
+          qty: 1,
+          unit: 'piece',
+          lineTotalCents: 500,
+          unitPriceCents: null,
+        },
+      ],
+    });
+    expect((await listReceipts()).length).toBe(1);
+
+    resetTestDatabase();
+    await loadSeedData();
+
+    expect(await listReceipts()).toEqual([]);
   });
 });

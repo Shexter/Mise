@@ -1,6 +1,13 @@
 import type { ExtractedLine } from '@/api/receipt';
 import type { RawReference } from '@/logic/match';
-import type { MeasureUnit, PantryItem, ReceiptLine, ReceiptType } from '@/types';
+import type {
+  CanonicalItem,
+  Location,
+  MeasureUnit,
+  PantryItem,
+  ReceiptLine,
+  ReceiptType,
+} from '@/types';
 
 /**
  * Pure receipt logic: turning extracted lines into matcher references, and
@@ -39,6 +46,7 @@ export function referencesFromLines(
 
 export interface PlannedPantryItem {
   canonicalId: string;
+  locationId: string;
   qtyRemaining: number | null;
   qtyUnit: MeasureUnit | null;
   priceCents: number | null;
@@ -50,6 +58,19 @@ export type PantryChange =
   | { kind: 'create'; lineId: string; item: PlannedPantryItem }
   | { kind: 'mark_replaced'; lineId: string; pantryItemId: string }
   | { kind: 'flag_asked'; lineId: string; pantryItemId: string };
+
+/**
+ * A canonical's own default location, when the app has one of that kind —
+ * the same fallback `AddPantryItemSheet` uses, applied here because a
+ * receipt line never asks the user where something goes.
+ */
+function locationFor(
+  canonical: CanonicalItem,
+  locations: readonly Location[],
+): string | null {
+  const preferred = locations.find((l) => l.id === canonical.defaultLocation);
+  return preferred?.id ?? locations[0]?.id ?? null;
+}
 
 /**
  * Plans the pantry changes for one receipt's resolved lines.
@@ -68,6 +89,8 @@ export type PantryChange =
 export function planReceiptApply(
   lines: readonly ReceiptLine[],
   catalogue: readonly PantryItem[],
+  canonicals: ReadonlyMap<string, CanonicalItem>,
+  locations: readonly Location[],
   receiptType: ReceiptType,
   purchasedAt: string,
 ): PantryChange[] {
@@ -80,11 +103,16 @@ export function planReceiptApply(
     if (line.kind !== 'food') continue;
     if (!line.canonicalId) continue; // still unresolved; nothing to apply yet
 
+    const canonical = canonicals.get(line.canonicalId);
+    const locationId = canonical ? locationFor(canonical, locations) : null;
+    if (!canonical || !locationId) continue; // nothing to place it in — refuse rather than guess
+
     changes.push({
       kind: 'create',
       lineId: line.id,
       item: {
         canonicalId: line.canonicalId,
+        locationId,
         qtyRemaining: line.qty,
         qtyUnit: line.unit,
         priceCents: line.lineTotalCents,

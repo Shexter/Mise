@@ -14,6 +14,7 @@ import {
 import type { Decrement } from '@/logic/deplete';
 import { macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
+import type { PantryChange } from '@/logic/receipt';
 import type {
   CanonicalItem,
   Confidence,
@@ -42,6 +43,11 @@ import type {
   Profile,
   QuantitySource,
   QueuedMatch,
+  Receipt,
+  ReceiptLine,
+  ReceiptLineKind,
+  ReceiptType,
+  ReceiptWithLines,
   ReferenceSource,
   StockStatus,
   StorageLocation,
@@ -1890,4 +1896,323 @@ export async function saveSuggestionCache(
   });
 
   return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Receipts                                                                    */
+/* -------------------------------------------------------------------------- */
+
+interface ReceiptRow {
+  id: string;
+  type: string;
+  store: string | null;
+  purchased_at: string;
+  total_cents: number | null;
+  image_uri: string;
+  status: string;
+  created_at: string;
+}
+
+interface ReceiptLineRow {
+  id: string;
+  receipt_id: string;
+  raw_text: string;
+  kind: string;
+  qty: number | null;
+  unit: string | null;
+  line_total_cents: number | null;
+  unit_price_cents: number | null;
+  canonical_id: string | null;
+  pantry_item_id: string | null;
+  excluded: number;
+  created_at: string;
+}
+
+function toReceipt(row: ReceiptRow): Receipt {
+  return {
+    id: row.id,
+    type: row.type as ReceiptType,
+    store: row.store,
+    purchasedAt: row.purchased_at,
+    totalCents: row.total_cents,
+    imageUri: row.image_uri,
+    status: row.status as Receipt['status'],
+    createdAt: row.created_at,
+  };
+}
+
+function toReceiptLine(row: ReceiptLineRow): ReceiptLine {
+  return {
+    id: row.id,
+    receiptId: row.receipt_id,
+    rawText: row.raw_text,
+    kind: row.kind as ReceiptLineKind,
+    qty: row.qty,
+    unit: row.unit as MeasureUnit | null,
+    lineTotalCents: row.line_total_cents,
+    unitPriceCents: row.unit_price_cents,
+    canonicalId: row.canonical_id,
+    pantryItemId: row.pantry_item_id,
+    excluded: row.excluded === 1,
+    createdAt: row.created_at,
+  };
+}
+
+export interface NewReceiptLine {
+  rawText: string;
+  kind: ReceiptLineKind;
+  qty: number | null;
+  unit: MeasureUnit | null;
+  lineTotalCents: number | null;
+  unitPriceCents: number | null;
+}
+
+export interface ExtractedReceiptHeader {
+  store: string | null;
+  purchasedAt: string;
+  receiptType: ReceiptType;
+  totalCents: number | null;
+  lines: NewReceiptLine[];
+}
+
+/**
+ * Records a receipt the moment it is captured, before extraction has run —
+ * the shell a photograph taken offline is retained as (task 7.3). It has
+ * no lines yet; `getReceipt` returning zero lines *is* "not yet extracted",
+ * so no separate status is needed to say so. `purchasedAt` defaults to the
+ * capture date and is overwritten if extraction reads a real one.
+ */
+export async function insertCapturedReceipt(
+  imageUri: string,
+  captureDate: string,
+): Promise<ReceiptWithLines> {
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO receipts (id, type, store, purchased_at, total_cents, image_uri, status, created_at)
+     VALUES (?, 'grocery', NULL, ?, NULL, ?, 'pending', ?)`,
+    [id, captureDate, imageUri, now],
+  );
+  const stored = await getReceipt(id);
+  if (!stored) throw new Error('Receipt vanished on insert.');
+  return stored;
+}
+
+/**
+ * Attaches a completed extraction to a captured receipt: the header
+ * fields extraction read (or corrected from the capture-time defaults)
+ * and every line. Called once, when the receipt has no lines yet.
+ */
+export async function attachExtractedLines(
+  receiptId: string,
+  extracted: ExtractedReceiptHeader,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(
+      `UPDATE receipts SET store = ?, purchased_at = ?, type = ?, total_cents = ?
+       WHERE id = ?`,
+      [extracted.store, extracted.purchasedAt, extracted.receiptType, extracted.totalCents, receiptId],
+    );
+    for (const line of extracted.lines) {
+      await txn.runAsync(
+        `INSERT INTO receipt_lines
+           (id, receipt_id, raw_text, kind, qty, unit, line_total_cents,
+            unit_price_cents, canonical_id, pantry_item_id, excluded, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 0, ?)`,
+        [
+          randomUUID(),
+          receiptId,
+          line.rawText,
+          line.kind,
+          line.qty,
+          line.unit,
+          line.lineTotalCents,
+          line.unitPriceCents,
+          now,
+        ],
+      );
+    }
+  });
+}
+
+export async function getReceipt(id: string): Promise<ReceiptWithLines | null> {
+  const row = await db().getFirstAsync<ReceiptRow>(
+    'SELECT * FROM receipts WHERE id = ?',
+    [id],
+  );
+  if (!row) return null;
+  const lineRows = await db().getAllAsync<ReceiptLineRow>(
+    'SELECT * FROM receipt_lines WHERE receipt_id = ? ORDER BY rowid ASC',
+    [id],
+  );
+  return { ...toReceipt(row), lines: lineRows.map(toReceiptLine) };
+}
+
+/** Every receipt, most recently purchased first. */
+export async function listReceipts(): Promise<Receipt[]> {
+  const rows = await db().getAllAsync<ReceiptRow>(
+    'SELECT * FROM receipts ORDER BY purchased_at DESC, created_at DESC',
+  );
+  return rows.map(toReceipt);
+}
+
+/**
+ * Sets a line's matched ingredient — written by resolution when a line
+ * settles, and by the user correcting a match during review. The caller is
+ * responsible for teaching the matcher a correction via `confirmMatch`;
+ * this only updates the receipt's own record.
+ */
+export async function setReceiptLineCanonical(
+  lineId: string,
+  canonicalId: string | null,
+): Promise<void> {
+  await db().runAsync('UPDATE receipt_lines SET canonical_id = ? WHERE id = ?', [
+    canonicalId,
+    lineId,
+  ]);
+}
+
+/** A quantity or price correction made during review. */
+export async function setReceiptLineDetails(
+  lineId: string,
+  details: { qty: number | null; unit: MeasureUnit | null; lineTotalCents: number | null },
+): Promise<void> {
+  await db().runAsync(
+    'UPDATE receipt_lines SET qty = ?, unit = ?, line_total_cents = ? WHERE id = ?',
+    [details.qty, details.unit, details.lineTotalCents, lineId],
+  );
+}
+
+/** Excluding a line during review: it creates no pantry item and is not queued (spec). */
+export async function setReceiptLineExcluded(
+  lineId: string,
+  excluded: boolean,
+): Promise<void> {
+  await db().runAsync('UPDATE receipt_lines SET excluded = ? WHERE id = ?', [
+    excluded ? 1 : 0,
+    lineId,
+  ]);
+}
+
+export async function setReceiptType(
+  receiptId: string,
+  type: ReceiptType,
+): Promise<void> {
+  await db().runAsync('UPDATE receipts SET type = ? WHERE id = ?', [type, receiptId]);
+}
+
+export async function discardReceipt(id: string): Promise<void> {
+  await db().runAsync("UPDATE receipts SET status = 'discarded' WHERE id = ?", [id]);
+}
+
+/**
+ * Removes the pantry items this receipt's lines created, and forgets the
+ * link — used when the receipt type changes away from grocery after
+ * having already been applied (task 8.4's "re-planning rather than
+ * undoing"). Reconciliation side effects on *other* items (a mark as
+ * replaced, an asked-once flag) are not reversed: the spec asks only that
+ * the created items go, not that the rest of the catalogue's history be
+ * rewritten.
+ */
+export async function clearReceiptPantryItems(receiptId: string): Promise<void> {
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const lines = await txn.getAllAsync<{ id: string; pantry_item_id: string | null }>(
+      'SELECT id, pantry_item_id FROM receipt_lines WHERE receipt_id = ?',
+      [receiptId],
+    );
+    for (const line of lines) {
+      if (!line.pantry_item_id) continue;
+      await txn.runAsync('DELETE FROM pantry_items WHERE id = ?', [line.pantry_item_id]);
+      await txn.runAsync('UPDATE receipt_lines SET pantry_item_id = NULL WHERE id = ?', [
+        line.id,
+      ]);
+    }
+  });
+}
+
+/**
+ * Applies a receipt's planned changes in one transaction: creates the
+ * pantry items a grocery receipt's resolved lines call for, links each
+ * line to the item it created, marks superseded items replaced, flags
+ * running-low items for the asked-once prompt, and marks the receipt
+ * applied. Nothing is applied before this runs (task 6.3) — an abandoned
+ * review simply never calls it, leaving no trace.
+ */
+export async function applyReceiptChanges(
+  receiptId: string,
+  changes: readonly PantryChange[],
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    for (const change of changes) {
+      if (change.kind === 'create') {
+        const itemId = randomUUID();
+        const { item } = change;
+        const expiresAt = await predictExpiryWithin(txn, item.canonicalId, item.locationId, item.purchasedAt);
+        await txn.runAsync(
+          `INSERT INTO pantry_items
+             (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
+              qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
+              expiry_source, price_cents, photo_uri, status, created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, NULL, 'in_stock', ?, ?)`,
+          [
+            itemId,
+            item.canonicalId,
+            item.locationId,
+            item.qtyRemaining,
+            item.qtyUnit,
+            item.qtyRemaining != null ? 'estimate' : null,
+            item.purchasedAt,
+            expiresAt,
+            expiresAt != null ? 'predicted' : null,
+            item.priceCents,
+            now,
+            now,
+          ],
+        );
+        await txn.runAsync(
+          'UPDATE receipt_lines SET pantry_item_id = ? WHERE id = ?',
+          [itemId, change.lineId],
+        );
+      } else if (change.kind === 'mark_replaced') {
+        await txn.runAsync(
+          "UPDATE pantry_items SET status = 'replaced', updated_at = ? WHERE id = ?",
+          [now, change.pantryItemId],
+        );
+      } else {
+        await txn.runAsync(
+          'UPDATE pantry_items SET replacement_asked = 1, updated_at = ? WHERE id = ?',
+          [now, change.pantryItemId],
+        );
+      }
+    }
+
+    await txn.runAsync("UPDATE receipts SET status = 'applied' WHERE id = ?", [receiptId]);
+  });
+}
+
+/** Expiry prediction for a receipt-created item, read fresh within the transaction. */
+async function predictExpiryWithin(
+  txn: TransactionHandle,
+  canonicalId: string,
+  locationId: string,
+  purchasedAt: string,
+): Promise<string | null> {
+  const canonical = await txn.getFirstAsync<CanonicalItemRow>(
+    'SELECT * FROM canonical_items WHERE id = ?',
+    [canonicalId],
+  );
+  const location = await txn.getFirstAsync<LocationRow>(
+    'SELECT * FROM locations WHERE id = ?',
+    [locationId],
+  );
+  if (!canonical || !location) return null;
+  return predictExpiry(
+    toCanonicalItem(canonical),
+    location.kind as LocationKind,
+    purchasedAt,
+    null,
+  );
 }

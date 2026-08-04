@@ -1,0 +1,220 @@
+import { extractReceipt, type ExtractedReceipt } from '@/api/receipt';
+import {
+  applyReceiptChanges,
+  attachExtractedLines,
+  clearReceiptPantryItems,
+  getAllCanonicals,
+  getLocations,
+  getReceipt,
+  insertCapturedReceipt,
+  listPantryItems,
+  setReceiptLineCanonical,
+  setReceiptType,
+} from '@/db/queries';
+import { localDateString } from '@/logic/dates';
+import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
+import { planReceiptApply, referencesFromLines } from '@/logic/receipt';
+import type { CanonicalItem, ReceiptType, ReceiptWithLines } from '@/types';
+
+/**
+ * Binds the pure extraction, matching, and planning pieces to the database
+ * — the receipt equivalent of `depletionService.ts` and
+ * `suggestionService.ts`. Three moments matter: capture always succeeds
+ * even offline, resolution runs once extraction lands, and nothing is
+ * applied to the pantry until the review is explicitly accepted.
+ */
+
+/** A captured receipt with zero lines has not been extracted yet. */
+export function needsExtraction(receipt: ReceiptWithLines): boolean {
+  return receipt.lines.length === 0;
+}
+
+/**
+ * Photographs a receipt and attempts extraction inline. On success the
+ * lines are resolved immediately. Where extraction cannot run — no key,
+ * no connection — the receipt is retained with no lines rather than
+ * failing (decision 8, task 7.3); `retryExtraction` completes it later.
+ */
+export async function captureReceipt(
+  base64Jpeg: string,
+  imageUri: string,
+  captureDate: string = localDateString(),
+): Promise<ReceiptWithLines> {
+  const receipt = await insertCapturedReceipt(imageUri, captureDate);
+  return (await tryExtract(receipt.id, base64Jpeg, captureDate)) ?? receipt;
+}
+
+/** Re-attempts extraction for a receipt still waiting on it. */
+export async function retryExtraction(
+  receiptId: string,
+  base64Jpeg: string,
+): Promise<ReceiptWithLines | null> {
+  const receipt = await getReceipt(receiptId);
+  if (!receipt || !needsExtraction(receipt)) return receipt;
+  return tryExtract(receiptId, base64Jpeg, receipt.purchasedAt);
+}
+
+async function tryExtract(
+  receiptId: string,
+  base64Jpeg: string,
+  captureDate: string,
+): Promise<ReceiptWithLines | null> {
+  let extracted: ExtractedReceipt;
+  try {
+    extracted = await extractReceipt(base64Jpeg, captureDate);
+  } catch {
+    return null;
+  }
+
+  await attachExtractedLines(receiptId, {
+    store: extracted.store,
+    purchasedAt: extracted.purchasedAt,
+    receiptType: extracted.receiptType,
+    totalCents: extracted.totalCents,
+    lines: extracted.lines.map((line) => ({
+      rawText: line.text,
+      kind: line.kind,
+      qty: line.qty,
+      unit: line.unit,
+      lineTotalCents: line.lineTotalCents,
+      unitPriceCents: line.unitPriceCents,
+    })),
+  });
+
+  return resolveReceiptLines(receiptId, extracted.store);
+}
+
+/**
+ * Resolves every food line of a receipt through the one matching entry
+ * point (task 5.1) — a single batched call, never a receipt-specific
+ * path. Both a resolved and a needs-confirmation outcome carry a
+ * canonical id: review is the confirmation gate here, not the cascade
+ * (mirrors decision 28's meal-log treatment).
+ */
+export async function resolveReceiptLines(
+  receiptId: string,
+  store: string | null,
+): Promise<ReceiptWithLines> {
+  const receipt = await getReceipt(receiptId);
+  if (!receipt) throw new Error('Receipt not found.');
+
+  const foodLines = receipt.lines.map((line) => ({
+    text: line.rawText,
+    kind: line.kind,
+    qty: line.qty,
+    unit: line.unit,
+    lineTotalCents: line.lineTotalCents,
+    unitPriceCents: line.unitPriceCents,
+  }));
+  const refs = referencesFromLines(foodLines, store ?? undefined);
+  if (refs.length > 0) {
+    const outcomes = await resolveIngredientReferences(
+      refs.map((entry) => entry.reference),
+      'receipt',
+    );
+    for (const [position, entry] of refs.entries()) {
+      const outcome = outcomes[position];
+      const line = receipt.lines[entry.lineIndex];
+      if (!line || !outcome) continue;
+      if (outcome.status === 'resolved' || outcome.status === 'needs_confirmation') {
+        await setReceiptLineCanonical(line.id, outcome.canonicalId);
+      }
+      // 'unresolved': queued for review, canonical stays null — distinct
+      // from a non-food line, which never reached the matcher at all.
+    }
+  }
+
+  const updated = await getReceipt(receiptId);
+  if (!updated) throw new Error('Receipt vanished during resolution.');
+  return updated;
+}
+
+/** A correction made during review teaches the matcher, same as any other channel. */
+export async function correctReceiptLine(
+  lineId: string,
+  rawText: string,
+  canonicalId: string,
+): Promise<void> {
+  await confirmMatch(rawText, canonicalId);
+  await setReceiptLineCanonical(lineId, canonicalId);
+}
+
+export interface AcceptSummary {
+  /** Canonical display names of items the review created. */
+  names: string[];
+}
+
+/**
+ * Accepts a receipt's review: plans the pantry changes and applies them
+ * in one transaction. Extraction never writes; this is the one place that
+ * does (task 6.2, 6.3).
+ */
+export async function acceptReceiptReview(receiptId: string): Promise<AcceptSummary> {
+  const receipt = await getReceipt(receiptId);
+  if (!receipt) throw new Error('Receipt not found.');
+
+  const [canonicalList, locations, catalogue] = await Promise.all([
+    getAllCanonicals(),
+    getLocations(),
+    listPantryItems(),
+  ]);
+  const canonicals = new Map(canonicalList.map((c) => [c.id, c]));
+
+  const changes = planReceiptApply(
+    receipt.lines,
+    catalogue,
+    canonicals,
+    locations,
+    receipt.type,
+    receipt.purchasedAt,
+  );
+  await applyReceiptChanges(receiptId, changes);
+
+  const names = new Set<string>();
+  for (const change of changes) {
+    if (change.kind !== 'create') continue;
+    names.add(canonicals.get(change.item.canonicalId)?.displayName ?? change.item.canonicalId);
+  }
+  return { names: [...names] };
+}
+
+/**
+ * Changes a receipt's type, re-planning rather than undoing (task 8.4). A
+ * receipt already applied has its created pantry items removed first —
+ * the spec's "any pantry items it created are removed, spending is
+ * retained" — then the new type re-plans and re-applies in one action, so
+ * switching back to grocery recreates its items rather than requiring a
+ * second accept.
+ */
+export async function changeReceiptType(
+  receiptId: string,
+  type: ReceiptType,
+): Promise<void> {
+  const receipt = await getReceipt(receiptId);
+  if (!receipt) throw new Error('Receipt not found.');
+
+  if (receipt.status === 'applied') {
+    await clearReceiptPantryItems(receiptId);
+  }
+  await setReceiptType(receiptId, type);
+
+  if (receipt.status !== 'applied') return;
+
+  const refreshed = await getReceipt(receiptId);
+  if (!refreshed) return;
+  const [canonicalList, locations, catalogue] = await Promise.all([
+    getAllCanonicals(),
+    getLocations(),
+    listPantryItems(),
+  ]);
+  const canonicals = new Map<string, CanonicalItem>(canonicalList.map((c) => [c.id, c]));
+  const changes = planReceiptApply(
+    refreshed.lines,
+    catalogue,
+    canonicals,
+    locations,
+    type,
+    refreshed.purchasedAt,
+  );
+  await applyReceiptChanges(receiptId, changes);
+}

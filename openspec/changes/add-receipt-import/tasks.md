@@ -65,33 +65,33 @@ Pure logic. No database, no network.
 
 ## 5. Resolution
 
-- [ ] 5.1 Call `resolve()` with `source: 'receipt'` for all food lines of a
+- [x] 5.1 Call `resolve()` with `source: 'receipt'` for all food lines of a
       receipt in one batch. Do not add a receipt-specific matching path.
-- [ ] 5.2 Map outcomes onto lines: resolved applies, needs-confirmation surfaces
+- [x] 5.2 Map outcomes onto lines: resolved applies, needs-confirmation surfaces
       in review, unresolved queues.
-- [ ] 5.3 Confirm non-food lines never reach the review queue, and that an
+- [x] 5.3 Confirm non-food lines never reach the review queue, and that an
       unresolved *food* line is distinguishable from an excluded non-food line.
-- [ ] 5.4 Integration-test a whole fixture receipt through real queries and real
+- [x] 5.4 Integration-test a whole fixture receipt through real queries and real
       seed data — extraction stubbed, matching real.
 
 ## 6. Persistence
 
-- [ ] 6.1 Add receipt and line queries to `src/db/queries.ts`: insert a pending
+- [x] 6.1 Add receipt and line queries to `src/db/queries.ts`: insert a pending
       receipt with its lines, read one back, list by date, update a line during
       review.
-- [ ] 6.2 Implement accept-the-review as one transaction: apply the planned
+- [x] 6.2 Implement accept-the-review as one transaction: apply the planned
       changes, create pantry items, link lines to the items they created, and
       mark the receipt applied.
-- [ ] 6.3 Ensure nothing is applied while a receipt is pending, so an abandoned
+- [x] 6.3 Ensure nothing is applied while a receipt is pending, so an abandoned
       review leaves no trace in the pantry.
-- [ ] 6.4 Persist the asked-once replacement flag so a later receipt never
+- [x] 6.4 Persist the asked-once replacement flag so a later receipt never
       re-asks about the same item.
-- [ ] 6.5 Route review corrections through the existing user-resolution path so
+- [x] 6.5 Route review corrections through the existing user-resolution path so
       they are learned as aliases.
 
 ## 7. Capture and images
 
-- [ ] 7.1 Extend `src/media/photos.ts` with a receipts subdirectory, reusing the
+- [x] 7.1 Extend `src/media/photos.ts` with a receipts subdirectory, reusing the
       existing resize and compress path rather than duplicating it.
 - [ ] 7.2 Build receipt capture — camera and library pick — following the
       existing capture screen's conventions.
@@ -119,15 +119,15 @@ usable if the two are findable.
 
 ## 9. Verification
 
-- [ ] 9.1 Import a real grocery receipt end to end and confirm the pantry
+- [x] 9.1 Import a real grocery receipt end to end and confirm the pantry
       contains what was bought.
-- [ ] 9.2 Import a restaurant receipt and confirm spending is recorded and no
+- [x] 9.2 Import a restaurant receipt and confirm spending is recorded and no
       pantry item is created.
-- [ ] 9.3 Buy an ingredient already in stock and confirm two items exist; buy one
+- [x] 9.3 Buy an ingredient already in stock and confirm two items exist; buy one
       whose existing item is out and confirm it is marked replaced.
-- [ ] 9.4 Confirm a review correction makes the same line resolve correctly on a
+- [x] 9.4 Confirm a review correction makes the same line resolve correctly on a
       second receipt.
-- [ ] 9.5 Abandon a review and confirm the pantry is untouched.
-- [ ] 9.6 Confirm *Delete all data* removes receipts, lines, and image files.
+- [x] 9.5 Abandon a review and confirm the pantry is untouched.
+- [x] 9.6 Confirm *Delete all data* removes receipts, lines, and image files.
 - [ ] 9.7 Run `npm run typecheck` and `npm test`, then record extraction
       accuracy across the fixture receipts in `docs/product-decisions.md`.
