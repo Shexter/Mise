@@ -2095,6 +2095,18 @@ export async function setReceiptLineExcluded(
   ]);
 }
 
+/**
+ * Reclassifies a line — recovery from a wrong non-food call (task 8.3). The
+ * caller re-resolves afterward if the new kind is `food`; this only
+ * updates the record.
+ */
+export async function setReceiptLineKind(
+  lineId: string,
+  kind: ReceiptLineKind,
+): Promise<void> {
+  await db().runAsync('UPDATE receipt_lines SET kind = ? WHERE id = ?', [kind, lineId]);
+}
+
 export async function setReceiptType(
   receiptId: string,
   type: ReceiptType,

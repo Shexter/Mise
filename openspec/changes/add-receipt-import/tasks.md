@@ -93,28 +93,28 @@ Pure logic. No database, no network.
 
 - [x] 7.1 Extend `src/media/photos.ts` with a receipts subdirectory, reusing the
       existing resize and compress path rather than duplicating it.
-- [ ] 7.2 Build receipt capture — camera and library pick — following the
+- [x] 7.2 Build receipt capture — camera and library pick — following the
       existing capture screen's conventions.
-- [ ] 7.3 Retain a receipt captured with no connection and complete extraction
+- [x] 7.3 Retain a receipt captured with no connection and complete extraction
       when one returns, without asking the user to re-photograph.
-- [ ] 7.4 Tell the user a receipt is pending rather than failing silently.
+- [x] 7.4 Tell the user a receipt is pending rather than failing silently.
 
 ## 8. Review screen
 
 The feature, not polish. A thirty-line receipt with two wrong lines is only
 usable if the two are findable.
 
-- [ ] 8.1 Build the review screen: lines grouped by state, with confidently
+- [x] 8.1 Build the review screen: lines grouped by state, with confidently
       resolved ones collapsed and uncertain ones surfaced.
-- [ ] 8.2 Allow correcting the matched ingredient, editing quantity and price,
+- [x] 8.2 Allow correcting the matched ingredient, editing quantity and price,
       and excluding a line.
-- [ ] 8.3 Show excluded non-food lines collapsed but reachable, so a wrong
+- [x] 8.3 Show excluded non-food lines collapsed but reachable, so a wrong
       exclusion is recoverable rather than invisible.
-- [ ] 8.4 Allow changing the receipt type, re-planning rather than undoing.
-- [ ] 8.5 Show the reconciliation prompt for running-low items inline.
-- [ ] 8.6 Components from `src/components`, tokens from
+- [x] 8.4 Allow changing the receipt type, re-planning rather than undoing.
+- [x] 8.5 Show the reconciliation prompt for running-low items inline.
+- [x] 8.6 Components from `src/components`, tokens from
       `src/constants/theme.ts`. No colour, font, or spacing literals.
-- [ ] 8.7 Show canonical display names throughout; raw line text appears only as
+- [x] 8.7 Show canonical display names throughout; raw line text appears only as
       provenance.
 
 ## 9. Verification

@@ -8,13 +8,22 @@ import {
   getReceipt,
   insertCapturedReceipt,
   listPantryItems,
+  listReceipts,
   setReceiptLineCanonical,
+  setReceiptLineKind,
   setReceiptType,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
+import { photoBase64 } from '@/media/photos';
 import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
 import { planReceiptApply, referencesFromLines } from '@/logic/receipt';
-import type { CanonicalItem, ReceiptType, ReceiptWithLines } from '@/types';
+import type {
+  CanonicalItem,
+  Receipt,
+  ReceiptLineKind,
+  ReceiptType,
+  ReceiptWithLines,
+} from '@/types';
 
 /**
  * Binds the pure extraction, matching, and planning pieces to the database
@@ -44,14 +53,42 @@ export async function captureReceipt(
   return (await tryExtract(receipt.id, base64Jpeg, captureDate)) ?? receipt;
 }
 
-/** Re-attempts extraction for a receipt still waiting on it. */
+/**
+ * Re-attempts extraction for a receipt still waiting on it, reading the
+ * photo back from where capture stored it — the user never re-photographs.
+ */
 export async function retryExtraction(
   receiptId: string,
-  base64Jpeg: string,
 ): Promise<ReceiptWithLines | null> {
   const receipt = await getReceipt(receiptId);
   if (!receipt || !needsExtraction(receipt)) return receipt;
-  return tryExtract(receiptId, base64Jpeg, receipt.purchasedAt);
+  const base64Jpeg = await photoBase64(receipt.imageUri);
+  return (await tryExtract(receiptId, base64Jpeg, receipt.purchasedAt)) ?? receipt;
+}
+
+/** Receipts still waiting for extraction to complete. */
+export async function pendingReceipts(): Promise<Receipt[]> {
+  const all = await listReceipts();
+  const withLines = await Promise.all(
+    all.filter((r) => r.status === 'pending').map((r) => getReceipt(r.id)),
+  );
+  return withLines.filter((r): r is ReceiptWithLines => r !== null && needsExtraction(r));
+}
+
+/**
+ * Retries every receipt still waiting on extraction — called when the app
+ * returns to the foreground or a connection is noticed, the same shape as
+ * `dayStore`'s `syncToToday`. Failures (still no key, still offline) are
+ * silent; the receipt simply stays pending for the next attempt.
+ */
+export async function retryAllPending(): Promise<number> {
+  const pending = await pendingReceipts();
+  let completed = 0;
+  for (const receipt of pending) {
+    const result = await retryExtraction(receipt.id);
+    if (result && !needsExtraction(result)) completed += 1;
+  }
+  return completed;
 }
 
 async function tryExtract(
@@ -137,6 +174,26 @@ export async function correctReceiptLine(
 ): Promise<void> {
   await confirmMatch(rawText, canonicalId);
   await setReceiptLineCanonical(lineId, canonicalId);
+}
+
+/**
+ * Reclassifies a line — recovery from a wrong non-food call (task 8.3). A
+ * line moved to `food` is re-resolved immediately, the same as it would
+ * have been had extraction called it food to begin with.
+ */
+export async function reclassifyReceiptLine(
+  receiptId: string,
+  lineId: string,
+  kind: ReceiptLineKind,
+): Promise<ReceiptWithLines> {
+  await setReceiptLineKind(lineId, kind);
+  if (kind !== 'food') {
+    const updated = await getReceipt(receiptId);
+    if (!updated) throw new Error('Receipt vanished during reclassification.');
+    return updated;
+  }
+  const receipt = await getReceipt(receiptId);
+  return resolveReceiptLines(receiptId, receipt?.store ?? null);
 }
 
 export interface AcceptSummary {

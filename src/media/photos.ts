@@ -77,6 +77,15 @@ export async function preparePhoto(
   return { uri: destination.uri, base64: result.base64 ?? '' };
 }
 
+/**
+ * Reads a stored photo back as base64 — for retrying a receipt extraction
+ * that could not run at capture time (no key, no connection), without
+ * asking the user to re-photograph it (task 7.3).
+ */
+export async function photoBase64(uri: string): Promise<string> {
+  return new File(uri).base64();
+}
+
 /** Removes a stored photo. Missing files are not an error. */
 export function deletePhoto(uri: string | null): void {
   if (!uri) return;

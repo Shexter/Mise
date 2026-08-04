@@ -22,6 +22,7 @@ import {
   changeReceiptType,
   correctReceiptLine,
   needsExtraction,
+  reclassifyReceiptLine,
   resolveReceiptLines,
 } from '../src/logic/receiptService';
 import type { CanonicalItem, ReceiptWithLines } from '../src/types';
@@ -222,6 +223,36 @@ describe('corrections are learned (task 6.5, 9.4)', () => {
     const second = await extract('warehouseClub');
     const sameLine = second.lines.find((l) => l.rawText === 'KS ORG EVOO 2L');
     expect(sameLine?.canonicalId).toBe('olive-oil');
+  });
+});
+
+describe('recovering a misclassified non-food line (task 8.3)', () => {
+  test('reclassifying to food runs it through resolution, unresolved rather than lost', async () => {
+    const receipt = await extract('supermarketOne');
+    const nonFood = receipt.lines.find((l) => l.kind === 'non_food')!;
+    expect(nonFood.rawText).toBe('PAPER TOWELS 6CT');
+    expect(nonFood.canonicalId).toBeNull();
+
+    const updated = await reclassifyReceiptLine(receipt.id, nonFood.id, 'food');
+    const reclassified = updated.lines.find((l) => l.id === nonFood.id);
+    // "Paper towels" resolves to nothing real — it stays unresolved rather
+    // than inventing a match, but it is food now and reachable for review,
+    // not silently gone.
+    expect(reclassified?.kind).toBe('food');
+    expect(reclassified?.canonicalId).toBeNull();
+  });
+
+  test('once reclassified, a manual correction resolves it like any other line', async () => {
+    const receipt = await extract('supermarketOne');
+    const nonFood = receipt.lines.find((l) => l.kind === 'non_food')!;
+
+    await reclassifyReceiptLine(receipt.id, nonFood.id, 'food');
+    await correctReceiptLine(nonFood.id, nonFood.rawText, 'jasmine-rice');
+
+    const updated = await getReceipt(receipt.id);
+    const corrected = updated?.lines.find((l) => l.id === nonFood.id);
+    expect(corrected?.kind).toBe('food');
+    expect(corrected?.canonicalId).toBe('jasmine-rice');
   });
 });
 

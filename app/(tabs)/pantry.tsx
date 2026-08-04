@@ -10,8 +10,9 @@ import { AddPantryItemSheet } from '@/components/pantry/AddPantryItemSheet';
 import { PantryItemSheet } from '@/components/pantry/PantryItemSheet';
 import { expiryLabel, statusLabel } from '@/components/pantry/labels';
 import { Screen } from '@/components/Screen';
-import { Caption, RowTitle, ScreenTitle } from '@/components/Type';
-import { color, layout, opacity, space } from '@/constants/theme';
+import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
+import { color, layout, opacity, radius, space } from '@/constants/theme';
+import { pendingReceipts, retryAllPending } from '@/logic/receiptService';
 import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
 
@@ -27,17 +28,34 @@ export default function PantryScreen() {
   const refresh = usePantryStore((state) => state.refresh);
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   // Derived from the store so the sheet reflects taps live; null once the
   // entry leaves the catalogue (e.g. discarded).
   const selected =
     groups.flatMap((group) => group.entries).find((e) => e.id === selectedId) ??
     null;
 
+  const checkPending = useCallback(async () => {
+    setPendingCount((await pendingReceipts()).length);
+  }, []);
+
+  // Retrying on every Pantry visit is what "completes extraction when a
+  // connection returns" without asking the user to re-photograph (task
+  // 7.3) — there is no background task infrastructure to hook instead.
   useFocusEffect(
     useCallback(() => {
       void refresh();
-    }, [refresh]),
+      void (async () => {
+        await retryAllPending();
+        await checkPending();
+      })();
+    }, [refresh, checkPending]),
   );
+
+  const retryNow = async () => {
+    await retryAllPending();
+    await checkPending();
+  };
 
   return (
     <Screen scroll>
@@ -57,6 +75,18 @@ export default function PantryScreen() {
             <Feather name="map-pin" size={20} color={color.ink} />
           </Pressable>
           <Pressable
+            onPress={() => router.push('/receipt-capture')}
+            accessibilityRole="button"
+            accessibilityLabel="Scan a receipt"
+            hitSlop={space.sm}
+            style={({ pressed }) => [
+              styles.headerButton,
+              pressed && { opacity: opacity.pressed },
+            ]}
+          >
+            <Feather name="camera" size={20} color={color.ink} />
+          </Pressable>
+          <Pressable
             onPress={() => setAdding(true)}
             accessibilityRole="button"
             accessibilityLabel="Add an item"
@@ -70,6 +100,20 @@ export default function PantryScreen() {
           </Pressable>
         </View>
       </View>
+
+      {pendingCount > 0 ? (
+        <Pressable
+          onPress={() => void retryNow()}
+          accessibilityRole="button"
+          accessibilityLabel={`${pendingCount} receipt${pendingCount > 1 ? 's' : ''} waiting to import. Tap to retry.`}
+          style={({ pressed }) => [styles.banner, pressed && { opacity: opacity.pressed }]}
+        >
+          <Body>
+            {pendingCount} receipt{pendingCount > 1 ? 's' : ''} waiting to import
+          </Body>
+          <Caption muted>No key or connection yet — tap to try again.</Caption>
+        </Pressable>
+      ) : null}
 
       {groups.length === 0 ? (
         <EmptyState
@@ -151,6 +195,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerActions: { flexDirection: 'row', gap: space.sm },
+  banner: {
+    backgroundColor: color.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: color.line,
+    padding: layout.cardPadding,
+    gap: space.xs,
+    marginBottom: space.lg,
+  },
   headerButton: {
     width: layout.minTouchTarget,
     height: layout.minTouchTarget,

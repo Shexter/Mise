@@ -27,6 +27,9 @@ export class File {
   delete(): void {}
   write(_content: string): void {}
   async move(_destination: File): Promise<void> {}
+  async base64(): Promise<string> {
+    return 'stub-base64';
+  }
 }
 
 export const Paths = {
