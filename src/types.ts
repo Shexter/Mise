@@ -188,7 +188,8 @@ export type ReferenceSource =
   | 'receipt'
   | 'vision'
   | 'meal_log'
-  | 'user';
+  | 'user'
+  | 'dietary';
 
 export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'seed',
@@ -197,6 +198,7 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'vision',
   'meal_log',
   'user',
+  'dietary',
 ];
 
 /** The food concept — one row per real-world ingredient. `id` is the slug. */
@@ -502,6 +504,46 @@ export interface SuggestionSet {
    * scorer does not touch, and for cache rows written before this change.
    */
   pool: Suggestion[];
+  /**
+   * How many `applyDietary` dropped — an allergen or restriction match, or
+   * an unresolved ingredient with an allergen rule recorded
+   * (`add-dietary-profile` task 6.3). Recomputed against the *current*
+   * rules on every read, not just at generation time, so recording a new
+   * allergen updates this immediately. Reported separately from
+   * `droppedForConstraint`: different sentence, different action.
+   */
+  droppedForDiet: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dietary profile                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What a rule costs to get wrong (`add-dietary-profile`'s proposal). Only
+ * the user knows which one a given rule is — "no pork" is a restriction for
+ * one person and a dislike for another — so the kind is chosen at creation,
+ * never inferred from the ingredient.
+ */
+export type DietaryRuleKind = 'allergen' | 'restriction' | 'dislike';
+
+export const DIETARY_RULE_KINDS: readonly DietaryRuleKind[] = [
+  'allergen',
+  'restriction',
+  'dislike',
+];
+
+/** Something the user cannot or will not eat. */
+export interface DietaryRule {
+  id: string;
+  kind: DietaryRuleKind;
+  /** Set when the rule resolved to a catalogue ingredient. Null means text-only. */
+  canonicalId: string | null;
+  /** As the user typed it. */
+  text: string;
+  /** Fallback match key when `canonicalId` is null — a weaker guarantee, shown as such. */
+  normalisedText: string;
+  createdAt: string;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -2,6 +2,7 @@ import { subDays } from 'date-fns';
 import { randomUUID } from 'expo-crypto';
 
 import canonicalSeed from '../../assets/canonical-items.json';
+import derivativeSeed from '../../assets/canonical-derivatives.json';
 import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
@@ -25,6 +26,8 @@ import type {
   ConsumptionEvent,
   ConsumptionKind,
   DailyTarget,
+  DietaryRule,
+  DietaryRuleKind,
   ExpirySource,
   FoodClass,
   Fullness,
@@ -640,18 +643,28 @@ interface AliasSeedEntry {
   locale?: string;
 }
 
+interface DerivativeSeedEntry {
+  parent: string;
+  child: string;
+}
+
 /**
- * Loads the shipped canonical ingredients and aliases. Idempotent: canonicals
- * are keyed on their slug and aliases on the unique `(alias_norm,
- * canonical_id)` pair, so re-running after a seed-version bump inserts only
- * what is new and never duplicates what is there. Each canonical's display
- * name is also registered as an alias so the display name itself always
- * resolves.
+ * Loads the shipped canonical ingredients, aliases, and derivative edges.
+ * Idempotent: canonicals are keyed on their slug, aliases on the unique
+ * `(alias_norm, canonical_id)` pair, and derivative edges on the
+ * `(parent_id, child_id)` primary key — so re-running after a catalogue
+ * update inserts only what is new and never duplicates what is there. There
+ * is no separate "catalogue version" to bump (confirmed by reading this
+ * function before touching it, per task 3.4): this already runs on every
+ * app launch (`src/db/index.ts`), so a JSON edit alone is what an existing
+ * install needs to pick up new edges. Each canonical's display name is also
+ * registered as an alias so the display name itself always resolves.
  */
 export async function loadSeedData(): Promise<void> {
   const now = new Date().toISOString();
   const canonicals = canonicalSeed as CanonicalSeedEntry[];
   const aliases = aliasSeed as AliasSeedEntry[];
+  const derivatives = derivativeSeed as DerivativeSeedEntry[];
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     for (const entry of canonicals) {
@@ -699,6 +712,13 @@ export async function loadSeedData(): Promise<void> {
           entry.locale ?? null,
           now,
         ],
+      );
+    }
+
+    for (const entry of derivatives) {
+      await txn.runAsync(
+        `INSERT OR IGNORE INTO canonical_derivatives (parent_id, child_id) VALUES (?, ?)`,
+        [entry.parent, entry.child],
       );
     }
   });
@@ -1842,6 +1862,8 @@ interface CachedPayload {
    * displayed count degrades to a same-three reorder, not a break).
    */
   pool?: Suggestion[];
+  /** Absent on rows cached before `add-dietary-profile` shipped — treated as zero. */
+  droppedForDiet?: number;
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -1856,6 +1878,7 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     createdAt: row.created_at,
     droppedForConstraint: payload.droppedForConstraint ?? 0,
     pool: payload.pool ?? payload.suggestions,
+    droppedForDiet: payload.droppedForDiet ?? 0,
   };
 }
 
@@ -1891,10 +1914,11 @@ export async function saveSuggestionCache(
   stretch: StretchPlan | null,
   droppedForConstraint: number,
   pool: Suggestion[],
+  droppedForDiet: number,
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint, pool };
+  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint, pool, droppedForDiet };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -1918,6 +1942,7 @@ export async function saveSuggestionCache(
     createdAt,
     droppedForConstraint,
     pool,
+    droppedForDiet,
   };
 }
 
@@ -2299,4 +2324,107 @@ async function predictExpiryWithin(
     purchasedAt,
     null,
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dietary profile                                                            */
+/* -------------------------------------------------------------------------- */
+
+interface DietaryRuleRow {
+  id: string;
+  kind: string;
+  canonical_id: string | null;
+  text: string;
+  normalised_text: string;
+  created_at: string;
+}
+
+function toDietaryRule(row: DietaryRuleRow): DietaryRule {
+  return {
+    id: row.id,
+    kind: row.kind as DietaryRuleKind,
+    canonicalId: row.canonical_id,
+    text: row.text,
+    normalisedText: row.normalised_text,
+    createdAt: row.created_at,
+  };
+}
+
+export interface NewDietaryRule {
+  kind: DietaryRuleKind;
+  canonicalId: string | null;
+  text: string;
+  normalisedText: string;
+}
+
+export async function createDietaryRule(input: NewDietaryRule): Promise<DietaryRule> {
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO dietary_rules (id, kind, canonical_id, text, normalised_text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, input.kind, input.canonicalId, input.text, input.normalisedText, createdAt],
+  );
+  return { id, kind: input.kind, canonicalId: input.canonicalId, text: input.text, normalisedText: input.normalisedText, createdAt };
+}
+
+export async function listDietaryRules(): Promise<DietaryRule[]> {
+  const rows = await db().getAllAsync<DietaryRuleRow>(
+    'SELECT * FROM dietary_rules ORDER BY created_at ASC',
+  );
+  return rows.map(toDietaryRule);
+}
+
+/** Changing a rule's kind changes only its enforcement policy — the text and resolution stand. */
+export async function updateDietaryRuleKind(
+  id: string,
+  kind: DietaryRuleKind,
+): Promise<void> {
+  await db().runAsync('UPDATE dietary_rules SET kind = ? WHERE id = ?', [kind, id]);
+}
+
+export async function deleteDietaryRule(id: string): Promise<void> {
+  await db().runAsync('DELETE FROM dietary_rules WHERE id = ?', [id]);
+}
+
+/**
+ * Every canonical id derived from any of `canonicalIds`, transitively,
+ * including the seeds themselves. A recursive query per seed rather than a
+ * stored closure (design: "the graph is tiny and shallow") — plain `UNION`
+ * (not `UNION ALL`) drops a row the moment its id has already appeared, so a
+ * cyclical edit to the catalogue terminates instead of hanging (task 3.6).
+ */
+export async function expandDerivatives(
+  canonicalIds: readonly string[],
+): Promise<Set<string>> {
+  const result = new Set<string>();
+  for (const seed of canonicalIds) {
+    const rows = await db().getAllAsync<{ id: string }>(
+      `WITH RECURSIVE closure(id) AS (
+         SELECT ?
+         UNION
+         SELECT cd.child_id FROM canonical_derivatives cd
+         JOIN closure ON cd.parent_id = closure.id
+       )
+       SELECT id FROM closure`,
+      [seed],
+    );
+    for (const row of rows) result.add(row.id);
+  }
+  return result;
+}
+
+/**
+ * Every derivative edge, flat. The graph is small enough to load whole
+ * (design.md: "tiny and shallow") — `src/logic/dietary.ts`'s `expandRules`
+ * is the pure function that actually walks it, so a rule set can be
+ * expanded without a database in a test.
+ */
+export async function listDerivativeEdges(): Promise<
+  { parentId: string; childId: string }[]
+> {
+  const rows = await db().getAllAsync<{ parent_id: string; child_id: string }>(
+    'SELECT parent_id, child_id FROM canonical_derivatives',
+  );
+  return rows.map((row) => ({ parentId: row.parent_id, childId: row.child_id }));
 }

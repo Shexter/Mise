@@ -18,7 +18,9 @@ import type { Suggestion, UrgencyBucket } from '@/types';
  * already returned — `urgency` and `summarisePersonalisation` do the actual
  * measurement elsewhere. Inventing a new signal here would be two changes
  * wearing one name, and the new signal would be unmeasured while this one
- * took the blame.
+ * took the blame. The seventh term, dislikes, is `add-dietary-profile`'s:
+ * extending this scorer rather than building a second ranking mechanism
+ * beside it, once a real one existed to extend.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -36,6 +38,16 @@ export interface DishScoreContext {
   stockIndex: ReadonlyMap<string, StockIndexEntry>;
   remainingCalories: number;
   personalisation: PersonalisationSummary;
+  /**
+   * Canonical ids the user dislikes, expanded through the derivative
+   * closure (`add-dietary-profile`). A weight, not a filter — the use-first
+   * constraint and any allergen/restriction exclusion already ran upstream
+   * in `parseSuggestResponse`, so a disliked ingredient reaching this
+   * context is already eligible to show; disliking it only costs it a
+   * scoring contest (decision 106, carried through by extending this
+   * scorer rather than building a second mechanism beside it).
+   */
+  dislikedCanonicalIds: ReadonlySet<string>;
 }
 
 /**
@@ -79,11 +91,13 @@ export function buildDishScoreContext(
   remainingCalories: number,
   personalisation: PersonalisationSummary,
   today?: string,
+  dislikedCanonicalIds: ReadonlySet<string> = new Set(),
 ): DishScoreContext {
   return {
     stockIndex: buildStockIndex(bucketed, today),
     remainingCalories,
     personalisation,
+    dislikedCanonicalIds,
   };
 }
 
@@ -103,6 +117,8 @@ export const FAMILIAR_DISH_SCORE = 1;
 export const FAMILIAR_CUISINE_SCORE = 0.5;
 /** Flat penalty for a dish that repeats something eaten in the recently-eaten window. */
 export const RECENCY_PENALTY = 1;
+/** Flat penalty for a dish that uses a disliked ingredient (`add-dietary-profile`). */
+export const DISLIKE_PENALTY = 1;
 
 export const VALUE_AT_RISK_WEIGHT = 3;
 export const EXPIRY_PRESSURE_WEIGHT = 2;
@@ -110,6 +126,14 @@ export const EFFORT_WEIGHT = 1;
 export const CALORIE_FIT_WEIGHT = 1;
 export const FAMILIARITY_WEIGHT = 1;
 export const RECENCY_PENALTY_WEIGHT = 4;
+/**
+ * Below `RECENCY_PENALTY_WEIGHT`: a repeat of something eaten two days ago
+ * is a worse sign than a dish merely containing something the user is
+ * lukewarm on — decision 106's "loses a close contest, does not win an
+ * argument with an expiring ingredient" is exactly this term staying small
+ * enough that `VALUE_AT_RISK_WEIGHT` can still outrank it.
+ */
+export const DISLIKE_PENALTY_WEIGHT = 2;
 
 function valueAtRiskTerm(suggestion: Suggestion, context: DishScoreContext): number {
   let sum = 0;
@@ -158,6 +182,13 @@ function recencyTerm(suggestion: Suggestion, context: DishScoreContext): number 
     : 0;
 }
 
+function dislikeTerm(suggestion: Suggestion, context: DishScoreContext): number {
+  const usesDisliked = suggestion.uses.some((use) =>
+    context.dislikedCanonicalIds.has(use.canonicalId),
+  );
+  return usesDisliked ? -DISLIKE_PENALTY : 0;
+}
+
 /** The cuisine a dish name reads as, via the same keyword table `summarisePersonalisation` uses. */
 function cuisineOf(dish: string): string | null {
   const lower = dish.toLowerCase();
@@ -178,7 +209,8 @@ export function scoreDish(suggestion: Suggestion, context: DishScoreContext): nu
     EFFORT_WEIGHT * effortTerm(suggestion) +
     CALORIE_FIT_WEIGHT * calorieFitTerm(suggestion, context) +
     FAMILIARITY_WEIGHT * familiarityTerm(suggestion, context) +
-    RECENCY_PENALTY_WEIGHT * recencyTerm(suggestion, context)
+    RECENCY_PENALTY_WEIGHT * recencyTerm(suggestion, context) +
+    DISLIKE_PENALTY_WEIGHT * dislikeTerm(suggestion, context)
   );
 }
 

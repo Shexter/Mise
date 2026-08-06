@@ -19,30 +19,16 @@ Task counts are open tasks, not total.
 | `add-receipt-import` | 78/79 | 1 open waits on `add-unified-capture` |
 | `fix-day-selection` | 24/25 | 1 open needs a standalone APK |
 | `add-dish-scorer` | 41/47 | 6 open need a real key or `add-dietary-profile` |
+| `add-dietary-profile` | 57/59 | 2 open: one waits on `add-macro-gap-suggestions`, one needs a real key |
 
-**325 of 335.** Every remaining task needs a physical device or a real API key —
+**382 of 394.** Every remaining task needs a physical device or a real API key —
 none is blocked on code. They are a parallel track, not a queue position.
 
 ---
 
-## 1 — Headroom and safety
+## 1 — Live wrongness in shipped paths
 
-### 1. `add-dietary-profile` — 59
-
-The suggestion engine is live and has no notion of allergies, restrictions, or
-dislikes. Safety-adjacent, and the one item here whose failure mode is not
-"worse product".
-
-**Now that `add-dish-scorer` has shipped** (decision 164), dietary exclusion is
-a third filter over a pool of ten rather than three — a user with recorded
-allergens no longer routinely sees one suggestion or none. That was the whole
-reason the scorer went first.
-
----
-
-## 2 — Live wrongness in shipped paths
-
-### 2. `add-open-data-catalogue` — 53
+### 1. `add-open-data-catalogue` — 53
 
 Every expiry prediction runs on 69 hand-authored guesses. That was cosmetic
 while expiry only *sorted*. It stopped being cosmetic when decision 136's
@@ -53,7 +39,7 @@ it is a filter operating on invented numbers.
 Task 1 measures the FoodKeeper hit rate before anything is built, so this can be
 abandoned cheaply if the match rate is poor.
 
-### 3. `add-cjk-matching` — 37
+### 2. `add-cjk-matching` — 37
 
 Decision 4 says deep Asian ingredient coverage is *the* differentiator.
 Decision 67 measured `李錦記 蠔油` at **0.27** against its own canonical and has
@@ -62,13 +48,13 @@ been `OPEN` ever since. The moat is measurably broken.
 Below the catalogue only because matching degrades gracefully — an unresolved
 reference queues rather than producing a wrong answer.
 
-### 4. `add-venue-inference` — 38
+### 3. `add-venue-inference` — 38
 
 Depletion accuracy compounds into stock status, expiry buckets, and suggestions.
 The sticky default is mediocre rather than broken, which is why it sits here
 rather than higher.
 
-### 5. `add-openai-provider` — 41
+### 4. `add-openai-provider` — 41
 
 Self-contained, no migration, and it fixes a live annoyance: `rate_limited` has
 been in the taxonomy since the beginning with nothing acting on it. Good work to
@@ -76,47 +62,47 @@ slot between larger changes.
 
 ---
 
-## 3 — Input channels
+## 2 — Input channels
 
-### 6. `add-unified-capture` — 56
+### 5. `add-unified-capture` — 56
 
 One action for adding to the pantry. Closes `add-receipt-import` 7.2a and sets
 the shape the next one depends on.
 
-### 7. `add-barcode-capture` — 51
+### 6. `add-barcode-capture` — 51
 
 After unified capture, which revises its task 5.1.
 
-### 8. `add-recipe-links` — 47
+### 7. `add-recipe-links` — 47
 
 New capability rather than a fix, which is the only reason it is this low. High
 user value and no blocking dependency.
 
 ---
 
-## 4 — Nutrition and personalisation
+## 3 — Nutrition and personalisation
 
-### 9. `add-fibre-tracking` — 31
-### 10. `add-macro-gap-suggestions` — 29
-### 11. `add-suggestion-templates` — 49
+### 8. `add-fibre-tracking` — 31
+### 9. `add-macro-gap-suggestions` — 29
+### 10. `add-suggestion-templates` — 49
 
-Needs 10 for the objective parameter and `add-dish-scorer` (shipped) for the
+Needs 9 for the objective parameter and `add-dish-scorer` (shipped) for the
 scorer it weights.
 
 ---
 
-## 5 — Needs a decision before it needs an implementer
+## 4 — Needs a decision before it needs an implementer
 
-### 12. `add-shop-locations` — 42
+### 11. `add-shop-locations` — 42
 
 Task 1.2 establishes whether departure events need always-on location. If they
 do, that is a materially larger ask than the proposal weighed and the change
 should be re-decided rather than built.
 
-### 13. `add-off-taxonomy-seed` — 37
+### 12. `add-off-taxonomy-seed` — 37
 
 Gated on the ODbL answer (decision 144, `OPEN`). Task 1 produces it; nothing
-else may start. Also needs 2 for the pipeline.
+else may start. Also needs 1 for the pipeline.
 
 ---
 
@@ -132,6 +118,8 @@ twice on parallel work.
 - **132** — the suggestion engine's thresholds are named guesses
 - **135** — extraction accuracy beyond the fixture corpus
 - **144** — the ODbL question
-- **67** — closed by change 3 above
+- **67** — closed by change 2 above
 - **164** — `add-dish-scorer`'s weights are measured against fixtures only,
   not real usage (tasks 2.5, 9.1-9.5)
+- **165** — `add-dietary-profile`'s prompt-length-at-scale question (task 6.9)
+  is measured against fixtures only, not real usage

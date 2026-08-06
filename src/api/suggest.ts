@@ -4,9 +4,11 @@ import { completeWithGemini } from '@/api/gemini';
 import { getApiKey, providerForKey } from '@/api/keyStore';
 import { extractJsonObject } from '@/api/parse';
 import { buildSuggestUserPrompt, SUGGEST_SYSTEM_PROMPT } from '@/api/suggestPrompt';
+import { applyDietary, type ExclusionSet } from '@/logic/dietary';
 import type { PersonalisationSummary, StockPayload } from '@/logic/suggest';
 import {
   MEASURE_UNITS,
+  type DietaryRule,
   type Macros,
   type MeasureUnit,
   type Suggestion,
@@ -31,6 +33,12 @@ export interface SuggestRequest {
   remainingCalories: number;
   macroGap: Macros;
   untilDate?: string;
+  /** For the prompt only — a request, never the mechanism. Empty when the user has recorded nothing. */
+  dietaryRules: readonly DietaryRule[];
+  /** The enforcement mechanism: allergen and restriction rules, expanded through derivatives. */
+  exclusionSet: ExclusionSet;
+  /** Gates the unknown-excludes-allergens-only rule (decision, `add-dietary-profile`). */
+  hasAllergenRules: boolean;
 }
 
 export interface SuggestResult {
@@ -52,6 +60,14 @@ export interface SuggestResult {
    * than silently showing fewer ideas than asked for.
    */
   droppedForConstraint: number;
+  /**
+   * Suggestions `applyDietary` removed — an allergen or restriction match,
+   * or an unresolved ingredient where an allergen rule exists (task 6.3).
+   * Reported separately from `droppedForConstraint`: "two ideas contained
+   * peanut" and "two ideas didn't use what needs using" are different
+   * sentences, and the user can only act on one of them.
+   */
+  droppedForDiet: number;
 }
 
 /**
@@ -74,7 +90,13 @@ export async function generateSuggestions(
       ? await completeWithAnthropic(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal)
       : await completeWithGemini(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal);
 
-  return parseSuggestResponse(raw, allCatalogueIds(request), useFirstIds(request));
+  return parseSuggestResponse(
+    raw,
+    allCatalogueIds(request),
+    useFirstIds(request),
+    request.exclusionSet,
+    request.hasAllergenRules,
+  );
 }
 
 /** Every id the model was shown, whether sent in full or compressed. */
@@ -116,11 +138,19 @@ function useFirstIds(request: SuggestRequest): ReadonlySet<string> {
  * an ingredient the model did not choose. Pass an empty set when nothing
  * is urgent — the spec only requires this when the use_first group is
  * non-empty.
+ *
+ * `exclusionSet` and `hasAllergenRules` are `add-dietary-profile`'s
+ * guarantee, run last and over whatever the use-first check left: an
+ * allergen or restriction is never softened into a weight (decision,
+ * matching decision 34's own argument), so a violating suggestion is
+ * dropped here, never scored, never repaired.
  */
 export function parseSuggestResponse(
   raw: string,
   candidateIds: ReadonlySet<string>,
   useFirstIds: ReadonlySet<string>,
+  exclusionSet: ExclusionSet,
+  hasAllergenRules: boolean,
 ): SuggestResult {
   let parsed: unknown;
   try {
@@ -141,13 +171,18 @@ export function parseSuggestResponse(
     .map((entry) => toSuggestion(entry, candidateIds))
     .filter((entry): entry is Suggestion => entry !== null);
 
-  const suggestions =
+  const afterUseFirst =
     useFirstIds.size === 0
       ? parsedSuggestions
       : parsedSuggestions.filter((suggestion) =>
           suggestion.uses.some((use) => useFirstIds.has(use.canonicalId)),
         );
-  const droppedForConstraint = parsedSuggestions.length - suggestions.length;
+  const droppedForConstraint = parsedSuggestions.length - afterUseFirst.length;
+
+  const suggestions = afterUseFirst.filter(
+    (suggestion) => !applyDietary(suggestion, exclusionSet, hasAllergenRules).excluded,
+  );
+  const droppedForDiet = afterUseFirst.length - suggestions.length;
 
   if (suggestions.length === 0) {
     throw new VisionError('malformed', 'No usable suggestion was returned.');
@@ -157,6 +192,7 @@ export function parseSuggestResponse(
     suggestions,
     shortfall: asNullableString(record['shortfall']),
     droppedForConstraint,
+    droppedForDiet,
   };
 }
 

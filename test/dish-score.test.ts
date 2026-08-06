@@ -7,6 +7,7 @@ import {
   type DishScoreContext,
 } from '../src/logic/dishScore';
 import { parseSuggestResponse } from '../src/api/suggest';
+import type { ExclusionSet } from '../src/logic/dietary';
 import { KITCHENS } from '../src/logic/__fixtures__/kitchens';
 import {
   costlyProteinExpiringTomorrowPool,
@@ -33,6 +34,9 @@ import type { Suggestion } from '../src/types';
  * decisions 149's demand that a scorer not arrive "untuned, unmeasured, and
  * justified by a single weight."
  */
+
+/** No dietary rules recorded — every test here is unaffected by `add-dietary-profile`. */
+const EMPTY_EXCLUSION: ExclusionSet = { canonicalIds: new Set(), unresolvedText: new Set() };
 
 function contextFor(kitchenName: string, remainingCalories: number): DishScoreContext {
   const kitchen = KITCHENS.find((k) => k.name === kitchenName)!;
@@ -63,6 +67,7 @@ describe('scoreDish — terms in isolation', () => {
     stockIndex: new Map(),
     remainingCalories: 600,
     personalisation: { cuisineLean: null, topCuisine: null, frequentDishes: [], recentlyEaten: [] },
+    dislikedCanonicalIds: new Set(),
   };
   const baseline = dish({ dish: 'Baseline', uses: [use('untracked')], effortMinutes: 20, kcalPerServing: 400 });
 
@@ -150,18 +155,26 @@ describe('scoreDish — terms in isolation', () => {
     expect(scoreDish(recent, context)).toBeLessThan(scoreDish(fresh, context));
   });
 
-  test('the sum is exactly the six terms, not a subset', () => {
+  test('the sum is exactly the seven terms, not a subset', () => {
     const context: DishScoreContext = {
       stockIndex: new Map([['urgent', { urgencyScore: 300, daysLeft: 1 }]]),
       remainingCalories: 500,
       personalisation: { cuisineLean: null, topCuisine: 'Korean', frequentDishes: ['Repeat'], recentlyEaten: ['Repeat'] },
+      dislikedCanonicalIds: new Set(['urgent']),
     };
     const suggestion = dish({ dish: 'Repeat', uses: [use('urgent')], effortMinutes: 10, kcalPerServing: 450 });
-    // Frequent AND recently eaten at once — both terms must fire together,
-    // not short-circuit each other.
+    // Frequent, recently eaten, AND disliked at once — every term must
+    // fire together, not short-circuit each other.
     const score = scoreDish(suggestion, context);
     expect(Number.isFinite(score)).toBe(true);
     expect(score).not.toBe(0);
+  });
+
+  test('a disliked ingredient lowers the score without excluding it (add-dietary-profile, task 6.5)', () => {
+    const context: DishScoreContext = { ...baseContext, dislikedCanonicalIds: new Set(['x']) };
+    const disliked = dish({ dish: 'Uses it', uses: [use('x')], effortMinutes: 20, kcalPerServing: 400 });
+    const neutral = dish({ dish: 'Ignores it', uses: [use('untracked')], effortMinutes: 20, kcalPerServing: 400 });
+    expect(scoreDish(disliked, context)).toBeLessThan(scoreDish(neutral, context));
   });
 });
 
@@ -279,7 +292,7 @@ describe('the use-first constraint runs before the scorer, never after (task 3.5
     const candidateIds = new Set(['jasmine-rice', 'pork-belly']);
     const useFirstIds = new Set(['pork-belly']);
 
-    const result = parseSuggestResponse(raw, candidateIds, useFirstIds);
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
     expect(result.suggestions.map((s) => s.dish)).toEqual(['Uses the urgent item']);
 
     const ctx = contextFor('costly protein expiring tomorrow', costlyProteinExpiringTomorrowRemainingCalories);
@@ -327,7 +340,7 @@ describe('the fixture corpus — measured display order (task 8.2)', () => {
     const candidateIds = new Set(kitchen.canonicals.map((c) => c.id));
     const useFirstIds = new Set(['pork-belly', 'cucumber']);
 
-    const result = parseSuggestResponse(raw, candidateIds, useFirstIds);
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
     expect(result.droppedForConstraint).toBe(7);
     expect(result.suggestions).toHaveLength(3);
 
@@ -337,6 +350,42 @@ describe('the fixture corpus — measured display order (task 8.2)', () => {
     expect(new Set(displayed.map((s) => s.dish))).toEqual(
       new Set(['Pork belly and cucumber stir-fry', 'Cucumber pork salad', 'Braised pork belly with rice']),
     );
+  });
+
+  test('a disliked ingredient still appears when it is the only thing expiring (add-dietary-profile, task 6.7)', () => {
+    // Decision 106's whole point, now against the real engine: pork belly
+    // is the only urgent item in this kitchen, so every eligible candidate
+    // (after the use-first drop above) uses it. Disliking it must not
+    // empty the display — it can only ever cost a scoring contest.
+    const kitchen = KITCHENS.find((k) => k.name === 'costly protein expiring tomorrow')!;
+    const raw = JSON.stringify({
+      suggestions: costlyProteinExpiringTomorrowPool.map((s) => ({
+        dish: s.dish,
+        reason_tags: ['uses what is on hand'],
+        kcal_per_serving: s.kcalPerServing,
+        servings: s.servings,
+        effort_minutes: s.effortMinutes,
+        uses: s.uses.map((u) => ({ canonical_id: u.canonicalId, qty: u.qty, unit: u.unit })),
+        missing: [],
+        method: [],
+      })),
+    });
+    const candidateIds = new Set(kitchen.canonicals.map((c) => c.id));
+    const useFirstIds = new Set(['pork-belly', 'cucumber']);
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
+
+    const baseCtx = contextFor(
+      'costly protein expiring tomorrow',
+      costlyProteinExpiringTomorrowRemainingCalories,
+    );
+    const dislikingPorkBelly: DishScoreContext = {
+      ...baseCtx,
+      dislikedCanonicalIds: new Set(['pork-belly']),
+    };
+
+    const displayed = selectDisplayed(result.suggestions, dislikingPorkBelly, 3);
+    expect(displayed).toHaveLength(3);
+    expect(displayed.every((s) => s.uses.some((u) => u.canonicalId === 'pork-belly'))).toBe(true);
   });
 
   test('only staples and seasonings: the variety floor picks a genuinely different dish over a near-duplicate', () => {

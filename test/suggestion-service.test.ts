@@ -51,6 +51,7 @@ beforeEach(async () => {
     suggestions: [FAKE_SUGGESTION],
     shortfall: null,
     droppedForConstraint: 0,
+      droppedForDiet: 0,
   });
 });
 
@@ -67,6 +68,29 @@ describe('getOrGenerateSuggestions caching', () => {
       expect(result.set.suggestions[0]?.dish).toBe('Test stir-fry');
     }
     expect(generateSuggestions).toHaveBeenCalledTimes(1);
+  });
+
+  test('no rules recorded means no dietary behaviour anywhere (task 5.7/10.7)', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    const localDate = localDateString();
+
+    const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      // Nothing dropped and nothing down-ranked — the suggestion the model
+      // returned is exactly what is displayed.
+      expect(result.set.droppedForDiet).toBe(0);
+      expect(result.set.suggestions.map((s) => s.dish)).toEqual(['Test stir-fry']);
+    }
+    // The request the engine sent reflects the absence too.
+    expect(generateSuggestions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dietaryRules: [],
+        exclusionSet: { canonicalIds: new Set(), unresolvedText: new Set() },
+        hasAllergenRules: false,
+      }),
+    );
   });
 
   test('reopening the surface with nothing changed makes no request', async () => {
@@ -131,6 +155,7 @@ describe('getOrGenerateSuggestions — the pool re-selects for free (task 7.3/7.
       suggestions: [POOL_A, POOL_B],
       shortfall: null,
       droppedForConstraint: 0,
+      droppedForDiet: 0,
     });
     const localDate = localDateString();
 
@@ -182,6 +207,7 @@ describe('getOrGenerateSuggestions — the pool re-selects for free (task 7.3/7.
       suggestions: [POOL_A, POOL_B],
       shortfall: null,
       droppedForConstraint: 0,
+      droppedForDiet: 0,
     });
     const localDate = localDateString();
 

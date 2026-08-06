@@ -105,6 +105,7 @@ export default function DinnerScreen() {
   const shortfall = outcome.status === 'ready' ? (outcome.set.stretch?.shortfall ?? null) : null;
   const droppedForConstraint =
     outcome.status === 'ready' ? outcome.set.droppedForConstraint : 0;
+  const droppedForDiet = outcome.status === 'ready' ? outcome.set.droppedForDiet : 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -143,6 +144,15 @@ export default function DinnerScreen() {
               onAction={() => void load(mode, true)}
             />
           </Card>
+        ) : suggestions.length === 0 && droppedForDiet > 0 ? (
+          <Card>
+            <EmptyState
+              title="Nothing left after your dietary rules"
+              detail="Every idea today ran into something you avoid. Try again for a fresh set."
+              actionLabel="Try again"
+              onAction={() => void load(mode, true)}
+            />
+          </Card>
         ) : suggestions.length === 0 ? (
           <Card>
             <EmptyState title="Nothing to suggest right now" />
@@ -159,6 +169,13 @@ export default function DinnerScreen() {
                 {droppedForConstraint === 1
                   ? '1 idea was dropped for not using what needs using first.'
                   : `${droppedForConstraint} ideas were dropped for not using what needs using first.`}
+              </Caption>
+            ) : null}
+            {droppedForDiet > 0 ? (
+              <Caption muted>
+                {droppedForDiet === 1
+                  ? '1 idea was dropped for what you avoid.'
+                  : `${droppedForDiet} ideas were dropped for what you avoid.`}
               </Caption>
             ) : null}
             {suggestions.map((suggestion, index) => (

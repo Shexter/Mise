@@ -13,6 +13,13 @@ import {
   type NewMealItem,
 } from '@/db/queries';
 import { buildDishScoreContext, selectDisplayed, type DishScoreContext } from '@/logic/dishScore';
+import { applyDietary, type ExclusionSet } from '@/logic/dietary';
+import {
+  dislikedCanonicalIds,
+  getExclusionSet,
+  hasAllergenRules,
+  listDietaryRules,
+} from '@/logic/dietaryService';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { macrosOfMeals } from '@/logic/scaling';
 import {
@@ -105,7 +112,22 @@ export async function getOrGenerateSuggestions(
   const { remaining, macroGap } = await remainingCalories(localDate);
   const recentMeals = await getRecentMeals(HISTORY_WINDOW_DAYS);
   const personalisation = summarisePersonalisation(recentMeals, localDate);
-  const scoreContext = buildDishScoreContext(bucketed, remaining, personalisation, localDate);
+
+  // Read fresh on every call, cache hit or miss — a rule recorded since the
+  // pool was cached must take effect immediately, with no new request
+  // (task 7.3/9.5). Rules are not part of the fingerprint: what changed is
+  // *selection*, not the facts the pool itself was generated from.
+  const rules = await listDietaryRules();
+  const exclusionSet = await getExclusionSet(rules);
+  const allergenRulesExist = hasAllergenRules(rules);
+  const dislikedIds = await dislikedCanonicalIds(rules);
+  const scoreContext = buildDishScoreContext(
+    bucketed,
+    remaining,
+    personalisation,
+    localDate,
+    dislikedIds,
+  );
 
   const urgentStock = [...stock.full]
     .filter((line) => line.bucket !== 'available')
@@ -119,7 +141,11 @@ export async function getOrGenerateSuggestions(
   if (!context.forceRefresh) {
     const cached = await getSuggestionCache(localDate, context.mode);
     if (cached && cached.fingerprint === fingerprint) {
-      return { status: 'ready', set: reselect(cached, context.mode, scoreContext), fromCache: true };
+      return {
+        status: 'ready',
+        set: reselect(cached, context.mode, scoreContext, exclusionSet, allergenRulesExist),
+        fromCache: true,
+      };
     }
   }
 
@@ -135,6 +161,9 @@ export async function getOrGenerateSuggestions(
       remainingCalories: remaining,
       macroGap,
       untilDate: context.untilDate,
+      dietaryRules: rules,
+      exclusionSet,
+      hasAllergenRules: allergenRulesExist,
     });
     const stretch =
       context.mode === 'stretch' && context.untilDate
@@ -159,6 +188,7 @@ export async function getOrGenerateSuggestions(
       stretch,
       result.droppedForConstraint,
       pool,
+      result.droppedForDiet,
     );
     return { status: 'ready', set, fromCache: false };
   } catch (error) {
@@ -172,19 +202,32 @@ export async function getOrGenerateSuggestions(
 /**
  * Re-derives the displayed set from a cached pool rather than trusting the
  * stored one (task 7.3/7.4): selection is free, so a newly recorded rule or
- * a corrected dislike takes effect on the next read with no request. A row
- * cached before this change carries no pool — `getSuggestionCache` already
- * treats that as a pool equal to its old displayed set (task 7.2), so
- * re-selecting from it is a same-three reorder, not a behaviour change.
- * Stretch mode is untouched; its dinners never went through the scorer.
+ * a corrected dislike takes effect on the next read with no request. Dietary
+ * exclusion is re-applied to the cached pool first — not just re-ranked —
+ * so a newly recorded allergen removes a violating suggestion immediately
+ * (task 9.5), and `droppedForDiet` is recomputed against the *current*
+ * rules to match. A row cached before `add-dish-scorer` carries no pool —
+ * `getSuggestionCache` already treats that as a pool equal to its old
+ * displayed set (task 7.2), so re-selecting from it is a same-three
+ * reorder, not a behaviour change. Stretch mode is untouched; its dinners
+ * never went through the scorer or the exclusion check.
  */
 function reselect(
   cached: SuggestionSet,
   mode: SuggestionMode,
   scoreContext: DishScoreContext,
+  exclusionSet: ExclusionSet,
+  allergenRulesExist: boolean,
 ): SuggestionSet {
   if (mode !== 'tonight' || cached.pool.length === 0) return cached;
-  return { ...cached, suggestions: selectDisplayed(cached.pool, scoreContext, DISPLAYED_COUNT) };
+  const eligible = cached.pool.filter(
+    (suggestion) => !applyDietary(suggestion, exclusionSet, allergenRulesExist).excluded,
+  );
+  return {
+    ...cached,
+    suggestions: selectDisplayed(eligible, scoreContext, DISPLAYED_COUNT),
+    droppedForDiet: cached.pool.length - eligible.length,
+  };
 }
 
 export interface CookSuggestionInput {

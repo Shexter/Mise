@@ -235,6 +235,54 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 7 gains dietary_rules and canonical_derivatives', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 7);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('milk', 'Milk', 'dairy', 'fridge', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('butter', 'Butter', 'dairy', 'fridge', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 7, LATEST_VERSION);
+
+    const tables = tableNames(db);
+    expect(tables).toContain('dietary_rules');
+    expect(tables).toContain('canonical_derivatives');
+
+    db.prepare(
+      `INSERT INTO dietary_rules (id, kind, canonical_id, text, normalised_text, created_at)
+       VALUES ('r1', 'allergen', 'milk', 'Milk', 'milk', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO canonical_derivatives (parent_id, child_id) VALUES ('milk', 'butter')`,
+    ).run();
+
+    const rule = db
+      .prepare('SELECT kind, canonical_id FROM dietary_rules WHERE id = ?')
+      .get('r1') as { kind: string; canonical_id: string };
+    expect(rule.kind).toBe('allergen');
+    expect(rule.canonical_id).toBe('milk');
+
+    const edge = db
+      .prepare('SELECT parent_id, child_id FROM canonical_derivatives WHERE parent_id = ?')
+      .get('milk') as { parent_id: string; child_id: string };
+    expect(edge.child_id).toBe('butter');
+
+    // The uniqueness constraint on the pair.
+    expect(() =>
+      db
+        .prepare(`INSERT INTO canonical_derivatives (parent_id, child_id) VALUES ('milk', 'butter')`)
+        .run(),
+    ).toThrow();
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

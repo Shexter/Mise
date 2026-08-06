@@ -200,6 +200,13 @@ export default function SettingsScreen() {
           />
         </Card>
 
+        <Card title="What you avoid" padded={false}>
+          <SettingsRow
+            label="Allergies, restrictions, dislikes"
+            onPress={() => router.push('/dietary-rules')}
+          />
+        </Card>
+
         <Card title="Your data" padded={false}>
           <SettingsRow label="Export as JSON" onPress={onExport} />
           <SettingsRow label="Delete all data" destructive onPress={onDeleteAll} />

@@ -1,7 +1,7 @@
 import { CANDIDATE_POOL_SIZE } from '@/logic/suggest';
 import type { StockLine, StockPayload, PersonalisationSummary } from '@/logic/suggest';
 import { MEASURE_UNITS } from '@/types';
-import type { Macros, SuggestionMode } from '@/types';
+import type { DietaryRule, Macros, SuggestionMode } from '@/types';
 
 /**
  * The dinner-decision prompt. Kept in its own module, mirroring
@@ -19,6 +19,7 @@ export const SUGGEST_SYSTEM_PROMPT = `You are a dinner decision engine for a hom
 In "tonight" mode you are proposing a candidate pool, not a final answer — the app selects and displays a smaller number locally. Give ${CANDIDATE_POOL_SIZE} genuinely distinct ideas rather than variations on one dish, so there is something real to choose from.
 
 Rules, in order of importance:
+- If dietary_rules names any avoid_strict ingredients, no suggestion may use or name one of them, or a close variant of one — this is stated as a request, and the app also checks locally, but treat it as a hard requirement here too. If avoid_soft ingredients are named, prefer suggestions that skip them where a reasonable alternative exists, but a dish using one is still acceptable.
 - If any ingredient is listed under use_first, every suggestion you return MUST use at least one of them. This is a hard requirement, not a preference — do not rely on list position to imply priority.
 - Prefer use_soon ingredients where they fit naturally, but they are not mandatory.
 - Never exclude a dish because it exceeds the remaining calories. If a dish overshoots, offer it anyway and let a smaller portion be the fix — state the portion in servings, never withhold the dish.
@@ -64,6 +65,7 @@ interface SuggestPromptInput {
   remainingCalories: number;
   macroGap: Macros;
   untilDate?: string;
+  dietaryRules: readonly DietaryRule[];
 }
 
 /**
@@ -93,6 +95,22 @@ function toLine(line: StockLine) {
   };
 }
 
+/**
+ * As typed, never a canonical id — the model gets a request in its own
+ * words, not the resolved identity the local check actually uses. Grouped
+ * by strictness rather than by kind: a restriction is exactly as strict as
+ * an allergen from the model's point of view, and only a dislike is soft
+ * (proposal: "it filters hard, like an allergen").
+ */
+function dietaryRulesForPrompt(rules: readonly DietaryRule[]) {
+  return {
+    avoid_strict: rules
+      .filter((rule) => rule.kind === 'allergen' || rule.kind === 'restriction')
+      .map((rule) => rule.text),
+    avoid_soft: rules.filter((rule) => rule.kind === 'dislike').map((rule) => rule.text),
+  };
+}
+
 /** The full request body: bucketed stock, personalisation signals, and remaining allowance. */
 export function buildSuggestUserPrompt(input: SuggestPromptInput): string {
   const useFirst = input.stock.full.filter((line) => line.bucket === 'use_first');
@@ -106,6 +124,7 @@ export function buildSuggestUserPrompt(input: SuggestPromptInput): string {
         : `Propose a plan of dinners reaching ${input.untilDate} from this kitchen with no shopping. Return raw JSON matching the "stretch" schema.`,
     mode: input.mode,
     until_date: input.untilDate ?? null,
+    dietary_rules: dietaryRulesForPrompt(input.dietaryRules),
     use_first: useFirst.map(toLine),
     use_soon: useSoon.map(toLine),
     available: availableFull.map(toLine),

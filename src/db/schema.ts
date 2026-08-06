@@ -306,6 +306,38 @@ ALTER TABLE pantry_items ADD COLUMN receipt_line_id TEXT REFERENCES receipt_line
 CREATE INDEX idx_pantry_items_receipt_line ON pantry_items(receipt_line_id);
 `;
 
+/**
+ * Migration 8: the dietary profile. `dietary_rules` holds what the user
+ * cannot or will not eat — kind is stored, never inferred (decision: only
+ * the user knows whether "no pork" is a restriction or a dislike).
+ * `canonical_derivatives` is the general parent/child fact ("butter is
+ * derived from milk") that exclusion walks transitively at read time; the
+ * graph is small enough that a stored closure would be maintenance for no
+ * measurable gain. Both tables are additive — no existing table changes,
+ * and a user who records no rules sees no behaviour anywhere (design.md).
+ */
+const DIETARY_PROFILE = `
+CREATE TABLE dietary_rules (
+  id              TEXT PRIMARY KEY,
+  kind            TEXT NOT NULL,
+  canonical_id    TEXT REFERENCES canonical_items(id),
+  text            TEXT NOT NULL,
+  normalised_text TEXT NOT NULL,
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX idx_dietary_rules_kind ON dietary_rules(kind);
+
+CREATE TABLE canonical_derivatives (
+  parent_id TEXT NOT NULL REFERENCES canonical_items(id) ON DELETE CASCADE,
+  child_id  TEXT NOT NULL REFERENCES canonical_items(id) ON DELETE CASCADE,
+  PRIMARY KEY (parent_id, child_id)
+);
+
+CREATE INDEX idx_canonical_derivatives_parent ON canonical_derivatives(parent_id);
+CREATE INDEX idx_canonical_derivatives_child ON canonical_derivatives(child_id);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -314,12 +346,15 @@ export const MIGRATIONS: readonly string[] = [
   DINNER_DECISION,
   RECEIPT_IMPORT,
   RECEIPT_MONEY_AND_QUANTITY,
+  DIETARY_PROFILE,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS dietary_rules;
+DROP TABLE IF EXISTS canonical_derivatives;
 DROP TABLE IF EXISTS receipt_lines;
 DROP TABLE IF EXISTS receipts;
 DROP TABLE IF EXISTS suggestion_cache;

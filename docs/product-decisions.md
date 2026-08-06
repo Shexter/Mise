@@ -1998,3 +1998,52 @@ validated against real usage yet — only against the fixture corpus, which is
 a check on the mechanism's *behaviour*, not on whether ten really does cost
 noticeably thinner ideas than three. Follow-up observation, not a blocker to
 shipping the mechanism.
+
+---
+
+## The dietary profile, measured
+
+**165. `add-dietary-profile` shipped exclusion and dislikes as one more term
+in the real scorer, correcting its own plan mid-flight.** `SETTLED`
+Three kinds of rule (`allergen | restriction | dislike`), a
+`canonical_derivatives` closure walked transitively at read time, and local
+enforcement in `parseSuggestResponse` beside the existing invented-id and
+use-first drops — all per the original design. One real correction:
+`design.md` and `tasks.md` were both written when `add-dish-scorer` didn't
+exist even as a plan, and explicitly forbade building one "for this." By the
+time this change was implemented, `add-dish-scorer` had shipped (decision
+164) in the same session. Building a second, standalone reorder mechanism
+beside a real scorer would have been worse than the thing 6.6's original
+text was trying to prevent — two ranking surfaces instead of an untuned one.
+Corrected in place before writing code, not discovered partway through:
+`design.md`'s dislike section and `tasks.md` group 6 both now read against
+the shipped `dishScore.ts`, and a seventh named term (`DISLIKE_PENALTY`,
+`DISLIKE_PENALTY_WEIGHT = 2`) sits beside the original six, deliberately
+kept below `RECENCY_PENALTY_WEIGHT = 4` — decision 106's argument holds
+exactly because a dislike is the weakest penalty in the sum, unable to
+outrank a real value-at-risk term.
+
+*Derivative coverage, measured.* Two of the nine named allergen families
+(milk, egg) already existed as catalogue canonicals; the other seven
+(peanut, tree nut, wheat, soy, sesame, fish, shellfish) had only derived
+products catalogued (peanut butter, sesame oil, salmon, shrimp) and no root
+to hang a rule or an edge on, so all seven were added, plus `tahini` (named
+explicitly by task 3.2). 29 derivative edges total, seeded in
+`canonical-derivatives.json` alongside the existing canonical-item seed
+path — no version field to bump, confirmed by reading `loadSeedData()`
+rather than assumed (it already runs, idempotently, on every launch).
+Deliberately *not* linked: `tamari` to `wheat` — tamari exists specifically
+as the wheat-free soy sauce alternative, and linking it would have been the
+exact direction-reversal task 3.7 warns against, just one hop further out.
+
+*What was not measured.* Task 6.9 (does a prompt naming 11+ rules degrade
+suggestion quality) needs a real model call, same blocker as
+`add-dish-scorer`'s 2.5 and 9.1-9.5 — no API key in this environment. The
+`heavilyRestricted` fixture (11 rules, every kind, one unresolvable) exists
+and is exercised structurally against the real derivative graph, but its
+prompt-length question is unanswered. The local filter holds regardless of
+the answer; only whether rules eventually need summarising is at stake.
+
+57 of 59 tasks complete. The other open task, 6.8, is deliberately
+unchecked — `add-macro-gap-suggestions` is unbuilt, and wiring dietary
+exclusion into a suggestion path that doesn't exist yet isn't possible.

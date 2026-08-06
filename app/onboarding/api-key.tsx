@@ -22,7 +22,7 @@ export default function ApiKeyStep() {
 
   const advance = (skipped: boolean) => {
     set({ skippedKey: skipped });
-    router.push('/onboarding/results');
+    router.push('/onboarding/dietary');
   };
 
   if (existingKey === null) {
