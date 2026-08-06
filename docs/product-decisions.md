@@ -1701,3 +1701,64 @@ Two things worth stating plainly, because both were nearly implemented wrong:
 Comparing against the *subtotal* rather than the total means the check never needs to know or compute tax, which no line individually carries. `subtotal_cents` and `tax_cents` (task 3.7) exist as separately-read printed figures for exactly this — the check reads what the till already worked out rather than re-deriving it.
 
 An attributed discount still counts in the sum. The temptation is to exclude it on the theory that `planReceiptApply` already "used" it to reduce the target line's price, so counting it again looks like double-counting. It is not: the printed subtotal already nets the food line's shelf price against the discount's own negative line, because that is what the receipt actually shows — two lines, not one pre-discounted line. Excluding the discount from the sum would make a perfectly correct receipt report a mismatch equal to every attributed discount on it, which is worse than not checking at all. Attribution answers "what should this pantry item cost"; the arithmetic check answers "did extraction transcribe faithfully" — different questions, and conflating them was the bug caught writing the fixtures (`moneyShaped` initially failed its own `checkArithmetic` assertion for exactly this reason).
+
+## Reconciling plans with what shipped
+
+**148. A known venue is used directly and teaches nothing.** `SETTLED`
+`add-dinner-decision` shipped `src/logic/suggestionService.ts:218` hardcoding
+`venue: 'home'` for a cooked suggestion, after `add-venue-inference` was
+planned. Inference must not touch that path.
+
+Worth stating because the natural implementation of a preselection step applies
+it to every meal arriving at review, and running a probabilistic guess over a
+meal whose origin the app *knows* is a strict downgrade — certainty replaced by
+a weighted opinion, occasionally wrong about a dinner cooked from the app's own
+suggestion.
+
+It must also record no learned per-dish default. The suggestion path can only
+ever emit `home`, so learning from it stores a value carrying no information
+about the user's habits and then ranks it against real evidence: a dish someone
+cooks once from a suggestion and otherwise always buys would acquire a home
+default from the single occasion the app already knew about.
+
+Generalises to any path where the venue is known by construction — a restaurant
+receipt, later.
+
+**149. There is no dish scorer, and neither dietary rules nor templates may
+invent one.** `SETTLED`
+Found while reconciling two plans against the shipped engine.
+`src/logic/suggest.ts` exports `urgency`, `bucketStock`, `shapeStockPayload`,
+`summarisePersonalisation` and `computeFingerprint` — all of which rank or shape
+**stock items** for the payload. Nothing sorts the returned dishes. The model's
+order is the order shown.
+
+Two plans assumed otherwise. `add-dietary-profile` task 6.3 said to add a
+dislike weight "to the ranking in `src/logic/suggest.ts`". Decision 124 said a
+template is "a weight vector over the existing scorer". Both describe something
+that was never built, and decision 124 is corrected here rather than quietly
+left standing.
+
+Neither feature may build the scorer to fix its own problem. A dish ranker is
+the app's most consequential ranking surface, and introducing it as a side
+effect of a preferences feature or a picker would ship it untuned, unmeasured,
+and justified by a single weight. It is its own change with its own evidence.
+
+What they get instead is real: payload shaping, prompt framing, portion policy,
+and post-parse reordering. Dislikes reorder three returned suggestions, which is
+a comparison and a sort, and decision 106 survives intact — a dislike loses a
+contest and never deletes a candidate, because the reorder runs after the
+use-first constraint and cannot remove anything.
+
+**150. Dietary exclusion belongs beside the drops that already exist.** `SETTLED`
+`parseSuggestResponse` already drops a suggestion twice over: once for citing an
+invented canonical id, once for missing the `use_first` bucket (decision 136).
+Dietary exclusion is the third instance of the same shape — check after parsing,
+drop rather than repair, tell the user how many went.
+
+The drop counts stay separate. "Two ideas contained peanut" and "two ideas
+didn't use what needs using" are different sentences, and the user can act on
+only one of them.
+
+That decision 136's convention was argued independently and lands in exactly the
+place decision 103 wanted for allergens is some evidence it is the right
+convention rather than a local habit.

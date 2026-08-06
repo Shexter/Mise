@@ -25,6 +25,31 @@ portions computable.
 
 ## Decisions
 
+### A cooked suggestion is a fact, and facts do not get inferred
+
+`src/logic/suggestionService.ts:218` hardcodes `venue: 'home'` on the
+cooked-a-suggestion path. That shipped with `add-dinner-decision` after this
+change was planned, and it is correct — inference must not touch it.
+
+*Why it needs saying rather than being obvious:* this change adds a preselection
+step in front of the review screen, and the natural implementation applies it to
+every meal arriving there. Running a probabilistic guess over a meal whose origin
+the app *knows* is a strict downgrade — certainty replaced by a weighted
+opinion, occasionally wrong about a dinner the user cooked from the app's own
+suggestion.
+
+*Why it teaches nothing either:* the learned per-dish default must not record
+from this path. The suggestion engine only ever produces meals the user cooked,
+so the path can only ever emit `home`. Learning from it fills the table with a
+value carrying no information about the user's habits, which then ranks
+alongside real evidence — a dish someone cooks once from a suggestion and
+otherwise always buys would acquire a home default from the single occasion the
+app already knew about.
+
+*Generalises:* any path where the venue is known by construction — importing a
+restaurant receipt, say — takes the same treatment. The requirement is written
+about known venues rather than about suggestions specifically.
+
 ### The venue assessment rides in the existing estimate request
 
 One optional field in `src/api/prompt.ts`'s schema, parsed optionally.

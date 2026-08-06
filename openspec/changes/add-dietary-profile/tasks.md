@@ -87,18 +87,50 @@ Pure. No database, no network.
 
 ## 6. Wiring into suggestions
 
+`add-dinner-decision` has shipped since this was planned, so the modules this
+section names now exist and the earlier "build the entry points and stop" note
+no longer applies. Two things it changed:
+
+**There is a place to put exclusion.** `parseSuggestResponse` in
+`src/api/suggest.ts` already drops suggestions after parsing — for an invented
+canonical id, and for missing the `use_first` bucket. Dietary exclusion is the
+third instance of exactly that shape and belongs beside them.
+
+**There is no dish ranker.** `src/logic/suggest.ts` exports `urgency`,
+`bucketStock`, `shapeStockPayload` and `summarisePersonalisation` — it ranks
+*stock items* for the payload. Nothing sorts or reorders the returned
+suggestions; the model's order is the order shown. Task 6.3 as originally
+written pointed at a scorer that does not exist.
+
 - [ ] 6.1 State the rules in `src/api/suggestPrompt.ts` as a constraint. It is a
       request, not the guarantee.
-- [ ] 6.2 Apply `applyDietary` to every returned suggestion **after** parsing,
-      before anything reaches the surface.
-- [ ] 6.3 Add the dislike weight to the ranking in `src/logic/suggest.ts` as a
-      named constant. A dislike loses a close contest; it does not delete a
+- [ ] 6.2 Apply `applyDietary` after parsing, beside the existing drops in
+      `parseSuggestResponse`, before anything reaches the surface. Follow their
+      convention: drop, never repair.
+- [ ] 6.3 Report the dietary drop count separately from the use-first drop
+      count, following `droppedForConstraint`. "Two ideas contained peanut" and
+      "two ideas didn't use what needs using" are different sentences and the
+      user can act on only one of them.
+- [ ] 6.4 Match a suggestion's ingredients through `SuggestionUse.canonicalId`,
+      which the model now returns and which is exact. Fall back to resolution
+      only where it is absent.
+- [ ] 6.5 Express dislikes **without a scorer**, since there is none. Two
+      mechanisms, both honest: name them in the prompt as things to avoid where
+      convenient, and reorder the returned suggestions locally so a dish
+      containing a disliked ingredient sinks. Reordering three items is trivial
+      and keeps decision 106 — a dislike loses a contest, it never deletes a
       candidate.
-- [ ] 6.4 Confirm a high value-at-risk item can still outrank a dislike. If it
-      cannot, the weight is a filter wearing a different hat.
-- [ ] 6.5 Apply the same exclusion in `add-macro-gap-suggestions`. One code path,
-      both surfaces.
-- [ ] 6.6 Test with the heavily-restricted fixture profile and record whether
+- [ ] 6.6 **Do not add a dish scorer for this.** Building one to hold a single
+      dislike weight would invent the app's most consequential ranking surface
+      as a side effect of a preferences feature, and it would arrive untuned and
+      unmeasured. If a scorer is wanted, it is its own change with its own
+      evidence.
+- [ ] 6.7 Confirm a disliked ingredient still appears when it is the only thing
+      expiring — decision 106's whole point, and now testable against the real
+      engine rather than a hypothetical one.
+- [ ] 6.8 Leave `add-macro-gap-suggestions` unwired and this task unchecked; it
+      is still unimplemented. One code path when it lands.
+- [ ] 6.9 Test with the heavily-restricted fixture profile and record whether
       prompt length degrades suggestion quality — the local filter holds either
       way, but the answer decides whether rules need summarising.
 

@@ -6,6 +6,30 @@ make it.
 
 ## ADDED Requirements
 
+### Requirement: A known venue is used directly, never inferred
+
+Where the system already knows how a meal came to exist, it SHALL use that venue
+and MUST NOT run inference for it.
+
+A meal logged by cooking a suggestion SHALL be recorded as cooked at home.
+
+#### Scenario: Cooking a suggestion is not a guess
+
+- **WHEN** a meal is logged by cooking a suggestion
+- **THEN** its venue is home
+- **AND** no inference is performed
+
+#### Scenario: A known venue is not overridden by a signal
+
+- **GIVEN** a meal whose venue is known from how it was created
+- **WHEN** signals would suggest otherwise
+- **THEN** the known venue stands
+
+#### Scenario: A known venue teaches nothing
+
+- **WHEN** a meal's venue is known rather than inferred
+- **THEN** no learned per-dish default is recorded from it
+
 ### Requirement: A venue is preselected for every logged meal
 
 The system SHALL select a venue before the user reaches the review screen, and

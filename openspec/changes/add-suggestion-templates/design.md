@@ -64,6 +64,32 @@ the cost, and it is the open question below.
 its own mode. It is an objective over the same engine, which is exactly what a
 template is. One surface, one control, one less concept.
 
+### The scorer this change was written against does not exist
+
+Corrected after `add-dinner-decision` shipped. `src/logic/suggest.ts` exports
+`urgency`, `bucketStock`, `shapeStockPayload`, `summarisePersonalisation` and
+`computeFingerprint`. Every one of those ranks or shapes **stock items** for the
+payload. Nothing sorts the returned dishes — the model's order is the order the
+user sees.
+
+So "a template is a weight vector over the existing scorer" describes a scorer
+that was never built, and decision 124 is wrong as recorded. What is actually
+available to a template is three levers, all real:
+
+- **Payload shaping** — which stock reaches the model, in what detail, and with
+  what summary. `shapeStockPayload` already makes these choices and they are
+  where `use_it_up` and `stretch` genuinely live.
+- **Prompt framing** — one sentence of objective, which is what `lean`,
+  `strength` and `quick` mostly are.
+- **Portion policy** — post-parse, local, and the correct home for the calorie
+  dimension for the reason argued below.
+
+That is a weaker mechanism than a weight vector and it is honest. Whether this
+change should also build the missing dish scorer is a real question and a much
+larger one; it should not be answered as a side effect of adding templates, for
+the same reason `add-dietary-profile` declined to build it to hold one dislike
+weight.
+
 ### A template is a weight vector, not a code path
 
 `src/logic/templates.ts`, pure:

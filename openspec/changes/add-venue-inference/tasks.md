@@ -58,6 +58,24 @@ Pure logic. No network.
 - [ ] 5.6 Test that a corrected dish guesses correctly next time and remains
       changeable.
 
+## 5a. Paths where the venue is already known
+
+Added after `add-dinner-decision` shipped. `src/logic/suggestionService.ts:218`
+now hardcodes `venue: 'home'` for a cooked suggestion, which did not exist when
+this change was planned.
+
+- [ ] 5a.1 Leave that hardcoded venue exactly as it is. Running inference over a
+      meal whose origin the app knows replaces certainty with a weighted opinion.
+- [ ] 5a.2 Route inference only through the paths where the venue is genuinely
+      unknown — a photograph and a manual entry. Do not apply it at the review
+      screen indiscriminately, which is the natural and wrong implementation.
+- [ ] 5a.3 **Record no learned default from a known venue.** The suggestion path
+      can only ever emit `home`, so learning from it stores a value carrying no
+      information and then ranks it against real evidence.
+- [ ] 5a.4 Test that cooking a suggestion produces `home` with the inference
+      function never called, and that the learned-defaults table is untouched
+      afterwards.
+
 ## 6. Review screen
 
 - [ ] 6.1 Replace the sticky default in `app/review.tsx:105` with the inferred

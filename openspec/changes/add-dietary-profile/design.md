@@ -100,6 +100,39 @@ check.
 would waste the model's ability to produce something the user can actually eat.
 Both: ask, then verify.
 
+*Where it goes, now that the engine exists:* `parseSuggestResponse` in
+`src/api/suggest.ts` already drops suggestions after parsing — one drop for an
+invented canonical id, a second for missing the `use_first` bucket. Dietary
+exclusion is the third instance of the same shape and belongs beside them,
+sharing their convention of dropping rather than repairing. That convention was
+argued independently for decision 136 and lands in the same place, which is
+some evidence it is the right one.
+
+### Dislikes have nowhere to be a weight, and that is fine
+
+The plan originally said a dislike would be a negative weight in the suggestion
+scorer. There is no suggestion scorer. `src/logic/suggest.ts` ranks *stock
+items* to shape the payload; the dishes come back from the model in an order
+nothing local touches.
+
+So a dislike gets two mechanisms instead, neither of which is a filter: it is
+named in the prompt, and the returned suggestions are reordered locally so a
+dish containing a disliked ingredient sinks. With three suggestions, reordering
+is a comparison and a sort.
+
+*Why not build the scorer:* it is genuinely tempting — a dish ranker is missing
+and will eventually be wanted, and `add-suggestion-templates` assumes one exists
+(its decision 124 is wrong on this point and is corrected). But introducing the
+app's most consequential ranking surface as a side effect of a preferences
+feature would ship it untuned, unmeasured, and justified by a single weight. A
+scorer is its own change with its own evidence.
+
+*What survives from decision 106:* everything that mattered. A dislike loses a
+close contest and never deletes a candidate, and a dish using the mushrooms that
+expire tomorrow can still be offered to someone lukewarm on mushrooms — because
+the use-first constraint runs before the reorder and the reorder cannot remove
+anything.
+
 ### Unknown excludes, for allergens only
 
 See the proposal. Stated here so the asymmetry is not read as an oversight: this
