@@ -51,9 +51,11 @@ describe('retrying extraction', () => {
       store: 'Test Grocer',
       purchasedAt: '2026-06-01',
       receiptType: 'grocery',
+      subtotalCents: 389,
+      taxCents: 0,
       totalCents: 500,
       lines: [
-        { text: 'SOY SAUCE', kind: 'food', qty: 500, unit: 'ml', lineTotalCents: 389, unitPriceCents: null },
+        { text: 'SOY SAUCE', kind: 'food', qty: 500, unit: 'ml', quantityKind: 'measure', lineTotalCents: 389, unitPriceCents: null, appliesToText: null },
       ],
     });
 
@@ -76,9 +78,11 @@ describe('retrying extraction', () => {
       store: null,
       purchasedAt: '2026-06-01',
       receiptType: 'grocery',
+      subtotalCents: null,
+      taxCents: null,
       totalCents: null,
       lines: [
-        { text: 'RICE', kind: 'food', qty: 908, unit: 'g', lineTotalCents: 699, unitPriceCents: null },
+        { text: 'RICE', kind: 'food', qty: 908, unit: 'g', quantityKind: 'measure', lineTotalCents: 699, unitPriceCents: null, appliesToText: null },
       ],
     });
 
@@ -95,9 +99,11 @@ describe('retrying extraction', () => {
       store: null,
       purchasedAt: '2026-06-01',
       receiptType: 'grocery',
+      subtotalCents: null,
+      taxCents: null,
       totalCents: null,
       lines: [
-        { text: 'RICE', kind: 'food', qty: 908, unit: 'g', lineTotalCents: 699, unitPriceCents: null },
+        { text: 'RICE', kind: 'food', qty: 908, unit: 'g', quantityKind: 'measure', lineTotalCents: 699, unitPriceCents: null, appliesToText: null },
       ],
     });
     await retryExtraction(receipt.id);

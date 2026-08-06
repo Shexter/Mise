@@ -6,9 +6,11 @@ import { completeVisionWithGemini } from '@/api/gemini';
 import { RECEIPT_SYSTEM_PROMPT, RECEIPT_USER_PROMPT } from '@/api/receiptPrompt';
 import {
   MEASURE_UNITS,
+  QUANTITY_KINDS,
   RECEIPT_LINE_KINDS,
   RECEIPT_TYPES,
   type MeasureUnit,
+  type QuantityKind,
   type ReceiptLineKind,
   type ReceiptType,
 } from '@/types';
@@ -25,8 +27,12 @@ export interface ExtractedLine {
   kind: ReceiptLineKind;
   qty: number | null;
   unit: MeasureUnit | null;
+  /** Whether `qty` counts containers or measures a divisible amount. Null when unreadable or not applicable. */
+  quantityKind: QuantityKind | null;
   lineTotalCents: number | null;
   unitPriceCents: number | null;
+  /** For a `discount` line: the exact printed text of the line it reduces, or null for a basket-wide discount. */
+  appliesToText: string | null;
 }
 
 export interface ExtractedReceipt {
@@ -34,6 +40,9 @@ export interface ExtractedReceipt {
   /** Always resolved: falls back to the capture date when the receipt shows no legible date. */
   purchasedAt: string;
   receiptType: ReceiptType;
+  /** The printed pre-tax subtotal — what the arithmetic check compares extracted lines against. */
+  subtotalCents: number | null;
+  taxCents: number | null;
   totalCents: number | null;
   lines: ExtractedLine[];
 }
@@ -105,6 +114,8 @@ export function parseReceiptResponse(
     store: asString(record['store']),
     purchasedAt: asString(record['purchased_at']) ?? captureDate,
     receiptType: asReceiptType(record['receipt_type']),
+    subtotalCents: asNullableInt(record['subtotal_cents']),
+    taxCents: asNullableInt(record['tax_cents']),
     totalCents: asNullableInt(record['total_cents']),
     lines,
   };
@@ -121,8 +132,10 @@ function toExtractedLine(value: unknown): ExtractedLine | null {
     kind: asLineKind(record['kind']),
     qty: asNullableNumber(record['qty']),
     unit: asNullableUnit(record['unit']),
+    quantityKind: asQuantityKind(record['quantity_kind']),
     lineTotalCents: asNullableInt(record['line_total_cents']),
     unitPriceCents: asNullableInt(record['unit_price_cents']),
+    appliesToText: asString(record['applies_to_text']),
   };
 }
 
@@ -151,6 +164,14 @@ function asNullableUnit(value: unknown): MeasureUnit | null {
   const candidate = typeof value === 'string' ? value.toLowerCase() : '';
   return MEASURE_UNITS.includes(candidate as MeasureUnit)
     ? (candidate as MeasureUnit)
+    : null;
+}
+
+/** Unreadable stays unknown (null) — guessing count vs measure risks the wrong item-creation shape. */
+function asQuantityKind(value: unknown): QuantityKind | null {
+  const candidate = typeof value === 'string' ? value.toLowerCase() : '';
+  return QUANTITY_KINDS.includes(candidate as QuantityKind)
+    ? (candidate as QuantityKind)
     : null;
 }
 

@@ -107,14 +107,18 @@ async function tryExtract(
     store: extracted.store,
     purchasedAt: extracted.purchasedAt,
     receiptType: extracted.receiptType,
+    subtotalCents: extracted.subtotalCents,
+    taxCents: extracted.taxCents,
     totalCents: extracted.totalCents,
     lines: extracted.lines.map((line) => ({
       rawText: line.text,
       kind: line.kind,
       qty: line.qty,
       unit: line.unit,
+      quantityKind: line.quantityKind,
       lineTotalCents: line.lineTotalCents,
       unitPriceCents: line.unitPriceCents,
+      appliesToText: line.appliesToText,
     })),
   });
 
@@ -138,10 +142,6 @@ export async function resolveReceiptLines(
   const foodLines = receipt.lines.map((line) => ({
     text: line.rawText,
     kind: line.kind,
-    qty: line.qty,
-    unit: line.unit,
-    lineTotalCents: line.lineTotalCents,
-    unitPriceCents: line.unitPriceCents,
   }));
   const refs = referencesFromLines(foodLines, store ?? undefined);
   if (refs.length > 0) {

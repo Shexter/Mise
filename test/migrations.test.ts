@@ -179,6 +179,62 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 6 gains money and quantity fields on receipts', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 6);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('soy-sauce-light', 'Light soy sauce', 'condiment', 'pantry', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO pantry_items
+         (id, canonical_id, location_id, purchased_at, status, created_at, updated_at)
+       VALUES ('p1', 'soy-sauce-light', 'pantry', '2026-01-01', 'in_stock', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO receipts (id, type, store, purchased_at, total_cents, image_uri, status, created_at)
+       VALUES ('r1', 'grocery', 'Test Store', '2026-01-01', 500, 'file://r1.jpg', 'pending', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO receipt_lines
+         (id, receipt_id, raw_text, kind, qty, unit, line_total_cents, unit_price_cents,
+          canonical_id, pantry_item_id, excluded, created_at)
+       VALUES ('l1', 'r1', 'SOY SAUCE', 'food', 500, 'ml', 389, NULL, NULL, NULL, 0, '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 6, LATEST_VERSION);
+
+    const receiptColumns = (
+      db.prepare('PRAGMA table_info(receipts)').all() as { name: string }[]
+    ).map((row) => row.name);
+    expect(receiptColumns).toContain('subtotal_cents');
+    expect(receiptColumns).toContain('tax_cents');
+
+    const lineColumns = (
+      db.prepare('PRAGMA table_info(receipt_lines)').all() as { name: string }[]
+    ).map((row) => row.name);
+    expect(lineColumns).toContain('quantity_kind');
+    expect(lineColumns).toContain('applies_to_line_id');
+
+    const pantryColumns = (
+      db.prepare('PRAGMA table_info(pantry_items)').all() as { name: string }[]
+    ).map((row) => row.name);
+    expect(pantryColumns).toContain('receipt_line_id');
+
+    // Pre-existing rows: the new fields are unknown, not guessed at zero.
+    const line = db
+      .prepare('SELECT quantity_kind, applies_to_line_id FROM receipt_lines WHERE id = ?')
+      .get('l1') as { quantity_kind: string | null; applies_to_line_id: string | null };
+    expect(line.quantity_kind).toBeNull();
+    expect(line.applies_to_line_id).toBeNull();
+    const item = db
+      .prepare('SELECT receipt_line_id FROM pantry_items WHERE id = ?')
+      .get('p1') as { receipt_line_id: string | null };
+    expect(item.receipt_line_id).toBeNull();
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

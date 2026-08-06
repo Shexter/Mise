@@ -1,5 +1,10 @@
 import { NON_FOOD_LINES, RECEIPT_LINES } from '@/logic/__fixtures__/receipt-lines';
-import type { MeasureUnit, ReceiptLineKind, ReceiptType } from '@/types';
+import type {
+  MeasureUnit,
+  QuantityKind,
+  ReceiptLineKind,
+  ReceiptType,
+} from '@/types';
 
 /**
  * Whole receipts, as the extraction call would return them — recorded raw
@@ -18,14 +23,18 @@ interface ExtractedLineJson {
   kind: ReceiptLineKind;
   qty: number | null;
   unit: MeasureUnit | null;
+  quantity_kind: QuantityKind | null;
   line_total_cents: number | null;
   unit_price_cents: number | null;
+  applies_to_text: string | null;
 }
 
 interface ExtractedReceiptJson {
   store: string | null;
   purchased_at: string | null;
   receipt_type: ReceiptType;
+  subtotal_cents: number | null;
+  tax_cents: number | null;
   total_cents: number | null;
   lines: ExtractedLineJson[];
 }
@@ -37,7 +46,7 @@ export interface ReceiptFixture {
   recordedResponse: string;
 }
 
-/** A food line at a plausible single price, no multiple. */
+/** A single-container food line — a measure (weight/volume) or a fixed content ("12 eggs in one carton"). */
 function food(
   text: string,
   qty: number,
@@ -49,12 +58,14 @@ function food(
     kind: 'food',
     qty,
     unit,
+    quantity_kind: 'measure',
     line_total_cents: cents,
     unit_price_cents: null,
+    applies_to_text: null,
   };
 }
 
-/** A count-multiple food line, carrying both prices (spec's "a multiple records both prices"). */
+/** A count-multiple food line: several separate containers, carrying both prices (spec's "a multiple records both prices"). */
 function multiple(
   text: string,
   count: number,
@@ -65,8 +76,10 @@ function multiple(
     kind: 'food',
     qty: count,
     unit: 'piece',
+    quantity_kind: 'count',
     line_total_cents: count * unitCents,
     unit_price_cents: unitCents,
+    applies_to_text: null,
   };
 }
 
@@ -76,23 +89,79 @@ function nonFood(text: string): ExtractedLineJson {
     kind: 'non_food',
     qty: null,
     unit: null,
+    quantity_kind: null,
     line_total_cents: null,
     unit_price_cents: null,
+    applies_to_text: null,
   };
 }
 
 function arithmetic(text: string, cents: number | null = null): ExtractedLineJson {
-  return { text, kind: 'arithmetic', qty: null, unit: null, line_total_cents: cents, unit_price_cents: null };
+  return {
+    text,
+    kind: 'arithmetic',
+    qty: null,
+    unit: null,
+    quantity_kind: null,
+    line_total_cents: cents,
+    unit_price_cents: null,
+    applies_to_text: null,
+  };
 }
 
+/** An unattributable, basket-wide discount — names no line. */
 function discount(text: string, cents: number): ExtractedLineJson {
   return {
     text,
     kind: 'discount',
     qty: null,
     unit: null,
+    quantity_kind: null,
     line_total_cents: -Math.abs(cents),
     unit_price_cents: null,
+    applies_to_text: null,
+  };
+}
+
+/** A line-attributed discount — reduces the named line's price specifically. */
+function discountFor(text: string, cents: number, targetText: string): ExtractedLineJson {
+  return {
+    text,
+    kind: 'discount',
+    qty: null,
+    unit: null,
+    quantity_kind: null,
+    line_total_cents: -Math.abs(cents),
+    unit_price_cents: null,
+    applies_to_text: targetText,
+  };
+}
+
+/** A container deposit or bag levy — spending, never an ingredient. */
+function deposit(text: string, cents: number): ExtractedLineJson {
+  return {
+    text,
+    kind: 'deposit',
+    qty: null,
+    unit: null,
+    quantity_kind: null,
+    line_total_cents: cents,
+    unit_price_cents: null,
+    applies_to_text: null,
+  };
+}
+
+/** A returned or voided line — negative, and never resolved as an ingredient. */
+function refund(text: string, cents: number): ExtractedLineJson {
+  return {
+    text,
+    kind: 'refund',
+    qty: null,
+    unit: null,
+    quantity_kind: null,
+    line_total_cents: -Math.abs(cents),
+    unit_price_cents: null,
+    applies_to_text: null,
   };
 }
 
@@ -119,7 +188,9 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Fresh Market',
     purchased_at: '2026-06-01',
     receipt_type: 'grocery',
-    total_cents: 3427,
+    subtotal_cents: 2752,
+    tax_cents: 275,
+    total_cents: 3027,
     lines: [
       food(byRaw('KIKKO SOY 500ML').raw, 500, 'ml', 389),
       food(byRaw('SESAME OIL 250ML').raw, 250, 'ml', 599),
@@ -128,7 +199,7 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
       food(byRaw('GRND PORK 1LB').raw, 454, 'g', 499),
       food(byRaw('LRG EGGS 12CT').raw, 12, 'piece', 429),
       nonFood('PAPER TOWELS 6CT'),
-      ...tail(3152, 275),
+      ...tail(2752, 275),
     ],
   },
 
@@ -136,6 +207,8 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Kroger',
     purchased_at: '2026-06-03',
     receipt_type: 'grocery',
+    subtotal_cents: 1465,
+    tax_cents: 115,
     total_cents: 2216,
     lines: [
       food(byRaw('GV SOY SAUCE 15OZ').raw, 443, 'ml', 289),
@@ -152,7 +225,9 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: "H Mart",
     purchased_at: '2026-06-05',
     receipt_type: 'grocery',
-    total_cents: 2887,
+    subtotal_cents: 2205,
+    tax_cents: 182,
+    total_cents: 2387,
     lines: [
       food(byRaw('白菜').raw, 1, 'piece', 349),
       food(byRaw('豆腐').raw, 396, 'g', 229),
@@ -160,7 +235,7 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
       food(byRaw('冷凍餃子').raw, 454, 'g', 599),
       food(byRaw('고추장 500G').raw, 500, 'g', 649),
       nonFood('DISH SOAP REFILL'),
-      ...tail(2705, 182),
+      ...tail(2205, 182),
     ],
   },
 
@@ -168,14 +243,16 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Costco Wholesale',
     purchased_at: '2026-06-08',
     receipt_type: 'grocery',
-    total_cents: 7659,
+    subtotal_cents: 9493,
+    tax_cents: 566,
+    total_cents: 10059,
     lines: [
       food(byRaw('KS ORG EVOO 2L').raw, 2000, 'ml', 1899),
       food(byRaw('ORG CHKN BRST BNLS').raw, 2268, 'g', 1899),
       multiple('KS BOTTLED WATER 40CT', 2, 999),
       multiple('FRZ DUMPLINGS 3LB BAG', 2, 1299),
       food(byRaw('SHREDDED CHED CHSE').raw, 907, 'g', 1099),
-      ...tail(7093, 566),
+      ...tail(9493, 566),
     ],
   },
 
@@ -183,6 +260,8 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Golden Wok',
     purchased_at: '2026-06-10',
     receipt_type: 'restaurant',
+    subtotal_cents: 4190,
+    tax_cents: 335,
     total_cents: 4850,
     lines: [
       food('Gochujang Pork Belly', 1, 'serving', 1895),
@@ -200,6 +279,8 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Corner Grocer',
     purchased_at: null,
     receipt_type: 'grocery',
+    subtotal_cents: 928,
+    tax_cents: 74,
     total_cents: 1247,
     lines: [
       food(byRaw('FISH SAUCE 24OZ').raw, 710, 'ml', 549),
@@ -212,12 +293,14 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'Super Value',
     purchased_at: '2026-06-14',
     receipt_type: 'grocery',
-    total_cents: 4218,
+    subtotal_cents: 399,
+    tax_cents: 269,
+    total_cents: 668,
     lines: [
       food(byRaw('SRIRACHA 17OZ').raw, 482, 'ml', 449),
       ...NON_FOOD_LINES.map((raw) => nonFood(raw)),
       discount('MFR COUPON -0.50', 50),
-      ...tail(3899, 269),
+      ...tail(399, 269),
     ],
   },
 
@@ -225,13 +308,89 @@ const RESPONSES: Record<string, ExtractedReceiptJson> = {
     store: 'ValueMart',
     purchased_at: '2026-06-17',
     receipt_type: 'grocery',
-    total_cents: 2156,
+    subtotal_cents: 2987,
+    tax_cents: 176,
+    total_cents: 3163,
     lines: [
       multiple('CANNED BLACK BEANS', 4, 129),
       multiple('GREEK YOGURT 5.3OZ', 6, 119),
       multiple(byRaw('LRG EGGS 12CT').raw, 2, 429),
       food(byRaw('ATLANTIC SALMON FIL').raw, 340, 'g', 899),
-      ...tail(1980, 176),
+      ...tail(2987, 176),
+    ],
+  },
+
+  // Task 1.4: the money-shaped cases in one receipt — a weight-priced line,
+  // a line-attributed discount, an unattributable basket discount, a
+  // multi-buy, a bottle deposit, a bag levy, and a refunded line sitting
+  // among otherwise normal purchases.
+  moneyShaped: {
+    store: 'Green Grocer',
+    purchased_at: '2026-06-19',
+    receipt_type: 'grocery',
+    // 247 - 50 + 798 - 100 + 25 + 10 + 499 - 350 = 1079
+    subtotal_cents: 1079,
+    tax_cents: 0,
+    total_cents: 1079,
+    lines: [
+      food(byRaw('BOK CHOY 1.24 LB @ 1.99/LB').raw, 563, 'g', 247), // weight-priced (0.834 kg's cousin)
+      discountFor('MEMBER PRICE -0.50', 50, byRaw('BOK CHOY 1.24 LB @ 1.99/LB').raw),
+      multiple(byRaw('WHL MILK 1GAL').raw, 2, 399), // multi-buy: two separate jugs
+      discount('BASKET SAVER -1.00', 100), // unattributable, basket-wide
+      deposit('BOTTLE DEPOSIT', 25),
+      deposit('BAG FEE', 10),
+      food(byRaw('GRND PORK 1LB').raw, 454, 'g', 499),
+      refund('RETURNED: LAST WEEK ITEM', 350),
+      ...tail(1079, 0),
+    ],
+  },
+
+  // Task 1.4: one whole return receipt — nothing bought, only refunded.
+  wholeReturn: {
+    store: 'Fresh Market',
+    purchased_at: '2026-06-20',
+    receipt_type: 'grocery',
+    subtotal_cents: -848,
+    tax_cents: 0,
+    total_cents: -848,
+    lines: [
+      refund(byRaw('KIKKO SOY 500ML').raw, 389),
+      refund(byRaw('JASMINE RICE 5LB').raw, 459),
+      arithmetic('SUBTOTAL', -848),
+      arithmetic('REFUND TOTAL', -848),
+      arithmetic('VISA ****4471 REFUND'),
+    ],
+  },
+
+  // Task 1.5: lines that deliberately do not sum to the printed subtotal.
+  arithmeticMismatch: {
+    store: 'Corner Grocer',
+    purchased_at: '2026-06-21',
+    receipt_type: 'grocery',
+    subtotal_cents: 1500, // printed — does not match the lines below (1188)
+    tax_cents: 95,
+    total_cents: 1595,
+    lines: [
+      food(byRaw('SHAOXING WINE 640ML').raw, 640, 'ml', 699),
+      food(byRaw('MIRIN 300ML').raw, 300, 'ml', 489),
+      ...tail(1500, 95),
+    ],
+  },
+
+  // Task 1.6: the same ingredient on two separate lines, plus a `2 @` multiple.
+  duplicateIngredient: {
+    store: 'ValueMart',
+    purchased_at: '2026-06-23',
+    receipt_type: 'grocery',
+    // 599 + 599 + (2 * 429) = 2056
+    subtotal_cents: 2056,
+    tax_cents: 0,
+    total_cents: 2056,
+    lines: [
+      food(byRaw('SESAME OIL 250ML').raw, 250, 'ml', 599), // sesame oil, line one
+      food(byRaw('SESAME OIL 250ML').raw, 250, 'ml', 599), // sesame oil again — a second, separate bottle
+      multiple(byRaw('LRG EGGS 12CT').raw, 2, 429), // "2 @" — two separate cartons
+      ...tail(2056, 0),
     ],
   },
 };
@@ -255,4 +414,8 @@ export const RECEIPTS: readonly ReceiptFixture[] = [
   toFixture('noLegibleDate', '2026-06-12'),
   toFixture('heavyNonFood', '2026-06-14'),
   toFixture('multiQuantity', '2026-06-17'),
+  toFixture('moneyShaped', '2026-06-19'),
+  toFixture('wholeReturn', '2026-06-20'),
+  toFixture('arithmeticMismatch', '2026-06-21'),
+  toFixture('duplicateIngredient', '2026-06-23'),
 ];
