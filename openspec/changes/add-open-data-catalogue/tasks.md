@@ -4,19 +4,145 @@ Ordered first because it can end the change. Sixty-nine hand-authored entries
 against 500+ US supermarket product names is not obviously a good match, and the
 whole value depends on the hit rate.
 
-- [ ] 1.1 Download the FoodKeeper dataset and record its real shape: row count,
+Measured 2026-08-06. The catalogue grew to 77 entries (8 allergen-class
+markers — `peanut`, `tree-nut`, `wheat`, `soy`, `sesame`, `fish`, `shellfish`,
+`tahini` — landed with `add-dietary-profile`) between when this task was
+written and when it was run; the 69 vs. 77 figures below are not a
+discrepancy, just two different points in the catalogue's history.
+
+- [x] 1.1 Download the FoodKeeper dataset and record its real shape: row count,
       which fields are actually populated, and how the metric values are spelled.
       Work from the file, not from the documentation.
-- [ ] 1.2 Run all 69 catalogue entries against it through the existing
+      The live `foodsafety.gov`/`fsis.usda.gov` hosts 403 every fetch — Akamai,
+      confirmed with both a direct request and an independent fetch path, not
+      an artifact of one tool. Recovered a July 2025 Wayback Machine snapshot
+      of the real live export instead
+      (`web.archive.org/web/20250702182320/https://www.fsis.usda.gov/shared/data/EN/foodkeeper.json`,
+      `FMA-Data-v128.xlsx` per its own `fileName` field) — 13 months old, not
+      current-today, but the authoritative file, not a third-party rebuild.
+      **661 products.** Every row has at least one populated `*_Metric`
+      field (none are metric-less). Population is sparse and uneven per
+      field: `Name` 100%, `Keywords` 100%, `Name_subtitle` 60%,
+      `DOP_Refrigerate_Min/Max/Metric` 36%, `Freeze_Metric`/`DOP_Pantry_Metric`/
+      `DOP_Freeze_Metric` 30% each, `Pantry_Metric` 20%, and the
+      `*_tips`/`*_Tips` fields 1-10%. `Refrigerate_After_Thawing_*` is
+      essentially unpopulated (1% min, 0% max/metric) — task 4.6 already
+      says to ignore it, and this confirms there is barely anything there to
+      ignore.
+      Metric spellings actually found, with counts across all `*_Metric`
+      fields: `Months` 601, `Days` 332, `Weeks` 142, `Years` 138,
+      `Not Recommended` 66, `Package use-by date` 36, `Indefinitely` 13,
+      `When Ripe` 12, `Hours` 5, `Year` 2 (singular — an inconsistent spelling
+      of `Years`, not a distinct term). The proposal/design docs anticipated
+      Days/Weeks/Months/When Ripe/Indefinitely/Not Recommended; the file has
+      three more terms than that: **`Years`, `Hours`, and `Package use-by
+      date`**, plus the `Year`/`Years` singular/plural inconsistency. Task 4.2
+      ("Convert Days, Weeks, and Months to days") and 4.3 (term list) are
+      both incomplete as written against the real file.
+- [x] 1.2 Run all 69 catalogue entries against it through the existing
       `resolve()` and record the hit rate, split into confident, uncertain, and
       no match.
-- [ ] 1.3 **Report the number before building anything.** If confident matches
+      Run against the current 77, through the real `resolve()` cascade
+      (`dbMatchStore()`, real migrations, real seed data, `node:sqlite` —
+      same harness as `test/cjk-matching.test.ts`), source `dataset`, all 661
+      FoodKeeper `Name`(`, Name_subtitle`) strings as raw references in one
+      batch, no model resolver. Best status per canonical id, ties broken by
+      confidence:
+      **24 confident (resolved), 19 uncertain (needs_confirmation), 34 no
+      match. 24/77 = 31%.**
+      Confident: oyster-sauce, miso, sesame-oil, hoisin-sauce,
+      tamarind-paste, sugar, vegetable-oil, butter, ghee, honey,
+      dijon-mustard, garlic, ginger, banana, tomato, cucumber, cilantro,
+      bok-choy, tofu-firm, chicken-breast, bacon, greek-yogurt, sesame,
+      tahini.
+      Uncertain: shaoxing-wine, rice-vinegar, sriracha, dried-pasta,
+      all-purpose-flour, black-pepper, peanut-butter, mayonnaise,
+      salad-dressing, coffee-beans, green-onion, napa-cabbage,
+      shiitake-mushroom, chicken-thigh, ground-pork, cheddar-cheese,
+      heavy-cream, peanut, shellfish.
+      **A real cross-species mismatch, found by this run, not invented:**
+      `chicken-breast` resolves confidently (0.87, `approximate`) against the
+      FoodKeeper row "Turkey parts, breast halves, boneless" — scoring higher
+      than the actually-correct "Chicken parts, breast halves, boneless"
+      (0.64, `needs_confirmation`) in the same result set. The shared cut
+      description ("parts, breast halves, boneless") outweighs the species
+      word in the current similarity scorer. This is exactly the risk
+      decision/task 5.2 names ("a wrong match writes chicken's shelf life
+      onto chicken liver") — measured here, not hypothetical. Worth a look
+      before group 5 applies confident matches unattended.
+- [x] 1.3 **Report the number before building anything.** If confident matches
       are a small minority, say so — the honest outcome may be that this change
       is worth less than it looks, and that is a finding rather than a failure.
-- [ ] 1.4 Record which of the Asian entries match anything. The expectation is
+      31% confident, 55% confident-or-better (43/77). Not a small minority,
+      not a strong majority either — FoodKeeper's coverage is real but
+      partial, weighted toward base ingredients (produce, dairy, plain
+      proteins) and thin on condiments/sauces and prepared/mixed items. The
+      chicken/turkey mismatch above means "confident" here should not be read
+      as "safe to apply unreviewed" — group 5's human-reviews-uncertain plan
+      is doing real work, and on this evidence group 5.2's need to double-check
+      even some *confident* matches for cross-item mismatches deserves a note,
+      not just uncertain ones.
+- [x] 1.4 Record which of the Asian entries match anything. The expectation is
       almost none, and it is the evidence for why the never-delete rule exists.
-- [ ] 1.5 Do the same for FoodData Central against the catalogue, with its free
+      28 Asian/Asian-cuisine entries identified (soy-sauce-light,
+      soy-sauce-dark, tamari, doubanjiang, gochujang, gochugaru, fish-sauce,
+      oyster-sauce, shaoxing-wine, mirin, miso, belacan, kecap-manis,
+      sesame-oil, rice-vinegar, hoisin-sauce, xo-sauce, sriracha,
+      five-spice, jasmine-rice, napa-cabbage, bok-choy, shiitake-mushroom,
+      daikon, tofu-firm, frozen-dumplings, white-pepper, tamarind-paste).
+      **7 confident, 5 uncertain, 16 no match (16/28 = 57%).**
+      Confident: bok-choy, hoisin-sauce, miso, oyster-sauce, sesame-oil,
+      tamarind-paste, tofu-firm. Uncertain: napa-cabbage, rice-vinegar,
+      shaoxing-wine, shiitake-mushroom, sriracha. No match: belacan, daikon,
+      doubanjiang, fish-sauce, five-spice, frozen-dumplings, gochugaru,
+      gochujang, jasmine-rice, kecap-manis, mirin, soy-sauce-dark,
+      soy-sauce-light, tamari, white-pepper, xo-sauce.
+      The design doc's expectation was "almost none" — the measured number is
+      softer than that (43% hit something) but the pattern holds where it
+      matters: every fermented/regional condiment that is this catalogue's
+      actual differentiator (gochujang, doubanjiang, belacan, kecap-manis,
+      mirin, tamari) has **no match**. What does match is the more
+      generic/Americanized entries (bok choy, tofu, oyster sauce, hoisin).
+      The never-delete rule's justification stands; "almost none" should be
+      revised to "none of the differentiating ones, real coverage on the
+      common ones."
+- [x] 1.5 Do the same for FoodData Central against the catalogue, with its free
       data.gov key. The key is for the build machine and never leaves it.
+      `USDA_API_KEY` from `.env`, `GET .../foods/search?query={displayName}&dataType=Foundation,SR%20Legacy`
+      (restricted to the two generic/unbranded datasets — nutrition per
+      generic ingredient is the goal, not per-brand). No `resolve()`
+      equivalent exists for FDC yet, so this is a query-and-read-the-results
+      exercise, not a scored cascade — noted as a methodology difference from
+      1.2/1.4, not glossed over.
+      **7/77 zero hits:** doubanjiang, gochujang, gochugaru, mirin, belacan,
+      kecap-manis, daikon — the same regional-condiment gap FoodKeeper has,
+      plus daikon (FoodKeeper *did* have nothing for daikon either).
+      Of the 70 with hits, the free-text search's top-ranked result is
+      frequently wrong even when relevant entries exist further down or not
+      at all: `salt`→"Butter, salted", `milk`→"Crackers, milk",
+      `tomato`→"Tomato powder", `chicken-breast`→"Lunchmeat, chicken breast,
+      sliced", `banana`→"Bananas, dehydrated, or banana powder",
+      `tree-nut`→"Tree fern, cooked, with salt" (wrong food entirely).
+      Reading top-3 by hand rather than trusting rank 1: **41 confident**
+      (clean generic top-of-list match, e.g. `garlic`→"Garlic, raw"),
+      **24 uncertain** (real hits exist but the top result is an off-cut,
+      processed, flavoured, or branded variant requiring a human pick),
+      **5 spurious** (hits exist — `dried-pasta`, `frozen-dumplings`,
+      `shaoxing-wine`, `tree-nut`, `xo-sauce` — but everything returned is
+      off-topic; functionally no match), **7 zero-hit**. 41/77 = 53%
+      confident, but 12/77 (16%) return hits that are all noise, which
+      `totalHits > 0` alone would have hidden.
+      `soy-sauce-light`, `soy-sauce-dark`, `tamari`, and `soy` all land on
+      the *same single* SR Legacy "Soy sauce made from soy (tamari)" entry —
+      FDC does not distinguish light/dark/tamari nutritionally, which bears
+      on how finely group 8's nutrition mapping can actually key by variety.
+      **This is the real fix for `add-macro-gap-suggestions`'s nutrition
+      gap, conditionally:** FDC covers the 77-entry catalogue about as well
+      as FoodKeeper covers shelf life, but a naive top-1 API call would
+      silently attach wrong nutrition to ~16% of ingredients (the spurious +
+      some uncertain cases) — group 8 needs real disambiguation logic
+      (category filtering, not top-1-by-relevance), not a thin wrapper
+      around the search endpoint.
 
 ## 2. Types and schema
 

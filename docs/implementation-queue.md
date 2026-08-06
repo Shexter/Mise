@@ -29,23 +29,33 @@ none is blocked on code. They are a parallel track, not a queue position.
 
 ## 1 — Live wrongness in shipped paths
 
-### 1. `add-open-data-catalogue` — 53
+### 1. `add-open-data-catalogue` — 48
 
-Every expiry prediction runs on 69 hand-authored guesses. That was cosmetic
+Every expiry prediction runs on 77 hand-authored guesses (69 at proposal time;
+`add-dietary-profile` added 8 allergen-class markers since). That was cosmetic
 while expiry only *sorted*. It stopped being cosmetic when decision 136's
 use-first check landed, because expiry now decides the `use_first` bucket and
 that bucket now **drops suggestions**. Wrong shelf life is no longer a bad sort;
 it is a filter operating on invented numbers.
 
-Task 1 measures the FoodKeeper hit rate before anything is built, so this can be
-abandoned cheaply if the match rate is poor.
-
-**Blocked on network access, not code.** Task 1 requires downloading the real
-FoodKeeper (`foodsafety.gov`) and FoodData Central (`api.nal.usda.gov`)
-datasets, and both hosts return a policy-denial 403 through this environment's
-egress proxy — confirmed, not assumed. Skipped this round in favour of
-`add-cjk-matching` (see Shipped). Resume task 1 once either host is
-allowlisted; do not fabricate the hit-rate numbers to work around this.
+**Task 1 is done (5/5), measured 2026-08-06 against real data — go.** The
+`foodsafety.gov`/`fsis.usda.gov` 403 was Akamai bot-blocking on those specific
+hosts, not a general egress block; a Wayback Machine snapshot of the same live
+file (July 2025) got past it. FoodKeeper: 661 products, 24/77 (31%) confident
+match through the real `resolve()` cascade, 19/77 (25%) uncertain, 34/77 (44%)
+no match. Asian/regional entries: every genuinely differentiating one
+(gochujang, doubanjiang, belacan, kecap-manis, mirin, tamari) has no match, as
+expected — the never-delete rule's justification holds. FoodData Central:
+41/77 (53%) confident, 24 uncertain, 12 effectively no match (5 spurious top
+hits + 7 zero-hit) — conditionally the real fix for `add-macro-gap-suggestions`
+below, but a naive top-1 API call would mismatch ~16% of ingredients, so group
+8 needs real disambiguation, not a thin search wrapper. A real, measured
+cross-species mismatch surfaced in the FoodKeeper run too: `chicken-breast`
+resolves confidently against a Turkey FoodKeeper row (0.87) over the correct
+Chicken row (0.64) — worth a look before group 5 trusts confident matches
+unattended. Full numbers, per-item lists, and methodology notes are inline in
+`tasks.md` under task 1.
+Groups 2-10 (53 tasks minus the 5 done = 48) not yet started.
 
 ### 2. `add-venue-inference` — 38
 
@@ -115,8 +125,10 @@ product. Confirmed by reading `src/types.ts`, not assumed.
 
 Discovered mid-implementation this round and paused rather than shipped with
 a fabricated or degenerate local ranking. A real fix needs a nutrition-per-
-canonical data source — likely `add-open-data-catalogue`'s FoodData Central
-half, itself currently blocked on the same network egress issue (see above).
+canonical data source — `add-open-data-catalogue`'s FoodData Central half,
+whose task 1 is now measured (see above): 41/77 catalogue entries get a
+confident FDC nutrition hit, 12/77 effectively none. Still blocked on that
+change's groups 2/8 actually being built, not on network access anymore.
 A cheaper interim path exists (a coarse `FoodClass`-based local heuristic,
 with the model supplying the actual numeric contribution per suggestion, the
 same way it already estimates `kcalPerServing` with no local nutrition DB) —

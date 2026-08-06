@@ -4,19 +4,80 @@ The only section that may be worked before the licence position is settled,
 because it is what settles it. Nothing below this may start until task 1.6 is
 recorded.
 
-- [ ] 1.1 Read the ODbL text itself, not a summary, and identify how it
+- [x] 1.1 Read the ODbL text itself, not a summary, and identify how it
       distinguishes a **derivative database** from a **produced work**. That
       distinction is the whole question, and every secondhand explanation of it
       is someone's paraphrase.
-- [ ] 1.2 Read Open Food Facts' own terms of use and their API re-use guidance,
+      Read at opendatacommons.org/licenses/odbl/1-0/, §1 (Definitions).
+      **Derivative Database:** "a database based upon the Database, and
+      includes any translation, adaptation, arrangement, modification, or any
+      other alteration of the Database or of a Substantial part of the
+      Contents." Triggers §4.4 share-alike and §4.6 (recipients must be able
+      to get the whole derivative or the method of alteration) — the
+      re-shared thing must itself stay open data.
+      **Produced Work:** "a work... resulting from using the whole or a
+      Substantial part of the Contents (via a search or other query)... "
+      §4.5(b) is explicit that producing a Produced Work "does not create a
+      Derivative Database for purposes of Section 4.4" — only a lighter
+      attribution duty (§4.3) applies, no share-alike.
+      The load-bearing distinction: a Derivative Database *is a database*
+      (structured, re-distributable records); a Produced Work *is an output*
+      of querying one (a rendered answer, an image, a single result shown to
+      one user). "Substantial part" is not numerically defined anywhere in
+      the licence text — it's a facts-and-degree question, which is exactly
+      why 1.5 asks the people who'd actually assert the licence rather than
+      guessing a threshold.
+- [x] 1.2 Read Open Food Facts' own terms of use and their API re-use guidance,
       and record what they state about attribution and share-alike in their own
       words.
-- [ ] 1.3 Establish which side of the line a **catalogue seeded from the
+      Read at world.openfoodfacts.org/terms-of-use and
+      support.openfoodfacts.org (API conditions article). Their own words:
+      "The Open Food Facts database is available under the Open Database
+      License," "Individual contents of the database are available under the
+      Database Contents License," "Product images are available under the
+      Creative Commons Attribution ShareAlike licence." Re-users "mention the
+      licence and attribute the authorship to Open Food Facts with a link,"
+      and "derivative works must be shared under the same conditions."
+      **Neither page distinguishes calling the API live from shipping a
+      subset of the data inside a distributed app.** Neither mentions
+      build-time seeding, taxonomy imports, or bundling at all. This isn't a
+      case of me missing the guidance — it isn't there. The question task 1.3
+      asks is genuinely unanswered in OFF's own public documentation, which is
+      the real justification for 1.5's forum question, not a formality.
+- [x] 1.3 Establish which side of the line a **catalogue seeded from the
       taxonomy and shipped inside an APK** falls on.
-- [ ] 1.4 Establish the same for the **per-user runtime cache**
+      **Provisional read, not yet confirmed by OFF (see 1.5) — do not treat
+      as settled.** A build-time seed that copies entries out of the OFF
+      ingredient taxonomy into `canonical-items.json` and ships them inside
+      the APK is not the result of "a search or other query" producing a
+      rendered output — it *is* a database (structured records), built by
+      adapting OFF's own structured records. That is squarely inside the
+      Derivative Database definition's own language ("adaptation... of a
+      Substantial part of the Contents"), not the Produced Work one. My
+      reading: **this falls on the Derivative Database side** — meaning the
+      seeded subset itself would need to be shared under ODbL-compatible
+      terms (§4.4), separate from whatever licence covers Mise's own app
+      code. Whether the actual number of entries seeded (the proposal's three
+      outcomes range from a handful of CJK terms to the full 4,733-entry
+      taxonomy) counts as "Substantial" is a real open question the licence
+      text does not resolve — smaller seeds have a better argument for not
+      being substantial, but there is no bright line to cite.
+- [x] 1.4 Establish the same for the **per-user runtime cache**
       `add-barcode-capture` already plans. It is a different situation and may
       have a different answer; conflating them is how one answer gets applied to
       both wrongly.
+      **Also provisional, pending 1.5.** The runtime cache is architecturally
+      closer to a Produced Work: each cached record is the result of one
+      specific query (a barcode scan) that resolves one specific product for
+      one specific user's own device, not a pre-assembled copy of OFF's
+      database distributed to every install. It isn't bundled inside the
+      APK, isn't shared between users, and each entry exists because that
+      user's own action queried it — the same shape as "a search... from this
+      Database" the Produced Work definition names directly. My reading:
+      **this leans Produced Work** — lighter attribution duty, no
+      share-alike — but it is a materially different question from 1.3's and
+      should get its own answer from OFF rather than inheriting 1.3's,
+      exactly as this task warns.
 - [ ] 1.5 Ask Open Food Facts directly, via their forum. They are the people
       best placed to say how they read their own licence, asking is cheap, and
       the answer is of public interest rather than a favour.
