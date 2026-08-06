@@ -1,51 +1,46 @@
 ## Why
 
 A personal trainer looked at onboarding and said it does not ask enough to work
-out what someone needs. They are right, and the reason is structural rather than
-cosmetic.
+out what someone needs. They are right, and the reason is structural.
 
-`energyTargets` runs Mifflin-St Jeor over sex, age, height and weight, then
-multiplies by a coarse activity enum. Mifflin-St Jeor's whole job is to *guess*
-body composition from height and weight, because that is all it has. Two people
-of the same age, sex, height and weight can differ by several hundred calories a
-day depending on how much of that weight is muscle, and the formula cannot see
-the difference.
+`energyTargets` runs Mifflin-St Jeor over sex, age, height and weight. That
+formula's entire job is to *guess* body composition, because height and weight
+are all it has. Two people of the same age, sex, height and weight can differ by
+several hundred calories a day depending on how much of that weight is muscle.
 
-Some people already have the answer. An InBody or DEXA scan measures body
-composition directly. Others have a figure from a ring, a watch, or a health app
-that has been observing them for months.
-
-Right now the app ignores both and asks them to guess with everyone else.
+Some people already have that measured, from a DEXA scan or an InBody. Others
+have a figure from a ring or a health app. The app ignores all of it and asks
+them to guess along with everyone else.
 
 ## What Changes
 
-- **One routing question during onboarding**, with three answers: estimate it
-  for me, I have a body scan, I already know my number. The first is the
-  existing flow, unchanged and still the default.
-- **A body-composition path** using Katch-McArdle, which derives resting energy
-  from fat-free mass instead of inferring it from height and weight.
-- **A stated-figure path** for someone who already has a number from a tracker
-  or a professional.
-- **The app asks what the number actually is** — resting, total daily, or an
-  already-adjusted target — because these differ by hundreds of calories and are
-  routinely confused.
-- **Implausible figures are questioned, never silently corrected or refused.**
-- **All three estimates are shown** whenever more than one can be computed, so a
-  choice is informed rather than blind.
-- **A stated target survives a profile edit.** It currently would not — see
-  below.
-- **The scan date is recorded**, and a target derived from a stale measurement
-  says so.
+- **The regular onboarding is untouched.** Not one extra screen, not one extra
+  tap. It stays exactly as it is.
+- **The entrance offers separate ways in.** The welcome screen gains buttons for
+  a DEXA scan, an InBody, and an already-known figure, beside the existing one.
+- **DEXA and InBody are different flows, not one flow with a provider label.**
+  They print different fields, in different vocabularies, with different
+  reliability. Treating them as one thing means silently mixing quantities.
+- **The scan flows are shorter than the regular one.** Katch-McArdle needs
+  fat-free mass and nothing else, so sex, age and height are not asked for.
+  Better data earns a shorter form, which is the right way round.
+- **A measurement is kept per provider.** Switching from InBody to DEXA in
+  settings does not destroy the InBody figure, and switching back does not
+  require re-entering it.
+- **Everything is changeable in settings**, the same way the basic details
+  already are.
+- **A stated figure is qualified before use**, because "the number my health app
+  says" is three different numbers.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `energy-sources`: Where the calorie target comes from. Covers the three
-  sources and how each is computed, what the app asks about a supplied figure,
-  plausibility checks, precedence and recalculation, staleness of a measurement,
-  what body-composition data is stored and what is refused, and the language the
-  app may use about any of it.
+- `energy-sources`: Where the calorie target comes from. Covers the four
+  sources and the separate flow each needs, provider-specific fields and
+  derivation, keeping a measurement per provider and switching between them,
+  what is asked for and what is deliberately not, recalculation, staleness,
+  what scan data is refused, and the language the app may use about any of it.
 
 ### Modified Capabilities
 
@@ -53,85 +48,96 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 
 ## Non-goals
 
-- **Diagnosis, assessment, or advice.** The app takes numbers and computes a
-  calorie target. It does not evaluate anyone's body, health, or progress. This
-  is the constraint that shapes the whole change — see below.
-- **Storing the rest of the scan.** An InBody sheet carries visceral fat level,
-  segmental analysis, phase angle, metabolic age, and a score out of 100. None
-  of it computes anything here, and storing it is how an app starts displaying
-  it.
-- **Connecting to Apple Health, Google Fit, or any wearable.** The user reads
-  their number and types it. Integrations mean permissions, platform SDKs, and
-  background sync against a local-first app with no server (decision 5). The
-  number changes rarely enough to type.
-- **Tracking body composition over time.** One current measurement, replaceable.
-  A history is a progress-charting feature, which is a different product.
-- **Replacing the existing onboarding.** It stays, it stays the default, and it
-  does not get longer for the people it already serves.
-- **Choosing a formula per user, or offering a menu of them.** One formula per
-  source.
+- **Changing the regular onboarding.** It is the default, it serves almost
+  everyone, and it gets no new questions. This is now a hard constraint rather
+  than a preference.
+- **Diagnosis, assessment, or advice.** The app computes a calorie target. It
+  does not evaluate anyone's body. See below.
+- **Storing the rest of the scan.** Visceral fat, segmental analysis, phase
+  angle, metabolic age, InBody's score. None of it computes a target here.
+- **Body-composition history.** At most one current measurement per provider —
+  a bounded set of two rows, not a time series. Progress charting is a different
+  product.
+- **Connecting to Apple Health, Google Fit, or a wearable.** The user reads
+  their number and types it. Integrations mean permissions and platform SDKs
+  against an app with no server (decision 5), for a number that changes rarely.
 - **Validating anyone's scan.** If the sheet says 14%, the app believes 14%.
+- **Supporting every device.** DEXA, InBody, and a typed figure. A bathroom
+  scale's body fat reading is close to noise and gets no dedicated flow.
 
 ## Impact
 
-**Schema.** One migration adding, all nullable: the target's source, body fat
-percentage, the weight and date at measurement, a stated figure and what kind of
-figure it is.
+**Schema.** One migration: the active source on the profile, a measurements
+table keyed by provider, and the stated figure with its kind. Sex, age and
+height become nullable, since a scan user is never asked for them.
 
 **Code.**
-- `src/logic/bmr.ts` — Katch-McArdle alongside Mifflin-St Jeor, and a resolver
-  that turns a source plus a profile into a target.
-- `src/store/profileStore.ts` — the recalculation currently overwrites; it must
-  not.
-- `src/types.ts` — `Profile` gains the fields above.
-- `app/onboarding/` — one routing screen and two branch screens.
-- The profile sheet — editing the source after onboarding.
+- `src/logic/bmr.ts` — Katch-McArdle, and a total dispatch over the source.
+- `src/logic/bodyComposition.ts` — new, pure. Per-provider normalisation.
+- `src/store/profileStore.ts` — recalculation becomes conditional.
+- `src/types.ts` — `Profile` changes shape; three fields become nullable.
+- `app/onboarding/` — the welcome screen gains entrances, plus two scan flows
+  and a stated-figure flow.
+- `src/components/settings/ProfileSheet.tsx` — source switching and measurement
+  editing.
 
 **Dependencies.** None added.
 
-**Depends on** nothing unmerged. This touches the oldest code in the app and
-almost nothing else, which makes it unusually safe to run alongside other work.
+**Depends on** nothing unmerged.
 
-## A stated target would currently be destroyed by an unrelated edit
+## Why DEXA and InBody cannot share a screen
 
-`profileStore.update` recomputes `targetCalories` through `energyTargets` on
-every write:
+They do not measure the same thing and they do not print the same fields.
 
-```ts
-const recalculated: Profile = {
-  ...merged,
-  targetCalories: energyTargets(/* … */).target,
-};
-```
+**DEXA** separates the body into fat, lean soft tissue, and bone mineral
+content. Its "lean mass" usually means lean soft tissue and therefore *excludes*
+bone, so fat-free mass is lean plus BMC — a difference of a few kilograms. It is
+the reference method, expensive, and taken rarely.
 
-Today that is correct — the target is always derived, so recomputing it is how
-an edit takes effect. The moment a target can be *stated*, that same line
-silently replaces the user's own figure with a Mifflin-St Jeor estimate the next
-time they log a weight change.
+**InBody** is bioimpedance. It prints **fat-free mass directly**, under that
+name, and separately prints skeletal muscle mass, which is a smaller and
+different quantity that people confuse with it constantly. It also prints its
+own BMR. It is affected by hydration, and repeat scans days apart move in ways a
+DEXA would not.
 
-It would be invisible. The number would simply drift, and the person most likely
-to notice — someone who cared enough to get a DEXA scan — is exactly the person
-this change is for.
+A single "enter your body fat percentage" screen papers over all of that. It
+asks a DEXA user to do arithmetic the sheet already did, asks an InBody user to
+ignore the fat-free mass printed in front of them, and gives the app no way to
+know which kind of number it received.
 
-So recalculation becomes conditional on the source, and that is a requirement
-rather than an implementation note.
+Two flows means each asks for what its own sheet actually prints, in its own
+words, and normalises with logic that knows what it is holding. The source is a
+closed set with exhaustive dispatch — the same discipline
+`add-openai-provider` applies to transports, for the same reason: adding a
+provider without its logic should fail to compile, not fail quietly.
+
+## Better data earns a shorter form
+
+Katch-McArdle is `370 + 21.6 × fatFreeMassKg`. It does not use sex, age, or
+height, and `grep` confirms nothing else in the app computes with those three
+either — they exist to feed Mifflin-St Jeor and to be displayed back.
+
+So the scan flows do not ask for them. A DEXA user answers weight, their scan
+figures, the date, activity, and goal — five screens against the regular flow's
+seven.
+
+This is worth stating as a principle rather than an optimisation: **ask for what
+the chosen source actually needs.** If someone later switches to estimation, the
+app asks then for what estimation requires. Collecting fields on the chance of a
+later switch is how a form gets long, and a long form is the complaint that
+started this.
 
 ## Body composition is health data, and the app must get smaller as it gets more
 
-An InBody printout is a page of clinical-looking numbers. A DEXA report is
-genuinely medical. The temptation — and the request, phrased as wanting a more
-accurate *diagnosis* — is to do more with them.
+An InBody printout is a page of clinical-looking numbers and a DEXA report is
+genuinely medical. The pull — and the request that prompted this, phrased as
+wanting a more accurate *diagnosis* — is to do more with them.
 
-The app must do less. It takes body fat percentage, the weight it was measured
-at, and the date, because those three compute a calorie target. It refuses
-visceral fat, segmental lean analysis, phase angle, metabolic age, and every
-score, because none of them computes anything here and storing a number is how
-an app ends up rendering it, and rendering it is an assessment.
+The app does less. It takes the fields that compute a calorie target and refuses
+the rest, because storing a number is how an app ends up rendering it, and
+rendering it is an assessment.
 
-The distinction to hold: **a calorie target is arithmetic; an evaluation of
-someone's body is not the app's to make.** A more precise input makes the
-arithmetic better. It does not qualify the app to say anything about the person.
-
-This is the same refusal as decision 108 on dietary language and decision 142 on
-expiry, arriving somewhere the pull is stronger, and it is enforced the same way:
-a copy audit and a test over forbidden words.
+**A calorie target is arithmetic. An evaluation of someone's body is not the
+app's to make.** A more precise input makes the arithmetic better and says
+nothing more about the person. Same refusal as decisions 108 and 142, enforced
+the same way: a copy audit and a test over forbidden words.

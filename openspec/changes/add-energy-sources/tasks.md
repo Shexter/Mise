@@ -1,169 +1,209 @@
-## 1. Types and schema
+## 1. Protect what already works
 
-- [ ] 1.1 Add `TargetSource` (`estimated | measured | stated`) and
+First, because the hard constraint on this change is that the existing flow does
+not move.
+
+- [ ] 1.1 Snapshot the regular onboarding: its screens, their order, and the
+      target a known set of answers produces.
+- [ ] 1.2 Write a test asserting that target, so any drift in the shared
+      calculation fails the build.
+- [ ] 1.3 Confirm at the end of the change that the regular flow has the same
+      screens in the same order and produces the same number. **No new
+      questions, no reordering, not one extra tap.**
+
+## 2. Types and schema
+
+- [ ] 2.1 Add `TargetSource` (`estimated | dexa | inbody | stated`) and
       `StatedFigureKind` (`resting | total | adjusted`) to `src/types.ts` with
-      their `readonly` arrays, following the `MEAL_VENUES` convention.
-- [ ] 1.2 Extend `Profile` with `targetSource`, and nullable `bodyFatPct`,
-      `measuredAtWeightKg`, `measuredOn`, `statedCalories`, `statedFigureKind`.
-- [ ] 1.3 **Nullable, not defaulted.** A user with no measurement has no
-      measurement; zero is a body fat percentage.
-- [ ] 1.4 Append the migration. Existing profiles get `targetSource:
-      'estimated'`, which is what they already are.
-- [ ] 1.5 Confirm `DROP_ALL` covers the profile table rather than assuming it.
-- [ ] 1.6 Verify the migration runs from the current head and that an existing
-      profile's target is byte-identical afterwards — same formula, same
-      recalculation, same number.
+      their `readonly` arrays.
+- [ ] 2.2 Add `BodyMeasurement`: provider, the provider's own fields, derived
+      fat-free mass, weight at measurement, and date.
+- [ ] 2.3 Extend `Profile` with `targetSource`, `statedCalories`,
+      `statedFigureKind`.
+- [ ] 2.4 **Make `sex`, `age` and `heightCm` nullable.** A scan user is never
+      asked for them. Grep confirms they are read only by `energyTargets` and
+      `ProfileSheet.tsx` — fix both, and do not silence a null with a default.
+- [ ] 2.5 Append the migration creating `body_measurements`, keyed uniquely by
+      provider so at most one row per provider can exist.
+- [ ] 2.6 SQLite cannot drop a NOT NULL constraint in place, so 2.4 is a table
+      rebuild. **Verify it against a populated database, not a fresh one.**
+- [ ] 2.7 Existing profiles get `targetSource: 'estimated'` and keep every
+      value. Confirm their target is byte-identical afterwards.
+- [ ] 2.8 Extend `DROP_ALL`.
+- [ ] 2.9 Verify the migration runs from the current head and `npm run typecheck`
+      passes.
 
-## 2. The formulas
+## 3. Per-provider derivation
 
-Pure. No database, no network. All of section 2 is testable before any screen
+Pure. No database, no network. All of section 3 is testable before any screen
 exists.
 
-- [ ] 2.1 Add `katchMcArdle(fatFreeMassKg)` to `src/logic/bmr.ts`:
+- [ ] 3.1 Add `katchMcArdle(fatFreeMassKg)` to `src/logic/bmr.ts`:
       `370 + 21.6 × fatFreeMassKg`.
-- [ ] 2.2 Derive fat-free mass as `weightKg × (1 − bodyFatPct)`.
-- [ ] 2.3 **Store body fat percentage, not lean mass.** DEXA reports lean soft
-      tissue and bone mineral content separately, InBody uses its own
-      vocabulary, and "lean mass" therefore means different quantities on
-      different sheets. Body fat percentage is the field both print prominently
-      under the same name meaning the same thing.
-- [ ] 2.4 Leave `basalMetabolicRate` and Mifflin-St Jeor untouched.
-- [ ] 2.5 Keep `activityMultiplier` and `goalAdjustment` shared — Katch-McArdle
-      produces resting energy, so the two later stages are unchanged and do not
-      care which formula produced it.
-- [ ] 2.6 Implement `resolveTarget(profile): EnergyTargets` dispatching on
-      `targetSource`, so there is one entry point rather than three call sites
-      that will drift.
-- [ ] 2.7 Apply the right transformations per stated kind: `resting` gets
+- [ ] 3.2 Create `src/logic/bodyComposition.ts` with one derivation per
+      provider.
+- [ ] 3.3 **DEXA**: derive fat-free mass from body fat percentage and weight,
+      or from lean tissue plus bone mineral content where the user has them.
+      DEXA's "lean mass" usually excludes bone — several kilograms — so summing
+      is required when working from those fields.
+- [ ] 3.4 **InBody**: take the printed fat-free mass **as given**. Do not
+      recompute it from other fields, and do not confuse it with skeletal muscle
+      mass, which is smaller, different, and printed right next to it.
+- [ ] 3.5 Implement `resolveTarget(profile, measurements)` as a
+      `Record<TargetSource, Resolver>` so that adding a source without its logic
+      is a **compile-time error** — the exhaustiveness discipline
+      `add-openai-provider` applies to transports.
+- [ ] 3.6 Leave Mifflin-St Jeor untouched, and keep `activityMultiplier` and
+      `goalAdjustment` shared. Katch-McArdle produces resting energy, so the two
+      later stages do not care which formula produced it.
+- [ ] 3.7 Apply the right transformations per stated kind: `resting` gets
       activity and goal, `total` gets goal only, `adjusted` gets neither.
       Applying the goal adjustment to a figure that already includes it
       double-counts the deficit.
-- [ ] 2.8 Unit-test every source and every stated kind, plus a profile with a
-      measurement whose weight differs from current weight.
+- [ ] 3.8 Unit-test every source, every stated kind, both DEXA input shapes, and
+      a measurement whose weight differs from current weight.
+- [ ] 3.9 Test that removing a source from the resolver map fails
+      `npm run typecheck`, proving 3.5's guarantee.
 
-## 3. Plausibility
+## 4. Measurements per provider
 
-- [ ] 3.1 Define plausible ranges per stated kind and for body fat percentage,
-      as named constants.
-- [ ] 3.2 **Flag, never clamp.** A clamped value looks like the value the user
-      entered and is not, and they would have no way to see it. Clamping at
-      `MIN_TARGET_CALORIES` is defensible for a figure the app derived and not
-      for one the user typed.
-- [ ] 3.3 **Flag, never reject.** Athletes, very tall people, and people
-      recovering from illness have real figures outside any range worth
-      encoding, and the app has no standing to tell someone their measured
-      number is wrong.
-- [ ] 3.4 Flag a resulting target below `MIN_TARGET_CALORIES` prominently, and
-      still allow it. This is the one place a quiet note is not enough.
-- [ ] 3.5 Store exactly what the user gave, whatever was flagged.
-- [ ] 3.6 Test each range boundary, and test that an accepted out-of-range value
-      round-trips unchanged.
+- [ ] 4.1 Store at most one current measurement per provider.
+- [ ] 4.2 **Switching provider must not delete anything.** InBody → DEXA →
+      InBody is ordinary for someone who scans at a gym and gets a DEXA yearly,
+      and losing a figure to a switch is a small betrayal for the audience most
+      likely to notice.
+- [ ] 4.3 A new measurement replaces only its own provider's.
+- [ ] 4.4 Only the active provider computes the target. There is no honest way
+      to reconcile a DEXA against an InBody, so the user picks which they trust.
+- [ ] 4.5 Test the full switch cycle: enter InBody, switch to DEXA, enter DEXA,
+      switch back, and confirm the InBody figure is intact and used.
 
-## 4. The recalculation bug
+## 5. Recalculation
 
 Its own section because it is the one defect this change would otherwise
 introduce, and it would be invisible.
 
-- [ ] 4.1 Make `profileStore.update`'s recalculation conditional on
-      `targetSource`: estimated recomputes from the profile, measured recomputes
-      from the measurement, **stated recomputes nothing**.
-- [ ] 4.2 Write the test first: set a stated target, change the weight, assert
+- [ ] 5.1 Make `profileStore.update`'s recalculation conditional on
+      `targetSource`: estimated recomputes from the profile, a provider
+      recomputes from that provider's measurement, **stated recomputes
+      nothing**.
+- [ ] 5.2 Write the test first: set a stated target, change the weight, assert
       the target is unchanged. Today's code fails it.
-- [ ] 4.3 Confirm an estimated target still recalculates exactly as it does now
-      — this must not regress for the users who already exist.
-- [ ] 4.4 Confirm a measured target recalculates when activity level or goal
-      changes.
-- [ ] 4.5 Confirm `ensureDailyTarget` still snapshots per day, so past days keep
-      the target that was active then.
+- [ ] 5.3 Confirm an estimated target still recalculates exactly as now — this
+      must not regress for the users who already exist.
+- [ ] 5.4 Confirm a measured target recalculates when activity or goal changes.
+- [ ] 5.5 Confirm `ensureDailyTarget` still snapshots per day.
 
-## 5. Staleness
+## 6. Plausibility
 
-- [ ] 5.1 Compare current weight against `measuredAtWeightKg` and disclose when
-      they diverge materially.
-- [ ] 5.2 Define "materially" as a named constant, probably a proportion of body
-      weight rather than an absolute.
-- [ ] 5.3 **Do not fall back to Mifflin-St Jeor.** Silently reverting would
-      change someone's target without their involvement, which is the same class
-      of mistake as 4.1. The measurement is still the best information
-      available; it is only older.
-- [ ] 5.4 Offer to update the measurement, and clear the disclosure when it is.
-- [ ] 5.5 Use weight divergence rather than elapsed time — someone whose weight
-      has not moved in a year has a measurement that is probably still fine, and
-      someone who has lost eight kilos in three months does not.
-- [ ] 5.6 Test the disclosure appearing, not blocking, and clearing.
+- [ ] 6.1 Define plausible ranges per field and per stated kind, as named
+      constants.
+- [ ] 6.2 **Flag, never clamp.** A clamped value looks like what the user typed
+      and is not. Clamping at `MIN_TARGET_CALORIES` is defensible for a derived
+      figure and not for a typed one.
+- [ ] 6.3 **Flag, never reject.** Athletes, very tall people, and people
+      recovering from illness have real figures outside any range worth
+      encoding.
+- [ ] 6.4 Flag a resulting target below `MIN_TARGET_CALORIES` prominently, and
+      still allow it.
+- [ ] 6.5 Store exactly what the user gave, whatever was flagged.
+- [ ] 6.6 Test each boundary, and that an accepted out-of-range value
+      round-trips unchanged.
 
-## 6. Onboarding
+## 7. Staleness
 
-- [ ] 6.1 Add one routing screen after `goal.tsx`: estimate it for me, I have a
-      body scan, I already know my number.
-- [ ] 6.2 **Preselect the first**, so the existing path is one tap longer and
-      no more.
-- [ ] 6.3 **Add no required questions to the default path.** A form that asks
-      everybody for a body fat percentage makes onboarding worse for almost
-      everyone to serve a few, which is the opposite of the feedback.
-- [ ] 6.4 Build the measurement screen: body fat percentage, weight at
-      measurement, date. Nothing else.
-- [ ] 6.5 Build the stated-figure screen: the number, and **what kind of number
-      it is**. This is the question that stops the feature being harmful — Apple
-      Health exposes resting and active energy separately, rings show total or
-      active or both, they differ by hundreds of calories, and all of them are
-      "the number my health app says".
-- [ ] 6.6 Show the profile's own estimate alongside whatever the user supplies,
-      wherever both can be computed.
-- [ ] 6.7 **Do not rank the sources.** A DEXA figure is solid; a consumer
-      tracker's active-calorie estimate is often optimistic. The app cannot
-      referee that and the user knows where their number came from — so show the
-      working and let them choose.
-- [ ] 6.8 Components from `src/components`, tokens from
+- [ ] 7.1 Compare current weight against the measurement weight and disclose
+      material divergence.
+- [ ] 7.2 Make the threshold a named constant, probably a proportion of body
+      weight, and allow it to differ per provider — an InBody taken monthly goes
+      stale differently from a DEXA taken yearly.
+- [ ] 7.3 **Do not fall back to Mifflin-St Jeor.** Silently reverting changes
+      someone's target without their involvement, which is section 5's mistake
+      wearing different clothes.
+- [ ] 7.4 Offer to update, and clear the disclosure when updated.
+- [ ] 7.5 Test the disclosure appearing, not blocking, and clearing.
+
+## 8. The entrance and the flows
+
+- [ ] 8.1 Add entry points to `app/onboarding/welcome.tsx` for DEXA, InBody, and
+      a known figure, with the regular flow visually **primary** and the others
+      secondary.
+- [ ] 8.2 **Change nothing else about the regular flow.** No routing screen
+      inside it, no reordering, no new questions. Re-run 1.3 after.
+- [ ] 8.3 Build the DEXA flow: weight, scan fields, date, activity, goal.
+- [ ] 8.4 Build the InBody flow: weight, printed fat-free mass, date, activity,
+      goal.
+- [ ] 8.5 **Ask for nothing a flow does not need.** No sex, age, or height in
+      the scan flows — Katch-McArdle uses none of them, and a longer form for
+      people with better data is exactly backwards.
+- [ ] 8.6 Build the stated-figure flow, asking **what kind of number it is**.
+      This is the question that stops the feature being harmful: Apple Health
+      exposes resting and active energy separately, rings show total or active
+      or both, they differ by hundreds of calories, and all of them are "the
+      number my health app says".
+- [ ] 8.7 Offer InBody's printed BMR as an optional shortcut, recorded as a
+      **stated resting figure** rather than as a measurement, so it is never
+      mistaken for something the app derived.
+- [ ] 8.8 Use each provider's own vocabulary on its own screens. An InBody user
+      should see "Fat Free Mass" because that is what the sheet says.
+- [ ] 8.9 Components from `src/components`, tokens from
       `src/constants/theme.ts`. No colour, font, or spacing literals.
 
-## 7. Editing later
+## 9. Settings
 
-- [ ] 7.1 Show the target's source wherever the target is shown.
-- [ ] 7.2 Allow changing the source, and supplying or replacing a measurement or
-      a figure, from the profile sheet.
-- [ ] 7.3 Allow returning to estimation without losing a stored measurement, so
-      switching back is not destructive.
-- [ ] 7.4 Show what each available source would produce when changing it.
+- [ ] 9.1 Show the active source wherever the target is shown.
+- [ ] 9.2 Allow changing the active source, entering or replacing a measurement,
+      and editing a stated figure — the same way basic details are edited today.
+- [ ] 9.3 When switching to a source whose inputs were never collected, ask for
+      them at that point. Estimation needs sex, age and height; a scan user was
+      never asked.
+- [ ] 9.4 Show what each available source would produce when switching.
+- [ ] 9.5 **Do not rank the sources.** A DEXA figure is solid; a consumer
+      tracker's active-calorie estimate is often optimistic. The app cannot
+      referee that and the user knows where their number came from.
+- [ ] 9.6 Make `ProfileSheet.tsx` render absent sex, age and height without
+      assuming a value.
 
-## 8. What the app refuses to store
+## 10. What the app refuses to store
 
-- [ ] 8.1 Collect body fat percentage, measurement weight, and date. **Nothing
-      else** — not visceral fat, segmental analysis, phase angle, metabolic age,
-      or any score.
-- [ ] 8.2 Confirm no schema field exists for any of them. Storing a number is
+- [ ] 10.1 Collect only the fields a target is computed from. **Nothing else** —
+      not visceral fat, segmental analysis, phase angle, metabolic age, total
+      body water, or any score.
+- [ ] 10.2 Confirm no schema field exists for any of them. Storing a number is
       how an app ends up rendering it, and rendering it is an assessment.
-- [ ] 8.3 Derive no rating, score, or evaluation of the user's body from what is
-      stored.
+- [ ] 10.3 Derive no rating, score, or evaluation of the user's body.
 
-## 9. Language
+## 11. Language
 
-- [ ] 9.1 Audit every string this change adds. A calorie target is a
-      **calculation**; its inputs are inputs. Never a diagnosis, an assessment,
-      a recommendation, or a health claim.
-- [ ] 9.2 Add a test asserting the forbidden words appear in no string this
-      change adds, matching how decisions 108 and 142 are enforced.
-- [ ] 9.3 **A more precise input must not become a stronger claim.** A target
-      derived from a DEXA scan is better arithmetic, and says nothing more about
-      the person than the estimated one did. This is the sentence the whole
-      section exists to protect.
+- [ ] 11.1 Audit every string this change adds. A calorie target is a
+      **calculation**; its inputs are inputs. Never a diagnosis, assessment,
+      recommendation, or health claim.
+- [ ] 11.2 Add a test asserting the forbidden words appear in no string this
+      change adds, matching decisions 108 and 142.
+- [ ] 11.3 **A more precise input must not become a stronger claim.** A target
+      from a DEXA scan is better arithmetic and says nothing more about the
+      person than the estimated one did.
 
-## 10. Verification
+## 12. Verification
 
-- [ ] 10.1 Complete onboarding as a user with nothing, and confirm the
-      experience is one tap longer than before and the target is identical.
-- [ ] 10.2 Complete it with a real body fat percentage and confirm the target
+- [ ] 12.1 Complete the regular onboarding and confirm it is identical to before
+      and produces the same target.
+- [ ] 12.2 Complete the DEXA flow with a real scan sheet and confirm the target
       differs from the Mifflin-St Jeor estimate in the expected direction.
-- [ ] 10.3 Enter a resting figure, a total figure, and an adjusted figure of the
-      same magnitude, and confirm all three produce different targets.
-- [ ] 10.4 Enter an active-energy figure as a daily total and confirm the app
+- [ ] 12.3 Complete the InBody flow with a real printout, using the fat-free
+      mass as printed.
+- [ ] 12.4 Confirm neither scan flow asked for sex, age, or height.
+- [ ] 12.5 Enter a resting, a total, and an adjusted figure of the same
+      magnitude and confirm all three produce different targets.
+- [ ] 12.6 Enter an active-energy figure as a daily total and confirm the app
       questions it. This is the harmful case.
-- [ ] 10.5 State a target, then change weight, height, and activity in turn, and
-      confirm the stated target survives all three.
-- [ ] 10.6 Change weight materially against a stored measurement and confirm the
-      disclosure appears and the target still works.
-- [ ] 10.7 Confirm an existing profile upgraded through the migration has an
-      unchanged target.
-- [ ] 10.8 Confirm no screen displays anything resembling an assessment.
-- [ ] 10.9 Run `npm run typecheck` and `npm test`, then record the plausible
-      ranges and the divergence threshold in `docs/product-decisions.md`.
+- [ ] 12.7 State a target, then change weight, activity, and goal in turn, and
+      confirm it survives all three.
+- [ ] 12.8 Switch InBody → DEXA → InBody and confirm nothing was lost.
+- [ ] 12.9 Switch a scan user to estimation and confirm they are asked for the
+      details estimation needs, and only then.
+- [ ] 12.10 Confirm an existing profile upgraded through the migration has an
+      unchanged target, tested against a populated database.
+- [ ] 12.11 Confirm no screen displays anything resembling an assessment.
+- [ ] 12.12 Run `npm run typecheck` and `npm test`, then record the plausible
+      ranges and the divergence thresholds in `docs/product-decisions.md`.

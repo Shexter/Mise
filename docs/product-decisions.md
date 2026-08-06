@@ -1950,8 +1950,8 @@ here competes with having anything to show.
 
 ## Where the calorie target comes from
 
-**164. A calorie target has three possible sources, and the existing one stays
-the default.** `SETTLED`
+**164. ~~A calorie target has three possible sources, and the existing one stays
+the default.~~** `SUPERSEDED BY 172`
 A personal trainer said onboarding does not ask enough to work out what someone
 needs, and the reason is structural. Mifflin-St Jeor's entire job is to *guess*
 body composition from height and weight, because that is all it has — two people
@@ -1967,7 +1967,7 @@ for everyone. A form asking everybody for a body fat percentage makes onboarding
 worse for almost all users in order to serve a few, which is the opposite of the
 feedback.
 
-**165. Body fat percentage is stored; lean mass is not.** `SETTLED`
+**165. ~~Body fat percentage is stored; lean mass is not.~~** `SUPERSEDED BY 173`
 Both DEXA and InBody print a lean figure, and they do not mean the same thing by
 it — DEXA separates lean soft tissue from bone mineral content, "fat-free mass"
 includes bone and "lean mass" often does not, and InBody uses its own vocabulary
@@ -2065,3 +2065,78 @@ The app is not equipped to referee that, and the user knows where their figure
 came from. So every computable estimate is shown side by side at the point of
 choosing, and the user chooses — which is also the only honest posture for a
 feature whose premise is that the user may know more than the form.
+
+## Energy sources, revised
+
+**172. Four sources, four entrances, and the regular onboarding does not
+change.** `SETTLED` — supersedes 164
+Decision 164 put a routing question inside onboarding. That was wrong: it added
+a screen to the flow that serves almost everyone, in order to serve the few who
+have a scan. The complaint that started this change was that the form does not
+fit the person, and lengthening it for everybody is the same mistake in the
+other direction.
+
+Instead the **entrance** carries the branch. The welcome screen offers a way in
+for a DEXA scan, an InBody, and an already-known figure, beside the existing
+one — which stays visually primary and behaviourally identical. Not one extra
+question, not one extra tap, on the path that already worked.
+
+`estimated | dexa | inbody | stated` is a closed set with total dispatch:
+`Record<TargetSource, Resolver>` fails to compile if a source is added without
+its logic. Same discipline `add-openai-provider` applies to transports, for the
+same reason — a missing branch should be a build failure, not a runtime default.
+
+**173. DEXA and InBody get separate flows, because they print different
+fields.** `SETTLED` — supersedes 165
+Decision 165 chose body fat percentage as the single stored field precisely
+because one shared screen could not tell the two machines apart. With separate
+flows that constraint disappears, and the better answer is to remove the
+ambiguity at the point of collection rather than dodge it.
+
+**DEXA** separates fat, lean soft tissue, and bone mineral content. Its "lean
+mass" usually excludes bone, so fat-free mass is lean plus BMC — several
+kilograms of difference. Its flow takes body fat percentage, or lean and BMC.
+
+**InBody** prints **fat-free mass directly**, under that name, and prints
+skeletal muscle mass beside it — smaller, different, and constantly confused
+with it. Its flow takes the printed fat-free mass as given.
+
+A shared screen asks a DEXA user to redo arithmetic their sheet already did,
+asks an InBody user to ignore the number printed in front of them, and leaves
+the app unable to tell which kind of figure it received. Each flow uses its own
+provider's vocabulary, because an InBody user should see "Fat Free Mass" — that
+is what their sheet says.
+
+InBody also prints its own BMR. Where a user offers it, it is recorded as a
+**stated resting figure** rather than as a measurement, so a device's estimate
+is never mistaken for something the app derived.
+
+**174. A measurement is kept per provider, and switching is non-destructive.** `SETTLED`
+At most one current measurement per provider — a bounded set of two rows, which
+is why it is not the composition history this change rules out. Nothing
+accumulates and nothing is charted.
+
+Switching InBody → DEXA → InBody is ordinary for someone who scans at a gym and
+gets a DEXA yearly. Destroying a figure on a switch would be a small betrayal
+for exactly the audience most likely to notice, and retaining both is what lets
+the app show what each would produce.
+
+Only the active provider computes the target. There is no honest way to
+reconcile a DEXA against an InBody, so the user picks which they trust.
+
+**175. A flow asks only for what its source needs, and better data earns a
+shorter form.** `SETTLED`
+Katch-McArdle is `370 + 21.6 × fatFreeMassKg`. It uses no sex, no age, no
+height, and grep confirms nothing else in the app computes with those three —
+they exist to feed Mifflin-St Jeor and to be displayed back.
+
+So the scan flows do not ask for them: weight, the scan's own fields, the date,
+activity, and goal. Five screens against the regular flow's seven. `sex`, `age`
+and `heightCm` become nullable, which is the largest mechanical risk here and is
+tracked as such.
+
+Stated as a principle rather than an optimisation: collecting three fields a
+scan user will never use, on the chance they later switch to estimation, is how
+a form gets long — and it would make the flow for people with *better* data
+longer than the default, which is exactly backwards. If they do switch later,
+the app asks then, once, at the moment it becomes necessary.

@@ -1,102 +1,169 @@
 ## Purpose
 
 Where the calorie target comes from, for people who already have better
-information than a form can collect — without making the form worse for
-everyone else, and without the app starting to evaluate anybody.
+information than a form can collect — with a separate way in for each kind of
+information, and without the regular onboarding changing at all.
 
 ## ADDED Requirements
 
-### Requirement: A calorie target has a recorded source
+### Requirement: The regular onboarding is unchanged
 
-The system SHALL record which of three sources produced the current calorie
-target: estimated from the profile, derived from a body-composition
-measurement, or stated by the user.
+The system SHALL keep the existing onboarding flow exactly as it is, and MUST
+NOT add, remove, or reorder any question in it.
 
-The source SHALL be visible to the user and SHALL be changeable.
+#### Scenario: The default path is identical
 
-#### Scenario: The source is recorded
+- **WHEN** a user completes the regular onboarding
+- **THEN** they answer the same questions, in the same order, as before
 
-- **WHEN** a calorie target is set
-- **THEN** the source that produced it is recorded
+#### Scenario: No routing question is inserted
 
-#### Scenario: The source is visible
+- **WHEN** the regular onboarding runs
+- **THEN** the user is not asked which source they want
 
-- **WHEN** the user views their calorie target
-- **THEN** they can see where it came from
+#### Scenario: The resulting target is unchanged
 
-#### Scenario: The source can be changed
+- **GIVEN** the same answers as before this change
+- **WHEN** the regular onboarding completes
+- **THEN** the calculated target is the same
 
-- **WHEN** the user changes the source
-- **THEN** the target is produced by the new source
+### Requirement: The entrance offers a separate way in per source
 
-### Requirement: The existing path stays the default and does not get longer
+The system SHALL present, at the entrance to onboarding, a distinct entry point
+for each supported source, with the regular flow as the primary one.
 
-The system SHALL keep estimation from the profile as the default source, and
-MUST NOT add required questions to that path.
+#### Scenario: Entry points are offered
 
-A user who does not have a measurement or a figure SHALL complete onboarding
-with no more steps than before, plus the single question that selects a source.
+- **WHEN** the entrance is shown
+- **THEN** a way in is offered for each supported source
 
-#### Scenario: The default path is unchanged
+#### Scenario: The regular flow is primary
 
-- **GIVEN** a user with no measurement and no figure
-- **WHEN** they complete onboarding
-- **THEN** they answer the same questions as before, plus the source question
+- **WHEN** the entrance is shown
+- **THEN** the regular flow is the most prominent option
 
-#### Scenario: The default is preselected
+#### Scenario: Choosing an entrance starts that flow
 
-- **WHEN** the source question is shown
-- **THEN** estimation from the profile is already selected
+- **WHEN** the user chooses a source's entry point
+- **THEN** that source's flow begins
 
-#### Scenario: Branch questions are not asked of the default path
+### Requirement: Each measurement provider has its own flow and its own fields
 
-- **GIVEN** the user chose estimation
-- **THEN** they are not asked for a body fat percentage or a stated figure
+The system SHALL provide a distinct flow per measurement provider, asking for
+the fields that provider prints, and SHALL derive fat-free mass with logic
+specific to that provider.
 
-### Requirement: A body-composition measurement derives resting energy from fat-free mass
+The system MUST NOT ask one provider's user for another provider's fields.
 
-Where the user supplies a body fat percentage, the system SHALL derive resting
-energy from fat-free mass rather than inferring composition from height and
-weight.
+#### Scenario: A provider is asked for what it prints
 
-The system SHALL record the weight at which the measurement was taken and the
-date it was taken.
+- **WHEN** a provider's flow runs
+- **THEN** it asks for fields that provider reports
 
-#### Scenario: A measurement produces a target
+#### Scenario: Derivation is provider-specific
 
-- **GIVEN** a body fat percentage, a measurement weight, and a date
-- **WHEN** the target is computed
-- **THEN** it is derived from fat-free mass
+- **GIVEN** two providers reporting equivalent information in different fields
+- **WHEN** fat-free mass is derived
+- **THEN** each is derived by its own provider's logic
 
-#### Scenario: The measurement date is required
+#### Scenario: A directly reported fat-free mass is used as reported
 
-- **WHEN** the user supplies a body fat percentage
-- **THEN** they are asked when it was measured
+- **GIVEN** a provider that reports fat-free mass directly
+- **WHEN** its flow runs
+- **THEN** the reported value is used
+- **AND** it is not recomputed from other fields
 
-#### Scenario: Activity and goal still apply
+#### Scenario: Bone mineral content is accounted for where it is reported separately
 
-- **WHEN** a target is derived from a measurement
-- **THEN** the activity level and the goal are applied to it
+- **GIVEN** a provider reporting lean tissue and bone mineral content separately
+- **WHEN** fat-free mass is derived
+- **THEN** both are accounted for
 
-#### Scenario: A measurement can be replaced
+#### Scenario: Adding a source without its logic is a build failure
 
-- **WHEN** the user supplies a newer measurement
+- **WHEN** a source is added to the supported set
+- **THEN** omitting its derivation is a compile-time error
+
+### Requirement: A flow asks only for what its source needs
+
+The system SHALL ask, in each flow, only for the inputs that source's
+calculation requires, and MUST NOT collect fields on the possibility of a later
+change of source.
+
+Where a later change of source requires inputs not previously collected, the
+system SHALL ask for them at that point.
+
+#### Scenario: A measured flow does not ask for unused details
+
+- **WHEN** a measurement flow runs
+- **THEN** it does not ask for details its calculation does not use
+
+#### Scenario: Switching later asks for what is newly needed
+
+- **GIVEN** a user whose source did not require some details
+- **WHEN** they change to a source that requires them
+- **THEN** they are asked for them at that point
+
+#### Scenario: Uncollected details are absent, not zero
+
+- **WHEN** a detail was never collected
+- **THEN** it is stored as absent
+- **AND** it is not stored as zero
+
+### Requirement: One measurement is retained per provider
+
+The system SHALL retain at most one current measurement per provider, and
+SHALL NOT discard one provider's measurement when another provider becomes
+active.
+
+#### Scenario: Switching provider preserves the previous measurement
+
+- **GIVEN** a measurement from one provider
+- **WHEN** the user switches to another provider
+- **THEN** the first measurement is retained
+
+#### Scenario: Switching back needs no re-entry
+
+- **GIVEN** measurements from two providers
+- **WHEN** the user switches back to the earlier one
+- **THEN** its measurement is used without being re-entered
+
+#### Scenario: A new measurement replaces its own provider's
+
+- **GIVEN** a measurement from a provider
+- **WHEN** a newer measurement from that same provider is entered
 - **THEN** it replaces the previous one
 
-### Requirement: Only the fields that compute something are stored
+#### Scenario: Only the active provider computes the target
 
-The system SHALL store body fat percentage, the weight at measurement, and the
-measurement date, and MUST NOT store or display other body-composition metrics.
+- **GIVEN** measurements from two providers
+- **WHEN** the target is computed
+- **THEN** only the active provider's measurement is used
 
-#### Scenario: Unused metrics are not collected
+### Requirement: The source and its inputs are changeable in settings
 
-- **WHEN** the user enters a measurement
-- **THEN** they are asked only for fields the target is computed from
+The system SHALL allow the user to change the active source, enter or replace a
+measurement, and change a stated figure, from settings.
 
-#### Scenario: No assessment is derived
+#### Scenario: The active source is changeable
 
-- **WHEN** a measurement is held
-- **THEN** no rating, score, or evaluation of the user's body is produced
+- **WHEN** the user changes the active source in settings
+- **THEN** the target is produced by the new source
+
+#### Scenario: A measurement is replaceable
+
+- **WHEN** the user enters a new measurement in settings
+- **THEN** it replaces that provider's previous one
+
+#### Scenario: Returning to estimation is possible
+
+- **WHEN** the user changes the source to estimation
+- **THEN** the target is estimated from the profile
+
+#### Scenario: The active source is visible
+
+- **WHEN** the user views their calorie target
+- **THEN** they can see which source produced it
 
 ### Requirement: A stated figure is qualified before it is used
 
@@ -112,44 +179,40 @@ represents — resting energy, total daily energy, or an already-adjusted target
 #### Scenario: A resting figure is scaled and adjusted
 
 - **GIVEN** a figure stated as resting energy
-- **WHEN** the target is computed
 - **THEN** the activity level and the goal are applied
 
 #### Scenario: A total figure is adjusted only
 
 - **GIVEN** a figure stated as total daily energy
-- **WHEN** the target is computed
 - **THEN** the goal is applied
 - **AND** the activity level is not applied again
 
 #### Scenario: An adjusted target is used as given
 
 - **GIVEN** a figure stated as an already-adjusted target
-- **WHEN** the target is computed
 - **THEN** the figure is used unchanged
 
-### Requirement: An implausible figure is questioned, never silently changed
+### Requirement: An implausible value is questioned, never silently changed
 
-Where a supplied figure or measurement falls outside a plausible range for the
-kind it was stated to be, the system SHALL tell the user and SHALL allow them to
-proceed.
+Where a supplied value falls outside a plausible range for what it claims to be,
+the system SHALL tell the user and SHALL allow them to proceed.
 
 The system MUST NOT silently adjust, clamp, or reject the value.
 
-#### Scenario: An implausible figure is flagged
+#### Scenario: An implausible value is flagged
 
-- **WHEN** a stated figure is outside the plausible range for its kind
+- **WHEN** a supplied value is outside the plausible range
 - **THEN** the user is told
 
 #### Scenario: The user may proceed anyway
 
-- **GIVEN** a flagged figure
+- **GIVEN** a flagged value
 - **WHEN** the user confirms it
 - **THEN** it is used as given
 
 #### Scenario: Nothing is silently clamped
 
-- **WHEN** a figure outside the range is accepted
+- **WHEN** an out-of-range value is accepted
 - **THEN** the stored value is the value the user gave
 
 #### Scenario: A very low target is flagged prominently
@@ -157,32 +220,31 @@ The system MUST NOT silently adjust, clamp, or reject the value.
 - **WHEN** a resulting target falls below the app's minimum
 - **THEN** the user is told before it is applied
 
-### Requirement: Every computable estimate is shown when the source is chosen
+### Requirement: Every computable estimate is shown when choosing a source
 
 Where more than one source can produce a target, the system SHALL show what each
 would produce at the point the user chooses between them.
 
 #### Scenario: Alternatives are shown
 
-- **GIVEN** the profile can produce an estimate
-- **WHEN** the user states a figure
-- **THEN** the estimate from the profile is also shown
+- **WHEN** the user changes source
+- **THEN** what each available source would produce is shown
 
 #### Scenario: The user's choice is not overridden
 
-- **GIVEN** a stated figure differing from the app's estimate
+- **GIVEN** a chosen source differing from another available one
 - **WHEN** the target is set
-- **THEN** the stated figure is used
+- **THEN** the chosen source is used
 
 #### Scenario: An uncomputable source is not shown as zero
 
 - **WHEN** a source cannot be computed
 - **THEN** no figure is shown for it
 
-### Requirement: Recalculation respects the source
+### Requirement: Recalculation respects the active source
 
 Where the profile changes, the system SHALL recompute the target only where the
-recorded source derives it, and MUST NOT overwrite a stated figure.
+active source derives it, and MUST NOT overwrite a stated figure.
 
 #### Scenario: A stated target survives an unrelated edit
 
@@ -192,15 +254,15 @@ recorded source derives it, and MUST NOT overwrite a stated figure.
 
 #### Scenario: An estimated target still recalculates
 
-- **GIVEN** a target estimated from the profile
+- **GIVEN** an estimated target
 - **WHEN** the user changes their weight
 - **THEN** the target is recomputed
 
-#### Scenario: A derived target recalculates from the measurement
+#### Scenario: A measured target recalculates from its measurement
 
-- **GIVEN** a target derived from a measurement
+- **GIVEN** a measured target
 - **WHEN** the user changes their activity level
-- **THEN** the target is recomputed from the measurement
+- **THEN** the target is recomputed from that provider's measurement
 
 #### Scenario: Past days keep their target
 
@@ -229,6 +291,21 @@ reliable and SHALL offer to update the measurement.
 
 - **WHEN** the user supplies a current measurement
 - **THEN** the disclosure is no longer shown
+
+### Requirement: Only the fields that compute something are stored
+
+The system SHALL store only the measurement fields a calorie target is computed
+from, and MUST NOT store or display other body-composition metrics.
+
+#### Scenario: Unused metrics are not collected
+
+- **WHEN** a measurement is entered
+- **THEN** only fields the target is computed from are asked for
+
+#### Scenario: No assessment is derived
+
+- **WHEN** a measurement is held
+- **THEN** no rating, score, or evaluation of the user's body is produced
 
 ### Requirement: The app computes a target and evaluates nobody
 

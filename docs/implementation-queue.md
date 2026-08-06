@@ -81,7 +81,7 @@ Depletion accuracy compounds into stock status, expiry buckets, and suggestions.
 The sticky default is mediocre rather than broken, which is why it sits here
 rather than higher.
 
-### 6. `add-energy-sources` — 54
+### 6. `add-energy-sources` — 89
 
 The only item in this queue driven by outside feedback: a personal trainer said
 onboarding does not ask enough to work out what someone needs. Body-scan and
