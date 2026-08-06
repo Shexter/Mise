@@ -235,6 +235,91 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 7 gains dietary_rules and canonical_derivatives', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 7);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('milk', 'Milk', 'dairy', 'fridge', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('butter', 'Butter', 'dairy', 'fridge', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 7, LATEST_VERSION);
+
+    const tables = tableNames(db);
+    expect(tables).toContain('dietary_rules');
+    expect(tables).toContain('canonical_derivatives');
+
+    db.prepare(
+      `INSERT INTO dietary_rules (id, kind, canonical_id, text, normalised_text, created_at)
+       VALUES ('r1', 'allergen', 'milk', 'Milk', 'milk', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO canonical_derivatives (parent_id, child_id) VALUES ('milk', 'butter')`,
+    ).run();
+
+    const rule = db
+      .prepare('SELECT kind, canonical_id FROM dietary_rules WHERE id = ?')
+      .get('r1') as { kind: string; canonical_id: string };
+    expect(rule.kind).toBe('allergen');
+    expect(rule.canonical_id).toBe('milk');
+
+    const edge = db
+      .prepare('SELECT parent_id, child_id FROM canonical_derivatives WHERE parent_id = ?')
+      .get('milk') as { parent_id: string; child_id: string };
+    expect(edge.child_id).toBe('butter');
+
+    // The uniqueness constraint on the pair.
+    expect(() =>
+      db
+        .prepare(`INSERT INTO canonical_derivatives (parent_id, child_id) VALUES ('milk', 'butter')`)
+        .run(),
+    ).toThrow();
+    db.close();
+  });
+
+  test('an install at user_version 8 gains alias_bigrams, backfilled for non-Latin aliases only', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 8);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('oyster-sauce', 'Oyster sauce', 'condiment', 'pantry', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO item_aliases (id, alias_norm, alias_raw, canonical_id, source, created_at)
+       VALUES ('a1', '蠔油', '蠔油', 'oyster-sauce', 'seed', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO item_aliases (id, alias_norm, alias_raw, canonical_id, source, created_at)
+       VALUES ('a2', 'oyster sauce', 'Oyster sauce', 'oyster-sauce', 'seed', '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 8, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('alias_bigrams');
+
+    // Backfilled for the pre-existing non-Latin alias: padded bigrams of
+    // "蠔油" are " 蠔", "蠔油", "油 ".
+    const cjkGrams = (
+      db.prepare('SELECT bigram FROM alias_bigrams WHERE alias_id = ? ORDER BY bigram').all('a1')
+    ).map((row) => (row as { bigram: string }).bigram);
+    expect(cjkGrams).toEqual([' 蠔', '油 ', '蠔油']);
+
+    // Never backfilled for a Latin alias — the Latin prefilter already
+    // covers it, and giving it rows here would be dead weight.
+    const latinGrams = db
+      .prepare('SELECT COUNT(*) AS n FROM alias_bigrams WHERE alias_id = ?')
+      .get('a2') as { n: number };
+    expect(latinGrams.n).toBe(0);
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

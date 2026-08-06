@@ -53,6 +53,7 @@ export const ONBOARDING_STEPS = [
   'activity',
   'goal',
   'api-key',
+  'dietary',
   'results',
 ] as const;
 

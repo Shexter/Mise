@@ -2,6 +2,7 @@ import { subDays } from 'date-fns';
 import { randomUUID } from 'expo-crypto';
 
 import canonicalSeed from '../../assets/canonical-items.json';
+import derivativeSeed from '../../assets/canonical-derivatives.json';
 import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
@@ -14,6 +15,7 @@ import {
 import type { Decrement } from '@/logic/deplete';
 import { macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
+import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
 import type {
   CanonicalItem,
@@ -25,6 +27,8 @@ import type {
   ConsumptionEvent,
   ConsumptionKind,
   DailyTarget,
+  DietaryRule,
+  DietaryRuleKind,
   ExpirySource,
   FoodClass,
   Fullness,
@@ -640,18 +644,28 @@ interface AliasSeedEntry {
   locale?: string;
 }
 
+interface DerivativeSeedEntry {
+  parent: string;
+  child: string;
+}
+
 /**
- * Loads the shipped canonical ingredients and aliases. Idempotent: canonicals
- * are keyed on their slug and aliases on the unique `(alias_norm,
- * canonical_id)` pair, so re-running after a seed-version bump inserts only
- * what is new and never duplicates what is there. Each canonical's display
- * name is also registered as an alias so the display name itself always
- * resolves.
+ * Loads the shipped canonical ingredients, aliases, and derivative edges.
+ * Idempotent: canonicals are keyed on their slug, aliases on the unique
+ * `(alias_norm, canonical_id)` pair, and derivative edges on the
+ * `(parent_id, child_id)` primary key — so re-running after a catalogue
+ * update inserts only what is new and never duplicates what is there. There
+ * is no separate "catalogue version" to bump (confirmed by reading this
+ * function before touching it, per task 3.4): this already runs on every
+ * app launch (`src/db/index.ts`), so a JSON edit alone is what an existing
+ * install needs to pick up new edges. Each canonical's display name is also
+ * registered as an alias so the display name itself always resolves.
  */
 export async function loadSeedData(): Promise<void> {
   const now = new Date().toISOString();
   const canonicals = canonicalSeed as CanonicalSeedEntry[];
   const aliases = aliasSeed as AliasSeedEntry[];
+  const derivatives = derivativeSeed as DerivativeSeedEntry[];
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     for (const entry of canonicals) {
@@ -700,6 +714,28 @@ export async function loadSeedData(): Promise<void> {
           now,
         ],
       );
+    }
+
+    for (const entry of derivatives) {
+      await txn.runAsync(
+        `INSERT OR IGNORE INTO canonical_derivatives (parent_id, child_id) VALUES (?, ?)`,
+        [entry.parent, entry.child],
+      );
+    }
+
+    // `INSERT OR IGNORE` above means a conflicting alias keeps its original
+    // row and id — the freshly generated id in the VALUES clause was never
+    // written. A backfill pass over every non-Latin alias, rather than
+    // trying to track insert-vs-ignore per row, is what actually gets this
+    // right: idempotent (each call checks for existing rows first), and it
+    // self-heals any alias — seeded or user-added — that predates this
+    // migration.
+    const nonLatinAliases = await txn.getAllAsync<{
+      id: string;
+      alias_norm: string;
+    }>(`SELECT id, alias_norm FROM item_aliases WHERE alias_norm GLOB '*[^ -~]*'`, []);
+    for (const row of nonLatinAliases) {
+      await ensureAliasBigrams(txn, row.id, row.alias_norm);
     }
   });
 }
@@ -755,11 +791,19 @@ export async function getBestAliasByNorm(
 }
 
 /**
- * The candidate prefilter for approximate matching: aliases sharing the
- * reference's first trigram or any whole token. Bounds the set scored in
- * TypeScript so a lookup never scans the whole table.
+ * The candidate prefilter for approximate matching. Branches on script
+ * (decision 67, task 5.4): a CJK reference often shares no whole token and
+ * its first three characters are frequently the entire string, so the
+ * Latin prefilter below can withhold the correct candidate from the scorer
+ * even when the scorer itself would rank it well — the risk `design.md`
+ * calls out as worse than a slow scorer. For CJK, aliases sharing any
+ * bigram with the reference are retrieved instead, via `alias_bigrams`.
  */
 export async function getCandidateAliases(norm: string): Promise<ItemAlias[]> {
+  if (dominantScript(norm) !== 'latin') {
+    return getCjkCandidateAliases(norm);
+  }
+
   const clauses: string[] = [];
   const params: string[] = [];
 
@@ -782,6 +826,54 @@ export async function getCandidateAliases(norm: string): Promise<ItemAlias[]> {
     params,
   );
   return rows.map(toItemAlias);
+}
+
+/**
+ * The bigram-based prefilter for non-Latin references. Whole-string
+ * padded bigrams, not the mixed-script token segmentation `similarity.ts`
+ * uses for scoring — retrieval only needs one shared bigram to surface a
+ * candidate, so the coarser computation is sufficient and keeps this
+ * function independent of the scorer's internals.
+ */
+async function getCjkCandidateAliases(norm: string): Promise<ItemAlias[]> {
+  const grams = [...bigrams(norm)];
+  if (grams.length === 0) return [];
+
+  const placeholders = grams.map(() => '?').join(', ');
+  const rows = await db().getAllAsync<ItemAliasRow>(
+    `SELECT DISTINCT ia.* FROM item_aliases ia
+     JOIN alias_bigrams ab ON ab.alias_id = ia.id
+     WHERE ab.bigram IN (${placeholders})
+     LIMIT 200`,
+    grams,
+  );
+  return rows.map(toItemAlias);
+}
+
+/**
+ * Backfills `alias_bigrams` for one alias, if it does not have rows yet.
+ * Called after every write to `item_aliases` that could be non-Latin —
+ * seed load, write-back, and user confirmation — so a reference resolved
+ * only once still becomes locally retrievable next time (task 5.3). Skips
+ * pure-Latin aliases, which the Latin prefilter already covers.
+ */
+async function ensureAliasBigrams(
+  runner: TransactionHandle,
+  aliasId: string,
+  aliasNorm: string,
+): Promise<void> {
+  if (dominantScript(aliasNorm) === 'latin') return;
+  const existing = await runner.getFirstAsync<{ hit: number }>(
+    'SELECT 1 as hit FROM alias_bigrams WHERE alias_id = ? LIMIT 1',
+    [aliasId],
+  );
+  if (existing) return;
+  for (const gram of bigrams(aliasNorm)) {
+    await runner.runAsync(
+      'INSERT INTO alias_bigrams (alias_id, bigram) VALUES (?, ?)',
+      [aliasId, gram],
+    );
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -858,6 +950,7 @@ export interface NewItemAlias {
  * a confirmation rather than creating a duplicate.
  */
 export async function recordAlias(alias: NewItemAlias): Promise<void> {
+  const norm = normalise(alias.aliasRaw);
   await db().runAsync(
     `INSERT INTO item_aliases
        (id, alias_norm, alias_raw, canonical_id, source, locale,
@@ -869,7 +962,7 @@ export async function recordAlias(alias: NewItemAlias): Promise<void> {
        source = CASE WHEN excluded.source = 'user' THEN 'user' ELSE source END`,
     [
       randomUUID(),
-      normalise(alias.aliasRaw),
+      norm,
       alias.aliasRaw,
       alias.canonicalId,
       alias.source,
@@ -878,6 +971,16 @@ export async function recordAlias(alias: NewItemAlias): Promise<void> {
       new Date().toISOString(),
     ],
   );
+
+  // The upsert above may have kept an existing row's original id rather
+  // than the one just generated (`ON CONFLICT` never touches `id`) — look
+  // it up rather than assume, so a non-Latin write-back is retrievable by
+  // the next unseeded sighting of the same reference (task 5.3).
+  const row = await db().getFirstAsync<{ id: string }>(
+    'SELECT id FROM item_aliases WHERE alias_norm = ? AND canonical_id = ?',
+    [norm, alias.canonicalId],
+  );
+  if (row) await ensureAliasBigrams(db(), row.id, norm);
 }
 
 /**
@@ -906,6 +1009,12 @@ export async function recordUserResolution(
          source = 'user'`,
       [randomUUID(), norm, aliasRaw, canonicalId, new Date().toISOString()],
     );
+
+    const row = await txn.getFirstAsync<{ id: string }>(
+      'SELECT id FROM item_aliases WHERE alias_norm = ? AND canonical_id = ?',
+      [norm, canonicalId],
+    );
+    if (row) await ensureAliasBigrams(txn, row.id, norm);
   });
 }
 
@@ -1836,6 +1945,14 @@ interface CachedPayload {
   stretch: StretchPlan | null;
   /** Absent on rows cached before task 11 shipped — treated as zero. */
   droppedForConstraint?: number;
+  /**
+   * Absent on rows cached before `add-dish-scorer` shipped. Falls back to
+   * `suggestions` itself (design's rollback note: a pool equal to the
+   * displayed count degrades to a same-three reorder, not a break).
+   */
+  pool?: Suggestion[];
+  /** Absent on rows cached before `add-dietary-profile` shipped — treated as zero. */
+  droppedForDiet?: number;
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -1849,6 +1966,8 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     stretch: payload.stretch,
     createdAt: row.created_at,
     droppedForConstraint: payload.droppedForConstraint ?? 0,
+    pool: payload.pool ?? payload.suggestions,
+    droppedForDiet: payload.droppedForDiet ?? 0,
   };
 }
 
@@ -1883,10 +2002,12 @@ export async function saveSuggestionCache(
   suggestions: Suggestion[],
   stretch: StretchPlan | null,
   droppedForConstraint: number,
+  pool: Suggestion[],
+  droppedForDiet: number,
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint };
+  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint, pool, droppedForDiet };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -1900,7 +2021,18 @@ export async function saveSuggestionCache(
     );
   });
 
-  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt, droppedForConstraint };
+  return {
+    id,
+    localDate,
+    mode,
+    fingerprint,
+    suggestions,
+    stretch,
+    createdAt,
+    droppedForConstraint,
+    pool,
+    droppedForDiet,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2281,4 +2413,107 @@ async function predictExpiryWithin(
     purchasedAt,
     null,
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dietary profile                                                            */
+/* -------------------------------------------------------------------------- */
+
+interface DietaryRuleRow {
+  id: string;
+  kind: string;
+  canonical_id: string | null;
+  text: string;
+  normalised_text: string;
+  created_at: string;
+}
+
+function toDietaryRule(row: DietaryRuleRow): DietaryRule {
+  return {
+    id: row.id,
+    kind: row.kind as DietaryRuleKind,
+    canonicalId: row.canonical_id,
+    text: row.text,
+    normalisedText: row.normalised_text,
+    createdAt: row.created_at,
+  };
+}
+
+export interface NewDietaryRule {
+  kind: DietaryRuleKind;
+  canonicalId: string | null;
+  text: string;
+  normalisedText: string;
+}
+
+export async function createDietaryRule(input: NewDietaryRule): Promise<DietaryRule> {
+  const id = randomUUID();
+  const createdAt = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO dietary_rules (id, kind, canonical_id, text, normalised_text, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, input.kind, input.canonicalId, input.text, input.normalisedText, createdAt],
+  );
+  return { id, kind: input.kind, canonicalId: input.canonicalId, text: input.text, normalisedText: input.normalisedText, createdAt };
+}
+
+export async function listDietaryRules(): Promise<DietaryRule[]> {
+  const rows = await db().getAllAsync<DietaryRuleRow>(
+    'SELECT * FROM dietary_rules ORDER BY created_at ASC',
+  );
+  return rows.map(toDietaryRule);
+}
+
+/** Changing a rule's kind changes only its enforcement policy — the text and resolution stand. */
+export async function updateDietaryRuleKind(
+  id: string,
+  kind: DietaryRuleKind,
+): Promise<void> {
+  await db().runAsync('UPDATE dietary_rules SET kind = ? WHERE id = ?', [kind, id]);
+}
+
+export async function deleteDietaryRule(id: string): Promise<void> {
+  await db().runAsync('DELETE FROM dietary_rules WHERE id = ?', [id]);
+}
+
+/**
+ * Every canonical id derived from any of `canonicalIds`, transitively,
+ * including the seeds themselves. A recursive query per seed rather than a
+ * stored closure (design: "the graph is tiny and shallow") — plain `UNION`
+ * (not `UNION ALL`) drops a row the moment its id has already appeared, so a
+ * cyclical edit to the catalogue terminates instead of hanging (task 3.6).
+ */
+export async function expandDerivatives(
+  canonicalIds: readonly string[],
+): Promise<Set<string>> {
+  const result = new Set<string>();
+  for (const seed of canonicalIds) {
+    const rows = await db().getAllAsync<{ id: string }>(
+      `WITH RECURSIVE closure(id) AS (
+         SELECT ?
+         UNION
+         SELECT cd.child_id FROM canonical_derivatives cd
+         JOIN closure ON cd.parent_id = closure.id
+       )
+       SELECT id FROM closure`,
+      [seed],
+    );
+    for (const row of rows) result.add(row.id);
+  }
+  return result;
+}
+
+/**
+ * Every derivative edge, flat. The graph is small enough to load whole
+ * (design.md: "tiny and shallow") — `src/logic/dietary.ts`'s `expandRules`
+ * is the pure function that actually walks it, so a rule set can be
+ * expanded without a database in a test.
+ */
+export async function listDerivativeEdges(): Promise<
+  { parentId: string; childId: string }[]
+> {
+  const rows = await db().getAllAsync<{ parent_id: string; child_id: string }>(
+    'SELECT parent_id, child_id FROM canonical_derivatives',
+  );
+  return rows.map((row) => ({ parentId: row.parent_id, childId: row.child_id }));
 }

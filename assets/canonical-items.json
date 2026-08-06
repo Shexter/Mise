@@ -908,5 +908,114 @@
     "openLifeDays": null,
     "typicalUseQty": 6,
     "typicalUseUnit": "piece"
+  },
+  {
+    "id": "peanut",
+    "displayName": "Peanuts",
+    "class": "protein",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 180
+    },
+    "openLifeDays": 60,
+    "typicalUseQty": 30,
+    "typicalUseUnit": "g",
+    "typicalPkgQty": 340,
+    "typicalPkgUnit": "g"
+  },
+  {
+    "id": "tree-nut",
+    "displayName": "Tree nuts",
+    "class": "protein",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 180
+    },
+    "openLifeDays": 60,
+    "typicalUseQty": 30,
+    "typicalUseUnit": "g",
+    "typicalPkgQty": 300,
+    "typicalPkgUnit": "g"
+  },
+  {
+    "id": "wheat",
+    "displayName": "Wheat",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": 240,
+    "typicalUseQty": 100,
+    "typicalUseUnit": "g",
+    "typicalPkgQty": 1000,
+    "typicalPkgUnit": "g"
+  },
+  {
+    "id": "soy",
+    "displayName": "Soy",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": 180,
+    "typicalUseQty": 100,
+    "typicalUseUnit": "g",
+    "typicalPkgQty": 500,
+    "typicalPkgUnit": "g"
+  },
+  {
+    "id": "sesame",
+    "displayName": "Sesame seeds",
+    "class": "seasoning",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": 180,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tbsp"
+  },
+  {
+    "id": "fish",
+    "displayName": "Fish",
+    "class": "protein",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 2,
+      "freezer": 180
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 150,
+    "typicalUseUnit": "g"
+  },
+  {
+    "id": "shellfish",
+    "displayName": "Shellfish",
+    "class": "protein",
+    "defaultLocation": "freezer",
+    "shelfLifeDays": {
+      "fridge": 2,
+      "freezer": 180
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 150,
+    "typicalUseUnit": "g"
+  },
+  {
+    "id": "tahini",
+    "displayName": "Tahini",
+    "class": "condiment",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": 90,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tbsp",
+    "typicalPkgQty": 400,
+    "typicalPkgUnit": "g",
+    "densityGPerMl": 1.03
   }
 ]

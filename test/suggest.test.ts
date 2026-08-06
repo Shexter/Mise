@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { parseSuggestResponse } from '../src/api/suggest';
 import { buildSuggestUserPrompt } from '../src/api/suggestPrompt';
+import type { ExclusionSet } from '../src/logic/dietary';
 import { KITCHENS } from '../src/logic/__fixtures__/kitchens';
 import { bucketStock, shapeStockPayload, summarisePersonalisation } from '../src/logic/suggest';
 
@@ -11,6 +12,9 @@ import { bucketStock, shapeStockPayload, summarisePersonalisation } from '../src
  * honest risk here is boredom, not a crash, and nothing that only checks
  * for exceptions catches four days of stir fry.
  */
+
+/** No dietary rules recorded — every test here is unaffected by `add-dietary-profile`. */
+const EMPTY_EXCLUSION: ExclusionSet = { canonicalIds: new Set(), unresolvedText: new Set() };
 
 function payloadFor(kitchen: (typeof KITCHENS)[number]) {
   const canonicals = new Map(kitchen.canonicals.map((c) => [c.id, c]));
@@ -28,7 +32,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
       expect(result.suggestions.length, kitchen.name).toBeGreaterThan(0);
     }
   });
@@ -41,7 +45,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
 
       for (const suggestion of result.suggestions) {
         const usesUrgent = suggestion.uses.some((use) => useFirstIds.has(use.canonicalId));
@@ -58,7 +62,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
     const candidateIds = new Set(
       [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
     );
-    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
@@ -68,7 +72,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
       const recentlyEaten = new Set(personalisation.recentlyEaten);
 
       for (const suggestion of result.suggestions) {
@@ -83,7 +87,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
     const candidateIds = new Set(
       [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
     );
-    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
 
     // At least one dish resembles the frequent "Gochujang pork stir-fry",
     // and at least one departs from it — asserted on the reason tags,
@@ -104,7 +108,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
       for (const suggestion of result.suggestions) {
         expect(suggestion.reasons.length, `${kitchen.name}: ${suggestion.dish}`).toBeGreaterThan(0);
       }
@@ -120,6 +124,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       personalisation,
       remainingCalories: 800,
       macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      dietaryRules: [],
     });
     const parsed = JSON.parse(prompt) as { use_first: unknown[] };
     expect(parsed.use_first.length).toBeGreaterThan(0);
@@ -146,7 +151,7 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds, new Set());
+    const result = parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false);
     expect(result.suggestions.length).toBe(1);
     expect(result.suggestions[0]?.uses).toEqual([{ canonicalId: 'real-id', qty: 1, unit: 'g' }]);
   });
@@ -177,7 +182,7 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds, new Set());
+    const result = parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false);
     expect(result.suggestions.map((s) => s.dish)).toEqual(['Real dish']);
   });
 
@@ -197,14 +202,101 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds, new Set());
+    const result = parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false);
     expect(result.suggestions[0]?.missing).toEqual([
       { canonicalId: null, name: 'egg', note: null },
     ]);
   });
 
   test('prose instead of JSON throws so the caller can fail the batch, not the app', () => {
-    expect(() => parseSuggestResponse('Sorry, I cannot help.', new Set(), new Set())).toThrow();
+    expect(() => parseSuggestResponse('Sorry, I cannot help.', new Set(), new Set(), EMPTY_EXCLUSION, false)).toThrow();
+  });
+});
+
+describe('parseSuggestResponse — dietary exclusion runs after use-first (add-dietary-profile task 6.2/6.3)', () => {
+  function suggestionOf(dish: string, canonicalId: string) {
+    return {
+      dish,
+      reason_tags: ['uses what is on hand'],
+      kcal_per_serving: 400,
+      servings: 1,
+      effort_minutes: 10,
+      uses: [{ canonical_id: canonicalId, qty: 1, unit: 'g' }],
+      missing: [],
+      method: [],
+    };
+  }
+
+  test('an allergen match is dropped and counted separately from a use-first drop', () => {
+    const candidateIds = new Set(['urgent-id', 'allergen-id', 'other-id']);
+    const useFirstIds = new Set(['urgent-id']);
+    const exclusionSet: ExclusionSet = {
+      canonicalIds: new Set(['allergen-id']),
+      unresolvedText: new Set(),
+    };
+    // The third suggestion clears use-first (so it survives the first
+    // drop) and also contains the allergen (so the second drop catches it).
+    const raw = JSON.stringify({
+      suggestions: [
+        suggestionOf('Uses the urgent item', 'urgent-id'),
+        suggestionOf('Ignores the urgent item', 'other-id'),
+        {
+          dish: 'Contains the allergen and the urgent item',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [
+            { canonical_id: 'urgent-id', qty: 1, unit: 'g' },
+            { canonical_id: 'allergen-id', qty: 1, unit: 'g' },
+          ],
+          missing: [],
+          method: [],
+        },
+      ],
+    });
+
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, exclusionSet, false);
+
+    expect(result.suggestions.map((s) => s.dish)).toEqual(['Uses the urgent item']);
+    expect(result.droppedForConstraint).toBe(1); // "Ignores the urgent item"
+    expect(result.droppedForDiet).toBe(1); // "Contains the allergen..."
+  });
+
+  test('an unresolved missing ingredient excludes only when an allergen rule is recorded', () => {
+    const candidateIds = new Set(['real-id']);
+    const raw = JSON.stringify({
+      suggestions: [
+        {
+          dish: 'Names an uncatalogued ingredient',
+          reason_tags: ['uses what is on hand'],
+          kcal_per_serving: 400,
+          servings: 1,
+          effort_minutes: 10,
+          uses: [{ canonical_id: 'real-id', qty: 1, unit: 'g' }],
+          missing: [{ canonical_id: null, name: 'seafood stock', note: null }],
+          method: [],
+        },
+      ],
+    });
+
+    // With an allergen rule recorded, the one suggestion is excluded and
+    // nothing survives — the same "nothing usable" failure as any other
+    // fully-excluded pool.
+    expect(() =>
+      parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, true),
+    ).toThrow();
+
+    // With no allergen rule, the same unresolved ingredient is not treated
+    // as unsafe, and the suggestion survives.
+    const withoutAllergen = parseSuggestResponse(
+      raw,
+      candidateIds,
+      new Set(),
+      EMPTY_EXCLUSION,
+      false,
+    );
+    expect(withoutAllergen.suggestions).toHaveLength(1);
   });
 });
 
@@ -232,7 +324,7 @@ describe('parseSuggestResponse — the use-first constraint is enforced locally 
       ],
     });
 
-    const result = parseSuggestResponse(raw, candidateIds, useFirstIds);
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
 
     expect(result.suggestions.map((s) => s.dish)).toEqual(['Uses the urgent item']);
     expect(result.droppedForConstraint).toBe(1);
@@ -244,7 +336,7 @@ describe('parseSuggestResponse — the use-first constraint is enforced locally 
       suggestions: [suggestionOf('Anything goes', 'other-id')],
     });
 
-    const result = parseSuggestResponse(raw, candidateIds, new Set());
+    const result = parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false);
 
     expect(result.suggestions.map((s) => s.dish)).toEqual(['Anything goes']);
     expect(result.droppedForConstraint).toBe(0);
@@ -257,6 +349,6 @@ describe('parseSuggestResponse — the use-first constraint is enforced locally 
       suggestions: [suggestionOf('Ignores it entirely', 'other-id')],
     });
 
-    expect(() => parseSuggestResponse(raw, candidateIds, useFirstIds)).toThrow();
+    expect(() => parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false)).toThrow();
   });
 });

@@ -108,30 +108,37 @@ sharing their convention of dropping rather than repairing. That convention was
 argued independently for decision 136 and lands in the same place, which is
 some evidence it is the right one.
 
-### Dislikes have nowhere to be a weight, and that is fine
+### Dislikes are a term in `add-dish-scorer`'s scorer
 
-The plan originally said a dislike would be a negative weight in the suggestion
-scorer. There is no suggestion scorer. `src/logic/suggest.ts` ranks *stock
-items* to shape the payload; the dishes come back from the model in an order
-nothing local touches.
+`add-dish-scorer` has since shipped (decision 176). The plan originally
+written here assumed no such scorer would exist by the time this change
+landed and proposed a standalone local reorder instead; that assumption is
+now false, and building a second ranking mechanism beside a real one would
+duplicate `dishScore.ts`'s job rather than use it. Corrected in place —
+superseded, not left standing, per the same practice decision 149 itself
+was recorded under.
 
-So a dislike gets two mechanisms instead, neither of which is a filter: it is
-named in the prompt, and the returned suggestions are reordered locally so a
-dish containing a disliked ingredient sinks. With three suggestions, reordering
-is a comparison and a sort.
+A dislike becomes a seventh named term in `scoreDish`: a flat penalty
+(mirroring the existing recency penalty's shape) when a suggestion's `uses`
+intersects the disliked-ingredient set, expanded through the same derivative
+closure exclusion uses. Named constant, weighted like every other term,
+measured against the fixture corpus the same way decision 176 measured the
+first six.
 
-*Why not build the scorer:* it is genuinely tempting — a dish ranker is missing
-and will eventually be wanted, and `add-suggestion-templates` assumes one exists
-(its decision 124 is wrong on this point and is corrected). But introducing the
-app's most consequential ranking surface as a side effect of a preferences
-feature would ship it untuned, unmeasured, and justified by a single weight. A
-scorer is its own change with its own evidence.
+*Why extend rather than build a parallel mechanism:* one ranking surface,
+one place to explain "why did this dish appear," and no risk of the two
+disagreeing about order. `selectDisplayed`'s variety floor and re-sort
+already apply to whatever `scoreDish` produces, so a disliked dish
+correctly still shows if it is the only thing left — the floor does not
+know or care why a term is negative.
 
-*What survives from decision 106:* everything that mattered. A dislike loses a
-close contest and never deletes a candidate, and a dish using the mushrooms that
-expire tomorrow can still be offered to someone lukewarm on mushrooms — because
-the use-first constraint runs before the reorder and the reorder cannot remove
-anything.
+*What survives from decision 106:* everything that mattered. A dislike
+loses a scoring contest and never deletes a candidate — it is a weight
+like value-at-risk or effort, not a filter — and a dish using the
+mushrooms that expire tomorrow can still be offered to someone lukewarm on
+mushrooms, because the use-first constraint still runs as an upstream drop,
+before any scoring, and a weight can never override it (decision 163's
+"absolutes are not weights" argument, unchanged).
 
 ### Unknown excludes, for allergens only
 
@@ -145,21 +152,6 @@ a lost suggestion.
 Scoping it to allergens is what keeps it affordable. Applying it to dislikes
 would mean an unresolved ingredient costs a suggestion for a user who merely
 does not care for coriander, which is attrition with no payoff.
-
-### Dislikes are a ranking term in the existing scorer
-
-A negative weight in `add-dinner-decision`'s urgency scoring rather than a
-separate filter stage.
-
-*Why:* decision 33 puts three suggestions in front of the user. Removing
-candidates from a pool that small collapses it, and decision 34's use-first
-constraint has already narrowed it once. A dislike should lose a close contest,
-not win an argument with an expiring ingredient.
-
-*Interaction worth naming:* a strongly-weighted dislike and a high value at risk
-will sometimes disagree, and value at risk should sometimes win — a dish using
-the mushrooms that expire tomorrow is a reasonable thing to offer someone who is
-lukewarm on mushrooms. Which is the whole reason it is a weight.
 
 ### Rules resolve through `resolve()`, with a text fallback
 

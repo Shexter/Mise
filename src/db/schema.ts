@@ -306,6 +306,76 @@ ALTER TABLE pantry_items ADD COLUMN receipt_line_id TEXT REFERENCES receipt_line
 CREATE INDEX idx_pantry_items_receipt_line ON pantry_items(receipt_line_id);
 `;
 
+/**
+ * Migration 8: the dietary profile. `dietary_rules` holds what the user
+ * cannot or will not eat — kind is stored, never inferred (decision: only
+ * the user knows whether "no pork" is a restriction or a dislike).
+ * `canonical_derivatives` is the general parent/child fact ("butter is
+ * derived from milk") that exclusion walks transitively at read time; the
+ * graph is small enough that a stored closure would be maintenance for no
+ * measurable gain. Both tables are additive — no existing table changes,
+ * and a user who records no rules sees no behaviour anywhere (design.md).
+ */
+const DIETARY_PROFILE = `
+CREATE TABLE dietary_rules (
+  id              TEXT PRIMARY KEY,
+  kind            TEXT NOT NULL,
+  canonical_id    TEXT REFERENCES canonical_items(id),
+  text            TEXT NOT NULL,
+  normalised_text TEXT NOT NULL,
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX idx_dietary_rules_kind ON dietary_rules(kind);
+
+CREATE TABLE canonical_derivatives (
+  parent_id TEXT NOT NULL REFERENCES canonical_items(id) ON DELETE CASCADE,
+  child_id  TEXT NOT NULL REFERENCES canonical_items(id) ON DELETE CASCADE,
+  PRIMARY KEY (parent_id, child_id)
+);
+
+CREATE INDEX idx_canonical_derivatives_parent ON canonical_derivatives(parent_id);
+CREATE INDEX idx_canonical_derivatives_child ON canonical_derivatives(child_id);
+`;
+
+/**
+ * Migration 9: CJK candidate retrieval (decision 67, `add-cjk-matching`).
+ * `getCandidateAliases`'s existing prefilter matches on a shared first
+ * trigram or whole token — a CJK reference often has neither, so the
+ * correct alias could be scored-worthy and still never reach the scorer.
+ * `alias_bigrams` is a bigram key per alias, queried instead of the
+ * trigram/token prefilter whenever the reference is not Latin.
+ *
+ * A row here is only ever a scoring aid, never identity — dropping the
+ * table and rebuilding it from `item_aliases` loses nothing. Backfilled in
+ * this same migration via a recursive CTE (bigrams over `alias_norm`,
+ * pg_trgm-style one-space padding, matching `bigrams()` in
+ * `similarity.ts`), restricted to aliases containing a non-ASCII
+ * character — the only ones a CJK reference's bigrams could ever overlap
+ * with, so a pure-Latin alias is never given a row it will never use.
+ */
+const CJK_CANDIDATE_RETRIEVAL = `
+CREATE TABLE alias_bigrams (
+  alias_id TEXT NOT NULL REFERENCES item_aliases(id) ON DELETE CASCADE,
+  bigram   TEXT NOT NULL
+);
+
+CREATE INDEX idx_alias_bigrams_bigram ON alias_bigrams(bigram);
+CREATE INDEX idx_alias_bigrams_alias  ON alias_bigrams(alias_id);
+
+WITH RECURSIVE split(alias_id, padded, pos) AS (
+  SELECT id, ' ' || alias_norm || ' ', 1
+  FROM item_aliases
+  WHERE alias_norm GLOB '*[^ -~]*'
+  UNION ALL
+  SELECT alias_id, padded, pos + 1
+  FROM split
+  WHERE pos + 1 <= length(padded) - 1
+)
+INSERT INTO alias_bigrams (alias_id, bigram)
+SELECT alias_id, substr(padded, pos, 2) FROM split;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -314,12 +384,17 @@ export const MIGRATIONS: readonly string[] = [
   DINNER_DECISION,
   RECEIPT_IMPORT,
   RECEIPT_MONEY_AND_QUANTITY,
+  DIETARY_PROFILE,
+  CJK_CANDIDATE_RETRIEVAL,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS alias_bigrams;
+DROP TABLE IF EXISTS dietary_rules;
+DROP TABLE IF EXISTS canonical_derivatives;
 DROP TABLE IF EXISTS receipt_lines;
 DROP TABLE IF EXISTS receipts;
 DROP TABLE IF EXISTS suggestion_cache;

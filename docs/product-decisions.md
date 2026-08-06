@@ -576,7 +576,7 @@ and user-confirmed aliases carry 1 and resolve outright; a write-back carries
 the score that produced it and comes back asking. The general rule: **confidence
 travels with the fact, and is never restored by the route used to reach it.**
 
-**67. Trigram similarity is structurally weak on CJK.** `OPEN`
+**67. Trigram similarity is structurally weak on CJK.** `SETTLED`
 Measured during `add-identity-layer`: `李錦記 蠔油` scored **0.27** against its
 own canonical. A four-character phrase yields two trigrams, so Dice similarity
 over ideographic scripts is close to meaningless — the scorer was designed for
@@ -587,6 +587,49 @@ model, which is correct behaviour but means offline CJK matching effectively
 does not exist and every unseeded CJK reference costs a call until learned.
 That undercuts decisions 4 and 31, where in-script coverage is the
 differentiator. Tracked as its own change.
+
+*Closed by `add-cjk-matching`.* Script-aware n-gram sizing (bigrams for Han and
+Kana, NFD-decomposed trigrams for Hangul, the existing trigrams for Latin),
+plus a CJK-branched candidate prefilter (`alias_bigrams`, migration 9) — the
+scorer alone was not enough, since the Latin token/trigram prefilter often
+retrieves nothing for a CJK reference to be scored against in the first place.
+
+Before/after, measured against real seed data and the real cascade
+(`test/cjk-matching.test.ts`), not asserted:
+
+- **`李錦記 蠔油` (the flagship case): 0.27 → resolves at 0.60**, confirm band.
+  Neither the scorer fix nor the retrieval fix alone was sufficient — the
+  reference's whole token happened to satisfy the old Latin prefilter by
+  luck (a bare `蠔油` token), but the trigram scorer still zeroed it out; a
+  reference without a lucky token boundary (`李錦記蠔油`, no space) needs the
+  bigram prefilter regardless of the scorer.
+- **`CJ 고추장 500G` → 0.84** (was 0.55 under the unmodified Latin path — a
+  Latin brand initial no longer drowns a short in-script product name).
+- **`蚝油`/`蠔油` (simplified/traditional): 0.00 → 1.00** via the Han-variant
+  fold, generated from the catalogue's own paired aliases, not hand-authored.
+- **11 near-miss pairs** (light/dark soy, cilantro/shiitake, garlic/ginger in
+  both Hangul and single-character Han, chicken breast/thigh, a romanised
+  near-miss) all still resolve to their own canonical through the real
+  cascade — the loosened length-ratio penalty (below) did not introduce
+  over-matching on this corpus.
+- `MATCH_ACCEPT`/`MATCH_CONFIRM` (decision 32) needed no change — every
+  measured CJK score landed on the correct side of both. What did not
+  transfer was the length-ratio penalty's *multiplier*: the existing "no
+  penalty above 2:1 character length" was tuned for multi-character Latin
+  words and zeroed out the flagship case outright, since any brand token at
+  all pushes a 2-4 character CJK compound well past 2:1. A separate
+  `CJK_LENGTH_RATIO_MULTIPLIER = 3`, gated so it can only apply when at
+  least one side is non-Latin, fixes this without being reachable from a
+  Latin-vs-Latin comparison — decision 32's corpus re-ran unedited and
+  unmoved.
+- **Known, accepted gap:** a Latin brand name of real length (`Kikkoman`, 8
+  characters, not an initialism like `CJ`) or a katakana rendering of the
+  same (`キッコーマン`, 6 characters) still drowns a bare two-character
+  product alias even with the mixed-script and length-ratio changes — both
+  fall to the model, correctly, rather than being forced above threshold by
+  a further-loosened constant that risks over-matching elsewhere. `doenjang`
+  and `char siu` have no canonical ingredient in this catalogue at all
+  (catalogue growth, non-goal) and were not addressed.
 
 ---
 
@@ -1948,6 +1991,8 @@ Worth recording because the scorer's own argument is about ranking quality, and
 that is not why it goes first. It goes first because every drop rule added from
 here competes with having anything to show.
 
+---
+
 ## Where the calorie target comes from
 
 **164. ~~A calorie target has three possible sources, and the existing one stays
@@ -2140,3 +2185,101 @@ scan user will never use, on the chance they later switch to estimation, is how
 a form gets long — and it would make the flow for people with *better* data
 longer than the default, which is exactly backwards. If they do switch later,
 the app asks then, once, at the moment it becomes necessary.
+
+## The dish scorer, measured
+
+**176. `add-dish-scorer` shipped with six weighted terms, evidenced against the
+fixture corpus, with one hand-guess corrected by the measurement.** `SETTLED`
+`src/logic/dishScore.ts`: `scoreDish` sums six terms — value at risk cleared,
+expiry pressure, effort, calorie fit, familiarity, a recency penalty — each a
+named constant, over a `CANDIDATE_POOL_SIZE` of 10 reduced to `DISPLAYED_COUNT`
+of 3 by `selectDisplayed`. The absolute constraints (an invented canonical id,
+decision 136's use-first check) still run in `parseSuggestResponse`, strictly
+before scoring — nothing excluded is ever scored, let alone shown, no matter
+how it would have ranked (task 3.5's test says so directly).
+
+*The pool size.* Ten, per decision 151/163's reasoning — unchanged here, since
+verifying it against a real model's actual output (task 2.5) needs an API key
+this environment does not have. Left open alongside `add-dinner-decision`'s
+10.3 and 11.6, same class of blocker.
+
+*The one real disagreement.* `src/logic/__fixtures__/dishPools.ts`'s
+well-stocked-Asian-pantry pool includes a dish clearing the two most valuable
+expiring ingredients at a cost of 90 minutes, and a cheaper dish clearing only
+the lesser of the two in 20. Hand intuition, recorded before running the
+scorer, had the 90-minute dish ranked second. The computed score put the
+20-minute dish second instead — the effort term's cost outweighed the small
+extra value cleared. Decided the computed order was right: 90 minutes is a
+real cost on a weeknight, "clears more of what's expiring" is not free just
+because it is the feature's central purpose, and a scorer that always
+sacrificed effort to value-at-risk would be indistinguishable from not having
+an effort term. Recorded per task 8.1 rather than silently accepting either
+answer.
+
+*Variety's exact boundary.* Similarity is `max(ingredient-Jaccard, cuisine
+match × 0.6)` against `SIMILARITY_THRESHOLD = 0.5`. A useful, unplanned
+consequence showed up repeatedly across the fixtures: a two-ingredient dish
+and a dish that is exactly it plus one more ingredient score *exactly* 0.5
+Jaccard (1 shared of 2, in a union of 2) — sitting precisely on the threshold,
+and therefore counted as too similar. In practice this reads correctly:
+"chicken and spinach" is not a meaningfully different dinner from "spinach"
+alone, and the floor mechanism (`nothing urgent`, `freezable beside
+non-freezable`) reliably reached past several such near-variants to find a
+genuinely different third pick rather than getting stuck.
+
+*What was not measured.* Task 2.5 (quality per candidate at pool size 10
+versus 3) and tasks 9.1-9.5 (a real kitchen, a real key) all need a live
+model or a physical device. None of the six weights should be read as
+validated against real usage yet — only against the fixture corpus, which is
+a check on the mechanism's *behaviour*, not on whether ten really does cost
+noticeably thinner ideas than three. Follow-up observation, not a blocker to
+shipping the mechanism.
+
+---
+
+## The dietary profile, measured
+
+**177. `add-dietary-profile` shipped exclusion and dislikes as one more term
+in the real scorer, correcting its own plan mid-flight.** `SETTLED`
+Three kinds of rule (`allergen | restriction | dislike`), a
+`canonical_derivatives` closure walked transitively at read time, and local
+enforcement in `parseSuggestResponse` beside the existing invented-id and
+use-first drops — all per the original design. One real correction:
+`design.md` and `tasks.md` were both written when `add-dish-scorer` didn't
+exist even as a plan, and explicitly forbade building one "for this." By the
+time this change was implemented, `add-dish-scorer` had shipped (decision
+172) in the same session. Building a second, standalone reorder mechanism
+beside a real scorer would have been worse than the thing 6.6's original
+text was trying to prevent — two ranking surfaces instead of an untuned one.
+Corrected in place before writing code, not discovered partway through:
+`design.md`'s dislike section and `tasks.md` group 6 both now read against
+the shipped `dishScore.ts`, and a seventh named term (`DISLIKE_PENALTY`,
+`DISLIKE_PENALTY_WEIGHT = 2`) sits beside the original six, deliberately
+kept below `RECENCY_PENALTY_WEIGHT = 4` — decision 106's argument holds
+exactly because a dislike is the weakest penalty in the sum, unable to
+outrank a real value-at-risk term.
+
+*Derivative coverage, measured.* Two of the nine named allergen families
+(milk, egg) already existed as catalogue canonicals; the other seven
+(peanut, tree nut, wheat, soy, sesame, fish, shellfish) had only derived
+products catalogued (peanut butter, sesame oil, salmon, shrimp) and no root
+to hang a rule or an edge on, so all seven were added, plus `tahini` (named
+explicitly by task 3.2). 29 derivative edges total, seeded in
+`canonical-derivatives.json` alongside the existing canonical-item seed
+path — no version field to bump, confirmed by reading `loadSeedData()`
+rather than assumed (it already runs, idempotently, on every launch).
+Deliberately *not* linked: `tamari` to `wheat` — tamari exists specifically
+as the wheat-free soy sauce alternative, and linking it would have been the
+exact direction-reversal task 3.7 warns against, just one hop further out.
+
+*What was not measured.* Task 6.9 (does a prompt naming 11+ rules degrade
+suggestion quality) needs a real model call, same blocker as
+`add-dish-scorer`'s 2.5 and 9.1-9.5 — no API key in this environment. The
+`heavilyRestricted` fixture (11 rules, every kind, one unresolvable) exists
+and is exercised structurally against the real derivative graph, but its
+prompt-length question is unanswered. The local filter holds regardless of
+the answer; only whether rules eventually need summarising is at stake.
+
+57 of 59 tasks complete. The other open task, 6.8, is deliberately
+unchecked — `add-macro-gap-suggestions` is unbuilt, and wiring dietary
+exclusion into a suggestion path that doesn't exist yet isn't possible.
