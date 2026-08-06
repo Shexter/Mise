@@ -1907,3 +1907,43 @@ prompt.
 Arrival shows status, never a quantity: decision 15 again. "Running low on soy
 sauce" is defensible; "you have 40 ml left" while standing in an aisle is a
 number the app cannot justify and the user cannot check.
+
+## Queue order
+
+**162. Queue order follows live wrongness, not novelty — and a shipped
+mechanism's inputs become urgent once it starts enforcing.** `SETTLED`
+The order itself lives in `docs/implementation-queue.md` and changes as things
+land. The principle behind it does not.
+
+Two rules, and the second is the one that is easy to miss.
+
+**Fix what is live and wrong before adding what is new.** A shipped feature
+producing wrong output costs more than a missing feature, because the user is
+already relying on it and has no way to know. This is why the catalogue's guessed
+shelf lives outrank three new capabilities.
+
+**A mechanism's inputs get more urgent the moment that mechanism starts
+enforcing.** Expiry data was cosmetic while expiry only sorted suggestions. When
+decision 136's use-first check landed, expiry began deciding the `use_first`
+bucket and that bucket began *dropping* suggestions — so the same invented
+numbers stopped producing a bad sort and started producing a filter. Nothing
+about the data changed; what changed was what depends on it.
+
+That reasoning generalises, and it is worth applying deliberately whenever a
+sort becomes a filter, a hint becomes a default, or a display becomes a
+computation.
+
+**163. `add-dish-scorer` precedes `add-dietary-profile`, for headroom rather
+than for ranking.** `SETTLED`
+`parseSuggestResponse` already drops a suggestion twice — an invented canonical
+id, and decision 136's use-first check — and the prompt asks for exactly three.
+Dietary exclusion is a third filter over a pool of three.
+
+A user with recorded allergens would routinely see one suggestion or none. The
+dietary spec's "show what survived and say rules were applied" requirement is
+honest, and it is a poor experience if it fires every night rather than rarely.
+Decision 151's pool of ten is what makes a third constraint affordable.
+
+Worth recording because the scorer's own argument is about ranking quality, and
+that is not why it goes first. It goes first because every drop rule added from
+here competes with having anything to show.
