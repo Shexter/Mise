@@ -23,7 +23,7 @@ not exist and are what make any of this measurable.
       the scorer. Writing the scorer first and then blessing its output is not
       measurement.
       Recorded as reasoning in `dishPools.ts` comments and verified against
-      the implemented scorer in `test/dish-score.test.ts`; see decision 164 for
+      the implemented scorer in `test/dish-score.test.ts`; see decision 172 for
       the one case (well-stocked Asian pantry's #2/#3) where the computed order
       corrected the hand guess, and why.
 
@@ -166,7 +166,7 @@ The section decision 149 exists to demand.
       One real disagreement, in well-stocked Asian pantry: hand intuition had
       the 90-minute high-value dish outrank the low-effort second dish; the
       computed score reversed them. Decided the weights were right and the
-      intuition was not — see decision 164.
+      intuition was not — see decision 172.
 - [x] 8.2 Assert the resulting order per fixture in a test, so a weight change
       that reorders a fixture fails the build. Same protection decision 32's
       confidence bands have.

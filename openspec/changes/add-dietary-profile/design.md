@@ -110,7 +110,7 @@ some evidence it is the right one.
 
 ### Dislikes are a term in `add-dish-scorer`'s scorer
 
-`add-dish-scorer` has since shipped (decision 164). The plan originally
+`add-dish-scorer` has since shipped (decision 172). The plan originally
 written here assumed no such scorer would exist by the time this change
 landed and proposed a standalone local reorder instead; that assumption is
 now false, and building a second ranking mechanism beside a real one would
@@ -122,7 +122,7 @@ A dislike becomes a seventh named term in `scoreDish`: a flat penalty
 (mirroring the existing recency penalty's shape) when a suggestion's `uses`
 intersects the disliked-ingredient set, expanded through the same derivative
 closure exclusion uses. Named constant, weighted like every other term,
-measured against the fixture corpus the same way decision 164 measured the
+measured against the fixture corpus the same way decision 172 measured the
 first six.
 
 *Why extend rather than build a parallel mechanism:* one ranking surface,

@@ -153,7 +153,7 @@ canonical id, and for missing the `use_first` bucket. Dietary exclusion is the
 third instance of exactly that shape and belongs beside them.
 
 **There is now a dish ranker.** `add-dish-scorer` has since shipped (decision
-164): `src/logic/dishScore.ts`'s `scoreDish` sums named weights over a
+172): `src/logic/dishScore.ts`'s `scoreDish` sums named weights over a
 candidate pool, and `selectDisplayed` picks and orders the displayed set.
 6.5/6.6 as originally written forbade building one *for this*, on the correct
 premise that none existed yet — that premise is gone, and the corrected

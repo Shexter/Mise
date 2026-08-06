@@ -1995,7 +1995,7 @@ here competes with having anything to show.
 
 ## The dish scorer, measured
 
-**164. `add-dish-scorer` shipped with six weighted terms, evidenced against the
+**172. `add-dish-scorer` shipped with six weighted terms, evidenced against the
 fixture corpus, with one hand-guess corrected by the measurement.** `SETTLED`
 `src/logic/dishScore.ts`: `scoreDish` sums six terms — value at risk cleared,
 expiry pressure, effort, calorie fit, familiarity, a recency penalty — each a
@@ -2046,7 +2046,7 @@ shipping the mechanism.
 
 ## The dietary profile, measured
 
-**165. `add-dietary-profile` shipped exclusion and dislikes as one more term
+**173. `add-dietary-profile` shipped exclusion and dislikes as one more term
 in the real scorer, correcting its own plan mid-flight.** `SETTLED`
 Three kinds of rule (`allergen | restriction | dislike`), a
 `canonical_derivatives` closure walked transitively at read time, and local
@@ -2055,7 +2055,7 @@ use-first drops — all per the original design. One real correction:
 `design.md` and `tasks.md` were both written when `add-dish-scorer` didn't
 exist even as a plan, and explicitly forbade building one "for this." By the
 time this change was implemented, `add-dish-scorer` had shipped (decision
-164) in the same session. Building a second, standalone reorder mechanism
+172) in the same session. Building a second, standalone reorder mechanism
 beside a real scorer would have been worse than the thing 6.6's original
 text was trying to prevent — two ranking surfaces instead of an untuned one.
 Corrected in place before writing code, not discovered partway through:
@@ -2090,3 +2090,123 @@ the answer; only whether rules eventually need summarising is at stake.
 57 of 59 tasks complete. The other open task, 6.8, is deliberately
 unchecked — `add-macro-gap-suggestions` is unbuilt, and wiring dietary
 exclusion into a suggestion path that doesn't exist yet isn't possible.
+
+---
+
+## Where the calorie target comes from
+
+**164. A calorie target has three possible sources, and the existing one stays
+the default.** `SETTLED`
+A personal trainer said onboarding does not ask enough to work out what someone
+needs, and the reason is structural. Mifflin-St Jeor's entire job is to *guess*
+body composition from height and weight, because that is all it has — two people
+of the same age, sex, height and weight can differ by several hundred calories a
+day depending on how much of that weight is muscle.
+
+So: `estimated` (today's path), `measured` (Katch-McArdle from a body scan), and
+`stated` (a figure the user already has). One routing question in onboarding,
+with the first preselected.
+
+The fix for "does not ask enough to serve *me*" is a branch, not more questions
+for everyone. A form asking everybody for a body fat percentage makes onboarding
+worse for almost all users in order to serve a few, which is the opposite of the
+feedback.
+
+**165. Body fat percentage is stored; lean mass is not.** `SETTLED`
+Both DEXA and InBody print a lean figure, and they do not mean the same thing by
+it — DEXA separates lean soft tissue from bone mineral content, "fat-free mass"
+includes bone and "lean mass" often does not, and InBody uses its own vocabulary
+again. The gap is a few kilograms. Asking for a number whose definition varies
+by machine means silently mixing two quantities in one column.
+
+Body fat percentage is what both report prominently, under the same name,
+meaning the same thing. Fat-free mass is derived as `weight × (1 − bodyFatPct)`,
+which is fat-free mass by definition, so Katch-McArdle gets what it wants from
+the field the user actually has.
+
+**166. A stated figure is qualified before it is used.** `SETTLED`
+Resting, total daily, or already-adjusted. This is the failure mode most likely
+to make the feature actively harmful, so it is a first-class question rather
+than a detail.
+
+Apple Health exposes "Resting Energy" and "Active Energy" as separate figures; a
+ring or watch shows a total burn, an active burn, or both. They differ by many
+hundreds of calories, people conflate them constantly, and every one of them is
+"the number my health app says". A user who reads off active energy — perhaps
+600 — and offers it as a daily total would get a target that is dangerous if
+followed.
+
+The app cannot tell which number it received by looking at it. So it asks, then
+checks the magnitude is consistent with the answer. "Already-adjusted" exists
+because someone working with a trainer has been given a number to *eat*, and
+applying the goal adjustment to it would double-count the deficit.
+
+**167. An implausible figure is flagged, never clamped and never rejected.** `SETTLED`
+Clamping produces a number that looks like what the user entered and is not, and
+they would have no way to see it. Clamping at `MIN_TARGET_CALORIES` is
+defensible for a figure the app derived; it is not defensible for one the user
+typed.
+
+Rejecting is worse: athletes, very tall people, and people recovering from
+illness have real figures outside any range worth encoding, and the app has no
+standing to tell someone their measured number is wrong.
+
+Flagging costs a sentence and catches the mistyped digit and the misidentified
+figure, which are the common cases. The one place to be loud rather than quiet
+is a resulting target below the app's minimum — still not blocked, because it is
+the user's body and the user's decision.
+
+**168. Recalculation is conditional on the source.** `SETTLED`
+`profileStore.update` recomputes `targetCalories` through `energyTargets` on
+every write. That is correct today, because the target is always derived. The
+moment a target can be *stated*, the same line silently replaces the user's
+figure with a Mifflin-St Jeor estimate the next time they log a weight change.
+
+It would be invisible — no error, just a number drifting — and the person most
+likely to be affected is the one who cared enough to get a DEXA scan, which is
+exactly the audience this change is for.
+
+So: estimated recomputes from the profile, measured recomputes from the
+measurement, stated recomputes nothing. `ensureDailyTarget` already protects
+past days.
+
+**169. A stale measurement is disclosed, not fallen back from.** `SETTLED`
+When current weight diverges materially from the weight at measurement, say the
+derived target is less reliable and offer to update it. Do not silently revert
+to Mifflin-St Jeor — that would change someone's target without their
+involvement, which is decision 168's mistake wearing different clothes. The
+measurement is still the best information available; it is only older.
+
+Divergence is measured by weight change rather than elapsed time. Someone whose
+weight has not moved in a year has a measurement that is probably still fine,
+and someone who has lost eight kilograms in three months does not. Time is a
+proxy; weight is what the derivation actually depends on.
+
+**170. A more precise input makes the arithmetic better and the app's claims no
+bigger.** `SETTLED`
+An InBody printout is a page of clinical-looking numbers and a DEXA report is
+genuinely medical. The pull — and the request that prompted this, phrased as
+wanting a more accurate *diagnosis* — is to do more with them.
+
+The app does less. It stores body fat percentage, the weight it was measured at,
+and the date, because those three compute a calorie target. It refuses visceral
+fat, segmental lean analysis, phase angle, metabolic age, and every score,
+because none of them computes anything here, storing a number is how an app ends
+up rendering it, and rendering it is an assessment.
+
+The distinction: **a calorie target is arithmetic; an evaluation of someone's
+body is not the app's to make.** Same refusal as decisions 108 and 142, arriving
+somewhere the pull is stronger, and enforced the same way — a copy audit and a
+test over forbidden words.
+
+**171. The sources are not ranked.** `SETTLED`
+It is tempting to rank stated above measured above estimated, and it would be
+wrong. A DEXA-derived figure is genuinely solid; a consumer tracker's
+active-energy estimate comes from a device with its own error and is widely
+optimistic. "The user has a number" does not mean the number is better than the
+app's.
+
+The app is not equipped to referee that, and the user knows where their figure
+came from. So every computable estimate is shown side by side at the point of
+choosing, and the user chooses — which is also the only honest posture for a
+feature whose premise is that the user may know more than the form.
