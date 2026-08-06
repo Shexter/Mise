@@ -576,7 +576,7 @@ and user-confirmed aliases carry 1 and resolve outright; a write-back carries
 the score that produced it and comes back asking. The general rule: **confidence
 travels with the fact, and is never restored by the route used to reach it.**
 
-**67. Trigram similarity is structurally weak on CJK.** `OPEN`
+**67. Trigram similarity is structurally weak on CJK.** `SETTLED`
 Measured during `add-identity-layer`: `李錦記 蠔油` scored **0.27** against its
 own canonical. A four-character phrase yields two trigrams, so Dice similarity
 over ideographic scripts is close to meaningless — the scorer was designed for
@@ -587,6 +587,49 @@ model, which is correct behaviour but means offline CJK matching effectively
 does not exist and every unseeded CJK reference costs a call until learned.
 That undercuts decisions 4 and 31, where in-script coverage is the
 differentiator. Tracked as its own change.
+
+*Closed by `add-cjk-matching`.* Script-aware n-gram sizing (bigrams for Han and
+Kana, NFD-decomposed trigrams for Hangul, the existing trigrams for Latin),
+plus a CJK-branched candidate prefilter (`alias_bigrams`, migration 9) — the
+scorer alone was not enough, since the Latin token/trigram prefilter often
+retrieves nothing for a CJK reference to be scored against in the first place.
+
+Before/after, measured against real seed data and the real cascade
+(`test/cjk-matching.test.ts`), not asserted:
+
+- **`李錦記 蠔油` (the flagship case): 0.27 → resolves at 0.60**, confirm band.
+  Neither the scorer fix nor the retrieval fix alone was sufficient — the
+  reference's whole token happened to satisfy the old Latin prefilter by
+  luck (a bare `蠔油` token), but the trigram scorer still zeroed it out; a
+  reference without a lucky token boundary (`李錦記蠔油`, no space) needs the
+  bigram prefilter regardless of the scorer.
+- **`CJ 고추장 500G` → 0.84** (was 0.55 under the unmodified Latin path — a
+  Latin brand initial no longer drowns a short in-script product name).
+- **`蚝油`/`蠔油` (simplified/traditional): 0.00 → 1.00** via the Han-variant
+  fold, generated from the catalogue's own paired aliases, not hand-authored.
+- **11 near-miss pairs** (light/dark soy, cilantro/shiitake, garlic/ginger in
+  both Hangul and single-character Han, chicken breast/thigh, a romanised
+  near-miss) all still resolve to their own canonical through the real
+  cascade — the loosened length-ratio penalty (below) did not introduce
+  over-matching on this corpus.
+- `MATCH_ACCEPT`/`MATCH_CONFIRM` (decision 32) needed no change — every
+  measured CJK score landed on the correct side of both. What did not
+  transfer was the length-ratio penalty's *multiplier*: the existing "no
+  penalty above 2:1 character length" was tuned for multi-character Latin
+  words and zeroed out the flagship case outright, since any brand token at
+  all pushes a 2-4 character CJK compound well past 2:1. A separate
+  `CJK_LENGTH_RATIO_MULTIPLIER = 3`, gated so it can only apply when at
+  least one side is non-Latin, fixes this without being reachable from a
+  Latin-vs-Latin comparison — decision 32's corpus re-ran unedited and
+  unmoved.
+- **Known, accepted gap:** a Latin brand name of real length (`Kikkoman`, 8
+  characters, not an initialism like `CJ`) or a katakana rendering of the
+  same (`キッコーマン`, 6 characters) still drowns a bare two-character
+  product alias even with the mixed-script and length-ratio changes — both
+  fall to the model, correctly, rather than being forced above threshold by
+  a further-loosened constant that risks over-matching elsewhere. `doenjang`
+  and `char siu` have no canonical ingredient in this catalogue at all
+  (catalogue growth, non-goal) and were not addressed.
 
 ---
 

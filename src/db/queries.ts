@@ -15,6 +15,7 @@ import {
 import type { Decrement } from '@/logic/deplete';
 import { macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
+import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
 import type {
   CanonicalItem,
@@ -721,6 +722,21 @@ export async function loadSeedData(): Promise<void> {
         [entry.parent, entry.child],
       );
     }
+
+    // `INSERT OR IGNORE` above means a conflicting alias keeps its original
+    // row and id — the freshly generated id in the VALUES clause was never
+    // written. A backfill pass over every non-Latin alias, rather than
+    // trying to track insert-vs-ignore per row, is what actually gets this
+    // right: idempotent (each call checks for existing rows first), and it
+    // self-heals any alias — seeded or user-added — that predates this
+    // migration.
+    const nonLatinAliases = await txn.getAllAsync<{
+      id: string;
+      alias_norm: string;
+    }>(`SELECT id, alias_norm FROM item_aliases WHERE alias_norm GLOB '*[^ -~]*'`, []);
+    for (const row of nonLatinAliases) {
+      await ensureAliasBigrams(txn, row.id, row.alias_norm);
+    }
   });
 }
 
@@ -775,11 +791,19 @@ export async function getBestAliasByNorm(
 }
 
 /**
- * The candidate prefilter for approximate matching: aliases sharing the
- * reference's first trigram or any whole token. Bounds the set scored in
- * TypeScript so a lookup never scans the whole table.
+ * The candidate prefilter for approximate matching. Branches on script
+ * (decision 67, task 5.4): a CJK reference often shares no whole token and
+ * its first three characters are frequently the entire string, so the
+ * Latin prefilter below can withhold the correct candidate from the scorer
+ * even when the scorer itself would rank it well — the risk `design.md`
+ * calls out as worse than a slow scorer. For CJK, aliases sharing any
+ * bigram with the reference are retrieved instead, via `alias_bigrams`.
  */
 export async function getCandidateAliases(norm: string): Promise<ItemAlias[]> {
+  if (dominantScript(norm) !== 'latin') {
+    return getCjkCandidateAliases(norm);
+  }
+
   const clauses: string[] = [];
   const params: string[] = [];
 
@@ -802,6 +826,54 @@ export async function getCandidateAliases(norm: string): Promise<ItemAlias[]> {
     params,
   );
   return rows.map(toItemAlias);
+}
+
+/**
+ * The bigram-based prefilter for non-Latin references. Whole-string
+ * padded bigrams, not the mixed-script token segmentation `similarity.ts`
+ * uses for scoring — retrieval only needs one shared bigram to surface a
+ * candidate, so the coarser computation is sufficient and keeps this
+ * function independent of the scorer's internals.
+ */
+async function getCjkCandidateAliases(norm: string): Promise<ItemAlias[]> {
+  const grams = [...bigrams(norm)];
+  if (grams.length === 0) return [];
+
+  const placeholders = grams.map(() => '?').join(', ');
+  const rows = await db().getAllAsync<ItemAliasRow>(
+    `SELECT DISTINCT ia.* FROM item_aliases ia
+     JOIN alias_bigrams ab ON ab.alias_id = ia.id
+     WHERE ab.bigram IN (${placeholders})
+     LIMIT 200`,
+    grams,
+  );
+  return rows.map(toItemAlias);
+}
+
+/**
+ * Backfills `alias_bigrams` for one alias, if it does not have rows yet.
+ * Called after every write to `item_aliases` that could be non-Latin —
+ * seed load, write-back, and user confirmation — so a reference resolved
+ * only once still becomes locally retrievable next time (task 5.3). Skips
+ * pure-Latin aliases, which the Latin prefilter already covers.
+ */
+async function ensureAliasBigrams(
+  runner: TransactionHandle,
+  aliasId: string,
+  aliasNorm: string,
+): Promise<void> {
+  if (dominantScript(aliasNorm) === 'latin') return;
+  const existing = await runner.getFirstAsync<{ hit: number }>(
+    'SELECT 1 as hit FROM alias_bigrams WHERE alias_id = ? LIMIT 1',
+    [aliasId],
+  );
+  if (existing) return;
+  for (const gram of bigrams(aliasNorm)) {
+    await runner.runAsync(
+      'INSERT INTO alias_bigrams (alias_id, bigram) VALUES (?, ?)',
+      [aliasId, gram],
+    );
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -878,6 +950,7 @@ export interface NewItemAlias {
  * a confirmation rather than creating a duplicate.
  */
 export async function recordAlias(alias: NewItemAlias): Promise<void> {
+  const norm = normalise(alias.aliasRaw);
   await db().runAsync(
     `INSERT INTO item_aliases
        (id, alias_norm, alias_raw, canonical_id, source, locale,
@@ -889,7 +962,7 @@ export async function recordAlias(alias: NewItemAlias): Promise<void> {
        source = CASE WHEN excluded.source = 'user' THEN 'user' ELSE source END`,
     [
       randomUUID(),
-      normalise(alias.aliasRaw),
+      norm,
       alias.aliasRaw,
       alias.canonicalId,
       alias.source,
@@ -898,6 +971,16 @@ export async function recordAlias(alias: NewItemAlias): Promise<void> {
       new Date().toISOString(),
     ],
   );
+
+  // The upsert above may have kept an existing row's original id rather
+  // than the one just generated (`ON CONFLICT` never touches `id`) — look
+  // it up rather than assume, so a non-Latin write-back is retrievable by
+  // the next unseeded sighting of the same reference (task 5.3).
+  const row = await db().getFirstAsync<{ id: string }>(
+    'SELECT id FROM item_aliases WHERE alias_norm = ? AND canonical_id = ?',
+    [norm, alias.canonicalId],
+  );
+  if (row) await ensureAliasBigrams(db(), row.id, norm);
 }
 
 /**
@@ -926,6 +1009,12 @@ export async function recordUserResolution(
          source = 'user'`,
       [randomUUID(), norm, aliasRaw, canonicalId, new Date().toISOString()],
     );
+
+    const row = await txn.getFirstAsync<{ id: string }>(
+      'SELECT id FROM item_aliases WHERE alias_norm = ? AND canonical_id = ?',
+      [norm, canonicalId],
+    );
+    if (row) await ensureAliasBigrams(txn, row.id, norm);
   });
 }
 

@@ -74,10 +74,15 @@ export const RECEIPT_LINES: readonly ReferenceFixture[] = [
   // Brand-led lines the scorer still reads, at reduced confidence.
   { raw: 'CJ GOCHUJANG 1KG', slug: 'gochujang', offline: 'confirm' },
   { raw: '3 CRABS FISH SAUCE', slug: 'fish-sauce', offline: 'confirm' },
+  // Scored 0.27 before `add-cjk-matching` (decision 67) — trigram Dice over
+  // a four-character Han phrase had almost nothing to work with, and this
+  // fell to the model every time. Script-aware bigram scoring plus the CJK
+  // candidate prefilter now reach the confirm band offline. See
+  // `cjk-lines.ts` for the fuller corpus this was measured against.
+  { raw: '李錦記 蠔油', slug: 'oyster-sauce', offline: 'confirm' },
 
   // Too mangled or too brand-specific for local steps: queued for the model
   // or for review, and learned as aliases once resolved.
-  { raw: '李錦記 蠔油', slug: 'oyster-sauce', offline: 'review' },
   { raw: 'KS ORG EVOO 2L', slug: 'olive-oil', offline: 'review' },
 ];
 

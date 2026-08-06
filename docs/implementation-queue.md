@@ -20,8 +20,9 @@ Task counts are open tasks, not total.
 | `fix-day-selection` | 24/25 | 1 open needs a standalone APK |
 | `add-dish-scorer` | 41/47 | 6 open need a real key or `add-dietary-profile` |
 | `add-dietary-profile` | 57/59 | 2 open: one waits on `add-macro-gap-suggestions`, one needs a real key |
+| `add-cjk-matching` | 37/37 | |
 
-**382 of 394.** Every remaining task needs a physical device or a real API key —
+**419 of 431.** Every remaining task needs a physical device or a real API key —
 none is blocked on code. They are a parallel track, not a queue position.
 
 ---
@@ -39,22 +40,20 @@ it is a filter operating on invented numbers.
 Task 1 measures the FoodKeeper hit rate before anything is built, so this can be
 abandoned cheaply if the match rate is poor.
 
-### 2. `add-cjk-matching` — 37
+**Blocked on network access, not code.** Task 1 requires downloading the real
+FoodKeeper (`foodsafety.gov`) and FoodData Central (`api.nal.usda.gov`)
+datasets, and both hosts return a policy-denial 403 through this environment's
+egress proxy — confirmed, not assumed. Skipped this round in favour of
+`add-cjk-matching` (see Shipped). Resume task 1 once either host is
+allowlisted; do not fabricate the hit-rate numbers to work around this.
 
-Decision 4 says deep Asian ingredient coverage is *the* differentiator.
-Decision 67 measured `李錦記 蠔油` at **0.27** against its own canonical and has
-been `OPEN` ever since. The moat is measurably broken.
-
-Below the catalogue only because matching degrades gracefully — an unresolved
-reference queues rather than producing a wrong answer.
-
-### 3. `add-venue-inference` — 38
+### 2. `add-venue-inference` — 38
 
 Depletion accuracy compounds into stock status, expiry buckets, and suggestions.
 The sticky default is mediocre rather than broken, which is why it sits here
 rather than higher.
 
-### 4. `add-openai-provider` — 41
+### 3. `add-openai-provider` — 41
 
 Self-contained, no migration, and it fixes a live annoyance: `rate_limited` has
 been in the taxonomy since the beginning with nothing acting on it. Good work to
@@ -64,16 +63,16 @@ slot between larger changes.
 
 ## 2 — Input channels
 
-### 5. `add-unified-capture` — 56
+### 4. `add-unified-capture` — 56
 
 One action for adding to the pantry. Closes `add-receipt-import` 7.2a and sets
 the shape the next one depends on.
 
-### 6. `add-barcode-capture` — 51
+### 5. `add-barcode-capture` — 51
 
 After unified capture, which revises its task 5.1.
 
-### 7. `add-recipe-links` — 47
+### 6. `add-recipe-links` — 47
 
 New capability rather than a fix, which is the only reason it is this low. High
 user value and no blocking dependency.
@@ -82,24 +81,24 @@ user value and no blocking dependency.
 
 ## 3 — Nutrition and personalisation
 
-### 8. `add-fibre-tracking` — 31
-### 9. `add-macro-gap-suggestions` — 29
-### 10. `add-suggestion-templates` — 49
+### 7. `add-fibre-tracking` — 31
+### 8. `add-macro-gap-suggestions` — 29
+### 9. `add-suggestion-templates` — 49
 
-Needs 9 for the objective parameter and `add-dish-scorer` (shipped) for the
+Needs 8 for the objective parameter and `add-dish-scorer` (shipped) for the
 scorer it weights.
 
 ---
 
 ## 4 — Needs a decision before it needs an implementer
 
-### 11. `add-shop-locations` — 42
+### 10. `add-shop-locations` — 42
 
 Task 1.2 establishes whether departure events need always-on location. If they
 do, that is a materially larger ask than the proposal weighed and the change
 should be re-decided rather than built.
 
-### 12. `add-off-taxonomy-seed` — 37
+### 11. `add-off-taxonomy-seed` — 37
 
 Gated on the ODbL answer (decision 144, `OPEN`). Task 1 produces it; nothing
 else may start. Also needs 1 for the pipeline.
@@ -118,8 +117,11 @@ twice on parallel work.
 - **132** — the suggestion engine's thresholds are named guesses
 - **135** — extraction accuracy beyond the fixture corpus
 - **144** — the ODbL question
-- **67** — closed by change 2 above
 - **164** — `add-dish-scorer`'s weights are measured against fixtures only,
   not real usage (tasks 2.5, 9.1-9.5)
 - **165** — `add-dietary-profile`'s prompt-length-at-scale question (task 6.9)
   is measured against fixtures only, not real usage
+- **new, from `add-cjk-matching`** — the CJK confirm-band scores (0.60-0.84)
+  and the near-miss non-collision result are measured against an authored
+  33-fixture corpus, not real receipts. Decision 32 notes the same limit for
+  the Latin corpus.

@@ -283,6 +283,43 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 8 gains alias_bigrams, backfilled for non-Latin aliases only', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 8);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days, is_seed, created_at)
+       VALUES ('oyster-sauce', 'Oyster sauce', 'condiment', 'pantry', '{}', 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO item_aliases (id, alias_norm, alias_raw, canonical_id, source, created_at)
+       VALUES ('a1', '蠔油', '蠔油', 'oyster-sauce', 'seed', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO item_aliases (id, alias_norm, alias_raw, canonical_id, source, created_at)
+       VALUES ('a2', 'oyster sauce', 'Oyster sauce', 'oyster-sauce', 'seed', '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 8, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('alias_bigrams');
+
+    // Backfilled for the pre-existing non-Latin alias: padded bigrams of
+    // "蠔油" are " 蠔", "蠔油", "油 ".
+    const cjkGrams = (
+      db.prepare('SELECT bigram FROM alias_bigrams WHERE alias_id = ? ORDER BY bigram').all('a1')
+    ).map((row) => (row as { bigram: string }).bigram);
+    expect(cjkGrams).toEqual([' 蠔', '油 ', '蠔油']);
+
+    // Never backfilled for a Latin alias — the Latin prefilter already
+    // covers it, and giving it rows here would be dead weight.
+    const latinGrams = db
+      .prepare('SELECT COUNT(*) AS n FROM alias_bigrams WHERE alias_id = ?')
+      .get('a2') as { n: number };
+    expect(latinGrams.n).toBe(0);
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);
