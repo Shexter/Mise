@@ -335,16 +335,45 @@ So the same situation tells the truth or blames the provider depending on
 whether the pool happened to be cached. The spec required neither: *"Nothing
 survives → the user is told, and offered another attempt."*
 
-- [ ] 11.1 Return an empty suggestion list with the drop counts rather than
+- [x] 11.1 Return an empty suggestion list with the drop counts rather than
       throwing, so the caller can distinguish "nothing came back" from "nothing
       survived your rules".
-- [ ] 11.2 Keep `malformed` for what it means — a response the parser could not
+      The `suggestions.length === 0` throw at the end of `parseSuggestResponse`
+      is gone. `SuggestResult` (and therefore `SuggestionSet.suggestions`) can
+      now legitimately be empty, distinguished by which of
+      `droppedForConstraint`/`droppedForDiet` is nonzero.
+- [x] 11.2 Keep `malformed` for what it means — a response the parser could not
       read. An empty *result* is not an unreadable *response*.
-- [ ] 11.3 Make the fresh-generation path reach `app/dinner.tsx:147`'s existing
+      The throw moved earlier, to immediately after `parsedSuggestions` is
+      built and before either drop runs: `parsedSuggestions.length === 0`
+      means nothing the provider returned could be read as a suggestion at
+      all — the one case that is genuinely "malformed". Everything past that
+      point starts from at least one valid suggestion, so an empty result
+      after either drop is the constraint working, never thrown.
+- [x] 11.3 Make the fresh-generation path reach `app/dinner.tsx:147`'s existing
       empty state, and confirm the cached path still does.
-- [ ] 11.4 Do the same for a pool emptied by the use-first constraint alone,
+      No change needed to `getOrGenerateSuggestions` itself — once
+      `parseSuggestResponse` stops throwing, `status: 'ready'` with an empty
+      `suggestions` array and the drop counts flows straight through to the
+      existing `outcome.status === 'ready'` branch in `dinner.tsx`, which
+      already read `droppedForDiet` correctly. Confirmed with a stubbed
+      `generateSuggestions` reaching `status: 'ready'` (not `'error'`) for
+      both the fresh path (new tests in `suggestion-service.test.ts`) and the
+      cached re-selection path (`reselect()`, already covered, unaffected).
+- [x] 11.4 Do the same for a pool emptied by the use-first constraint alone,
       which currently takes the same wrong branch — decision 136's check and
       this one both end here.
-- [ ] 11.5 Test both causes on the fresh path with a stubbed response, asserting
+      Same fix covers both, since the throw moved above *both* drops. Added
+      a matching empty state in `app/dinner.tsx` ("Nothing left after using
+      what needs using first") — the constraint's own explanation, not the
+      generic "nothing to suggest" fallback it used to share with an
+      actually-empty response.
+- [x] 11.5 Test both causes on the fresh path with a stubbed response, asserting
       the user sees the constraint explanation rather than a provider error.
       This is the test that would have caught it.
+      `test/suggest.test.ts`: both causes now return an empty `SuggestResult`
+      instead of throwing (the two tests decision 178 names directly were
+      wrong — rewritten), plus a new test confirming a *genuinely* unreadable
+      response (nothing parses at all) still throws. `test/suggestion-service.test.ts`:
+      both causes reach `status: 'ready'` with the right drop count, not
+      `status: 'error'`.

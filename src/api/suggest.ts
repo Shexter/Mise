@@ -47,6 +47,12 @@ export interface SuggestResult {
    * `CANDIDATE_POOL_SIZE`, after both drops below, not yet reduced to what
    * is displayed. `dishScore.ts`'s `selectDisplayed` does that next. In
    * "stretch" mode this is the plan's dinners, unaffected by the scorer.
+   *
+   * Can be empty (decision 178) — the use-first or dietary drop may
+   * legitimately remove everything the provider returned. `parseSuggestResponse`
+   * only ever throws when nothing was readable in the first place; an empty
+   * array here always means "readable, but nothing survived your rules",
+   * distinguished by which of the two counts below is nonzero.
    */
   suggestions: Suggestion[];
   /** "Stretch" mode's honest gap. Always null in "tonight" mode. */
@@ -144,6 +150,13 @@ function useFirstIds(request: SuggestRequest): ReadonlySet<string> {
  * allergen or restriction is never softened into a weight (decision,
  * matching decision 34's own argument), so a violating suggestion is
  * dropped here, never scored, never repaired.
+ *
+ * `malformed` means the response could not be read — never that a local
+ * rule emptied it (decision 178, found in review). Once at least one
+ * suggestion parses, the use-first and dietary drops below may legitimately
+ * remove every one of them; that is the constraint working, not the
+ * provider failing, and the result is returned rather than thrown so the
+ * caller can say what actually happened.
  */
 export function parseSuggestResponse(
   raw: string,
@@ -171,6 +184,15 @@ export function parseSuggestResponse(
     .map((entry) => toSuggestion(entry, candidateIds))
     .filter((entry): entry is Suggestion => entry !== null);
 
+  // Nothing the provider returned could be read as a suggestion at all —
+  // an unreadable response, not an empty result. Everything past this
+  // point starts from at least one valid suggestion, so however the drops
+  // below leave it, that is a local rule doing its job, never a reason to
+  // throw.
+  if (parsedSuggestions.length === 0) {
+    throw new VisionError('malformed', 'No usable suggestion was returned.');
+  }
+
   const afterUseFirst =
     useFirstIds.size === 0
       ? parsedSuggestions
@@ -183,10 +205,6 @@ export function parseSuggestResponse(
     (suggestion) => !applyDietary(suggestion, exclusionSet, hasAllergenRules).excluded,
   );
   const droppedForDiet = afterUseFirst.length - suggestions.length;
-
-  if (suggestions.length === 0) {
-    throw new VisionError('malformed', 'No usable suggestion was returned.');
-  }
 
   return {
     suggestions,

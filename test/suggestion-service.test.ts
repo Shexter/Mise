@@ -136,6 +136,46 @@ describe('getOrGenerateSuggestions caching', () => {
   });
 });
 
+describe('an emptied pool on fresh generation is a ready set, not an error (decision 178)', () => {
+  test('everything dropped for diet reaches "ready" with the drop count, not "error"', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    vi.mocked(generateSuggestions).mockResolvedValue({
+      suggestions: [],
+      shortfall: null,
+      droppedForConstraint: 0,
+      droppedForDiet: 3,
+    });
+    const localDate = localDateString();
+
+    const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.set.suggestions).toHaveLength(0);
+      expect(result.set.droppedForDiet).toBe(3);
+    }
+  });
+
+  test('everything dropped for the use-first constraint reaches "ready" with the drop count, not "error"', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    vi.mocked(generateSuggestions).mockResolvedValue({
+      suggestions: [],
+      shortfall: null,
+      droppedForConstraint: 4,
+      droppedForDiet: 0,
+    });
+    const localDate = localDateString();
+
+    const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.set.suggestions).toHaveLength(0);
+      expect(result.set.droppedForConstraint).toBe(4);
+    }
+  });
+});
+
 describe('getOrGenerateSuggestions — the pool re-selects for free (task 7.3/7.4)', () => {
   const POOL_A: Suggestion = {
     dish: 'Familiar Later',
