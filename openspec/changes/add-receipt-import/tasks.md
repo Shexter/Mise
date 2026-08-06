@@ -178,11 +178,11 @@ usable if the two are findable.
       exclusion is recoverable rather than invisible.
 - [x] 8.4 Allow changing the receipt type, re-planning rather than undoing.
 - [x] 8.5 Show the reconciliation prompt for running-low items inline.
-- [ ] 8.5a Show the arithmetic discrepancy where it is actionable — at the total,
+- [x] 8.5a Show the arithmetic discrepancy where it is actionable — at the total,
       with the sum beside it — not as a banner the user cannot do anything about.
-- [ ] 8.5b Let a quantity be edited as a measure or as a count, matching how the
+- [x] 8.5b Let a quantity be edited as a measure or as a count, matching how the
       line was read. A weight line offering a stepper is a wrong control.
-- [ ] 8.5c Show discounts, deposits, and refunds in the receipt's money section
+- [x] 8.5c Show discounts, deposits, and refunds in the receipt's money section
       rather than among the food lines, so the line list stays a list of things
       bought.
 - [x] 8.6 Components from `src/components`, tokens from

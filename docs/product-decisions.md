@@ -1545,3 +1545,26 @@ Open rather than settled because the fix is planned (`add-dinner-decision` group
 11) and unimplemented, and because the compliance rate is unmeasured: if a real
 model obeys the sentence essentially always, the check is cheap insurance, and
 if it does not, the prompt needs strengthening as well as the check.
+
+---
+
+## The receipt import, deepened
+
+**137. A count line's containers are priced by splitting the line total, remainder on the first.** `SETTLED`
+Decision 111 (`main`) says a count creates one pantry item per container. That leaves a question decision 111 doesn't answer: what does each container cost? Dividing the line total by the count and rounding loses or gains a cent depending on direction, and doing that per item means N items whose prices no longer sum to what was actually paid.
+
+`splitCents` divides in integer cents and puts the remainder on the first share, so the created items' prices always sum back to the line total exactly — "each carries its share of the line total" (spec) is true as an invariant, not an approximation. Each container otherwise carries the same shape as any other purchase: `qtyRemaining: 1`, `qtyUnit: 'piece'`, unopened, zero drift.
+
+**138. Discount attribution resolves by exact printed text, not by position or a line id the model can't see.** `SETTLED`
+The extraction call returns `applies_to_text` — the discount line's own claim about which food line it reduces, copied verbatim from what the model read. `attachExtractedLines` resolves that text to a real sibling line's id in the same insert pass, before either line has a database identity yet.
+
+*Why text rather than a line index:* an index is a promise about array position across two independently-generated lists (a discount at position 3 of the *discount* list referring to position 7 of the *lines* list) that the model has no reliable way to keep consistent under retries or reordering. Matching by the exact string it already transcribed is the same mechanism decision 66 uses everywhere else identity travels between systems that don't share a database — no new failure mode, and no second parsing pass.
+
+*Consequence:* two lines with identical printed text (the duplicate-purchase case decision 111 also covers) resolve a same-text discount to whichever appears first. Rare enough — a discount attached to one of two identical purchases is already an edge the receipt itself doesn't disambiguate — that this is accepted rather than solved.
+
+**139. The arithmetic check compares against the printed subtotal, not the total, and counts every money line once — including attributed discounts.** `SETTLED`
+Two things worth stating plainly, because both were nearly implemented wrong:
+
+Comparing against the *subtotal* rather than the total means the check never needs to know or compute tax, which no line individually carries. `subtotal_cents` and `tax_cents` (task 3.7) exist as separately-read printed figures for exactly this — the check reads what the till already worked out rather than re-deriving it.
+
+An attributed discount still counts in the sum. The temptation is to exclude it on the theory that `planReceiptApply` already "used" it to reduce the target line's price, so counting it again looks like double-counting. It is not: the printed subtotal already nets the food line's shelf price against the discount's own negative line, because that is what the receipt actually shows — two lines, not one pre-discounted line. Excluding the discount from the sum would make a perfectly correct receipt report a mismatch equal to every attributed discount on it, which is worse than not checking at all. Attribution answers "what should this pantry item cost"; the arithmetic check answers "did extraction transcribe faithfully" — different questions, and conflating them was the bug caught writing the fixtures (`moneyShaped` initially failed its own `checkArithmetic` assertion for exactly this reason).
