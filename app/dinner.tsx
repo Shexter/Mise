@@ -153,6 +153,15 @@ export default function DinnerScreen() {
               onAction={() => void load(mode, true)}
             />
           </Card>
+        ) : suggestions.length === 0 && droppedForConstraint > 0 ? (
+          <Card>
+            <EmptyState
+              title="Nothing left after using what needs using first"
+              detail="Every idea today skipped what's expiring soon. Try again for a fresh set."
+              actionLabel="Try again"
+              onAction={() => void load(mode, true)}
+            />
+          </Card>
         ) : suggestions.length === 0 ? (
           <Card>
             <EmptyState title="Nothing to suggest right now" />

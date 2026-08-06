@@ -281,11 +281,17 @@ describe('parseSuggestResponse — dietary exclusion runs after use-first (add-d
     });
 
     // With an allergen rule recorded, the one suggestion is excluded and
-    // nothing survives — the same "nothing usable" failure as any other
-    // fully-excluded pool.
-    expect(() =>
-      parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, true),
-    ).toThrow();
+    // nothing survives — a rule doing its job, not a provider failure
+    // (decision 178). The empty result is returned, not thrown.
+    const withAllergen = parseSuggestResponse(
+      raw,
+      candidateIds,
+      new Set(),
+      EMPTY_EXCLUSION,
+      true,
+    );
+    expect(withAllergen.suggestions).toHaveLength(0);
+    expect(withAllergen.droppedForDiet).toBe(1);
 
     // With no allergen rule, the same unresolved ingredient is not treated
     // as unsafe, and the suggestion survives.
@@ -342,13 +348,23 @@ describe('parseSuggestResponse — the use-first constraint is enforced locally 
     expect(result.droppedForConstraint).toBe(0);
   });
 
-  test('every suggestion ignoring the constraint leaves nothing usable, and the caller sees a failure', () => {
+  test('every suggestion ignoring the constraint leaves an empty result, not a thrown failure (decision 178)', () => {
     const candidateIds = new Set(['other-id']);
     const useFirstIds = new Set(['urgent-id']);
     const raw = JSON.stringify({
       suggestions: [suggestionOf('Ignores it entirely', 'other-id')],
     });
 
-    expect(() => parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false)).toThrow();
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds, EMPTY_EXCLUSION, false);
+    expect(result.suggestions).toHaveLength(0);
+    expect(result.droppedForConstraint).toBe(1);
+  });
+
+  test('nothing parseable at all is still a thrown failure — malformed means unreadable, not empty', () => {
+    const candidateIds = new Set(['other-id']);
+    const raw = JSON.stringify({ suggestions: [{ dish: '' }] }); // fails toSuggestion entirely
+    expect(() =>
+      parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false),
+    ).toThrow();
   });
 });
