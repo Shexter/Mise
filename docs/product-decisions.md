@@ -2325,3 +2325,63 @@ with a genuinely-unreadable-response test (still throws) alongside the two
 now-empty-but-well-formed cases (both reach `status: 'ready'`, never
 `'error'`) on the fresh-generation path specifically, since that was the path
 the bug actually lived on.
+
+## Spoonacular
+
+**179. Spoonacular cannot be a data source for this app, because its terms
+forbid keeping what it returns.** `OPEN`
+The terms are explicit: you may not store the information the API provides,
+*including any derived, hashed, or transformed data*; caching requires prior
+written permission and is capped at **one hour**; and if you stop using the API
+you must delete all data you ever obtained from it.
+
+Mise is a permanent food diary. A calorie figure from Spoonacular could not be
+written to a meal, a nutrition figure could not reach the catalogue, and neither
+could survive a lapsed subscription — which would mean deleting figures out of a
+user's own diary because *we* stopped paying. Decision 5's local-first,
+offline-capable promise is incompatible with a one-hour cache ceiling by
+construction.
+
+This is not a licensing detail to engineer around. "Derived, hashed, or
+transformed" closes every obvious workaround, and attempting one would be a
+deliberate breach rather than a grey area.
+
+`OPEN` because the terms text was gathered from secondary sources — the terms
+page returned 403 during planning — and task 1 requires confirming it against
+the original before the conclusion is treated as settled.
+
+**180. The only permitted role is a live surface that keeps nothing, and it is
+enforced structurally.** `SETTLED`
+If Spoonacular is used at all, it is a browse-only lookup: online, in memory,
+discarded within the window, and touching no existing write path — not the meal
+log, the pantry, the catalogue, aliases, or dietary rules.
+
+Enforced by shape rather than by care. Lookup result types live in their own
+module which `src/db/queries.ts` never imports, with a test asserting the
+boundary. "Do not save this" is a discipline that lasts exactly as long as the
+person who knows why; the next contributor sees a nutrition figure in hand and a
+nutrition column beside it, and the terms are not in the diff.
+
+The no-write rule is also what makes the deletion obligation satisfiable
+retroactively. If a lookup had ever populated a logged meal, honouring a lapse
+would mean reaching into a user's diary and removing figures they believe are
+theirs — a conflict with no acceptable resolution, so the only safe position is
+that it never happens.
+
+Corollary: **a migration in that change is a sign the rule has been broken.**
+
+**181. Everything Spoonacular offers is already served by sources that permit
+storage.** `SETTLED`
+Calories for a photographed meal come from the vision estimator, and are the
+user's own record. Per-ingredient nutrition and shelf life come from FoodData
+Central and FoodKeeper — CC0 and public domain, storable, already planned as
+`add-open-data-catalogue`. Recipes from stock come from the dinner decision;
+recipes the user found come from `add-recipe-links`, where the app *can* keep
+them. Ingredient identity comes from the identity layer.
+
+So adopting Spoonacular would duplicate planned work under terms that forbid
+keeping the answer. What it genuinely adds is breadth of recipe corpus — a large
+body of real recipes with real ingredient lists, which the app has no equivalent
+of. Whether a browse-only view of that is worth a subscription and a second
+credential in `keyStore.ts` is a product call, and `add-spoonacular-lookup`
+task 2 exists to make it deliberately rather than by momentum.

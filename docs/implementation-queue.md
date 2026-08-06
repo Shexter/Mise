@@ -146,6 +146,17 @@ should be re-decided rather than built.
 Gated on the ODbL answer (decision 144, `OPEN`). Task 1 produces it; nothing
 else may start. Also needs 1 for the pipeline.
 
+### 13. `add-spoonacular-lookup` — 48
+
+Gated, and the gate may end it. Spoonacular's terms forbid storing what it
+returns, including derived data, and cap caching at an hour — which is
+incompatible with a permanent food diary by construction (decision 179).
+
+Task 1 confirms the terms against the original source; task 2 decides whether
+the one permitted role, a browse-only surface that keeps nothing, is worth a
+subscription and a second credential. Deciding not to build it is a successful
+outcome and blocks nothing — decision 181 lists what already covers each want.
+
 ---
 
 ## Sequencing note
@@ -160,9 +171,9 @@ twice on parallel work.
 - **132** — the suggestion engine's thresholds are named guesses
 - **135** — extraction accuracy beyond the fixture corpus
 - **144** — the ODbL question
-- **172** — `add-dish-scorer`'s weights are measured against fixtures only,
+- **176** — `add-dish-scorer`'s weights are measured against fixtures only,
   not real usage (tasks 2.5, 9.1-9.5)
-- **173** — `add-dietary-profile`'s prompt-length-at-scale question (task 6.9)
+- **177** — `add-dietary-profile`'s prompt-length-at-scale question (task 6.9)
   is measured against fixtures only, not real usage
 - **new, from `add-cjk-matching`** — the CJK confirm-band scores (0.60-0.84)
   and the near-miss non-collision result are measured against an authored
