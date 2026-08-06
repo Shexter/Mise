@@ -1836,6 +1836,12 @@ interface CachedPayload {
   stretch: StretchPlan | null;
   /** Absent on rows cached before task 11 shipped — treated as zero. */
   droppedForConstraint?: number;
+  /**
+   * Absent on rows cached before `add-dish-scorer` shipped. Falls back to
+   * `suggestions` itself (design's rollback note: a pool equal to the
+   * displayed count degrades to a same-three reorder, not a break).
+   */
+  pool?: Suggestion[];
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -1849,6 +1855,7 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     stretch: payload.stretch,
     createdAt: row.created_at,
     droppedForConstraint: payload.droppedForConstraint ?? 0,
+    pool: payload.pool ?? payload.suggestions,
   };
 }
 
@@ -1883,10 +1890,11 @@ export async function saveSuggestionCache(
   suggestions: Suggestion[],
   stretch: StretchPlan | null,
   droppedForConstraint: number,
+  pool: Suggestion[],
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint };
+  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint, pool };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -1900,7 +1908,17 @@ export async function saveSuggestionCache(
     );
   });
 
-  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt, droppedForConstraint };
+  return {
+    id,
+    localDate,
+    mode,
+    fingerprint,
+    suggestions,
+    stretch,
+    createdAt,
+    droppedForConstraint,
+    pool,
+  };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -37,6 +37,17 @@ export const DEFAULT_VALUE_CENTS = 500;
 /** Freezable stock is rescuable without cooking, so it counts for less. */
 export const FREEZABLE_DISCOUNT = 0.5;
 
+/**
+ * The engine asks for this many candidates in "tonight" mode and displays
+ * `DISPLAYED_COUNT` of them, chosen by `dishScore.ts` (decision 149,
+ * `add-dish-scorer`). A scorer over exactly the number shown cannot exclude
+ * anything — over-generation is what gives ranking something to do. Stretch
+ * mode is unaffected; it selects a covering set, a different problem.
+ */
+export const CANDIDATE_POOL_SIZE = 10;
+/** How many of the pool are actually shown. */
+export const DISPLAYED_COUNT = 3;
+
 export type UrgencyItem = Pick<PantryItem, 'expiresAt' | 'priceCents'>;
 
 /**
@@ -251,6 +262,8 @@ export const REPEAT_THRESHOLD = 2;
 export interface PersonalisationSummary {
   /** e.g. "Korean (6 of 20 dinners)". Null when no keyword lean is detectable. */
   cuisineLean: string | null;
+  /** The bare cuisine name behind `cuisineLean` (e.g. "Korean"), for scoring rather than display. */
+  topCuisine: string | null;
   /** Dish names cooked at least `REPEAT_THRESHOLD` times in the window. */
   frequentDishes: string[];
   /** Dish names logged within `RECENTLY_EATEN_DAYS`. Suppress, do not suggest. */
@@ -294,11 +307,13 @@ export function summarisePersonalisation(
   }
 
   let cuisineLean: string | null = null;
+  let topCuisine: string | null = null;
   if (cuisineCounts.size > 0 && homeCooked.length > 0) {
-    const [topCuisine, count] = [...cuisineCounts.entries()].sort(
+    const [leadingCuisine, count] = [...cuisineCounts.entries()].sort(
       (a, b) => b[1] - a[1],
     )[0]!;
-    cuisineLean = `${topCuisine} (${count} of ${homeCooked.length} dinners)`;
+    topCuisine = leadingCuisine;
+    cuisineLean = `${leadingCuisine} (${count} of ${homeCooked.length} dinners)`;
   }
 
   const frequentDishes = [...dishCounts.entries()]
@@ -308,6 +323,7 @@ export function summarisePersonalisation(
 
   return {
     cuisineLean,
+    topCuisine,
     frequentDishes,
     recentlyEaten: [...recentlyEaten],
   };

@@ -12,14 +12,17 @@ import {
   type NewMeal,
   type NewMealItem,
 } from '@/db/queries';
+import { buildDishScoreContext, selectDisplayed, type DishScoreContext } from '@/logic/dishScore';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { macrosOfMeals } from '@/logic/scaling';
 import {
   bucketStock,
   computeFingerprint,
+  DISPLAYED_COUNT,
   HISTORY_WINDOW_DAYS,
   shapeStockPayload,
   summarisePersonalisation,
+  type BucketedItem,
   type StockPayload,
 } from '@/logic/suggest';
 import type {
@@ -29,6 +32,7 @@ import type {
   Suggestion,
   SuggestionMode,
   SuggestionSet,
+  UrgencyBucket,
 } from '@/types';
 
 /**
@@ -75,16 +79,18 @@ async function remainingCalories(localDate: string): Promise<{
   };
 }
 
-async function buildStockPayload(
-  localDate: string,
-): Promise<{ payload: StockPayload; canonicals: Map<string, CanonicalItem> }> {
+async function buildStockPayload(localDate: string): Promise<{
+  payload: StockPayload;
+  bucketed: Record<UrgencyBucket, BucketedItem[]>;
+  canonicals: Map<string, CanonicalItem>;
+}> {
   const [items, canonicalList] = await Promise.all([
     listPantryItems(),
     getAllCanonicals(),
   ]);
   const canonicals = new Map(canonicalList.map((c) => [c.id, c]));
   const bucketed = bucketStock(items, canonicals, localDate);
-  return { payload: shapeStockPayload(bucketed), canonicals };
+  return { payload: shapeStockPayload(bucketed), bucketed, canonicals };
 }
 
 /**
@@ -95,10 +101,11 @@ export async function getOrGenerateSuggestions(
   context: SuggestionRequestContext,
 ): Promise<SuggestionOutcome> {
   const localDate = context.localDate;
-  const { payload: stock } = await buildStockPayload(localDate);
+  const { payload: stock, bucketed } = await buildStockPayload(localDate);
   const { remaining, macroGap } = await remainingCalories(localDate);
   const recentMeals = await getRecentMeals(HISTORY_WINDOW_DAYS);
   const personalisation = summarisePersonalisation(recentMeals, localDate);
+  const scoreContext = buildDishScoreContext(bucketed, remaining, personalisation, localDate);
 
   const urgentStock = [...stock.full]
     .filter((line) => line.bucket !== 'available')
@@ -112,7 +119,7 @@ export async function getOrGenerateSuggestions(
   if (!context.forceRefresh) {
     const cached = await getSuggestionCache(localDate, context.mode);
     if (cached && cached.fingerprint === fingerprint) {
-      return { status: 'ready', set: cached, fromCache: true };
+      return { status: 'ready', set: reselect(cached, context.mode, scoreContext), fromCache: true };
     }
   }
 
@@ -137,13 +144,21 @@ export async function getOrGenerateSuggestions(
             untilDate: context.untilDate,
           }
         : null;
+    // "Tonight" caches the whole eligible pool and derives the displayed
+    // set from it (task 7). Stretch mode is untouched by the scorer — its
+    // dinners already live inside `stretch`, so pool and displayed both
+    // stay empty for that row (design's "leave stretch mode alone").
+    const pool = context.mode === 'tonight' ? result.suggestions : [];
+    const displayed =
+      context.mode === 'tonight' ? selectDisplayed(pool, scoreContext, DISPLAYED_COUNT) : [];
     const set = await saveSuggestionCache(
       localDate,
       context.mode,
       fingerprint,
-      context.mode === 'stretch' ? [] : result.suggestions,
+      displayed,
       stretch,
       result.droppedForConstraint,
+      pool,
     );
     return { status: 'ready', set, fromCache: false };
   } catch (error) {
@@ -152,6 +167,24 @@ export async function getOrGenerateSuggestions(
       message: error instanceof Error ? error.message : 'Suggestions failed.',
     };
   }
+}
+
+/**
+ * Re-derives the displayed set from a cached pool rather than trusting the
+ * stored one (task 7.3/7.4): selection is free, so a newly recorded rule or
+ * a corrected dislike takes effect on the next read with no request. A row
+ * cached before this change carries no pool — `getSuggestionCache` already
+ * treats that as a pool equal to its old displayed set (task 7.2), so
+ * re-selecting from it is a same-three reorder, not a behaviour change.
+ * Stretch mode is untouched; its dinners never went through the scorer.
+ */
+function reselect(
+  cached: SuggestionSet,
+  mode: SuggestionMode,
+  scoreContext: DishScoreContext,
+): SuggestionSet {
+  if (mode !== 'tonight' || cached.pool.length === 0) return cached;
+  return { ...cached, suggestions: selectDisplayed(cached.pool, scoreContext, DISPLAYED_COUNT) };
 }
 
 export interface CookSuggestionInput {

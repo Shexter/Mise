@@ -1947,3 +1947,54 @@ Decision 151's pool of ten is what makes a third constraint affordable.
 Worth recording because the scorer's own argument is about ranking quality, and
 that is not why it goes first. It goes first because every drop rule added from
 here competes with having anything to show.
+
+---
+
+## The dish scorer, measured
+
+**164. `add-dish-scorer` shipped with six weighted terms, evidenced against the
+fixture corpus, with one hand-guess corrected by the measurement.** `SETTLED`
+`src/logic/dishScore.ts`: `scoreDish` sums six terms — value at risk cleared,
+expiry pressure, effort, calorie fit, familiarity, a recency penalty — each a
+named constant, over a `CANDIDATE_POOL_SIZE` of 10 reduced to `DISPLAYED_COUNT`
+of 3 by `selectDisplayed`. The absolute constraints (an invented canonical id,
+decision 136's use-first check) still run in `parseSuggestResponse`, strictly
+before scoring — nothing excluded is ever scored, let alone shown, no matter
+how it would have ranked (task 3.5's test says so directly).
+
+*The pool size.* Ten, per decision 151/163's reasoning — unchanged here, since
+verifying it against a real model's actual output (task 2.5) needs an API key
+this environment does not have. Left open alongside `add-dinner-decision`'s
+10.3 and 11.6, same class of blocker.
+
+*The one real disagreement.* `src/logic/__fixtures__/dishPools.ts`'s
+well-stocked-Asian-pantry pool includes a dish clearing the two most valuable
+expiring ingredients at a cost of 90 minutes, and a cheaper dish clearing only
+the lesser of the two in 20. Hand intuition, recorded before running the
+scorer, had the 90-minute dish ranked second. The computed score put the
+20-minute dish second instead — the effort term's cost outweighed the small
+extra value cleared. Decided the computed order was right: 90 minutes is a
+real cost on a weeknight, "clears more of what's expiring" is not free just
+because it is the feature's central purpose, and a scorer that always
+sacrificed effort to value-at-risk would be indistinguishable from not having
+an effort term. Recorded per task 8.1 rather than silently accepting either
+answer.
+
+*Variety's exact boundary.* Similarity is `max(ingredient-Jaccard, cuisine
+match × 0.6)` against `SIMILARITY_THRESHOLD = 0.5`. A useful, unplanned
+consequence showed up repeatedly across the fixtures: a two-ingredient dish
+and a dish that is exactly it plus one more ingredient score *exactly* 0.5
+Jaccard (1 shared of 2, in a union of 2) — sitting precisely on the threshold,
+and therefore counted as too similar. In practice this reads correctly:
+"chicken and spinach" is not a meaningfully different dinner from "spinach"
+alone, and the floor mechanism (`nothing urgent`, `freezable beside
+non-freezable`) reliably reached past several such near-variants to find a
+genuinely different third pick rather than getting stuck.
+
+*What was not measured.* Task 2.5 (quality per candidate at pool size 10
+versus 3) and tasks 9.1-9.5 (a real kitchen, a real key) all need a live
+model or a physical device. None of the six weights should be read as
+validated against real usage yet — only against the fixture corpus, which is
+a check on the mechanism's *behaviour*, not on whether ten really does cost
+noticeably thinner ideas than three. Follow-up observation, not a blocker to
+shipping the mechanism.

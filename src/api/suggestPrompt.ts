@@ -1,3 +1,4 @@
+import { CANDIDATE_POOL_SIZE } from '@/logic/suggest';
 import type { StockLine, StockPayload, PersonalisationSummary } from '@/logic/suggest';
 import { MEASURE_UNITS } from '@/types';
 import type { Macros, SuggestionMode } from '@/types';
@@ -15,6 +16,8 @@ import type { Macros, SuggestionMode } from '@/types';
 
 export const SUGGEST_SYSTEM_PROMPT = `You are a dinner decision engine for a home cook. You are given what is in their kitchen, grouped by urgency, their cooking history, and how many calories and macros they have left today. You propose ideas for what to cook tonight.
 
+In "tonight" mode you are proposing a candidate pool, not a final answer — the app selects and displays a smaller number locally. Give ${CANDIDATE_POOL_SIZE} genuinely distinct ideas rather than variations on one dish, so there is something real to choose from.
+
 Rules, in order of importance:
 - If any ingredient is listed under use_first, every suggestion you return MUST use at least one of them. This is a hard requirement, not a preference — do not rely on list position to imply priority.
 - Prefer use_soon ingredients where they fit naturally, but they are not mandatory.
@@ -29,7 +32,7 @@ Rules, in order of importance:
 Output format:
 - Return raw JSON only. No prose, no explanation, no markdown code fences.
 - unit is one of: ${MEASURE_UNITS.join(', ')}.
-- In "tonight" mode, return exactly three suggestions.
+- In "tonight" mode, return exactly ${CANDIDATE_POOL_SIZE} suggestions.
 - In "stretch" mode, return a plan: as many dinners as current stock supports toward the requested date, reusing overlapping ingredients where sensible, and a shortfall string stating honestly what does not reach the date — null if it does.
 
 Schema for "tonight" mode:
@@ -99,7 +102,7 @@ export function buildSuggestUserPrompt(input: SuggestPromptInput): string {
   return JSON.stringify({
     task:
       input.mode === 'tonight'
-        ? 'Propose three dinner ideas from this kitchen. Return raw JSON matching the "tonight" schema.'
+        ? `Propose ${CANDIDATE_POOL_SIZE} distinct dinner ideas from this kitchen — a candidate pool the app will choose from, not a final three. Return raw JSON matching the "tonight" schema.`
         : `Propose a plan of dinners reaching ${input.untilDate} from this kitchen with no shopping. Return raw JSON matching the "stretch" schema.`,
     mode: input.mode,
     until_date: input.untilDate ?? null,

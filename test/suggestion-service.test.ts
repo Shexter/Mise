@@ -112,6 +112,102 @@ describe('getOrGenerateSuggestions caching', () => {
   });
 });
 
+describe('getOrGenerateSuggestions — the pool re-selects for free (task 7.3/7.4)', () => {
+  const POOL_A: Suggestion = {
+    dish: 'Familiar Later',
+    reasons: [{ kind: 'matches_history', label: 'uses what is on hand' }],
+    kcalPerServing: 400,
+    servings: 2,
+    effortMinutes: 20,
+    uses: [{ canonicalId: 'soy-sauce-light', qty: 1, unit: 'ml' }],
+    missing: [],
+    method: [],
+  };
+  const POOL_B: Suggestion = { ...POOL_A, dish: 'Generic Other' };
+
+  test('a dish becoming frequent between two reads re-ranks the cache with no new request', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    vi.mocked(generateSuggestions).mockResolvedValue({
+      suggestions: [POOL_A, POOL_B],
+      shortfall: null,
+      droppedForConstraint: 0,
+    });
+    const localDate = localDateString();
+
+    const first = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(first.status).toBe('ready');
+    if (first.status === 'ready') {
+      // Tied on every term before either dish has any history behind it —
+      // pool order breaks the tie.
+      expect(first.set.suggestions.map((s) => s.dish)).toEqual(['Familiar Later', 'Generic Other']);
+      expect(first.set.pool.map((s) => s.dish)).toEqual(['Familiar Later', 'Generic Other']);
+    }
+    expect(generateSuggestions).toHaveBeenCalledTimes(1);
+
+    // "Generic Other" becomes a frequent dish — recorded well outside the
+    // recently-eaten window, so the cache's fingerprint (which only reads
+    // recentlyEaten) does not change.
+    const tenDaysAgo = localDateString(new Date(Date.now() - 10 * 86_400_000));
+    const twentyDaysAgo = localDateString(new Date(Date.now() - 20 * 86_400_000));
+    for (const date of [tenDaysAgo, twentyDaysAgo]) {
+      await insertMeal({
+        loggedAt: `${date}T19:00:00.000Z`,
+        localDate: date,
+        mealType: 'dinner',
+        name: 'Generic Other',
+        photoUri: null,
+        source: 'manual',
+        confidence: null,
+        venue: 'home',
+        servingsMult: 1,
+        items: [],
+      });
+    }
+
+    const second = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(second.status).toBe('ready');
+    if (second.status === 'ready') {
+      expect(second.fromCache).toBe(true);
+      // Re-selected from the same cached pool, now favouring the dish
+      // that became frequent — order changed with no new request.
+      expect(second.set.suggestions.map((s) => s.dish)).toEqual(['Generic Other', 'Familiar Later']);
+    }
+    // Still just the one call from the cold-cache read above.
+    expect(generateSuggestions).toHaveBeenCalledTimes(1);
+  });
+
+  test('newly-urgent stock changes the fingerprint and forces regeneration, unlike a re-selection change', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    vi.mocked(generateSuggestions).mockResolvedValue({
+      suggestions: [POOL_A, POOL_B],
+      shortfall: null,
+      droppedForConstraint: 0,
+    });
+    const localDate = localDateString();
+
+    await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(generateSuggestions).toHaveBeenCalledTimes(1);
+
+    // Stock crossing into use_first changes `urgentStock`, one of
+    // `computeFingerprint`'s inputs — unlike the frequent-dish change
+    // above, this must not be satisfiable by re-selecting from the old pool.
+    await insertPantryItem({
+      canonicalId: 'chicken-breast',
+      locationId: 'fridge',
+      qtyRemaining: 300,
+      qtyUnit: 'g',
+      expiresAt: localDateString(new Date(Date.now() + 1 * 86_400_000)),
+    });
+
+    const second = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(second.status).toBe('ready');
+    if (second.status === 'ready') {
+      expect(second.fromCache).toBe(false);
+    }
+    expect(generateSuggestions).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('mealFromSuggestion — "I cooked this"', () => {
   let canonicals: Map<string, CanonicalItem>;
 

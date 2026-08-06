@@ -34,6 +34,12 @@ export interface SuggestRequest {
 }
 
 export interface SuggestResult {
+  /**
+   * In "tonight" mode, the eligible candidate pool — up to
+   * `CANDIDATE_POOL_SIZE`, after both drops below, not yet reduced to what
+   * is displayed. `dishScore.ts`'s `selectDisplayed` does that next. In
+   * "stretch" mode this is the plan's dinners, unaffected by the scorer.
+   */
   suggestions: Suggestion[];
   /** "Stretch" mode's honest gap. Always null in "tonight" mode. */
   shortfall: string | null;
