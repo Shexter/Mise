@@ -81,7 +81,18 @@ Depletion accuracy compounds into stock status, expiry buckets, and suggestions.
 The sticky default is mediocre rather than broken, which is why it sits here
 rather than higher.
 
-### 6. `add-openai-provider` — 41
+### 6. `add-energy-sources` — 54
+
+The only item in this queue driven by outside feedback: a personal trainer said
+onboarding does not ask enough to work out what someone needs. Body-scan and
+known-figure paths, with today's flow kept as the preselected default.
+
+**Parallel-safe.** It touches `src/logic/bmr.ts`, `profileStore`, the onboarding
+screens, and `Profile` — and nothing else in this queue goes near any of them.
+It appends a migration, so it still cannot run concurrently with another change
+that does, but it is the cheapest one to slot in beside a long-running branch.
+
+### 7. `add-openai-provider` — 41
 
 Self-contained, no migration, and it fixes a live annoyance: `rate_limited` has
 been in the taxonomy since the beginning with nothing acting on it. Good work to
@@ -91,16 +102,16 @@ slot between larger changes.
 
 ## 3 — Input channels
 
-### 7. `add-unified-capture` — 56
+### 8. `add-unified-capture` — 56
 
 One action for adding to the pantry. Closes `add-receipt-import` 7.2a and sets
 the shape the next one depends on.
 
-### 8. `add-barcode-capture` — 51
+### 9. `add-barcode-capture` — 51
 
 After unified capture, which revises its task 5.1.
 
-### 9. `add-recipe-links` — 47
+### 10. `add-recipe-links` — 47
 
 New capability rather than a fix, which is the only reason it is this low. High
 user value and no blocking dependency.
@@ -109,23 +120,23 @@ user value and no blocking dependency.
 
 ## 4 — Nutrition and personalisation
 
-### 10. `add-fibre-tracking` — 31
-### 11. `add-macro-gap-suggestions` — 29
-### 12. `add-suggestion-templates` — 49
+### 11. `add-fibre-tracking` — 31
+### 12. `add-macro-gap-suggestions` — 29
+### 13. `add-suggestion-templates` — 49
 
-Needs 11 for the objective parameter and 1 for the scorer it weights.
+Needs 12 for the objective parameter and 1 for the scorer it weights.
 
 ---
 
 ## 5 — Needs a decision before it needs an implementer
 
-### 13. `add-shop-locations` — 42
+### 14. `add-shop-locations` — 42
 
 Task 1.2 establishes whether departure events need always-on location. If they
 do, that is a materially larger ask than the proposal weighed and the change
 should be re-decided rather than built.
 
-### 14. `add-off-taxonomy-seed` — 37
+### 15. `add-off-taxonomy-seed` — 37
 
 Gated on the ODbL answer (decision 144, `OPEN`). Task 1 produces it; nothing
 else may start. Also needs 3 for the pipeline.
