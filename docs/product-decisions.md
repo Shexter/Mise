@@ -894,6 +894,13 @@ real device or emulator build and could not run in this environment. Flagged
 for the next on-device pass alongside `add-identity-layer`'s keyed run and
 `add-pantry-stock`'s hand verification.
 
+Task 4.3 — totals and macro bars picking up the new meal immediately — was
+still open when the above was written. Closed since: `consumed` is derived
+directly from the same `meals` array `refresh()` just fetched, so there is no
+second path for it to lag behind, and the "saving while viewing an earlier
+day" test now asserts the macro totals alongside the meal's presence in the
+list, not just the list.
+
 **85. Reversal hard-deletes; there is no reversal marker.** `SETTLED`
 `add-stock-depletion` task 1.1 asked for "a reversal marker" on
 `consumption_events`. The implementation instead deletes the rows on reversal,

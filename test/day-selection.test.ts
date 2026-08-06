@@ -138,5 +138,16 @@ describe('saving a meal while viewing an earlier day', () => {
     expect(
       useDayStore.getState().meals.some((meal) => meal.id === stored.id),
     ).toBe(true);
+
+    // Task 4.3: the totals and macro bars read straight off `consumed`,
+    // which `refresh()` recomputes from the same `meals` list — so if the
+    // meal is visible above, its macros are already folded in here too.
+    // No separate code path to drift out of sync with the list.
+    expect(useDayStore.getState().consumed).toEqual({
+      calories: 500,
+      proteinG: 20,
+      carbsG: 40,
+      fatG: 15,
+    });
   });
 });
