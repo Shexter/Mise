@@ -1762,3 +1762,148 @@ only one of them.
 That decision 136's convention was argued independently and lands in exactly the
 place decision 103 wanted for allergens is some evidence it is the right
 convention rather than a local habit.
+
+## The dish scorer
+
+**151. The scorer is only worth building if the app over-generates.** `SETTLED`
+`src/api/suggestPrompt.ts:32` asks for *exactly three* suggestions, and three is
+the number displayed. A scorer over three candidates cannot exclude anything —
+it only picks which of the same three is on top, and every benefit claimed for
+ranking (variety, constraint headroom, weights that change what you see)
+requires candidates that lose.
+
+So the engine asks for a pool — ten, a named constant — and shows three. The
+seven that lose are the scorer's actual output.
+
+The cost is acceptable because decision 40 already caches daily: this is more
+output tokens on one request that was being made anyway, not more requests. And
+it relieves two existing pressures at once — `add-dinner-decision`'s stated
+central risk is monotony, which is a selection problem with nothing to select
+from at three; and decisions 136 and 150 both *drop* suggestions, where dropping
+from three leaves one.
+
+**152. Absolute constraints filter the pool; they are never weights.** `SETTLED`
+Decision 34's use-first requirement and decision 102's allergen exclusion are
+not preferences that can lose a close contest. Expressing an absolute as a very
+large weight works until two large weights meet, and then something forbidden
+ranks first because the arithmetic said so — a failure that is silent and
+arithmetic rather than logical.
+
+Constraints run first, over the pool, where they already live in
+`parseSuggestResponse`. The scorer only ever sees suggestions that are already
+allowed, which also keeps it honest about its job: choosing among acceptable
+options is a preference problem and correctly a weighted sum. Deciding what is
+acceptable is not.
+
+**153. Variety is a selection rule, not a weight.** `SETTLED`
+Similarity is a property of a *pair*, not of a dish — a dish is only repetitive
+relative to what else is being shown. So it is judged during greedy selection:
+take the top scorer, then the highest scorer sufficiently unlike what is already
+chosen.
+
+Judged on shared ingredients and cuisine lean, never on dish name: "chicken stir
+fry" and "pork stir fry" are different dinners with similar names, and "fried
+rice" and "chāhan" are the same dinner without one. The floor is that variety
+never empties the set — three alike suggestions beat one.
+
+## Recipes the user brings
+
+**154. The app never contacts the video platform.** `SETTLED`
+Instagram and TikTok prohibit scraping in their terms; YouTube's API Services
+terms bind anything touching its API; downloading video is off the table on all
+three. Platform APIs mean OAuth, keys, review processes, and three integrations
+that break independently — none of which fits an app with no server and no
+accounts.
+
+So the app receives only what the user hands it: the share sheet's payload,
+pasted text, or a screenshot. This is not a workaround. It has no keys, no terms
+to comply with, no per-platform breakage, works on platforms that do not exist
+yet, and nothing about what the user watches ever leaves the device. A platform
+API would return the same caption with an access token attached.
+
+**155. A saved recipe is the same depletion path as a suggestion.** `SETTLED`
+Decision 61 made the dinner decision the seasoning mechanism because a recipe
+*states* its ingredients where a photograph cannot. A recipe the user saved is
+the same class of fact from a different source — and arguably better evidence,
+since someone who saved a video is likelier to cook it than someone shown a
+generated idea.
+
+So cooking one reuses `suggestionService`'s meal construction unchanged: same
+`MealItem.canonicalId`, same depletion against stated quantities, same
+`venue: 'home'` hardcoded per decision 148. An ingredient with no stated
+quantity is skipped rather than guessed.
+
+**156. Decision 33 is not violated by the user bringing their own recipes.** `SETTLED`
+Decision 33 rejected a recipe library because *"'what could I make' is free from
+any chatbot and goes generic by the fourth day."* That reasoning is about the
+**app supplying** recipes. A collection of things this person chose is the
+opposite of generic — it is the least substitutable content in the app, and no
+chatbot can produce it. The app still does not browse, recommend, or supply.
+
+**157. The app is never the place someone would go instead of the video.** `SETTLED`
+Ingredients and quantities are stored because the app computes with them — an
+ingredient list is a set of facts. A method is someone's writing, kept for the
+user's own reference, never presented as the app's content. The source link is
+stored always and shown wherever the recipe appears.
+
+Comfortable today because there is no sharing surface anywhere in the app, and
+written down because the moment one exists the question changes.
+
+## Shop locations
+
+**158. Location is asked for, reversing `add-venue-inference`'s non-goal —
+and the reversal does not extend to venue.** `SETTLED`
+That non-goal weighed a permission against slightly better odds on a control the
+user can already fix in one tap, and concluded correctly for what it was
+weighing. `add-shop-locations` weighs the same permission against being reminded
+what you are out of while you can still buy it, and being prompted to capture
+while the receipt is in your hand. Different trade, different conclusion.
+
+Decision 5 survives rather than being traded: position never leaves the device
+(there is no server to send it to), the permission is optional with manual
+equivalents for everything, and — the load-bearing part — no location history is
+stored.
+
+Explicitly **not** reopened: venue inference from position. Once the permission
+exists it becomes technically available, and that is exactly the wrong reason to
+adopt it. It is a separate question to be argued deliberately, not inherited.
+
+**159. Shop positions are stored; visits are not.** `SETTLED`
+"The app knows where the supermarkets are" and "the app knows where you have
+been" are different databases with wildly different consequences if a device is
+lost, and only one is needed. Geofencing delivers arrival and departure at
+runtime; nothing requires persisting them, so nothing does.
+
+This is a property of the schema rather than of the code — no visit table, no
+timestamps of presence, no `last_seen_at` — with a test asserting the stored
+data cannot reconstruct movement. Someone will eventually want a cache column
+here for reasonable-sounding reasons. The answer is no.
+
+**160. Shops are learned from receipts, not downloaded.** `SETTLED`
+The obvious implementation fetches nearby supermarkets from a places database,
+and it is worse three ways: it needs the network exactly where signal is worst,
+it imports a licensing question the project is already careful about (the best
+open source is ODbL, and decision 144 is holding an entire change behind that),
+and it knows thousands of shops the user will never visit while knowing nothing
+about the Asian grocer on the corner that no database lists — which is precisely
+where decision 4's audience shops.
+
+Learning from receipts inverts all three, costs nothing to bootstrap because
+importing that receipt was already happening, and follows decision 60's spirit:
+the app populates itself. The cost is that nothing happens at a shop until its
+first receipt is imported — honest, self-resolving, and explainable in a
+sentence.
+
+**161. Both location prompts are offers, and neither acts.** `SETTLED`
+Arrival surfaces what is running low or out; departure offers capture. Neither
+creates a pantry item, imports a receipt, or moves stock.
+
+Decisions 95 and 122 already require every automatic-seeming path to land on
+review. A feature triggered by walking through a door is the last place to break
+that, because the user did not initiate it at all and may not even be shopping —
+which is also why a geofence mismatch in dense retail costs only a dismissed
+prompt.
+
+Arrival shows status, never a quantity: decision 15 again. "Running low on soy
+sauce" is defensible; "you have 40 ml left" while standing in an aisle is a
+number the app cannot justify and the user cannot check.

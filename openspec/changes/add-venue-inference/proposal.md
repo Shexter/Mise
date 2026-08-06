@@ -63,6 +63,13 @@ selected.
 - **Location or GPS.** Position would be a strong signal and a poor trade — it
   needs a permission the app has never asked for, against a privacy story
   (decision 5) that is one of its better properties. Not worth it for a default.
+
+  *Still true for this change.* `add-shop-locations` later asks for that
+  permission, weighing it against something much larger. If it lands, the
+  "permission the app has never asked for" clause stops holding — but that does
+  not make venue inference from position correct by inheritance. It is a
+  different question, and this non-goal stands until someone argues it away
+  deliberately rather than because the permission happens to be there.
 - **New venue values.** `home | out | leftovers` is unchanged; decision 51 made
   that a single closed field deliberately.
 - **Inferring servings.** The multiplier stays a user figure.
