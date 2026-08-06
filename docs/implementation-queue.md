@@ -82,15 +82,35 @@ user value and no blocking dependency.
 ## 3 — Nutrition and personalisation
 
 ### 7. `add-fibre-tracking` — 31
-### 8. `add-macro-gap-suggestions` — 29
-### 9. `add-suggestion-templates` — 49
+### 8. `add-suggestion-templates` — 49
 
-Needs 8 for the objective parameter and `add-dish-scorer` (shipped) for the
-scorer it weights.
+Needs `add-macro-gap-suggestions` for the objective parameter (see below —
+currently blocked) and `add-dish-scorer` (shipped) for the scorer it weights.
 
 ---
 
 ## 4 — Needs a decision before it needs an implementer
+
+### 9. `add-macro-gap-suggestions` — 29
+
+**Blocked on missing data, not code.** Tasks 3.1 and 3.3 (`gapScore` ranking
+by contribution to the targeted macro, and computing the best achievable
+contribution from stock *before* the model is asked) both assume the app can
+look up how much protein/carbs/fat a canonical ingredient supplies. It
+cannot: `CanonicalItem` carries no nutrition fields at all — protein/carb/fat-
+per-100g exists only on `Product` rows tied to a specific barcode-scanned SKU,
+and most pantry items (receipt, vision, or manually entered) have no linked
+product. Confirmed by reading `src/types.ts`, not assumed.
+
+Discovered mid-implementation this round and paused rather than shipped with
+a fabricated or degenerate local ranking. A real fix needs a nutrition-per-
+canonical data source — likely `add-open-data-catalogue`'s FoodData Central
+half, itself currently blocked on the same network egress issue (see above).
+A cheaper interim path exists (a coarse `FoodClass`-based local heuristic,
+with the model supplying the actual numeric contribution per suggestion, the
+same way it already estimates `kcalPerServing` with no local nutrition DB) —
+not taken without the user's say-so, since it ships with materially weaker
+fidelity than the design assumed.
 
 ### 10. `add-shop-locations` — 42
 
