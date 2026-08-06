@@ -1522,7 +1522,7 @@ yet to measure against.
 
 ## Found in review
 
-**136. Decision 34's constraint is stated to the model and never checked.** `OPEN`
+**136. Decision 34's constraint is stated to the model and never checked.** `SETTLED`
 `add-dinner-decision` shipped 51 of 52 tasks with the use-first constraint
 living entirely in `src/api/suggestPrompt.ts:19`, as a sentence telling the model
 it MUST use at least one expiring ingredient. Nothing downstream verifies it.
@@ -1541,10 +1541,20 @@ difference between this feature and a recipe chatbot, and the failure is
 invisible — a suggestion that quietly ignores the expiring pork still reads as a
 perfectly good dinner idea.
 
-Open rather than settled because the fix is planned (`add-dinner-decision` group
-11) and unimplemented, and because the compliance rate is unmeasured: if a real
-model obeys the sentence essentially always, the check is cheap insurance, and
-if it does not, the prompt needs strengthening as well as the check.
+Fixed in `add-dinner-decision` group 11: `parseSuggestResponse` now takes the
+`use_first` bucket's ids alongside the candidate list and drops, after
+parsing, any suggestion whose `uses` misses that bucket entirely whenever it
+is non-empty — the same shape as the existing "drop, don't repair" handling
+for an invented id. The prompt sentence stays; asking is what keeps the drop
+rare, checking is what makes the rare case not silently ship. A dropped
+suggestion is never patched by swapping in an ingredient the model didn't
+choose, and the surface says how many were dropped rather than just showing
+fewer.
+
+Task 11.6 — the actual compliance rate, i.e. how often a real model needs the
+check to fire — remains open. It needs live usage against a real model, which
+this environment has no key for; nothing here changes if the rate turns out
+to be non-trivial, but the prompt would then be worth strengthening too.
 
 ---
 

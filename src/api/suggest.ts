@@ -37,6 +37,15 @@ export interface SuggestResult {
   suggestions: Suggestion[];
   /** "Stretch" mode's honest gap. Always null in "tonight" mode. */
   shortfall: string | null;
+  /**
+   * Suggestions the local use-first check removed after parsing (task 11).
+   * The prompt states the constraint as a hard requirement, but nothing
+   * upstream of this module enforces it — this is the guarantee, the
+   * prompt is only the request (decision 103's shape, applied to decision
+   * 34). Surfaced so the caller can say the constraint was applied rather
+   * than silently showing fewer ideas than asked for.
+   */
+  droppedForConstraint: number;
 }
 
 /**
@@ -59,7 +68,7 @@ export async function generateSuggestions(
       ? await completeWithAnthropic(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal)
       : await completeWithGemini(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal);
 
-  return parseSuggestResponse(raw, allCatalogueIds(request));
+  return parseSuggestResponse(raw, allCatalogueIds(request), useFirstIds(request));
 }
 
 /** Every id the model was shown, whether sent in full or compressed. */
@@ -68,6 +77,19 @@ function allCatalogueIds(request: SuggestRequest): ReadonlySet<string> {
     [...request.stock.full, ...request.stock.compressed].map(
       (line) => line.canonicalId,
     ),
+  );
+}
+
+/**
+ * The ids the prompt labelled `use_first` — always sent in `stock.full`
+ * (`shapeStockPayload` never compresses a use_first line). Empty means
+ * there is nothing urgent, and the constraint has nothing to check.
+ */
+function useFirstIds(request: SuggestRequest): ReadonlySet<string> {
+  return new Set(
+    request.stock.full
+      .filter((line) => line.bucket === 'use_first')
+      .map((line) => line.canonicalId),
   );
 }
 
@@ -81,10 +103,18 @@ function allCatalogueIds(request: SuggestRequest): ReadonlySet<string> {
  * A suggestion left with no valid `uses` after that is dropped entirely:
  * the spec requires ingredients to be identified precisely, and a dish
  * naming nothing real is not a suggestion.
+ *
+ * `useFirstIds` is the local guarantee behind the prompt's hard
+ * requirement (task 11): whenever it is non-empty, a suggestion whose
+ * `uses` misses it entirely is dropped too, never repaired by swapping in
+ * an ingredient the model did not choose. Pass an empty set when nothing
+ * is urgent — the spec only requires this when the use_first group is
+ * non-empty.
  */
 export function parseSuggestResponse(
   raw: string,
   candidateIds: ReadonlySet<string>,
+  useFirstIds: ReadonlySet<string>,
 ): SuggestResult {
   let parsed: unknown;
   try {
@@ -101,15 +131,27 @@ export function parseSuggestResponse(
     throw new VisionError('malformed', 'The suggestions could not be read.');
   }
 
-  const suggestions = rawSuggestions
+  const parsedSuggestions = rawSuggestions
     .map((entry) => toSuggestion(entry, candidateIds))
     .filter((entry): entry is Suggestion => entry !== null);
+
+  const suggestions =
+    useFirstIds.size === 0
+      ? parsedSuggestions
+      : parsedSuggestions.filter((suggestion) =>
+          suggestion.uses.some((use) => useFirstIds.has(use.canonicalId)),
+        );
+  const droppedForConstraint = parsedSuggestions.length - suggestions.length;
 
   if (suggestions.length === 0) {
     throw new VisionError('malformed', 'No usable suggestion was returned.');
   }
 
-  return { suggestions, shortfall: asNullableString(record['shortfall']) };
+  return {
+    suggestions,
+    shortfall: asNullableString(record['shortfall']),
+    droppedForConstraint,
+  };
 }
 
 /* -------------------------------------------------------------------------- */

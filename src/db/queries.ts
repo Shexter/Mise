@@ -1834,6 +1834,8 @@ interface SuggestionCacheRow {
 interface CachedPayload {
   suggestions: Suggestion[];
   stretch: StretchPlan | null;
+  /** Absent on rows cached before task 11 shipped — treated as zero. */
+  droppedForConstraint?: number;
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -1846,6 +1848,7 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     suggestions: payload.suggestions,
     stretch: payload.stretch,
     createdAt: row.created_at,
+    droppedForConstraint: payload.droppedForConstraint ?? 0,
   };
 }
 
@@ -1879,10 +1882,11 @@ export async function saveSuggestionCache(
   fingerprint: string,
   suggestions: Suggestion[],
   stretch: StretchPlan | null,
+  droppedForConstraint: number,
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch };
+  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -1896,7 +1900,7 @@ export async function saveSuggestionCache(
     );
   });
 
-  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt };
+  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt, droppedForConstraint };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -17,34 +17,34 @@ function payloadFor(kitchen: (typeof KITCHENS)[number]) {
   const bucketed = bucketStock(kitchen.items, canonicals, kitchen.today);
   const stock = shapeStockPayload(bucketed);
   const personalisation = summarisePersonalisation(kitchen.history, kitchen.today);
-  return { bucketed, stock, personalisation };
+  const useFirstIds = new Set(bucketed.use_first.map((entry) => entry.canonical.id));
+  return { bucketed, stock, personalisation, useFirstIds };
 }
 
 describe('parseSuggestResponse, against every fixture kitchen', () => {
   test('every recorded response parses into at least one usable suggestion', () => {
     for (const kitchen of KITCHENS) {
-      const { stock } = payloadFor(kitchen);
+      const { stock, useFirstIds } = payloadFor(kitchen);
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
       expect(result.suggestions.length, kitchen.name).toBeGreaterThan(0);
     }
   });
 
   test('every suggestion in every kitchen uses at least one urgent item, where one exists', () => {
     for (const kitchen of KITCHENS) {
-      const { bucketed, stock } = payloadFor(kitchen);
+      const { bucketed, stock, useFirstIds } = payloadFor(kitchen);
       if (bucketed.use_first.length === 0) continue; // covered separately below
 
-      const urgentIds = new Set(bucketed.use_first.map((entry) => entry.canonical.id));
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
 
       for (const suggestion of result.suggestions) {
-        const usesUrgent = suggestion.uses.some((use) => urgentIds.has(use.canonicalId));
+        const usesUrgent = suggestion.uses.some((use) => useFirstIds.has(use.canonicalId));
         expect(usesUrgent, `${kitchen.name}: "${suggestion.dish}"`).toBe(true);
       }
     }
@@ -52,23 +52,23 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
 
   test('the nothing-urgent kitchen still yields suggestions with no use_first constraint to satisfy', () => {
     const kitchen = KITCHENS.find((k) => k.name === 'nothing urgent')!;
-    const { bucketed, stock } = payloadFor(kitchen);
+    const { bucketed, stock, useFirstIds } = payloadFor(kitchen);
     expect(bucketed.use_first).toEqual([]);
 
     const candidateIds = new Set(
       [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
     );
-    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
   test('no suggestion repeats a recently-eaten dish', () => {
     for (const kitchen of KITCHENS) {
-      const { stock, personalisation } = payloadFor(kitchen);
+      const { stock, personalisation, useFirstIds } = payloadFor(kitchen);
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
       const recentlyEaten = new Set(personalisation.recentlyEaten);
 
       for (const suggestion of result.suggestions) {
@@ -79,11 +79,11 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
 
   test('the set mixes familiar with unfamiliar in the personalised kitchen', () => {
     const kitchen = KITCHENS.find((k) => k.name === 'well-stocked Asian pantry')!;
-    const { stock } = payloadFor(kitchen);
+    const { stock, useFirstIds } = payloadFor(kitchen);
     const candidateIds = new Set(
       [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
     );
-    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+    const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
 
     // At least one dish resembles the frequent "Gochujang pork stir-fry",
     // and at least one departs from it — asserted on the reason tags,
@@ -100,11 +100,11 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
 
   test('every suggestion carries at least one reason grounded in a real fact', () => {
     for (const kitchen of KITCHENS) {
-      const { stock } = payloadFor(kitchen);
+      const { stock, useFirstIds } = payloadFor(kitchen);
       const candidateIds = new Set(
         [...stock.full, ...stock.compressed].map((line) => line.canonicalId),
       );
-      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds);
+      const result = parseSuggestResponse(kitchen.recordedResponse, candidateIds, useFirstIds);
       for (const suggestion of result.suggestions) {
         expect(suggestion.reasons.length, `${kitchen.name}: ${suggestion.dish}`).toBeGreaterThan(0);
       }
@@ -146,7 +146,7 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds);
+    const result = parseSuggestResponse(raw, candidateIds, new Set());
     expect(result.suggestions.length).toBe(1);
     expect(result.suggestions[0]?.uses).toEqual([{ canonicalId: 'real-id', qty: 1, unit: 'g' }]);
   });
@@ -177,7 +177,7 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds);
+    const result = parseSuggestResponse(raw, candidateIds, new Set());
     expect(result.suggestions.map((s) => s.dish)).toEqual(['Real dish']);
   });
 
@@ -197,13 +197,66 @@ describe('parseSuggestResponse — the refusal to invent an id', () => {
         },
       ],
     });
-    const result = parseSuggestResponse(raw, candidateIds);
+    const result = parseSuggestResponse(raw, candidateIds, new Set());
     expect(result.suggestions[0]?.missing).toEqual([
       { canonicalId: null, name: 'egg', note: null },
     ]);
   });
 
   test('prose instead of JSON throws so the caller can fail the batch, not the app', () => {
-    expect(() => parseSuggestResponse('Sorry, I cannot help.', new Set())).toThrow();
+    expect(() => parseSuggestResponse('Sorry, I cannot help.', new Set(), new Set())).toThrow();
+  });
+});
+
+describe('parseSuggestResponse — the use-first constraint is enforced locally (task 11)', () => {
+  function suggestionOf(dish: string, canonicalId: string) {
+    return {
+      dish,
+      reason_tags: ['uses what is on hand'],
+      kcal_per_serving: 400,
+      servings: 1,
+      effort_minutes: 10,
+      uses: [{ canonical_id: canonicalId, qty: 1, unit: 'g' }],
+      missing: [],
+      method: [],
+    };
+  }
+
+  test('a suggestion that ignores a non-empty use_first bucket is dropped, not repaired', () => {
+    const candidateIds = new Set(['urgent-id', 'other-id']);
+    const useFirstIds = new Set(['urgent-id']);
+    const raw = JSON.stringify({
+      suggestions: [
+        suggestionOf('Uses the urgent item', 'urgent-id'),
+        suggestionOf('Ignores it entirely', 'other-id'),
+      ],
+    });
+
+    const result = parseSuggestResponse(raw, candidateIds, useFirstIds);
+
+    expect(result.suggestions.map((s) => s.dish)).toEqual(['Uses the urgent item']);
+    expect(result.droppedForConstraint).toBe(1);
+  });
+
+  test('an empty use_first bucket applies no constraint', () => {
+    const candidateIds = new Set(['other-id']);
+    const raw = JSON.stringify({
+      suggestions: [suggestionOf('Anything goes', 'other-id')],
+    });
+
+    const result = parseSuggestResponse(raw, candidateIds, new Set());
+
+    expect(result.suggestions.map((s) => s.dish)).toEqual(['Anything goes']);
+    expect(result.droppedForConstraint).toBe(0);
+  });
+
+  test('every suggestion ignoring the constraint leaves nothing usable, and the caller sees a failure', () => {
+    const candidateIds = new Set(['other-id']);
+    const useFirstIds = new Set(['urgent-id']);
+    const raw = JSON.stringify({
+      suggestions: [suggestionOf('Ignores it entirely', 'other-id')],
+    });
+
+    expect(() => parseSuggestResponse(raw, candidateIds, useFirstIds)).toThrow();
   });
 });

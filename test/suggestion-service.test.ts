@@ -50,6 +50,7 @@ beforeEach(async () => {
   vi.mocked(generateSuggestions).mockResolvedValue({
     suggestions: [FAKE_SUGGESTION],
     shortfall: null,
+    droppedForConstraint: 0,
   });
 });
 

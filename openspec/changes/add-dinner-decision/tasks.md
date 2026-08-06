@@ -161,17 +161,20 @@ looks, because decision 34 is what separates this feature from a recipe chatbot,
 and a silent drift into "mostly uses expiring stock" is invisible — the
 suggestions still look plausible.
 
-- [ ] 11.1 After parsing, drop any suggestion whose `uses` intersect the
+- [x] 11.1 After parsing, drop any suggestion whose `uses` intersect the
       `use_first` bucket emptily, whenever that bucket is non-empty.
-- [ ] 11.2 Do not repair a dropped suggestion by substituting an ingredient.
+- [x] 11.2 Do not repair a dropped suggestion by substituting an ingredient.
       Returning fewer is honest; rewriting the model's dish is not.
-- [ ] 11.3 When dropping leaves fewer than the surface expects, say the
+- [x] 11.3 When dropping leaves fewer than the surface expects, say the
       constraint was applied rather than silently showing two.
-- [ ] 11.4 Leave the prompt sentence in place. Asking and checking are both
+- [x] 11.4 Leave the prompt sentence in place. Asking and checking are both
       worth doing — the ask is what makes the check rarely fire.
-- [ ] 11.5 Test with a stubbed response that ignores the constraint, and assert
+- [x] 11.5 Test with a stubbed response that ignores the constraint, and assert
       the offending suggestions do not reach the caller. This is the test that
       would have caught it.
 - [ ] 11.6 Record the observed compliance rate — how often a real model returns
       a suggestion the check has to drop. If it is near zero the check is cheap
       insurance; if it is not, decision 34 needs a louder prompt as well.
+      Needs live usage against a real model, same blocker as 10.3 — no API key
+      is configured in this environment. Left open for observation once the
+      feature is in real use.

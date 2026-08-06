@@ -491,6 +491,8 @@ export interface SuggestionSet {
   suggestions: Suggestion[];
   stretch: StretchPlan | null;
   createdAt: string;
+  /** How many the local use-first check dropped after parsing (task 11.3). */
+  droppedForConstraint: number;
 }
 
 /* -------------------------------------------------------------------------- */
