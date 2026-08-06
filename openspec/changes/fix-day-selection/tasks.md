@@ -45,7 +45,7 @@ fix verified only in Expo Go proves nothing.
 - [x] 4.2 Confirm the meal is still filed under the current day, not the day
       being viewed. `app/review.tsx:189` computes this correctly and must not
       change.
-- [ ] 4.3 Verify the day's totals and macro bars include the new meal
+- [x] 4.3 Verify the day's totals and macro bars include the new meal
       immediately.
 
 ## 5. Honest confirmation

@@ -143,6 +143,7 @@ export async function getOrGenerateSuggestions(
       fingerprint,
       context.mode === 'stretch' ? [] : result.suggestions,
       stretch,
+      result.droppedForConstraint,
     );
     return { status: 'ready', set, fromCache: false };
   } catch (error) {

@@ -47,6 +47,7 @@ import type {
   ReceiptLine,
   ReceiptLineKind,
   ReceiptType,
+  QuantityKind,
   ReceiptWithLines,
   ReferenceSource,
   StockStatus,
@@ -1833,6 +1834,8 @@ interface SuggestionCacheRow {
 interface CachedPayload {
   suggestions: Suggestion[];
   stretch: StretchPlan | null;
+  /** Absent on rows cached before task 11 shipped — treated as zero. */
+  droppedForConstraint?: number;
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -1845,6 +1848,7 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     suggestions: payload.suggestions,
     stretch: payload.stretch,
     createdAt: row.created_at,
+    droppedForConstraint: payload.droppedForConstraint ?? 0,
   };
 }
 
@@ -1878,10 +1882,11 @@ export async function saveSuggestionCache(
   fingerprint: string,
   suggestions: Suggestion[],
   stretch: StretchPlan | null,
+  droppedForConstraint: number,
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch };
+  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
@@ -1895,7 +1900,7 @@ export async function saveSuggestionCache(
     );
   });
 
-  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt };
+  return { id, localDate, mode, fingerprint, suggestions, stretch, createdAt, droppedForConstraint };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1907,6 +1912,8 @@ interface ReceiptRow {
   type: string;
   store: string | null;
   purchased_at: string;
+  subtotal_cents: number | null;
+  tax_cents: number | null;
   total_cents: number | null;
   image_uri: string;
   status: string;
@@ -1920,9 +1927,11 @@ interface ReceiptLineRow {
   kind: string;
   qty: number | null;
   unit: string | null;
+  quantity_kind: string | null;
   line_total_cents: number | null;
   unit_price_cents: number | null;
   canonical_id: string | null;
+  applies_to_line_id: string | null;
   pantry_item_id: string | null;
   excluded: number;
   created_at: string;
@@ -1934,6 +1943,8 @@ function toReceipt(row: ReceiptRow): Receipt {
     type: row.type as ReceiptType,
     store: row.store,
     purchasedAt: row.purchased_at,
+    subtotalCents: row.subtotal_cents,
+    taxCents: row.tax_cents,
     totalCents: row.total_cents,
     imageUri: row.image_uri,
     status: row.status as Receipt['status'],
@@ -1949,9 +1960,11 @@ function toReceiptLine(row: ReceiptLineRow): ReceiptLine {
     kind: row.kind as ReceiptLineKind,
     qty: row.qty,
     unit: row.unit as MeasureUnit | null,
+    quantityKind: row.quantity_kind as QuantityKind | null,
     lineTotalCents: row.line_total_cents,
     unitPriceCents: row.unit_price_cents,
     canonicalId: row.canonical_id,
+    appliesToLineId: row.applies_to_line_id,
     pantryItemId: row.pantry_item_id,
     excluded: row.excluded === 1,
     createdAt: row.created_at,
@@ -1963,14 +1976,23 @@ export interface NewReceiptLine {
   kind: ReceiptLineKind;
   qty: number | null;
   unit: MeasureUnit | null;
+  quantityKind: QuantityKind | null;
   lineTotalCents: number | null;
   unitPriceCents: number | null;
+  /**
+   * For a `discount` line only: the exact raw text of the food line it
+   * reduces, resolved to that line's real id at insert time. Null for
+   * every other kind, and for a discount naming no line.
+   */
+  appliesToText: string | null;
 }
 
 export interface ExtractedReceiptHeader {
   store: string | null;
   purchasedAt: string;
   receiptType: ReceiptType;
+  subtotalCents: number | null;
+  taxCents: number | null;
   totalCents: number | null;
   lines: NewReceiptLine[];
 }
@@ -1989,8 +2011,8 @@ export async function insertCapturedReceipt(
   const id = randomUUID();
   const now = new Date().toISOString();
   await db().runAsync(
-    `INSERT INTO receipts (id, type, store, purchased_at, total_cents, image_uri, status, created_at)
-     VALUES (?, 'grocery', NULL, ?, NULL, ?, 'pending', ?)`,
+    `INSERT INTO receipts (id, type, store, purchased_at, subtotal_cents, tax_cents, total_cents, image_uri, status, created_at)
+     VALUES (?, 'grocery', NULL, ?, NULL, NULL, NULL, ?, 'pending', ?)`,
     [id, captureDate, imageUri, now],
   );
   const stored = await getReceipt(id);
@@ -2002,33 +2024,56 @@ export async function insertCapturedReceipt(
  * Attaches a completed extraction to a captured receipt: the header
  * fields extraction read (or corrected from the capture-time defaults)
  * and every line. Called once, when the receipt has no lines yet.
+ *
+ * Line ids are generated before the insert loop so a discount's
+ * `appliesToText` can be resolved to a sibling line's real id in the same
+ * pass — the attribution decision.md calls for, without a second query.
  */
 export async function attachExtractedLines(
   receiptId: string,
   extracted: ExtractedReceiptHeader,
 ): Promise<void> {
   const now = new Date().toISOString();
+  const ids = extracted.lines.map(() => randomUUID());
+  const idByRawText = new Map<string, string>();
+  extracted.lines.forEach((line, index) => {
+    if (!idByRawText.has(line.rawText)) idByRawText.set(line.rawText, ids[index]!);
+  });
+
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
-      `UPDATE receipts SET store = ?, purchased_at = ?, type = ?, total_cents = ?
+      `UPDATE receipts SET store = ?, purchased_at = ?, type = ?, subtotal_cents = ?, tax_cents = ?, total_cents = ?
        WHERE id = ?`,
-      [extracted.store, extracted.purchasedAt, extracted.receiptType, extracted.totalCents, receiptId],
+      [
+        extracted.store,
+        extracted.purchasedAt,
+        extracted.receiptType,
+        extracted.subtotalCents,
+        extracted.taxCents,
+        extracted.totalCents,
+        receiptId,
+      ],
     );
-    for (const line of extracted.lines) {
+    for (const [index, line] of extracted.lines.entries()) {
+      const appliesToLineId = line.appliesToText
+        ? (idByRawText.get(line.appliesToText) ?? null)
+        : null;
       await txn.runAsync(
         `INSERT INTO receipt_lines
-           (id, receipt_id, raw_text, kind, qty, unit, line_total_cents,
-            unit_price_cents, canonical_id, pantry_item_id, excluded, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 0, ?)`,
+           (id, receipt_id, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
+            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
         [
-          randomUUID(),
+          ids[index]!,
           receiptId,
           line.rawText,
           line.kind,
           line.qty,
           line.unit,
+          line.quantityKind,
           line.lineTotalCents,
           line.unitPriceCents,
+          appliesToLineId,
           now,
         ],
       );
@@ -2129,17 +2174,17 @@ export async function discardReceipt(id: string): Promise<void> {
  */
 export async function clearReceiptPantryItems(receiptId: string): Promise<void> {
   await db().withExclusiveTransactionAsync(async (txn) => {
-    const lines = await txn.getAllAsync<{ id: string; pantry_item_id: string | null }>(
-      'SELECT id, pantry_item_id FROM receipt_lines WHERE receipt_id = ?',
+    // The authoritative link: a count line's several containers all carry
+    // receipt_line_id, where receipt_lines.pantry_item_id only ever named one.
+    await txn.runAsync(
+      `DELETE FROM pantry_items WHERE receipt_line_id IN
+         (SELECT id FROM receipt_lines WHERE receipt_id = ?)`,
       [receiptId],
     );
-    for (const line of lines) {
-      if (!line.pantry_item_id) continue;
-      await txn.runAsync('DELETE FROM pantry_items WHERE id = ?', [line.pantry_item_id]);
-      await txn.runAsync('UPDATE receipt_lines SET pantry_item_id = NULL WHERE id = ?', [
-        line.id,
-      ]);
-    }
+    await txn.runAsync(
+      `UPDATE receipt_lines SET pantry_item_id = NULL WHERE receipt_id = ?`,
+      [receiptId],
+    );
   });
 }
 
@@ -2156,6 +2201,11 @@ export async function applyReceiptChanges(
   changes: readonly PantryChange[],
 ): Promise<void> {
   const now = new Date().toISOString();
+  // A count line creates several items from one `create` change each; only
+  // the first links back via receipt_lines.pantry_item_id (a single-item
+  // pointer, kept for the common case). `pantry_items.receipt_line_id` is
+  // the authoritative one-to-many link every item gets, count or not.
+  const linkedLines = new Set<string>();
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     for (const change of changes) {
@@ -2167,8 +2217,8 @@ export async function applyReceiptChanges(
           `INSERT INTO pantry_items
              (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
               qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
-              expiry_source, price_cents, photo_uri, status, created_at, updated_at)
-           VALUES (?, ?, NULL, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, NULL, 'in_stock', ?, ?)`,
+              expiry_source, price_cents, photo_uri, status, receipt_line_id, created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, NULL, 'in_stock', ?, ?, ?)`,
           [
             itemId,
             item.canonicalId,
@@ -2180,14 +2230,18 @@ export async function applyReceiptChanges(
             expiresAt,
             expiresAt != null ? 'predicted' : null,
             item.priceCents,
+            change.lineId,
             now,
             now,
           ],
         );
-        await txn.runAsync(
-          'UPDATE receipt_lines SET pantry_item_id = ? WHERE id = ?',
-          [itemId, change.lineId],
-        );
+        if (!linkedLines.has(change.lineId)) {
+          linkedLines.add(change.lineId);
+          await txn.runAsync(
+            'UPDATE receipt_lines SET pantry_item_id = ? WHERE id = ?',
+            [itemId, change.lineId],
+          );
+        }
       } else if (change.kind === 'mark_replaced') {
         await txn.runAsync(
           "UPDATE pantry_items SET status = 'replaced', updated_at = ? WHERE id = ?",

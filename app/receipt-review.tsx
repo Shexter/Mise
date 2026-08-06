@@ -23,7 +23,7 @@ import {
   setReceiptLineExcluded,
 } from '@/db/queries';
 import { friendlyDate } from '@/logic/dates';
-import { planReceiptApply, type PantryChange } from '@/logic/receipt';
+import { checkArithmetic, planReceiptApply, type PantryChange } from '@/logic/receipt';
 import {
   acceptReceiptReview,
   changeReceiptType,
@@ -101,7 +101,12 @@ export default function ReceiptReviewScreen() {
   const unresolved = foodLines.filter((l) => !l.canonicalId);
   const matched = foodLines.filter((l) => l.canonicalId);
   const excludedLines = receipt.lines.filter((l) => l.excluded);
-  const nonFoodLines = receipt.lines.filter((l) => l.kind !== 'food' && !l.excluded);
+  const nonFoodLines = receipt.lines.filter((l) => l.kind === 'non_food' && !l.excluded);
+  const moneyLines = receipt.lines.filter(
+    (l) => (l.kind === 'discount' || l.kind === 'deposit' || l.kind === 'refund') && !l.excluded,
+  );
+
+  const arithmetic = checkArithmetic(receipt.lines, receipt.subtotalCents);
 
   const preview: PantryChange[] = planReceiptApply(
     receipt.lines,
@@ -201,6 +206,17 @@ export default function ReceiptReviewScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]}
         showsVerticalScrollIndicator={false}
       >
+        {arithmetic.status === 'mismatch' ? (
+          <Card>
+            <Body>
+              {`Lines add up to $${(arithmetic.sumCents / 100).toFixed(2)}, but the receipt's own subtotal is $${(arithmetic.subtotalCents / 100).toFixed(2)} — off by $${(Math.abs(arithmetic.differenceCents) / 100).toFixed(2)}.`}
+            </Body>
+            <Caption muted>
+              Extraction likely dropped, duplicated, or misread a line. Check the list below.
+            </Caption>
+          </Card>
+        ) : null}
+
         {prompts.map((prompt) => {
           const item = catalogue.find((i) => i.id === prompt.pantryItemId);
           const name = item ? canonicals.get(item.canonicalId)?.displayName : null;
@@ -284,11 +300,21 @@ export default function ReceiptReviewScreen() {
                 {index > 0 ? <Divider /> : null}
                 <LineRow
                   title={line.rawText}
-                  detail={line.kind === 'arithmetic' ? 'Receipt total' : line.kind}
-                  actionLabel={line.kind === 'non_food' ? 'This is food' : undefined}
-                  onPress={line.kind === 'non_food' ? () => void reclassifyAsFood(line) : undefined}
+                  actionLabel="This is food"
+                  onPress={() => void reclassifyAsFood(line)}
                   compact
                 />
+              </View>
+            ))}
+          </Card>
+        ) : null}
+
+        {moneyLines.length > 0 ? (
+          <Card title="Money">
+            {moneyLines.map((line, index) => (
+              <View key={line.id}>
+                {index > 0 ? <Divider /> : null}
+                <LineRow title={line.rawText} detail={moneyLineDetail(line)} compact />
               </View>
             ))}
           </Card>
@@ -321,9 +347,28 @@ export default function ReceiptReviewScreen() {
 function priceLabel(line: ReceiptLine): string {
   if (line.lineTotalCents === null) return 'Price unknown';
   const price = `$${(line.lineTotalCents / 100).toFixed(2)}`;
-  return line.qty !== null && line.unit
-    ? `${formatQuantity(line.qty)} ${line.unit} · ${price}`
-    : price;
+  if (line.qty === null || !line.unit) return price;
+  const quantity =
+    line.quantityKind === 'count'
+      ? `${formatQuantity(line.qty)} container${line.qty === 1 ? '' : 's'}`
+      : `${formatQuantity(line.qty)} ${line.unit}`;
+  return `${quantity} · ${price}`;
+}
+
+const MONEY_LINE_LABELS: Record<'discount' | 'deposit' | 'refund', string> = {
+  discount: 'Discount',
+  deposit: 'Deposit / levy',
+  refund: 'Refund',
+};
+
+function moneyLineDetail(line: ReceiptLine): string {
+  const kindLabel =
+    line.kind === 'discount' || line.kind === 'deposit' || line.kind === 'refund'
+      ? MONEY_LINE_LABELS[line.kind]
+      : line.kind;
+  if (line.lineTotalCents === null) return kindLabel;
+  const amount = `${line.lineTotalCents < 0 ? '−' : ''}$${(Math.abs(line.lineTotalCents) / 100).toFixed(2)}`;
+  return `${kindLabel} · ${amount}`;
 }
 
 function LineRow({

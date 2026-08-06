@@ -4,6 +4,7 @@ import { parseReceiptResponse } from '../src/api/receipt';
 import {
   attachExtractedLines,
   getAllCanonicals,
+  getLocations,
   getMatchQueue,
   getPantryItem,
   getReceipt,
@@ -16,6 +17,7 @@ import {
   setReceiptLineExcluded,
 } from '../src/db/queries';
 import { RECEIPTS } from '../src/logic/__fixtures__/receipts';
+import { checkArithmetic, planReceiptApply } from '../src/logic/receipt';
 import {
   acceptReceiptReview,
   captureReceipt,
@@ -51,14 +53,18 @@ async function extract(name: string): Promise<ReceiptWithLines> {
     store: parsed.store,
     purchasedAt: parsed.purchasedAt,
     receiptType: parsed.receiptType,
+    subtotalCents: parsed.subtotalCents,
+    taxCents: parsed.taxCents,
     totalCents: parsed.totalCents,
     lines: parsed.lines.map((line) => ({
       rawText: line.text,
       kind: line.kind,
       qty: line.qty,
       unit: line.unit,
+      quantityKind: line.quantityKind,
       lineTotalCents: line.lineTotalCents,
       unitPriceCents: line.unitPriceCents,
+      appliesToText: line.appliesToText,
     })),
   });
   return resolveReceiptLines(captured.id, parsed.store);
@@ -276,7 +282,7 @@ describe('changing the receipt type re-plans rather than undoing (task 8.4)', ()
     expect(await listPantryItems()).toEqual([]);
     const updated = await getReceipt(receipt.id);
     expect(updated?.type).toBe('restaurant');
-    expect(updated?.totalCents).toBe(3427); // spending retained
+    expect(updated?.totalCents).toBe(3027); // spending retained
     expect(updated?.lines.every((l) => l.pantryItemId === null)).toBe(true);
   });
 
@@ -297,5 +303,117 @@ describe('changing the receipt type re-plans rather than undoing (task 8.4)', ()
     const updated = await getReceipt(receipt.id);
     expect(updated?.status).toBe('pending');
     expect(updated?.type).toBe('restaurant');
+  });
+});
+
+describe('the arithmetic check against real fixtures (task 4c.5)', () => {
+  test('every well-formed fixture receipt matches silently', async () => {
+    const wellFormed = RECEIPTS.filter((r) => r.name !== 'arithmeticMismatch');
+    for (const fixture of wellFormed) {
+      const receipt = await extract(fixture.name);
+      const result = checkArithmetic(receipt.lines, receipt.subtotalCents);
+      expect(result.status, fixture.name).toBe('match');
+    }
+  });
+
+  test('the deliberately mismatched fixture reports the discrepancy', async () => {
+    const receipt = await extract('arithmeticMismatch');
+    const result = checkArithmetic(receipt.lines, receipt.subtotalCents);
+    expect(result).toEqual({
+      status: 'mismatch',
+      sumCents: 1188,
+      subtotalCents: 1500,
+      differenceCents: -312,
+    });
+  });
+});
+
+describe('a count creates one pantry item per container, end to end (task 4a.7)', () => {
+  test('a two-jug multi-buy creates two separate pantry items', async () => {
+    const receipt = await extract('moneyShaped');
+    await acceptReceiptReview(receipt.id);
+    const milkItems = (await listPantryItems()).filter((i) => i.canonicalId === 'milk');
+    expect(milkItems.length).toBe(2);
+    for (const item of milkItems) {
+      expect(item.qtyRemaining).toBe(1);
+      expect(item.qtyUnit).toBe('piece');
+    }
+  });
+
+  test('the same ingredient on two separate lines creates two items, not one collapsed (task 1.6)', async () => {
+    const receipt = await extract('duplicateIngredient');
+    await acceptReceiptReview(receipt.id);
+    const sesameItems = (await listPantryItems()).filter((i) => i.canonicalId === 'sesame-oil');
+    expect(sesameItems.length).toBe(2);
+    const eggItems = (await listPantryItems()).filter((i) => i.canonicalId === 'eggs');
+    expect(eggItems.length).toBe(2); // "2 @" multiple of egg cartons
+  });
+});
+
+describe('money-only lines change spending, never stock (task 4b.6)', () => {
+  test('a line-attributed discount reduces the created item\'s price, and a deposit creates nothing', async () => {
+    const receipt = await extract('moneyShaped');
+    const discountLine = receipt.lines.find((l) => l.rawText === 'MEMBER PRICE -0.50');
+    const bokChoyLine = receipt.lines.find((l) => l.rawText.startsWith('BOK CHOY'));
+    expect(discountLine?.appliesToLineId).toBe(bokChoyLine?.id);
+
+    const summary = await acceptReceiptReview(receipt.id);
+    const bokChoyItem = (await listPantryItems()).find((i) => i.canonicalId === 'bok-choy');
+    expect(bokChoyItem?.priceCents).toBe(197); // 247 - 50, what was paid, not what was listed (task 9.5b)
+
+    // Loose produce priced by weight holds the weight, not a count of "one
+    // of something" (task 9.5a).
+    expect(bokChoyItem?.qtyRemaining).toBe(563);
+    expect(bokChoyItem?.qtyUnit).toBe('g');
+
+    // Deposits and levies never became pantry items.
+    expect(summary.names).not.toContain('Bottle deposit');
+    const allItems = await listPantryItems();
+    expect(allItems.every((i) => i.canonicalId !== null)).toBe(true);
+  });
+
+  test('a refunded line creates no pantry item and does not resolve as food', async () => {
+    const receipt = await extract('moneyShaped');
+    const refundLine = receipt.lines.find((l) => l.kind === 'refund');
+    expect(refundLine).toBeDefined();
+    expect(refundLine?.canonicalId).toBeNull();
+
+    await acceptReceiptReview(receipt.id);
+    // The refund line never created anything, whatever its raw text says.
+    const items = await listPantryItems();
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(item.canonicalId).not.toBe(refundLine!.rawText);
+    }
+  });
+
+  test('a wholly negative receipt (only refunds) creates no stock at all', async () => {
+    const receipt = await extract('wholeReturn');
+    const summary = await acceptReceiptReview(receipt.id);
+    expect(summary.names).toEqual([]);
+    expect(await listPantryItems()).toEqual([]);
+    const applied = await getReceipt(receipt.id);
+    expect(applied?.totalCents).toBe(-848);
+  });
+
+  test('deposit and refund lines never reach the resolution queue', async () => {
+    await extract('moneyShaped');
+    const queue = await getMatchQueue();
+    expect(queue.some((q) => q.rawText === 'BOTTLE DEPOSIT')).toBe(false);
+    expect(queue.some((q) => q.rawText === 'BAG FEE')).toBe(false);
+    expect(queue.some((q) => q.rawText === 'RETURNED: LAST WEEK ITEM')).toBe(false);
+  });
+});
+
+describe('planReceiptApply against the moneyShaped fixture directly (attribution resolved by text)', () => {
+  test('the plan prices the discounted line correctly without touching the DB', async () => {
+    const receipt = await extract('moneyShaped');
+    const canonicals = new Map((await getAllCanonicals()).map((c) => [c.id, c]));
+    const locations = await getLocations();
+    const changes = planReceiptApply(receipt.lines, [], canonicals, locations, 'grocery', receipt.purchasedAt);
+    const bokChoyChange = changes.find(
+      (c) => c.kind === 'create' && c.item.canonicalId === 'bok-choy',
+    );
+    expect(bokChoyChange?.kind === 'create' && bokChoyChange.item.priceCents).toBe(197);
   });
 });

@@ -894,6 +894,13 @@ real device or emulator build and could not run in this environment. Flagged
 for the next on-device pass alongside `add-identity-layer`'s keyed run and
 `add-pantry-stock`'s hand verification.
 
+Task 4.3 — totals and macro bars picking up the new meal immediately — was
+still open when the above was written. Closed since: `consumed` is derived
+directly from the same `meals` array `refresh()` just fetched, so there is no
+second path for it to lag behind, and the "saving while viewing an earlier
+day" test now asserts the macro totals alongside the meal's presence in the
+list, not just the list.
+
 **85. Reversal hard-deletes; there is no reversal marker.** `SETTLED`
 `add-stock-depletion` task 1.1 asked for "a reversal marker" on
 `consumption_events`. The implementation instead deletes the rows on reversal,
@@ -1522,7 +1529,7 @@ yet to measure against.
 
 ## Found in review
 
-**136. Decision 34's constraint is stated to the model and never checked.** `OPEN`
+**136. Decision 34's constraint is stated to the model and never checked.** `SETTLED`
 `add-dinner-decision` shipped 51 of 52 tasks with the use-first constraint
 living entirely in `src/api/suggestPrompt.ts:19`, as a sentence telling the model
 it MUST use at least one expiring ingredient. Nothing downstream verifies it.
@@ -1541,10 +1548,20 @@ difference between this feature and a recipe chatbot, and the failure is
 invisible — a suggestion that quietly ignores the expiring pork still reads as a
 perfectly good dinner idea.
 
-Open rather than settled because the fix is planned (`add-dinner-decision` group
-11) and unimplemented, and because the compliance rate is unmeasured: if a real
-model obeys the sentence essentially always, the check is cheap insurance, and
-if it does not, the prompt needs strengthening as well as the check.
+Fixed in `add-dinner-decision` group 11: `parseSuggestResponse` now takes the
+`use_first` bucket's ids alongside the candidate list and drops, after
+parsing, any suggestion whose `uses` misses that bucket entirely whenever it
+is non-empty — the same shape as the existing "drop, don't repair" handling
+for an invented id. The prompt sentence stays; asking is what keeps the drop
+rare, checking is what makes the rare case not silently ship. A dropped
+suggestion is never patched by swapping in an ingredient the model didn't
+choose, and the surface says how many were dropped rather than just showing
+fewer.
+
+Task 11.6 — the actual compliance rate, i.e. how often a real model needs the
+check to fire — remains open. It needs live usage against a real model, which
+this environment has no key for; nothing here changes if the rate turns out
+to be non-trivial, but the prompt would then be worth strengthening too.
 
 ## Open data
 
@@ -1663,3 +1680,24 @@ which fields came from where.
 
 Meanwhile `add-open-data-catalogue` takes only CC0 and public-domain sources, so
 the unblocked work is not waiting on the blocked question.
+
+## The receipt import, deepened
+
+**145. A count line's containers are priced by splitting the line total, remainder on the first.** `SETTLED`
+Decision 111 (`main`) says a count creates one pantry item per container. That leaves a question decision 111 doesn't answer: what does each container cost? Dividing the line total by the count and rounding loses or gains a cent depending on direction, and doing that per item means N items whose prices no longer sum to what was actually paid.
+
+`splitCents` divides in integer cents and puts the remainder on the first share, so the created items' prices always sum back to the line total exactly — "each carries its share of the line total" (spec) is true as an invariant, not an approximation. Each container otherwise carries the same shape as any other purchase: `qtyRemaining: 1`, `qtyUnit: 'piece'`, unopened, zero drift.
+
+**146. Discount attribution resolves by exact printed text, not by position or a line id the model can't see.** `SETTLED`
+The extraction call returns `applies_to_text` — the discount line's own claim about which food line it reduces, copied verbatim from what the model read. `attachExtractedLines` resolves that text to a real sibling line's id in the same insert pass, before either line has a database identity yet.
+
+*Why text rather than a line index:* an index is a promise about array position across two independently-generated lists (a discount at position 3 of the *discount* list referring to position 7 of the *lines* list) that the model has no reliable way to keep consistent under retries or reordering. Matching by the exact string it already transcribed is the same mechanism decision 66 uses everywhere else identity travels between systems that don't share a database — no new failure mode, and no second parsing pass.
+
+*Consequence:* two lines with identical printed text (the duplicate-purchase case decision 111 also covers) resolve a same-text discount to whichever appears first. Rare enough — a discount attached to one of two identical purchases is already an edge the receipt itself doesn't disambiguate — that this is accepted rather than solved.
+
+**147. The arithmetic check compares against the printed subtotal, not the total, and counts every money line once — including attributed discounts.** `SETTLED`
+Two things worth stating plainly, because both were nearly implemented wrong:
+
+Comparing against the *subtotal* rather than the total means the check never needs to know or compute tax, which no line individually carries. `subtotal_cents` and `tax_cents` (task 3.7) exist as separately-read printed figures for exactly this — the check reads what the till already worked out rather than re-deriving it.
+
+An attributed discount still counts in the sum. The temptation is to exclude it on the theory that `planReceiptApply` already "used" it to reduce the target line's price, so counting it again looks like double-counting. It is not: the printed subtotal already nets the food line's shelf price against the discount's own negative line, because that is what the receipt actually shows — two lines, not one pre-discounted line. Excluding the discount from the sum would make a perfectly correct receipt report a mismatch equal to every attributed discount on it, which is worse than not checking at all. Attribution answers "what should this pantry item cost"; the arithmetic check answers "did extraction transcribe faithfully" — different questions, and conflating them was the bug caught writing the fixtures (`moneyShaped` initially failed its own `checkArithmetic` assertion for exactly this reason).

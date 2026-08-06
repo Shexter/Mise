@@ -279,6 +279,33 @@ CREATE INDEX idx_receipt_lines_receipt ON receipt_lines(receipt_id);
 ALTER TABLE pantry_items ADD COLUMN replacement_asked INTEGER NOT NULL DEFAULT 0;
 `;
 
+/**
+ * Migration 7: money-shaped receipts. A line's quantity is a count of
+ * containers or a divisible measure, and the two must not be conflated
+ * (design.md, "Quantity is two different things") — `quantity_kind` says
+ * which. `applies_to_line_id` lets a line-attributed discount reduce a
+ * specific food line's recorded price rather than being swept into
+ * `non_food`. `subtotal_cents` and `tax_cents` are the receipt's own printed
+ * figures, read rather than computed, so the arithmetic check compares
+ * extraction against what the till actually said.
+ */
+const RECEIPT_MONEY_AND_QUANTITY = `
+ALTER TABLE receipts ADD COLUMN subtotal_cents INTEGER;
+ALTER TABLE receipts ADD COLUMN tax_cents INTEGER;
+
+ALTER TABLE receipt_lines ADD COLUMN quantity_kind TEXT;
+ALTER TABLE receipt_lines ADD COLUMN applies_to_line_id TEXT REFERENCES receipt_lines(id);
+
+-- A count line can create several containers from one line (decision: "a count
+-- creates one pantry item per container"), so the authoritative link is this
+-- reverse reference, not receipt_lines.pantry_item_id, which only ever names
+-- one. Internal to queries.ts — not surfaced on the PantryItem type, because
+-- nothing outside receipt import needs "which line bought this."
+ALTER TABLE pantry_items ADD COLUMN receipt_line_id TEXT REFERENCES receipt_lines(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_pantry_items_receipt_line ON pantry_items(receipt_line_id);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -286,6 +313,7 @@ export const MIGRATIONS: readonly string[] = [
   STOCK_DEPLETION,
   DINNER_DECISION,
   RECEIPT_IMPORT,
+  RECEIPT_MONEY_AND_QUANTITY,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

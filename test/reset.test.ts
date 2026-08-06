@@ -66,6 +66,8 @@ describe('delete all data', () => {
       store: 'Test Store',
       purchasedAt: '2026-06-01',
       receiptType: 'grocery',
+      subtotalCents: 500,
+      taxCents: 0,
       totalCents: 500,
       lines: [
         {
@@ -73,8 +75,10 @@ describe('delete all data', () => {
           kind: 'food',
           qty: 1,
           unit: 'piece',
+          quantityKind: 'count',
           lineTotalCents: 500,
           unitPriceCents: null,
+          appliesToText: null,
         },
       ],
     });

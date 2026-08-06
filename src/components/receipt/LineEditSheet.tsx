@@ -21,6 +21,12 @@ interface Props {
  * person would use is the same judgement call the meal-photo estimate
  * already makes, and getting the number right matters more than the
  * label.
+ *
+ * The quantity field's label follows the line's own `quantityKind` (task
+ * 8.5b): a count line asks "how many containers," a measure line asks for
+ * the weight or volume in the unit it was read in. Either way it is a
+ * plain number field, never a stepper — a stepper implies a small integer
+ * range that a weight in grams does not have.
  */
 export function LineEditSheet({ line, displayName, onClose, onApply }: Props) {
   const [qtyText, setQtyText] = useState('');
@@ -58,11 +64,11 @@ export function LineEditSheet({ line, displayName, onClose, onApply }: Props) {
       <View style={styles.body}>
         <Caption muted>As printed: “{line.rawText}”</Caption>
         <Field
-          label="Quantity"
+          label={line.quantityKind === 'count' ? 'How many containers' : 'Weight or volume'}
           value={qtyText}
           onChangeText={setQtyText}
           keyboardType="decimal-pad"
-          suffix={line.unit ?? undefined}
+          suffix={line.quantityKind === 'count' ? undefined : (line.unit ?? undefined)}
           numeric
         />
         <Field

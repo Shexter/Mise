@@ -491,6 +491,8 @@ export interface SuggestionSet {
   suggestions: Suggestion[];
   stretch: StretchPlan | null;
   createdAt: string;
+  /** How many the local use-first check dropped after parsing (task 11.3). */
+  droppedForConstraint: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -518,16 +520,35 @@ export const RECEIPT_STATUSES: readonly ReceiptStatus[] = [
 /**
  * What kind of line this is, decided by the extraction call itself — the
  * only step with the context to tell an unmatched food from a household
- * good (decision 69).
+ * good (decision 69). `deposit` and `refund` are money-only, same as
+ * `discount` — none of the three is a thing that entered the kitchen.
  */
-export type ReceiptLineKind = 'food' | 'non_food' | 'arithmetic' | 'discount';
+export type ReceiptLineKind =
+  | 'food'
+  | 'non_food'
+  | 'arithmetic'
+  | 'discount'
+  | 'deposit'
+  | 'refund';
 
 export const RECEIPT_LINE_KINDS: readonly ReceiptLineKind[] = [
   'food',
   'non_food',
   'arithmetic',
   'discount',
+  'deposit',
+  'refund',
 ];
+
+/**
+ * A count of containers (`2 @ £1.79`) versus a divisible measure
+ * (`0.834 kg @ £12.99/kg`) — the two are read differently and create
+ * pantry items differently. Null where the line has no quantity at all
+ * (non-food, arithmetic, money-only lines).
+ */
+export type QuantityKind = 'count' | 'measure';
+
+export const QUANTITY_KINDS: readonly QuantityKind[] = ['count', 'measure'];
 
 /** A photographed receipt's header, before its lines resolve or apply. */
 export interface Receipt {
@@ -536,6 +557,9 @@ export interface Receipt {
   store: string | null;
   /** Local date (yyyy-MM-dd). Falls back to the capture date when illegible. */
   purchasedAt: string;
+  /** The printed pre-tax total — what the arithmetic check compares the lines against. */
+  subtotalCents: number | null;
+  taxCents: number | null;
   totalCents: number | null;
   imageUri: string;
   status: ReceiptStatus;
@@ -555,10 +579,18 @@ export interface ReceiptLine {
   /** Purchased quantity, in the app's own unit vocabulary — the model's best estimate, same as a photographed meal's. */
   qty: number | null;
   unit: MeasureUnit | null;
+  /** Whether `qty` counts containers or measures a divisible amount. Null when `qty` is null or the line carries no quantity at all. */
+  quantityKind: QuantityKind | null;
   lineTotalCents: number | null;
   /** Per-unit price where the line showed a multiple. Provenance only — the pantry item is priced from the line total. */
   unitPriceCents: number | null;
   canonicalId: string | null;
+  /**
+   * For a `discount` line only: the food line it reduces, when the receipt
+   * names one. Null means either not a discount or a basket-wide discount
+   * that names no line (spec: reduce the receipt total, not a line).
+   */
+  appliesToLineId: string | null;
   /** Set once the review is accepted and this line created a pantry item. */
   pantryItemId: string | null;
   /** The user excluded this line during review. */

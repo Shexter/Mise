@@ -103,6 +103,8 @@ export default function DinnerScreen() {
         : (outcome.set.stretch?.dinners ?? [])
       : [];
   const shortfall = outcome.status === 'ready' ? (outcome.set.stretch?.shortfall ?? null) : null;
+  const droppedForConstraint =
+    outcome.status === 'ready' ? outcome.set.droppedForConstraint : 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -151,6 +153,13 @@ export default function DinnerScreen() {
               <Card>
                 <Body>{shortfall}</Body>
               </Card>
+            ) : null}
+            {droppedForConstraint > 0 ? (
+              <Caption muted>
+                {droppedForConstraint === 1
+                  ? '1 idea was dropped for not using what needs using first.'
+                  : `${droppedForConstraint} ideas were dropped for not using what needs using first.`}
+              </Caption>
             ) : null}
             {suggestions.map((suggestion, index) => (
               <SuggestionCard
