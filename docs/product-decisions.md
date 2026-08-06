@@ -1545,3 +1545,121 @@ Open rather than settled because the fix is planned (`add-dinner-decision` group
 11) and unimplemented, and because the compliance rate is unmeasured: if a real
 model obeys the sentence essentially always, the check is cheap insurance, and
 if it does not, the prompt needs strengthening as well as the check.
+
+## Open data
+
+**137. Open datasets are consumed at build time; the app never calls one.** `SETTLED`
+A build script produces `assets/canonical-items.json` and the output is
+committed. Three independent reasons, any one sufficient. Decision 5 is
+local-first and the expiry path must work on a plane. FoodData Central requires a
+data.gov API key, and shipping one inside an APK is exactly what this project
+already refuses to do with vision keys — with the added indignity that this key
+would be ours rather than the user's. And a runtime lookup would make the app's
+predictions depend on a third party's uptime for numbers that change roughly
+never.
+
+Committed rather than generated at packaging time because **the diff is the
+review**. A dataset refresh that moves 200 shelf lives should be looked at by a
+person, and the only way to guarantee that is for the artefact to live in the
+repository.
+
+**138. FoodKeeper replaces the guessed shelf-life table.** `SETTLED`
+Every expiry prediction in the app comes from `shelfLifeDays` and
+`openLifeDays` in a 69-entry hand-authored file, and every number in it was
+invented. Decision 19 made expiry a lookup rather than a model precisely so it
+would be defensible; the lookup table is the part nobody had defended.
+
+USDA FSIS publishes FoodKeeper: 500+ foods, and its schema maps onto ours almost
+field for field — `Pantry_*`, `Refrigerate_*`, `Freeze_*`, and an after-opening
+set that is exactly `openLifeDays`. US federal work, public domain: no
+attribution obligation, no share-alike, nothing to negotiate.
+
+**139. A shelf-life range maps onto the two urgency buckets, and is never
+flattened.** `SETTLED`
+FoodKeeper gives a minimum and a maximum. The app stores one number. Picking an
+end is wrong in both directions.
+
+Take the **minimum** and `use_first` fills with food that is perfectly good —
+and decision 34 then *forces* every suggestion to be built around one of those
+items, so the engine spends its whole output chasing false urgency and "clears
+the pork belly (2 days)" becomes a claim the user can check and disbelieve.
+Crying wolf does not degrade gracefully here; decision 34 makes it systematic.
+Take the **maximum** and the app fails to warn while the food is still
+rescuable, which is decision 3's one job.
+
+So: the maximum sets the predicted expiry and therefore `use_first`, and the
+minimum opens `use_soon`. That is what a range means — start thinking at the low
+end, act at the high end — and it needs no new bucket, no new display concept,
+and no invented midpoint. `use_soon` stops meaning "a fixed window before
+expiry" and starts meaning "the source thinks quality may start going", which is
+a better definition and one the reason chips can defend.
+
+**140. A storage term is not a duration.** `SETTLED`
+*Indefinitely*, *When Ripe*, and *Not Recommended* each get corrupted
+differently by numeric coercion: indefinite as a large number gives the app an
+expiry date it would then display, and Not Recommended as zero puts salt in
+`use_first` forever. All three produce **no figure**. `predictExpiry` already
+returns null and makes no claim where there is no data — the existing code is
+right, and the pipeline must not undermine it.
+
+**141. Provenance is recorded per field, and a refresh never overwrites or
+deletes.** `SETTLED`
+Per field rather than per row, because one ingredient legitimately mixes
+origins: FoodKeeper knows how long chicken keeps in a freezer and knows nothing
+about how much gochujang a person uses at once. Decision 66 at build time.
+
+The rules are: fill only what is empty, never overwrite a hand-authored value,
+never remove an ingredient because a dataset lacks it, and report a conflict
+rather than resolving it silently.
+
+The never-delete rule is the one that matters, and the measurement is why. The
+Open Food Facts ingredient taxonomy carries 4,733 entries and has **zero** for
+gochujang, hoisin, doenjang, and oyster sauce; FoodKeeper is a US supermarket
+dataset and is no better. Decision 4 makes those entries the differentiator. A
+pipeline treating absence as a reason to drop or blank a row would delete the
+product's reason to exist, in a commit that looked like a data refresh.
+
+**142. Expiry is described as quality, never as safety.** `SETTLED`
+FoodKeeper exists to help people avoid foodborne illness. This app is a pantry
+tracker with a suggestion screen, and the distance has to show in the wording.
+The app can say quality is expected to hold for about so long, and where the
+figure came from. It must never say food is safe, unsafe, or safe until a date —
+it does not know how the food was handled, how long it sat in a car, or whether
+the fridge runs warm.
+
+Same refusal as decisions 64, 108 and 129, enforced the same way: a copy audit
+and a test asserting the forbidden words appear in no expiry string. Worth
+stating explicitly because the source is a food safety publication and its
+vocabulary is contagious.
+
+**143. Nutrition from a table is a fallback; a photograph always wins.** `SETTLED`
+FoodData Central is CC0 and gives per-ingredient nutrition, which is what manual
+entry currently lacks entirely. But the table describes 100 g of raw chicken
+thigh, and the photograph was taken of something cooked in oil — so a vision
+estimate of the actual plate outranks a table figure for the ingredient.
+Missing nutrition stays unknown rather than zero, following
+`add-fibre-tracking`'s discipline.
+
+**144. Open Food Facts is held behind a licence answer, not adopted.** `OPEN`
+The taxonomy is the single largest thing available: measured directly at 4,733
+ingredients with 944 Japanese, 783 Chinese and 606 Korean translations, stored
+in script and unromanised — decision 31's rule arrived at independently. It is
+also Euro-centric to the point of having nothing for the ingredients this app
+exists for, which is the ideal shape: it fills the unglamorous 4,700 and cannot
+dilute the moat.
+
+But OFF data is ODbL, which carries share-alike, and whether a catalogue seeded
+from it and shipped in an APK is a *derivative database* or a *produced work* is
+unanswered. It is also a different question from the per-user runtime cache
+`add-barcode-capture` plans, and conflating the two is how one answer gets
+applied to both wrongly.
+
+`add-off-taxonomy-seed` is gated on establishing this, with three planned
+outcomes — proceed under attribution, proceed and publish the derived catalogue
+under ODbL, or take nothing. Two of the three are "proceed". The gate exists
+because the cost of being wrong is asymmetric: doing the investigation first
+costs a day, and doing it after an APK has shipped costs a reconstruction of
+which fields came from where.
+
+Meanwhile `add-open-data-catalogue` takes only CC0 and public-domain sources, so
+the unblocked work is not waiting on the blocked question.
