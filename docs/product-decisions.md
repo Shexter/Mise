@@ -2284,7 +2284,7 @@ the answer; only whether rules eventually need summarising is at stake.
 unchecked — `add-macro-gap-suggestions` is unbuilt, and wiring dietary
 exclusion into a suggestion path that doesn't exist yet isn't possible.
 
-**178. An emptied suggestion pool is not a malformed response.** `OPEN`
+**178. An emptied suggestion pool is not a malformed response.** `SETTLED`
 Found in review of `add-dietary-profile`. `parseSuggestResponse` throws
 `VisionError('malformed')` whenever filtering leaves nothing — but the response
 was well-formed, and it was the user's own allergen rules that emptied it, which
@@ -2310,6 +2310,21 @@ precise vocabulary decays into a general failure bucket, and the cost lands on
 the user as a wrong explanation and a wrong suggested action.
 
 Open until `add-dietary-profile` group 11 lands.
+
+*Closed.* The `suggestions.length === 0` throw at the end of
+`parseSuggestResponse` is gone; the check moved to immediately after parsing,
+testing `parsedSuggestions.length === 0` instead — nothing readable at all,
+the one case `malformed` actually describes. Both drops (use-first, dietary)
+now return an empty `SuggestResult` rather than throwing when they remove
+everything, and `app/dinner.tsx` gained the use-first constraint's own empty
+state alongside the dietary one it already had, so the two causes stopped
+sharing the generic "nothing to suggest" fallback. `getOrGenerateSuggestions`
+needed no change — `status: 'ready'` with an empty set already flowed
+correctly to the right UI branch once nothing upstream of it threw. Verified
+with a genuinely-unreadable-response test (still throws) alongside the two
+now-empty-but-well-formed cases (both reach `status: 'ready'`, never
+`'error'`) on the fresh-generation path specifically, since that was the path
+the bug actually lived on.
 
 ## Spoonacular
 
