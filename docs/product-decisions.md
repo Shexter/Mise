@@ -2283,3 +2283,30 @@ the answer; only whether rules eventually need summarising is at stake.
 57 of 59 tasks complete. The other open task, 6.8, is deliberately
 unchecked — `add-macro-gap-suggestions` is unbuilt, and wiring dietary
 exclusion into a suggestion path that doesn't exist yet isn't possible.
+
+**178. An emptied suggestion pool is not a malformed response.** `OPEN`
+Found in review of `add-dietary-profile`. `parseSuggestResponse` throws
+`VisionError('malformed')` whenever filtering leaves nothing — but the response
+was well-formed, and it was the user's own allergen rules that emptied it, which
+is a normal outcome for someone with several allergens against a pool of ten.
+
+`malformed` means "the provider returned something the parser cannot read". So
+the user is told their provider failed at the moment the app applied their
+allergy correctly, and the kind is non-retryable, so the suggested action is
+wrong too.
+
+The sharpest part: `app/dinner.tsx:147` already renders *"Nothing left after
+your dietary rules"*, which is exactly right and **unreachable on fresh
+generation**, because the throw happens first. It fires only when a cached pool
+is re-selected. The same situation therefore tells the truth or blames the
+provider depending on whether the pool happened to be cached.
+
+The use-first constraint takes the same branch, so decision 136's check has the
+same problem.
+
+The lesson generalises past this instance: an error taxonomy earns its keep by
+what it refuses to absorb. Reaching for the nearest existing kind is how a
+precise vocabulary decays into a general failure bucket, and the cost lands on
+the user as a wrong explanation and a wrong suggested action.
+
+Open until `add-dietary-profile` group 11 lands.

@@ -19,11 +19,12 @@ Task counts are open tasks, not total.
 | `add-receipt-import` | 78/79 | 1 open waits on `add-unified-capture` |
 | `fix-day-selection` | 24/25 | 1 open needs a standalone APK |
 | `add-dish-scorer` | 41/47 | 6 open need a real key or `add-dietary-profile` |
-| `add-dietary-profile` | 57/59 | 2 open: one waits on `add-macro-gap-suggestions`, one needs a real key |
+| `add-dietary-profile` | 57/64 | 7 open: group 11 (decision 178, found in review), plus a real key and `add-macro-gap-suggestions` |
 | `add-cjk-matching` | 37/37 | |
 
-**419 of 431.** Every remaining task needs a physical device or a real API key —
-none is blocked on code. They are a parallel track, not a queue position.
+**419 of 436.** Most remaining tasks need a physical device or a real API key.
+The exception is `add-dietary-profile` group 11 — decision 178, found in review
+and fixable in code. They are a parallel track, not a queue position.
 
 ---
 

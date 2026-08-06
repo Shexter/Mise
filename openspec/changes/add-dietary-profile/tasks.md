@@ -305,3 +305,46 @@ part most likely to be quietly reworded later by someone being helpful.
 - [x] 10.8 Run `npm run typecheck` and `npm test`, then record the measured
       derivative coverage and the surviving dislike weight in
       `docs/product-decisions.md`.
+
+## 11. An emptied pool is reported as a provider failure
+
+Found in review after the change landed. `parseSuggestResponse` in
+`src/api/suggest.ts:187` throws `VisionError('malformed')` whenever filtering
+leaves nothing:
+
+```ts
+if (suggestions.length === 0) {
+  throw new VisionError('malformed', 'No usable suggestion was returned.');
+}
+```
+
+The response was not malformed. It was well-formed, and the *user's own rules*
+emptied it — which is a normal outcome for someone with several allergens
+against a pool of ten, and precisely the case this change exists to serve.
+
+Three things go wrong at once. `malformed` means "the provider returned
+something the parser cannot read", so the user is told their provider failed
+when the app in fact applied their allergy correctly. It is explicitly
+non-retryable in the taxonomy, so the offered action is wrong too. And
+`app/dinner.tsx:147` already renders the right thing — *"Nothing left after your
+dietary rules"* — which is **unreachable on fresh generation**, because the
+throw happens first. That copy only ever fires on the cached re-selection path
+in `suggestionService.ts:229`.
+
+So the same situation tells the truth or blames the provider depending on
+whether the pool happened to be cached. The spec required neither: *"Nothing
+survives → the user is told, and offered another attempt."*
+
+- [ ] 11.1 Return an empty suggestion list with the drop counts rather than
+      throwing, so the caller can distinguish "nothing came back" from "nothing
+      survived your rules".
+- [ ] 11.2 Keep `malformed` for what it means — a response the parser could not
+      read. An empty *result* is not an unreadable *response*.
+- [ ] 11.3 Make the fresh-generation path reach `app/dinner.tsx:147`'s existing
+      empty state, and confirm the cached path still does.
+- [ ] 11.4 Do the same for a pool emptied by the use-first constraint alone,
+      which currently takes the same wrong branch — decision 136's check and
+      this one both end here.
+- [ ] 11.5 Test both causes on the fresh path with a stubbed response, asserting
+      the user sees the constraint explanation rather than a provider error.
+      This is the test that would have caught it.
