@@ -27,7 +27,34 @@ none is blocked on code. They are a parallel track, not a queue position.
 
 ---
 
+## Next batch
+
+Three, in this order. They touch disjoint files, so a conflict between them is
+only possible in `MIGRATIONS` — and the first two do not append one.
+
+1. **`add-history-calendar`** — 45. User-reported friction, and the cheapest
+   thing in the queue: no schema change, no new stored data, one new query.
+   The app has held every logged day since the first release and shows one week.
+2. **`add-open-data-catalogue`** — 48. Task 1 is measured and says go. Also
+   unblocks `add-macro-gap-suggestions`, which is paused on exactly the nutrition
+   data group 8 produces.
+3. **`add-venue-inference`** — 38. Ready, self-contained, and it improves
+   depletion accuracy for everything already shipped.
+
+---
+
 ## 1 — Live wrongness in shipped paths
+
+### 0. `add-history-calendar` — 45
+
+**User-reported.** `DateStrip` renders `weekOf(selectedDate)` — seven cells,
+with no control that reaches another week, while `getLoggedDates()` already
+returns every day ever logged, unbounded, on every refresh. Six days in seven
+are in memory and unreachable.
+
+No schema change and no new stored data (decision 182); the only missing piece
+is a per-day summary query. A migration here means something was
+misunderstood.
 
 ### 1. `add-open-data-catalogue` — 48
 

@@ -198,6 +198,21 @@ Runs on a developer machine. Nothing here ships.
       source. Do not write a second matcher — a build script that matches
       differently from the app produces a catalogue that behaves differently
       from the app that reads it.
+- [ ] 5.1a **Confident is not the same as correct — measured, not hypothetical.**
+      Task 1.2 found `chicken-breast` resolving at 0.87 (`approximate`, above
+      the accept band) against FoodKeeper's *Turkey* parts row, beating the
+      correct *Chicken* row at 0.64. The shared cut description ("parts, breast
+      halves, boneless") outweighs the species word in the current scorer.
+      Applying that unattended writes turkey's shelf life onto chicken, and
+      nothing downstream would ever detect it.
+- [ ] 5.1b Guard cross-item mismatches before applying a confident dataset
+      match: require the head noun to agree, or surface any match whose losing
+      candidates include a same-family alternative. A dataset row is matched
+      once at build time by a script, so the cheap answer — put it in the
+      review pile — costs a human a minute and costs the catalogue nothing.
+- [ ] 5.1c Add `chicken-breast` against the FoodKeeper corpus as a regression
+      fixture, so whatever guard is chosen is measured against the case that
+      motivated it rather than asserted.
 - [ ] 5.2 Apply confident matches; report uncertain ones and apply nothing.
       A wrong match writes chicken's shelf life onto chicken liver and nothing
       downstream would ever detect it.

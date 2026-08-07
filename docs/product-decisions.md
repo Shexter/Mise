@@ -2385,3 +2385,57 @@ body of real recipes with real ingredient lists, which the app has no equivalent
 of. Whether a browse-only view of that is worth a subscription and a second
 credential in `keyStore.ts` is a product call, and `add-spoonacular-lookup`
 task 2 exists to make it deliberately rather than by momentum.
+
+## History
+
+**182. The app already holds every day; it only lacks a door.** `SETTLED`
+`DateStrip` renders `weekOf(selectedDate)` — seven cells, and no control
+anywhere that moves to another week. Meanwhile `getLoggedDates()` is
+`SELECT DISTINCT local_date FROM meals` with no bound, refreshed into the store
+on every load. Every day the user has ever logged is already in memory and six
+in seven are unreachable.
+
+So `add-history-calendar` needs **no schema change and no new stored data**.
+That reframes the work: it is not a history feature to build but a view onto
+history the app has kept since the first release. Nothing to migrate, nothing to
+backfill, and no way to lose data by getting it wrong. The one genuinely missing
+piece is a per-day *summary* — `getMealsForDate` reads one day in full, which is
+far too much for a grid of forty cells.
+
+Corollary worth stating: **a migration in that change means something has been
+misunderstood.**
+
+**183. A past day is judged against the target it had, never the one you have
+now.** `SETTLED`
+`ensureDailyTarget` snapshots — it writes a `daily_targets` row per day and
+returns the existing one if there is one. The calendar reads that row.
+
+Recomputing from the current profile would be easy, would pass every test
+written on a single day, and would silently rewrite the user's history each time
+they changed a goal: someone who lowers their target today has not
+retroactively failed last month.
+
+This gets sharper once `add-energy-sources` lands, since a target can then come
+from a body scan or a stated figure and change for reasons that have nothing to
+do with the day being displayed. A day with entries but no recorded target shows
+its total with no comparison — absent is absent.
+
+**184. An unlogged day is not a zero-calorie day.** `SETTLED`
+A day with no meals means the user did not log. It does not mean they did not
+eat, and the app cannot tell the difference.
+
+So the summary query returns **no row** for a day with no entries, and the grid
+renders a missing date as absent. The tempting shape — `LEFT JOIN` with a
+coalesce to zero — is tidier and puts a zero in front of the user for every day
+they did not open the app. That reads as "you ate nothing", a claim the app
+cannot support, and it makes an empty day look like an extraordinary success
+against a calorie target.
+
+Same discipline as decision 120 on unknown fibre and decision 140 on a storage
+term that is not a duration. It is also the rule most likely to be "tidied" away
+later, which is why it gets a test rather than a comment.
+
+It matters for what the feature is *for*, too: someone scrolling back through a
+month wants to find the day they ate the thing they are trying to remember. A
+grid that scores them on adherence is answering a question they did not ask —
+which is why charts, streaks and heatmaps are non-goals rather than a phase two.
