@@ -189,7 +189,8 @@ export type ReferenceSource =
   | 'vision'
   | 'meal_log'
   | 'user'
-  | 'dietary';
+  | 'dietary'
+  | 'dataset';
 
 export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'seed',
@@ -199,6 +200,19 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'meal_log',
   'user',
   'dietary',
+  'dataset',
+];
+
+/** Provenance for values committed into the shipped canonical catalogue. */
+export type SourceId =
+  | 'hand-authored'
+  | 'foodkeeper'
+  | 'food-data-central';
+
+export const SOURCE_IDS: readonly SourceId[] = [
+  'hand-authored',
+  'foodkeeper',
+  'food-data-central',
 ];
 
 /** The food concept — one row per real-world ingredient. `id` is the slug. */
@@ -209,8 +223,17 @@ export interface CanonicalItem {
   defaultLocation: StorageLocation;
   /** Unopened shelf life in days, keyed by location. */
   shelfLifeDays: Partial<Record<StorageLocation, number>>;
+  /** Remaining-days threshold at which an item enters `use_soon`. */
+  earlyWarningDays: number | null;
   /** Days once opened; null where opening changes nothing. */
   openLifeDays: number | null;
+  /** Per-field origin for catalogue values. */
+  sources: Partial<Record<string, SourceId>>;
+  /** Generic ingredient nutrition per 100 g; null means unknown. */
+  kcalPer100: number | null;
+  proteinPer100: number | null;
+  carbsPer100: number | null;
+  fatPer100: number | null;
   typicalUseQty: number | null;
   typicalUseUnit: MeasureUnit | null;
   typicalPkgQty: number | null;

@@ -33,8 +33,8 @@ export function expiryLabel(
   const { daysLeft } = entry;
   if (daysLeft === null) return 'No date';
   const suffix = entry.expiryIsPredicted ? ' (est.)' : '';
-  if (daysLeft < 0) return `Past its date${suffix}`;
-  if (daysLeft === 0) return `Use today${suffix}`;
-  if (daysLeft === 1) return `Use by tomorrow${suffix}`;
-  return `${daysLeft} days left${suffix}`;
+  if (daysLeft < 0) return `Past its expected quality date${suffix}`;
+  if (daysLeft === 0) return `Best quality today${suffix}`;
+  if (daysLeft === 1) return `Best quality through tomorrow${suffix}`;
+  return `About ${daysLeft} days of expected quality${suffix}`;
 }

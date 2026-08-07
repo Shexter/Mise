@@ -54,6 +54,7 @@ import type {
   QuantityKind,
   ReceiptWithLines,
   ReferenceSource,
+  SourceId,
   StockStatus,
   StorageLocation,
 } from '@/types';
@@ -510,7 +511,13 @@ interface CanonicalItemRow {
   class: string;
   default_location: string;
   shelf_life_days: string;
+  early_warning_days: number | null;
   open_life_days: number | null;
+  sources: string;
+  kcal_per_100: number | null;
+  protein_per_100: number | null;
+  carbs_per_100: number | null;
+  fat_per_100: number | null;
   typical_use_qty: number | null;
   typical_use_unit: string | null;
   typical_pkg_qty: number | null;
@@ -565,7 +572,13 @@ function toCanonicalItem(row: CanonicalItemRow): CanonicalItem {
     foodClass: row.class as FoodClass,
     defaultLocation: row.default_location as StorageLocation,
     shelfLifeDays: JSON.parse(row.shelf_life_days) as CanonicalItem['shelfLifeDays'],
+    earlyWarningDays: row.early_warning_days,
     openLifeDays: row.open_life_days,
+    sources: JSON.parse(row.sources) as CanonicalItem['sources'],
+    kcalPer100: row.kcal_per_100,
+    proteinPer100: row.protein_per_100,
+    carbsPer100: row.carbs_per_100,
+    fatPer100: row.fat_per_100,
     typicalUseQty: row.typical_use_qty,
     typicalUseUnit: row.typical_use_unit as MeasureUnit | null,
     typicalPkgQty: row.typical_pkg_qty,
@@ -630,7 +643,13 @@ interface CanonicalSeedEntry {
   class: FoodClass;
   defaultLocation: StorageLocation;
   shelfLifeDays: Partial<Record<StorageLocation, number>>;
+  earlyWarningDays?: number | null;
   openLifeDays?: number | null;
+  sources?: Partial<Record<string, SourceId>>;
+  kcalPer100?: number | null;
+  proteinPer100?: number | null;
+  carbsPer100?: number | null;
+  fatPer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -670,18 +689,44 @@ export async function loadSeedData(): Promise<void> {
   await db().withExclusiveTransactionAsync(async (txn) => {
     for (const entry of canonicals) {
       await txn.runAsync(
-        `INSERT OR IGNORE INTO canonical_items
+        `INSERT INTO canonical_items
            (id, display_name, class, default_location, shelf_life_days,
-            open_life_days, typical_use_qty, typical_use_unit,
-            typical_pkg_qty, typical_pkg_unit, density_g_per_ml, is_seed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+            early_warning_days, open_life_days, sources, kcal_per_100,
+            protein_per_100, carbs_per_100, fat_per_100, typical_use_qty,
+            typical_use_unit, typical_pkg_qty, typical_pkg_unit,
+            density_g_per_ml, is_seed, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           display_name = excluded.display_name,
+           class = excluded.class,
+           default_location = excluded.default_location,
+           shelf_life_days = excluded.shelf_life_days,
+           early_warning_days = excluded.early_warning_days,
+           open_life_days = excluded.open_life_days,
+           sources = excluded.sources,
+           kcal_per_100 = excluded.kcal_per_100,
+           protein_per_100 = excluded.protein_per_100,
+           carbs_per_100 = excluded.carbs_per_100,
+           fat_per_100 = excluded.fat_per_100,
+           typical_use_qty = excluded.typical_use_qty,
+           typical_use_unit = excluded.typical_use_unit,
+           typical_pkg_qty = excluded.typical_pkg_qty,
+           typical_pkg_unit = excluded.typical_pkg_unit,
+           density_g_per_ml = excluded.density_g_per_ml
+         WHERE canonical_items.is_seed = 1`,
         [
           entry.id,
           entry.displayName,
           entry.class,
           entry.defaultLocation,
           JSON.stringify(entry.shelfLifeDays),
+          entry.earlyWarningDays ?? null,
           entry.openLifeDays ?? null,
+          JSON.stringify(entry.sources ?? defaultHandAuthoredSources(entry)),
+          entry.kcalPer100 ?? null,
+          entry.proteinPer100 ?? null,
+          entry.carbsPer100 ?? null,
+          entry.fatPer100 ?? null,
           entry.typicalUseQty ?? null,
           entry.typicalUseUnit ?? null,
           entry.typicalPkgQty ?? null,
@@ -738,6 +783,25 @@ export async function loadSeedData(): Promise<void> {
       await ensureAliasBigrams(txn, row.id, row.alias_norm);
     }
   });
+}
+
+function defaultHandAuthoredSources(
+  entry: CanonicalSeedEntry,
+): Partial<Record<string, SourceId>> {
+  const sources: Partial<Record<string, SourceId>> = {
+    shelfLifeDays: 'hand-authored',
+  };
+  for (const key of [
+    'openLifeDays',
+    'typicalUseQty',
+    'typicalUseUnit',
+    'typicalPkgQty',
+    'typicalPkgUnit',
+    'densityGPerMl',
+  ] as const) {
+    if (entry[key] != null) sources[key] = 'hand-authored';
+  }
+  return sources;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -886,7 +950,13 @@ export interface NewCanonicalItem {
   foodClass: FoodClass;
   defaultLocation: StorageLocation;
   shelfLifeDays: Partial<Record<StorageLocation, number>>;
+  earlyWarningDays?: number | null;
   openLifeDays?: number | null;
+  sources?: Partial<Record<string, SourceId>>;
+  kcalPer100?: number | null;
+  proteinPer100?: number | null;
+  carbsPer100?: number | null;
+  fatPer100?: number | null;
   typicalUseQty?: number | null;
   typicalUseUnit?: MeasureUnit | null;
   typicalPkgQty?: number | null;
@@ -901,16 +971,27 @@ export async function insertCanonicalItem(
   await db().runAsync(
     `INSERT INTO canonical_items
        (id, display_name, class, default_location, shelf_life_days,
-        open_life_days, typical_use_qty, typical_use_unit,
-        typical_pkg_qty, typical_pkg_unit, density_g_per_ml, is_seed, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+        early_warning_days, open_life_days, sources, kcal_per_100,
+        protein_per_100, carbs_per_100, fat_per_100, typical_use_qty,
+        typical_use_unit, typical_pkg_qty, typical_pkg_unit,
+        density_g_per_ml, is_seed, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
     [
       item.id,
       item.displayName,
       item.foodClass,
       item.defaultLocation,
       JSON.stringify(item.shelfLifeDays),
+      item.earlyWarningDays ?? null,
       item.openLifeDays ?? null,
+      JSON.stringify(item.sources ?? {
+        shelfLifeDays: 'hand-authored',
+        openLifeDays: 'hand-authored',
+      }),
+      item.kcalPer100 ?? null,
+      item.proteinPer100 ?? null,
+      item.carbsPer100 ?? null,
+      item.fatPer100 ?? null,
       item.typicalUseQty ?? null,
       item.typicalUseUnit ?? null,
       item.typicalPkgQty ?? null,
@@ -925,7 +1006,16 @@ export async function insertCanonicalItem(
     foodClass: item.foodClass,
     defaultLocation: item.defaultLocation,
     shelfLifeDays: item.shelfLifeDays,
+    earlyWarningDays: item.earlyWarningDays ?? null,
     openLifeDays: item.openLifeDays ?? null,
+    sources: item.sources ?? {
+      shelfLifeDays: 'hand-authored',
+      openLifeDays: 'hand-authored',
+    },
+    kcalPer100: item.kcalPer100 ?? null,
+    proteinPer100: item.proteinPer100 ?? null,
+    carbsPer100: item.carbsPer100 ?? null,
+    fatPer100: item.fatPer100 ?? null,
     typicalUseQty: item.typicalUseQty ?? null,
     typicalUseUnit: item.typicalUseUnit ?? null,
     typicalPkgQty: item.typicalPkgQty ?? null,

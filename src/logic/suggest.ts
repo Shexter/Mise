@@ -75,10 +75,13 @@ export function urgency(
 }
 
 /** Which bucket an item's remaining days place it in (decision 34's table). */
-export function bucketFor(daysLeft: number | null): UrgencyBucket {
+export function bucketFor(
+  daysLeft: number | null,
+  earlyWarningDays: number | null = null,
+): UrgencyBucket {
   if (daysLeft === null) return 'available';
   if (daysLeft <= USE_FIRST_DAYS) return 'use_first';
-  if (daysLeft <= USE_SOON_DAYS) return 'use_soon';
+  if (daysLeft <= (earlyWarningDays ?? USE_SOON_DAYS)) return 'use_soon';
   return 'available';
 }
 
@@ -110,7 +113,7 @@ export function bucketStock(
     const canonical = canonicals.get(item.canonicalId);
     if (!canonical) continue;
     const daysLeft = daysUntil(item.expiresAt, today);
-    const bucket = bucketFor(daysLeft);
+    const bucket = bucketFor(daysLeft, canonical.earlyWarningDays);
     result[bucket].push({
       item,
       canonical,

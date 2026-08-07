@@ -1,0 +1,18 @@
+{
+  "hand-authored": {
+    "name": "Mise catalogue",
+    "licence": "MIT project data",
+    "url": "https://github.com/"
+  },
+  "foodkeeper": {
+    "name": "USDA FoodKeeper",
+    "licence": "US federal government work — public domain",
+    "url": "https://www.foodsafety.gov/keep-food-safe/foodkeeper-app",
+    "snapshot": "2025-07-02 (FMA-Data-v128.xlsx)"
+  },
+  "food-data-central": {
+    "name": "USDA FoodData Central",
+    "licence": "CC0 1.0",
+    "url": "https://fdc.nal.usda.gov/data-documentation.html"
+  }
+}

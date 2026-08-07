@@ -1,0 +1,4321 @@
+{
+  "sources": {
+    "hand-authored": {
+      "name": "Mise catalogue",
+      "licence": "MIT project data",
+      "url": "https://github.com/"
+    },
+    "foodkeeper": {
+      "name": "USDA FoodKeeper",
+      "licence": "US federal government work — public domain",
+      "url": "https://www.foodsafety.gov/keep-food-safe/foodkeeper-app",
+      "snapshot": "2025-07-02 (FMA-Data-v128.xlsx)"
+    },
+    "food-data-central": {
+      "name": "USDA FoodData Central",
+      "licence": "CC0 1.0",
+      "url": "https://fdc.nal.usda.gov/data-documentation.html"
+    }
+  },
+  "foodkeeper": {
+    "rows": 661,
+    "matched": 23,
+    "uncertain": [
+      {
+        "source": "foodkeeper",
+        "row": "Buttermilk",
+        "canonicalId": "butter",
+        "proposed": 0.6666666666666666
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cream cheese",
+        "canonicalId": "cheddar-cheese",
+        "proposed": 0.7
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cream, heavy",
+        "canonicalId": "heavy-cream",
+        "proposed": 0.8333333333333334
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cream, light",
+        "canonicalId": "heavy-cream",
+        "proposed": 0.606060606060606
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Pork, ground",
+        "canonicalId": "ground-pork",
+        "proposed": 0.8333333333333334
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Chicken parts, breast halves, boneless",
+        "canonicalId": "chicken-breast",
+        "proposed": 0.6363636363636364
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Chicken parts, legs or thighs",
+        "canonicalId": "chicken-thigh",
+        "proposed": 0.6363636363636364
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Stuffed, raw chicken breasts",
+        "canonicalId": "chicken-breast",
+        "proposed": 0.6818181818181818
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cheesecake",
+        "canonicalId": "cheddar-cheese",
+        "proposed": 0.6666666666666666
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Flour, white",
+        "canonicalId": "all-purpose-flour",
+        "proposed": 0.606060606060606
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Oils, olive or vegetable",
+        "canonicalId": "vegetable-oil",
+        "proposed": 0.631578947368421
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Vegetable oil sprays",
+        "canonicalId": "vegetable-oil",
+        "proposed": 0.8
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Sugar, brown",
+        "canonicalId": "sugar",
+        "proposed": 0.606060606060606
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cabbage",
+        "canonicalId": "napa-cabbage",
+        "proposed": 0.6666666666666666
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Greens",
+        "canonicalId": "green-onion",
+        "proposed": 0.6
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Mushrooms",
+        "canonicalId": "shiitake-mushroom",
+        "proposed": 0.6206896551724138
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Onions, spring or green",
+        "canonicalId": "green-onion",
+        "proposed": 0.7027027027027027
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Peppers",
+        "canonicalId": "black-pepper",
+        "proposed": 0.6
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Ice cream",
+        "canonicalId": "heavy-cream",
+        "proposed": 0.625
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Shrimp, shellfish",
+        "canonicalId": "shellfish",
+        "proposed": 0.7692307692307693
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Vegetables",
+        "canonicalId": "vegetable-oil",
+        "proposed": 0.72
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Mayonnaise, commercial",
+        "canonicalId": "mayonnaise",
+        "proposed": 0.6349206349206349
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Vinegar",
+        "canonicalId": "rice-vinegar",
+        "proposed": 0.6666666666666666
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Vegetables",
+        "canonicalId": "vegetable-oil",
+        "proposed": 0.72
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Peanut butter, commercial",
+        "canonicalId": "peanut-butter",
+        "proposed": 0.717948717948718
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Coffee, whole beans",
+        "canonicalId": "coffee-beans",
+        "proposed": 0.8125
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Pasta salad",
+        "canonicalId": "dried-pasta",
+        "proposed": 0.606060606060606
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Peanuts, shell",
+        "canonicalId": "peanut",
+        "proposed": 0.7272727272727273
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Peanut butter, natural",
+        "canonicalId": "peanut-butter",
+        "proposed": 0.7777777777777778
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Honeydew",
+        "canonicalId": "honey",
+        "proposed": 0.6666666666666666
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Tomato paste",
+        "canonicalId": "tomato",
+        "proposed": 0.7
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Butter flavor",
+        "canonicalId": "butter",
+        "proposed": 0.6153846153846154
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Vegan Cheddar Cheese",
+        "canonicalId": "cheddar-cheese",
+        "proposed": 0.75
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Hot sauce",
+        "canonicalId": "sriracha",
+        "proposed": 0.6206896551724138
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cherry tomatoes",
+        "canonicalId": "tomato",
+        "proposed": 0.64
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Salad dressing, creamy",
+        "canonicalId": "salad-dressing",
+        "proposed": 0.8108108108108109
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Salad dressing, vinaigrette",
+        "canonicalId": "salad-dressing",
+        "proposed": 0.7142857142857143
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Salad dressing, dry,packaged",
+        "canonicalId": "salad-dressing",
+        "proposed": 0.7142857142857143
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Cooking wine",
+        "canonicalId": "shaoxing-wine",
+        "proposed": 0.7878787878787878
+      },
+      {
+        "source": "foodkeeper",
+        "row": "Salad dressing, homemade",
+        "canonicalId": "salad-dressing",
+        "proposed": 0.7692307692307693
+      }
+    ],
+    "unmatched": [
+      "Cheese, hard such as cheddar, swiss, block parmesan",
+      "Cheese, parmesan; shredded or grated",
+      "Cheese, shredded; cheddar, mozzarella, etc.",
+      "Cheese, processed slices",
+      "Cheese, soft such as brie, bel paese, goat",
+      "Coffee creamer, liquid refrigerated",
+      "Cottage cheese",
+      "Cream, whipping, ultrapasteurized",
+      "Cream, whipped, sweetened",
+      "Cream, half and half",
+      "Dips, sour cream based",
+      "Egg substitutes, liquid",
+      "Eggnog, commercial",
+      "Eggs, in shell",
+      "Eggs, raw whites, yolks",
+      "Eggs, hard boiled cooked",
+      "Egg dishes",
+      "Kefir, fermented milk",
+      "Margarine",
+      "Milk, plain or flavored",
+      "Pudding",
+      "Sour cream",
+      "Whipped cream, aerosol can",
+      "Whipped topping, aerosol can",
+      "Whipped topping, tub",
+      "Beef, rib roast, bone-in",
+      "Beef, rib roast; boneless, rolled",
+      "Beef, round or rump roast",
+      "Beef, tenderloin, whole",
+      "Beef, tenderloin, half",
+      "Beef, chuck roast, brisket",
+      "Beef, steaks",
+      "Beef, stew, cubes",
+      "Beef, short ribs",
+      "Beef, ground",
+      "Lamb, leg, bone-in - small",
+      "Lamb, leg, bone-in - large",
+      "Lamb, leg; boneless, rolled",
+      "Lamb, crown roast",
+      "Lamb, shoulder roast or shank leg half",
+      "Lamb, cubes for kabobs",
+      "Lamb, ground",
+      "Lamb, chops, ribs, or loin",
+      "Lamb, leg steaks",
+      "Lamb, stew meat, pieces",
+      "Lamb, shanks",
+      "Lamb, breast, rolled",
+      "Veal, shoulder roast, boneless",
+      "Veal, leg rump or round roast, boneless",
+      "Veal, loin roast, bone-in",
+      "Veal, ground",
+      "Pork, loin roast, bone-in",
+      "Pork, loin roast, boneless",
+      "Pork, loin chops, bone-in",
+      "Pork, loin chops, boneless",
+      "Pork, crown roast - small",
+      "Pork, crown roast - large",
+      "Pork, tenderloin",
+      "Pork, tenderloin medallions or loin cubes",
+      "Goat, tender whole cuts (legs, ribs, shoulder, loin)",
+      "Goat, less tender whole cuts (stew meat, riblets, shanks)",
+      "Pork, ribs",
+      "Pork, shoulder",
+      "Pork, loin, cubes",
+      "Venison, round, rump, loin, or rib roast",
+      "Variety meats, liver, tongue, chitterlings, etc.",
+      "Goat, ground",
+      "Corned beef, in pouch with pickling juices",
+      "Ham, canned (“keep refrigerated” label)",
+      "Ham, fully cooked, bone-in, whole",
+      "Ham, fully cooked, bone-in, half",
+      "Ham, fully cooked, slices, half, or spiral cut",
+      "Ham, fully cooked, arm picnic shoulder, boneless",
+      "Ham, fully cooked, canned, boneless (refrigerated)",
+      "Ham, fully cooked, vacuum packed, boneless",
+      "Ham, fresh, cook-before-eating, bone-in, whole",
+      "Ham, fresh, cook-before-eating, bone-in, half",
+      "Ham, fresh, cook-before-eating, shank or butt portion, bone-in",
+      "Ham, fresh, cook-before-eating, arm picnic shoulder, boneless",
+      "Ham, fresh, cook-before-eating, shoulder roll (butt), boneless",
+      "Ham, fresh, uncooked, whole leg, bone-in",
+      "Ham, fresh, uncooked, whole leg, boneless",
+      "Ham, fresh, uncooked, half leg, bone-in",
+      "Ham, country ham (whole or half)",
+      "Hot dogs",
+      "Sausage, raw bulk type or patties",
+      "Sausage, fully cooked smoked links, kielbasa",
+      "Sausage, hard, dry (pepperoni), sliced",
+      "Stuffed, raw pork chops",
+      "Raw kabobs with vegetables",
+      "Bacon, fully cooked",
+      "Ham, shelf-stable cans",
+      "Jerky, commercially dried",
+      "Jerky, homemade",
+      "Meat products, canned",
+      "Retort pouches or boxes",
+      "Chicken, whole",
+      "Turkey, whole",
+      "Ground turkey or chicken",
+      "Chicken parts, breast halves, bone-in",
+      "Turkey parts, breast halves, bone-in",
+      "Turkey parts, breast halves, boneless",
+      "Turkey parts, legs or thighs",
+      "Duckling, domestic or wild, whole",
+      "Goose, domestic or wild, whole",
+      "Pheasant, young, whole",
+      "Quail, whole",
+      "Capon, whole",
+      "Cornish Hens, whole",
+      "Giblets",
+      "Raw kabobs with vegetables",
+      "Turducken",
+      "Chicken nuggets, patties",
+      "Cooked poultry dishes",
+      "Fried chicken",
+      "Poultry pieces, covered with gravy or broth",
+      "Rotisserie chicken",
+      "Canned chicken",
+      "Retort pouches or boxes",
+      "Lean fish, cod, flounder, haddock, halibut, sole, etc.",
+      "Lean fish, pollock, ocean perch, rockfish, sea trout.",
+      "Fatty fish, bluefish, catfish, mackerel, mullet, salmon, tuna, etc.",
+      "Caviar, fresh, in jar",
+      "Cooked fish, all",
+      "Surimi seafood",
+      "Scallops",
+      "Shrimp, crayfish",
+      "Squid",
+      "Shucked clams, mussels, and oysters",
+      "Crab meat, fresh",
+      "Crab meat, pasteurized",
+      "Crab legs, king, dungeness, snow",
+      "Live clams, mussels, crab, and oysters",
+      "Fresh whole lobster, live",
+      "Fresh lobster tails, cooked",
+      "Fresh clams, mussels, oysters",
+      "Fresh whole lobster, frozen",
+      "Cooked shellfish, all",
+      "Herring, glass packed, in wine sauce",
+      "Fish, hot smoked, air pack",
+      "Fish, hot smoked, vacuum pack",
+      "Fish, cold smoked, air pack",
+      "Fish, cold smoked, vacuum pack",
+      "Soy flour, full-fat",
+      "Textured soy protein, (TSP)",
+      "Re-hydrated textured soy protein, (TSP)",
+      "Leftovers, with meat, fish, poultry, or egg",
+      "Leftovers, without meat, fish, poultry, or egg (such as cooked vegitables, rice, or potatoes)",
+      "Leftovers, pizza",
+      "Commercial brand vacuum-packed dinners, with USDA seal",
+      "Cooked pasta",
+      "Cooked rice",
+      "Fruit, cut",
+      "Guacamole",
+      "Hummus, commercial (pasteurized, with preservatives)",
+      "Hummus, traditional (no preservatives, not pasteurized)",
+      "Luncheon meat or poultry, store-sliced",
+      "Main dishes or meals, hot or refrigerated",
+      "Meats, covered with gravy or broth",
+      "Olives, from olive bar",
+      "Pate",
+      "Luncheon meat or poultry, pre-packaged",
+      "Soup, stews",
+      "Casseroles",
+      "Commercial bread products, including pan breads, flat breads, rolls, and buns",
+      "Tortillas, flour",
+      "Commercial cakes and muffins",
+      "Cookies, soft",
+      "Cookies, crispy",
+      "Dairy filled eclairs",
+      "Doughnuts",
+      "Fruit cake",
+      "Pastries, danish",
+      "Cream pies, banana cream, coconut cream, butterscotch",
+      "Chiffon pies, chocolate, lemon",
+      "Fruit pies, apple, peach, blueberry, apricot, cherry, blackberry",
+      "Pies, mincemeat",
+      "Pies, pecan",
+      "Pies, pumpkin",
+      "Quiche",
+      "Baking powder",
+      "Baking soda",
+      "Biscuit or pancake mix",
+      "Cake, brownie, bread mixes",
+      "Chocolate, unsweetened and semi-sweet, solid",
+      "Cocoa and cocoa mixes",
+      "Cornmeal, regular, degerminated",
+      "Cornmeal, stone ground or blue",
+      "Cornstarch",
+      "Flour, whole wheat",
+      "Frosting or icing",
+      "Gelatin, flavored",
+      "Gelatin, unflavored",
+      "Nut oils",
+      "Shortening, solid",
+      "Chili powder",
+      "Seasoning blends",
+      "Flavored or herb mixes",
+      "Garlic, chopped, commercial jars",
+      "Herbs, dried",
+      "Spice/spices, whole",
+      "Spice/spices, ground",
+      "Sugar, confectioners",
+      "Sugar substitutes",
+      "Tapiocas",
+      "Tube cans, of biscuits, rolls, pizza dough, etc.",
+      "Ready-to-bake pie crust",
+      "Cookie dough",
+      "Apples",
+      "Apricots",
+      "Avocados",
+      "Berries, cherries, goose berries, lychee",
+      "Berries, blackberries, boysenberries, currant",
+      "Blueberries",
+      "Cherimoya",
+      "Citrus fruit, lemon, lime, orange, grapefruit, tangerines, clementines",
+      "Coconut, shredded",
+      "Coconuts, fresh",
+      "Cranberries",
+      "Dates",
+      "Grapes",
+      "Guava",
+      "Kiwi fruit",
+      "Melons",
+      "Papaya, mango, feijoa, passionfruit, casaha melon",
+      "Peaches, nectarines, plums, pears, sapote",
+      "Pineapple",
+      "Plantains",
+      "Pomegranate",
+      "Artichokes, whole",
+      "Asparagus",
+      "Bamboo shoots",
+      "Beans and peas, green, fava, lima, soybean, wax, snow, sugar snap",
+      "Beets",
+      "Broccoli and broccoli raab (rapini)",
+      "Brussels sprouts",
+      "Carrots, parsnips",
+      "Cauliflower",
+      "Celery",
+      "Corn on the cob",
+      "Eggplant",
+      "Herbs",
+      "Leeks",
+      "Lettuce, iceberg, romaine",
+      "Lettuce, leaf, spinach",
+      "Okra",
+      "Onions, yellow, white, red, etc.",
+      "Potatoes",
+      "Pumpkins",
+      "Radishes",
+      "Rhubarb",
+      "Rutabagas",
+      "Squash, summer and zucchini",
+      "Squash, winter",
+      "Taro",
+      "Turnips",
+      "Yuca/cassava",
+      "Dough, commercial (bread or cookie)",
+      "Egg substitutes",
+      "Fish, breaded",
+      "Fish, raw but headed and gutted",
+      "Frozen potato products, fries, hashbrowns, tater tots",
+      "Frozen pretzels",
+      "Fruits, such as berries, melons",
+      "Ice pops",
+      "Juice concentrates",
+      "Lobster tails",
+      "Pancakes, waffles",
+      "Sausages, uncooked",
+      "Sausages, precooked",
+      "Sherbet, sorbet",
+      "Soy crumbles and hot dogs",
+      "Soy meat substitutes",
+      "Tempeh",
+      "Frozen entrees, prepared meals",
+      "Fresh pasta",
+      "Beans, dried",
+      "Lentils, dried",
+      "Pasta, dry, without eggs",
+      "Dry egg noodles",
+      "Peas, dried split",
+      "Rice, white or wild",
+      "Rice, brown",
+      "Barbecue sauce, bottled",
+      "Chutney",
+      "Cream sauces, milk solids",
+      "Dry gravy mixes",
+      "Gravy, jars and cans",
+      "Horseradish, in jar",
+      "Jams, jellies, and preserves",
+      "Ketchup, cocktail, or chili sauce",
+      "Marinades",
+      "Olives, black and green",
+      "Pickles",
+      "Pesto, jarred",
+      "Salad dressings, commercial, bottled",
+      "Salsa, picante and taco sauces",
+      "Sauce mixes, nondairy (spaghetti, taco, etc.)",
+      "Spaghetti sauce, in jars",
+      "Soy sauce or teriyaki sauce",
+      "Worcestershire sauce",
+      "Jars or pouches",
+      "Fruit",
+      "Dinners",
+      "Cereal, dry mixes",
+      "Formula, prepared",
+      "Liquid concentrate or ready-to-feed formula",
+      "Applesauce, commercial",
+      "Bacon bits, imitation",
+      "Canned goods, low acid (such as meat, poultry, fish, gravy, stew, soups, beans, carrots, corn, pasta, peas, potatoes, spinach)",
+      "Canned goods, high acid (such as juices, fruit, pickles, sauerkraut, tomato soup, and foods in vinegar-based sauce)",
+      "Cereal, ready-to-eat",
+      "Cereal, cook before eating (oatmeal, etc.)",
+      "Chocolate syrup",
+      "Crackers",
+      "Graham cracker/animal cracker",
+      "Fruits, dried, raisins, apricots, mangoes, cranberries, etc.",
+      "Gummy (fruit) snacks",
+      "Marshmallows",
+      "Marshmallow crème",
+      "Milk, canned evaporated or condensed",
+      "Molasses",
+      "Mushrooms, dried",
+      "Nuts, jars or cans",
+      "Pectin",
+      "Popcorn, dry kernels in jar",
+      "Popcorn, commercially popped in bags",
+      "Popcorn, microwave packets",
+      "Potato chips",
+      "Potatoes, instant",
+      "Pretzels",
+      "Pudding mixes",
+      "Soup mixes, dry bouillon",
+      "Sun dried tomatoes, jar",
+      "Syrup",
+      "Toaster pastries",
+      "Coffee, home ground, non-vacuum",
+      "Coffee, instant",
+      "Diet powder mixes and drink mixes",
+      "Fruit Juice in cartons, fruit drinks, punch",
+      "Juice, boxes",
+      "Nectar, papaya, mango, guava, or guavabana",
+      "Soda, carbonated cola drinks, mixers, diet sodas; bottles or cans",
+      "Soy or rice beverage",
+      "Tea, bags",
+      "Tea, instant",
+      "Tea, loose",
+      "Water, commercially bottled",
+      "Kumquats",
+      "Bagged greens, leaf, spinach, lettuce, etc.",
+      "Egg salad",
+      "Potato salad",
+      "Seafood salads, (tuna salad, shrimp salad, salmon salad, mixed seafood salad, etc.)",
+      "Chicken salad",
+      "Ham salad",
+      "Soy milk",
+      "Yams/sweet potatoes",
+      "Kale",
+      "Quinoa, uncooked",
+      "Quinoa, cooked",
+      "Almond milk",
+      "Rice milk",
+      "Coconut milk",
+      "Coffee creamer, powdered",
+      "Turkey bacon",
+      "Fruit cocktail, canned",
+      "Black bean sauce",
+      "Pork roll",
+      "Almonds, shell",
+      "Almonds, no shell",
+      "Cashews, no shell",
+      "Macadamias, no shell",
+      "Peanuts, no shell",
+      "Pecans, shell",
+      "Pecans, no shell",
+      "Pistachios, shell or no shell",
+      "Walnuts, shell or no shell",
+      "Lime juice",
+      "Lemon juice",
+      "Bagel, fresh baked",
+      "Bagel, commercially frozen",
+      "Muffin, homemade - including bran, blueberry, banana, corn, chocolate chip",
+      "Muffin, commercially packaged",
+      "Muffin, mix, dry, commercially packaged",
+      "Coconut oil",
+      "Orange juice, commercially packaged carton",
+      "Orange juice, commercially frozen concentrate",
+      "Orange juice, freshly squeezed",
+      "Roasted red peppers, jar",
+      "Whole wheat flour",
+      "Whole wheat bread, homemade",
+      "Whole wheat bread, commercially baked & pre-sliced",
+      "Red wine",
+      "White wine",
+      "Dry stuffing mix, commercially packaged",
+      "Powdered milk",
+      "Almond butter",
+      "Cashew butter",
+      "Salt, table, plain, or iodized",
+      "Black pepper, ground, dried, commercially bottled or purchased in bulk",
+      "Black pepper, cracked, dried, commercially bottled or purchased in bulk",
+      "Cajun seasoning blend, ground, dried, commercially bottled or purchased in bulk",
+      "Cinnamon, ground, dried, commercially bottled or purchased in bulk",
+      "Cumin, ground, dried, commercially bottled or purchased in bulk, opened or unopened",
+      "Garlic powder, dried, commercially bottled or purchased in bulk",
+      "Onion powder, dried, commercially bottled or purchased in bulk",
+      "Nutmeg, ground, dried, commercially bottled or purchased in bulk",
+      "Nacho cheese, store bought",
+      "Star fruit",
+      "Prickly pear",
+      "Pitaya/dragon fruit",
+      "Strawberries",
+      "Raspberries",
+      "Cherries",
+      "Broth, homemade",
+      "Beef broth/stock/consommé, commercially produced",
+      "Chicken broth/stock/consommé, commercially produced",
+      "Vegetable stock/broth, commercially produced",
+      "Peanut butter, commercially produced, containing hydrogenated fat or other stabilizers",
+      "Ricotta",
+      "Baby carrots",
+      "Jicama, fresh",
+      "Kimchi",
+      "Kohlrabi",
+      "Watermelon",
+      "Cantaloupe",
+      "Peanuts, boiled, shelled",
+      "Refried beans",
+      "Relish",
+      "Tapenade",
+      "Flaxseed, whole seed",
+      "Flaxseed, ground",
+      "Lemongrass",
+      "Mint",
+      "Basil, dried",
+      "Basil, fresh",
+      "Oregano",
+      "Rosemary",
+      "Chives",
+      "Thyme",
+      "Turkey, pre-packaged, luncheon/deli meat",
+      "Ham, pre-packaged, luncheon/deli meat",
+      "Salami, pre-packaged, luncheon/deli meat",
+      "Chicken, pre-packaged, luncheon/deli meat",
+      "Canadian bacon, whole",
+      "Canadian bacon, sliced",
+      "Almond oil",
+      "Sunflower oil",
+      "Grapeseed oil",
+      "Duck fat",
+      "Bacon grease",
+      "Frying oil, re-used",
+      "Almond extract",
+      "Cinnamon extract",
+      "Lemon extract",
+      "Pure vanilla extract",
+      "Coconut flavor",
+      "\"Genuine\" Maple syrup, unopened, glass",
+      "\"Genuine\" Maple syrup, unopened, plastic",
+      "Lemon juice, fresh squeezed",
+      "Apple juice, fresh squeezed",
+      "Carrot juice, fresh squeezed",
+      "Hard liquors",
+      "Cream liquors, unopened",
+      "Coffee, commercial ground, non-vacuum",
+      "Macaroons, french",
+      "Milk, lactose-free",
+      "String Cheese",
+      "Quark, fresh cheese",
+      "Zucchini, fresh, whole",
+      "Hot peppers",
+      "Bean sprouts",
+      "Swiss chard",
+      "Puff pastry",
+      "Biscuits, refrigerated",
+      "Tortillas, corn",
+      "Pie crust, refrigerated",
+      "Granola",
+      "Pork rinds",
+      "Apple cider vinegar",
+      "Nutrition supplement drinks, canned",
+      "Thai red curry paste",
+      "Yeast, packaged",
+      "Applesauce, homemade",
+      "Pate, meat",
+      "Pate, poultry",
+      "Cranberry sauce, canned",
+      "Cranberry sauce, homemade",
+      "Vegetable juice, shelf-stable",
+      "Vegetable juice, commercial, sold refrigerated",
+      "Vegetable juice, homemade",
+      "Marinated vegetables, in oil",
+      "Pizza, frozen",
+      "Salsa, fresh",
+      "Chia seeds",
+      "Bread, homemade",
+      "Amaranth, whole grain",
+      "Amaranth, flour, meal",
+      "Barley, whole grain",
+      "Barley, flour, meal",
+      "Buckwheat, whole grain",
+      "Buckwheat, flour, meal",
+      "Farro, whole grain",
+      "Farro, flour, meal",
+      "Millet, whole grain",
+      "Millet, flour, meal",
+      "Oats, whole grain",
+      "Oats, flour, meal",
+      "Rye, whole grain",
+      "Rye, flour, meal",
+      "Sorghum, whole grain",
+      "Sorghum, flour, meal",
+      "Spelt, whole grain",
+      "Spelt, flour, meal",
+      "Teff, whole grain",
+      "Teff, flour, meal",
+      "Rabbit, whole, fresh",
+      "Spaghetti squash, whole",
+      "Spaghetti squash, cut",
+      "Garam masala",
+      "Tomato sauce, spaghetti, pizza",
+      "Coconut cream, canned",
+      "Coconut milk, canned",
+      "Coleslaw, homemade, prepared",
+      "Pumpkin seeds, raw, no shell",
+      "Pumpkin seeds, raw, in-shell",
+      "Pumpkin seeds, roasted, no-shell",
+      "Pumpkin seeds, roasted, in-shell",
+      "Sunflower seeds, raw, unsalted, no shell",
+      "Sunflower seeds, roasted, no shell",
+      "Sunflower seeds, roasted, salted, in shell",
+      "Parsley, fresh",
+      "Capers, in jar",
+      "Chocolate hazlenut spread",
+      "Roasted nuts (peanuts, cashews, almonds)",
+      "Tuna, packet",
+      "Tuna, canned",
+      "Seafood, canned",
+      "Pimento cheese, packaged",
+      "Bison, whole",
+      "Bison, ground",
+      "Salad dressing, vinaigrette,homemade",
+      "Grits, boxed",
+      "Cheese Curds, fresh, unaged",
+      "Vegetable soup, homemade",
+      "Chorizo, fresh",
+      "Chorizo, smoked and processed, uncooked",
+      "Chorizo, smoked and processed, cooked",
+      "Beets, pickled",
+      "Cinnamon rolls, unbaked, tube",
+      "Cinnamon rolls, baked",
+      "Bulgur",
+      "Bratwurst, fresh",
+      "Bratwurst, smoked and processed",
+      "Edamame, fresh",
+      "Edamame, frozen",
+      "Edamame, salted, dry roasted, out of pod",
+      "Breadcrumbs, commercial",
+      "Milk, shelf-stable",
+      "Salsa, homemade, fresh",
+      "Salsa, homemade, canned",
+      "Tomato Sauce, homemade, canned",
+      "Barbecue Sauce, homemade, canned",
+      "Corn syrup",
+      "Nutrition supplement drinks, bottled",
+      "Instant breakfast drinks, bottled",
+      "Pine nuts",
+      "Coconut flour",
+      "Pecans, chopped",
+      "Polenta, shelf-stable",
+      "Polenta, frozen",
+      "Cereal or granola bars",
+      "Milk, ultra-pasteurized",
+      "Coconut water",
+      "Celery root",
+      "Apple cider, fresh",
+      "Yuzu juice",
+      "Yuzu, fruit, fresh",
+      "Pastrami",
+      "Kugel, commercial",
+      "Kugel, homemade",
+      "Avocado Oil",
+      "Balsamic vinegar",
+      "Aioli, homemade",
+      "Base, beef, vegetable",
+      "Anchovies, canned",
+      "Radicchio",
+      "Prosciutto",
+      "Ham, uncured, fresh, cooked",
+      "Ham, uncured, fresh, uncooked",
+      "Arugula",
+      "Mung bean, sprouts",
+      "Mung bean, dry, food-grade bags",
+      "Mung bean, dry, vacuum-sealed",
+      "Croutons",
+      "Bacon, uncured",
+      "Mustard, dried, ground"
+    ],
+    "guarded": []
+  },
+  "foodDataCentral": {
+    "queried": 77,
+    "matched": 49,
+    "unmatched": [
+      "soy-sauce-dark",
+      "doubanjiang",
+      "gochujang",
+      "gochugaru",
+      "shaoxing-wine",
+      "mirin",
+      "belacan",
+      "kecap-manis",
+      "rice-vinegar",
+      "xo-sauce",
+      "tamarind-paste",
+      "five-spice",
+      "jasmine-rice",
+      "dried-pasta",
+      "dijon-mustard",
+      "salad-dressing",
+      "coffee-beans",
+      "daikon",
+      "eggs",
+      "bacon",
+      "milk",
+      "frozen-peas",
+      "frozen-dumplings",
+      "tree-nut",
+      "wheat",
+      "soy",
+      "fish",
+      "shellfish"
+    ],
+    "review": {
+      "soy-sauce-light": [
+        {
+          "fdcId": 174277,
+          "description": "Soy sauce made from soy and wheat (shoyu)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "soy-sauce-dark": [
+        {
+          "fdcId": 174278,
+          "description": "Soy sauce made from soy (tamari)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174277,
+          "description": "Soy sauce made from soy and wheat (shoyu)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172473,
+          "description": "Soy sauce made from soy and wheat (shoyu), low sodium",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172369,
+          "description": "Margarine, industrial, soy and partially hydrogenated soy oil, use for baking, sauces and candy",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174070,
+          "description": "Sauce, peanut, made from peanut butter, water, soy sauce",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "tamari": [
+        {
+          "fdcId": 174278,
+          "description": "Soy sauce made from soy (tamari)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "doubanjiang": [],
+      "gochujang": [],
+      "gochugaru": [],
+      "fish-sauce": [
+        {
+          "fdcId": 174531,
+          "description": "Sauce, fish, ready-to-serve",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "oyster-sauce": [
+        {
+          "fdcId": 174529,
+          "description": "Sauce, oyster, ready-to-serve",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "shaoxing-wine": [
+        {
+          "fdcId": 172240,
+          "description": "Vinegar, red wine",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "rice-vinegar",
+          "confidence": 0.6060606060606061
+        },
+        {
+          "fdcId": 169070,
+          "description": "Alcoholic beverage, wine, cooking",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169071,
+          "description": "Alcoholic beverage, wine, light",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171908,
+          "description": "Alcoholic beverages, wine, rose",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174157,
+          "description": "Beverages, Wine, non-alcoholic",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "mirin": [],
+      "miso": [
+        {
+          "fdcId": 172442,
+          "description": "Miso",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "miso",
+          "confidence": 0.95
+        }
+      ],
+      "belacan": [],
+      "kecap-manis": [],
+      "sesame-oil": [
+        {
+          "fdcId": 171016,
+          "description": "Oil, sesame, salad or cooking",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "rice-vinegar": [
+        {
+          "fdcId": 172241,
+          "description": "Vinegar, balsamic",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173469,
+          "description": "Vinegar, cider",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172237,
+          "description": "Vinegar, distilled",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172240,
+          "description": "Vinegar, red wine",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "rice-vinegar",
+          "confidence": 0.6060606060606061
+        },
+        {
+          "fdcId": 173161,
+          "description": "Rice crackers",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "hoisin-sauce": [
+        {
+          "fdcId": 172886,
+          "description": "Sauce, hoisin, ready-to-serve",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "xo-sauce": [
+        {
+          "fdcId": 171584,
+          "description": "Sauce, cheese sauce mix, dry",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174523,
+          "description": "Sauce, barbecue",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171833,
+          "description": "Sauce, horseradish",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171610,
+          "description": "Sauce, worcestershire",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171595,
+          "description": "Sauce, tomato chili sauce, bottled, with salt",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "sriracha": [
+        {
+          "fdcId": 171186,
+          "description": "Sauce, hot chile, sriracha",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "sriracha",
+          "confidence": 0.7727272727272727
+        }
+      ],
+      "tamarind-paste": [
+        {
+          "fdcId": 170281,
+          "description": "Candies, Tamarind",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "tamarind-paste",
+          "confidence": 0.6153846153846154
+        },
+        {
+          "fdcId": 167763,
+          "description": "Tamarinds, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "tamarind-paste",
+          "confidence": 0.6956521739130435
+        },
+        {
+          "fdcId": 167786,
+          "description": "Tamarind nectar, canned",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170160,
+          "description": "Nuts, almond paste",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170191,
+          "description": "Seeds, sesame butter, paste",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "white-pepper": [
+        {
+          "fdcId": 170933,
+          "description": "Spices, pepper, white",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "white-pepper",
+          "confidence": 0.6666666666666666
+        }
+      ],
+      "five-spice": [
+        {
+          "fdcId": 171319,
+          "description": "Spices, chili powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170924,
+          "description": "Spices, curry powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171325,
+          "description": "Spices, garlic powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171327,
+          "description": "Spices, onion powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171332,
+          "description": "Spices, pumpkin pie spice",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "jasmine-rice": [
+        {
+          "fdcId": 173161,
+          "description": "Rice crackers",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 167967,
+          "description": "Snacks, rice cakes, brown rice, buckwheat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169679,
+          "description": "Snacks, rice cakes, brown rice, corn",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169680,
+          "description": "Snacks, rice cakes, brown rice, multigrain",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 168855,
+          "description": "Snacks, rice cakes, brown rice, rye",
+          "dataType": "SR Legacy",
+          "foodCategory": "Snacks",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "dried-pasta": [
+        {
+          "fdcId": 169087,
+          "description": "Litchis, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169907,
+          "description": "Longans, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 168418,
+          "description": "Pepeao, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172239,
+          "description": "Spearmint, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 168993,
+          "description": "Agave, dried (Southwest)",
+          "dataType": "SR Legacy",
+          "foodCategory": "American Indian/Alaska Native Foods",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "all-purpose-flour": [
+        {
+          "fdcId": 789951,
+          "description": "Flour, wheat, all-purpose, enriched, unbleached",
+          "dataType": "Foundation",
+          "foodCategory": "Cereal Grains and Pasta",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "sugar": [
+        {
+          "fdcId": 746784,
+          "description": "Sugars, granulated",
+          "dataType": "Foundation",
+          "foodCategory": "Sweets",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "sugar",
+          "confidence": 0.8
+        }
+      ],
+      "olive-oil": [
+        {
+          "fdcId": 171413,
+          "description": "Oil, olive, salad or cooking",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "vegetable-oil": [
+        {
+          "fdcId": 172370,
+          "description": "Oil, vegetable, soybean, refined",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "butter": [
+        {
+          "fdcId": 173410,
+          "description": "Butter, salted",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "butter",
+          "confidence": 0.8571428571428571
+        }
+      ],
+      "ghee": [
+        {
+          "fdcId": 171314,
+          "description": "Butter, Clarified butter (ghee)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "ghee",
+          "confidence": 0.8
+        }
+      ],
+      "salt": [
+        {
+          "fdcId": 173468,
+          "description": "Salt, table",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "salt",
+          "confidence": 0.8181818181818182
+        }
+      ],
+      "black-pepper": [
+        {
+          "fdcId": 170931,
+          "description": "Spices, pepper, black",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "black-pepper",
+          "confidence": 0.6666666666666666
+        }
+      ],
+      "honey": [
+        {
+          "fdcId": 169640,
+          "description": "Honey",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "resolved",
+          "matchedCanonicalId": "honey",
+          "confidence": 0.95
+        }
+      ],
+      "peanut-butter": [
+        {
+          "fdcId": 2262072,
+          "description": "Peanut butter, creamy",
+          "dataType": "Foundation",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "peanut-butter",
+          "confidence": 0.9047619047619048
+        },
+        {
+          "fdcId": 2758989,
+          "description": "Peanut butter, Creamy",
+          "dataType": "Foundation",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "peanut-butter",
+          "confidence": 0.9047619047619048
+        },
+        {
+          "fdcId": 169869,
+          "description": "Peanut butter, reduced sodium",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "peanut-butter",
+          "confidence": 0.6046511627906977
+        },
+        {
+          "fdcId": 167570,
+          "description": "Candies, confectioner's coating, peanut butter",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 167546,
+          "description": "Candies, honey-combed, with peanut butter",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "ketchup": [
+        {
+          "fdcId": 168556,
+          "description": "Catsup",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "ketchup",
+          "confidence": 0.95
+        }
+      ],
+      "mayonnaise": [
+        {
+          "fdcId": 171009,
+          "description": "Salad dressing, mayonnaise, regular",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "dijon-mustard": [
+        {
+          "fdcId": 172337,
+          "description": "Oil, mustard",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "dijon-mustard",
+          "confidence": 0.7
+        },
+        {
+          "fdcId": 169891,
+          "description": "Cabbage, mustard, salted",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169256,
+          "description": "Mustard greens, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 326698,
+          "description": "Mustard, prepared, yellow",
+          "dataType": "Foundation",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172234,
+          "description": "Mustard, prepared, yellow",
+          "dataType": "SR Legacy",
+          "foodCategory": "Spices and Herbs",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "salad-dressing": [
+        {
+          "fdcId": 171005,
+          "description": "Salad dressing, russian dressing",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "salad-dressing",
+          "confidence": 0.7130730050933786
+        },
+        {
+          "fdcId": 169056,
+          "description": "Salad dressing, coleslaw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "salad-dressing",
+          "confidence": 0.7692307692307693
+        },
+        {
+          "fdcId": 169055,
+          "description": "Salad dressing, caesar dressing, regular",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173592,
+          "description": "Salad dressing, ranch dressing, regular",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171414,
+          "description": "Salad dressing, french dressing, commercial, regular",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "cooking-spray": [
+        {
+          "fdcId": 171430,
+          "description": "Oil, PAM cooking spray, original",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "cooking-spray",
+          "confidence": 0.6122448979591837
+        }
+      ],
+      "oats": [
+        {
+          "fdcId": 2346396,
+          "description": "Oats, whole grain, rolled, old fashioned",
+          "dataType": "Foundation",
+          "foodCategory": "Cereal Grains and Pasta",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "oats",
+          "confidence": 0.6602316602316602
+        }
+      ],
+      "coffee-beans": [
+        {
+          "fdcId": 175224,
+          "description": "SILK Coffee, soymilk",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174134,
+          "description": "Beverages, coffee, instant, chicory",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171897,
+          "description": "Beverages, coffee, instant, with chicory",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171881,
+          "description": "Beverages, coffee, brewed, breakfast blend",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174133,
+          "description": "Beverages, coffee, instant, decaffeinated, powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "green-onion": [
+        {
+          "fdcId": 2727585,
+          "description": "Green onion, (scallion), bulb and greens, root removed, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "garlic": [
+        {
+          "fdcId": 1104647,
+          "description": "Garlic, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "garlic",
+          "confidence": 0.7777777777777778
+        }
+      ],
+      "ginger": [
+        {
+          "fdcId": 169231,
+          "description": "Ginger root, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "ginger",
+          "confidence": 0.8571428571428571
+        }
+      ],
+      "yellow-onion": [
+        {
+          "fdcId": 790646,
+          "description": "Onions, yellow, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "yellow-onion",
+          "confidence": 0.6451612903225806
+        }
+      ],
+      "banana": [
+        {
+          "fdcId": 173944,
+          "description": "Bananas, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "banana",
+          "confidence": 0.7777777777777778
+        }
+      ],
+      "tomato": [
+        {
+          "fdcId": 1999634,
+          "description": "Tomato, roma",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "tomato",
+          "confidence": 0.8181818181818182
+        }
+      ],
+      "cucumber": [
+        {
+          "fdcId": 2346406,
+          "description": "Cucumber, with peel, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "cilantro": [
+        {
+          "fdcId": 169997,
+          "description": "Coriander (cilantro) leaves, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "lime": [
+        {
+          "fdcId": 168155,
+          "description": "Limes, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fruits and Fruit Juices",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "lime",
+          "confidence": 0.75
+        }
+      ],
+      "napa-cabbage": [
+        {
+          "fdcId": 2727583,
+          "description": "Cabbage, napa, leaf, destemmed, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "bok-choy": [
+        {
+          "fdcId": 2685572,
+          "description": "Cabbage, bok choy, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "shiitake-mushroom": [
+        {
+          "fdcId": 1999628,
+          "description": "Mushrooms, shiitake",
+          "dataType": "Foundation",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "shiitake-mushroom",
+          "confidence": 0.8947368421052632
+        }
+      ],
+      "daikon": [],
+      "tofu-firm": [
+        {
+          "fdcId": 174290,
+          "description": "Tofu, extra firm, prepared with nigari",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "chicken-breast": [
+        {
+          "fdcId": 2646170,
+          "description": "Chicken, breast, boneless, skinless, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Poultry Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "chicken-breast",
+          "confidence": 0.875
+        }
+      ],
+      "chicken-thigh": [
+        {
+          "fdcId": 2646171,
+          "description": "Chicken, thigh, boneless, skinless, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Poultry Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "chicken-thigh",
+          "confidence": 0.75
+        }
+      ],
+      "ground-pork": [
+        {
+          "fdcId": 2514745,
+          "description": "Pork, ground, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Pork Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "ground-pork",
+          "confidence": 0.7142857142857143
+        }
+      ],
+      "pork-belly": [
+        {
+          "fdcId": 167812,
+          "description": "Pork, fresh, belly, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Pork Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "pork-belly",
+          "confidence": 0.625
+        }
+      ],
+      "eggs": [
+        {
+          "fdcId": 747997,
+          "description": "Eggs, Grade A, Large, egg white",
+          "dataType": "Foundation",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 748967,
+          "description": "Eggs, Grade A, Large, egg whole",
+          "dataType": "Foundation",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 748236,
+          "description": "Eggs, Grade A, Large, egg yolk",
+          "dataType": "Foundation",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174901,
+          "description": "Bagels, egg",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baked Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172673,
+          "description": "Bread, egg",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baked Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "shrimp": [
+        {
+          "fdcId": 175179,
+          "description": "Crustaceans, shrimp, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "salmon": [
+        {
+          "fdcId": 173688,
+          "description": "Fish, salmon, chinook, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "bacon": [
+        {
+          "fdcId": 172439,
+          "description": "Bacon, meatless",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174602,
+          "description": "Bacon and beef sticks",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sausages and Luncheon Meats",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169893,
+          "description": "Bacon bits, meatless",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171639,
+          "description": "Bacon, turkey, microwaved",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sausages and Luncheon Meats",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174592,
+          "description": "Bacon, turkey, unprepared",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sausages and Luncheon Meats",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "milk": [
+        {
+          "fdcId": 174980,
+          "description": "Crackers, milk",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baked Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 167686,
+          "description": "Milk dessert, frozen, milk-fat free, chocolate",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173459,
+          "description": "Protein supplement, milk based, Muscle Milk, powder",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171942,
+          "description": "Beverages, rice milk, unsweetened",
+          "dataType": "SR Legacy",
+          "foodCategory": "Beverages",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 167587,
+          "description": "Candies, milk chocolate",
+          "dataType": "SR Legacy",
+          "foodCategory": "Sweets",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "cheddar-cheese": [
+        {
+          "fdcId": 328637,
+          "description": "Cheese, cheddar",
+          "dataType": "Foundation",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "resolved",
+          "matchedCanonicalId": "cheddar-cheese",
+          "confidence": 0.9230769230769231
+        },
+        {
+          "fdcId": 169901,
+          "description": "Cheese, american cheddar, imitation",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170899,
+          "description": "Cheese, cheddar, sharp, sliced",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "cheddar-cheese",
+          "confidence": 0.6153846153846154
+        },
+        {
+          "fdcId": 171295,
+          "description": "Cheese, cheddar, nonfat or fat free",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173439,
+          "description": "Cheese, low fat, cheddar or colby",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "parmesan": [
+        {
+          "fdcId": 170848,
+          "description": "Cheese, parmesan, hard",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "parmesan",
+          "confidence": 0.7567567567567568
+        }
+      ],
+      "greek-yogurt": [
+        {
+          "fdcId": 170903,
+          "description": "Yogurt, Greek, plain, lowfat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "greek-yogurt",
+          "confidence": 0.7111111111111111
+        }
+      ],
+      "heavy-cream": [
+        {
+          "fdcId": 2346386,
+          "description": "Cream, heavy",
+          "dataType": "Foundation",
+          "foodCategory": "Dairy and Egg Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "heavy-cream",
+          "confidence": 0.8333333333333334
+        }
+      ],
+      "frozen-peas": [
+        {
+          "fdcId": 170425,
+          "description": "Peas and carrots, frozen, unprepared",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170020,
+          "description": "Peas and onions, frozen, unprepared",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170012,
+          "description": "Peas, edible-podded, frozen, unprepared",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170513,
+          "description": "Peas and carrots, frozen, cooked, boiled, drained, with salt",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170514,
+          "description": "Peas and onions, frozen, cooked, boiled, drained, with salt",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "frozen-dumplings": [
+        {
+          "fdcId": 168042,
+          "description": "Stew, dumpling with mutton (Navajo)",
+          "dataType": "SR Legacy",
+          "foodCategory": "American Indian/Alaska Native Foods",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169779,
+          "description": "Dumpling, potato- or cheese-filled, frozen",
+          "dataType": "SR Legacy",
+          "foodCategory": "Meals, Entrees, and Side Dishes",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173488,
+          "description": "Babyfood, dinner, vegetables and dumplings and beef, junior",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baby Foods",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172256,
+          "description": "Babyfood, dinner, vegetables and dumplings and beef, strained",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baby Foods",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "peanut": [
+        {
+          "fdcId": 2515376,
+          "description": "Peanuts, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "peanut",
+          "confidence": 0.8
+        }
+      ],
+      "tree-nut": [
+        {
+          "fdcId": 168553,
+          "description": "Tree fern, cooked, with salt",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170553,
+          "description": "Seeds, breadnut tree seeds, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170552,
+          "description": "Seeds, breadnut tree seeds, raw",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 170464,
+          "description": "Tree fern, cooked, without salt",
+          "dataType": "SR Legacy",
+          "foodCategory": "Vegetables and Vegetable Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 2515374,
+          "description": "Nuts, cashew nuts, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "wheat": [
+        {
+          "fdcId": 167533,
+          "description": "Bagels, wheat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baked Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172686,
+          "description": "Bread, wheat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Baked Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 169721,
+          "description": "Wheat, durum",
+          "dataType": "SR Legacy",
+          "foodCategory": "Cereal Grains and Pasta",
+          "outcome": "needs_confirmation",
+          "matchedCanonicalId": "wheat",
+          "confidence": 0.606060606060606
+        },
+        {
+          "fdcId": 169725,
+          "description": "Wheat, sprouted",
+          "dataType": "SR Legacy",
+          "foodCategory": "Cereal Grains and Pasta",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 168944,
+          "description": "Wheat flour, whole-grain, soft wheat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Cereal Grains and Pasta",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "soy": [
+        {
+          "fdcId": 174278,
+          "description": "Soy sauce made from soy (tamari)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174277,
+          "description": "Soy sauce made from soy and wheat (shoyu)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 1104705,
+          "description": "Flour, soy, defatted",
+          "dataType": "Foundation",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174275,
+          "description": "Soy flour, defatted",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174276,
+          "description": "Soy protein isolate",
+          "dataType": "SR Legacy",
+          "foodCategory": "Legumes and Legume Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "sesame": [
+        {
+          "fdcId": 170150,
+          "description": "Seeds, sesame seeds, whole, dried",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "fish": [
+        {
+          "fdcId": 174195,
+          "description": "Fish, fish sticks, frozen, prepared",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 171606,
+          "description": "Fish broth",
+          "dataType": "SR Legacy",
+          "foodCategory": "Soups, Sauces, and Gravies",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 173702,
+          "description": "Fish, surimi",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172340,
+          "description": "Fish oil, herring",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 172341,
+          "description": "Fish oil, menhaden",
+          "dataType": "SR Legacy",
+          "foodCategory": "Fats and Oils",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "shellfish": [
+        {
+          "fdcId": 2768188,
+          "description": "Alaska Pollock, raw",
+          "dataType": "Foundation",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 2747652,
+          "description": "Anchovies, canned in olive oil, with salt, drained",
+          "dataType": "Foundation",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 2747654,
+          "description": "Cod, Pacific or Alaskan, frozen, wild caught",
+          "dataType": "Foundation",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174202,
+          "description": "Crustaceans, crab, alaska king, cooked, moist heat",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        },
+        {
+          "fdcId": 174203,
+          "description": "Crustaceans, crab, alaska king, imitation, made from surimi",
+          "dataType": "SR Legacy",
+          "foodCategory": "Finfish and Shellfish Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ],
+      "tahini": [
+        {
+          "fdcId": 170189,
+          "description": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)",
+          "dataType": "SR Legacy",
+          "foodCategory": "Nut and Seed Products",
+          "outcome": "unresolved",
+          "matchedCanonicalId": null,
+          "confidence": null
+        }
+      ]
+    },
+    "skipped": false
+  },
+  "filled": [
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "kcalPer100",
+      "proposed": 884
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "proteinPer100",
+      "proposed": 0
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "carbsPer100",
+      "proposed": 0
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "fatPer100",
+      "proposed": 100
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "kcalPer100",
+      "proposed": 680
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "proteinPer100",
+      "proposed": 0.96
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "carbsPer100",
+      "proposed": 0.57
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "fatPer100",
+      "proposed": 74.85
+    }
+  ],
+  "conflicts": [
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "shelfLifeDays.pantry",
+      "existing": 730,
+      "proposed": 720
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "shelfLifeDays.pantry",
+      "existing": 1095,
+      "proposed": 720
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "shelfLifeDays.pantry",
+      "existing": 730,
+      "proposed": 360
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "openLifeDays",
+      "existing": 365,
+      "proposed": 180
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "shelfLifeDays.pantry",
+      "existing": 730,
+      "proposed": 365
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "shelfLifeDays.fridge",
+      "existing": 90,
+      "proposed": 60
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "shelfLifeDays.freezer",
+      "existing": 365,
+      "proposed": 270
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "shelfLifeDays.pantry",
+      "existing": 365,
+      "proposed": 240
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "shelfLifeDays.pantry",
+      "existing": 3650,
+      "proposed": 730
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "shelfLifeDays.fridge",
+      "existing": 120,
+      "proposed": 14
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "shelfLifeDays.fridge",
+      "existing": 60,
+      "proposed": 21
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "shelfLifeDays.fridge",
+      "existing": 10,
+      "proposed": 6
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "shelfLifeDays.fridge",
+      "existing": 7,
+      "proposed": 21
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "shelfLifeDays.fridge",
+      "existing": 7,
+      "proposed": 3
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "shelfLifeDays.fridge",
+      "existing": 14,
+      "proposed": 7
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "shelfLifeDays.pantry",
+      "existing": 365,
+      "proposed": 1825
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "openLifeDays",
+      "existing": 90,
+      "proposed": 21
+    }
+  ],
+  "skipped": [
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "proteinPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Soy sauce made from soy and wheat (shoyu)",
+      "canonicalId": "soy-sauce-light",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Soy sauce made from soy and wheat (shoyu)",
+      "canonicalId": "soy-sauce-light",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Soy sauce made from soy (tamari)",
+      "canonicalId": "tamari",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Soy sauce made from soy (tamari)",
+      "canonicalId": "tamari",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, fish, ready-to-serve",
+      "canonicalId": "fish-sauce",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, fish, ready-to-serve",
+      "canonicalId": "fish-sauce",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, oyster, ready-to-serve",
+      "canonicalId": "oyster-sauce",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, oyster, ready-to-serve",
+      "canonicalId": "oyster-sauce",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, sesame, salad or cooking",
+      "canonicalId": "sesame-oil",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, sesame, salad or cooking",
+      "canonicalId": "sesame-oil",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, hoisin, ready-to-serve",
+      "canonicalId": "hoisin-sauce",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, hoisin, ready-to-serve",
+      "canonicalId": "hoisin-sauce",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, hot chile, sriracha",
+      "canonicalId": "sriracha",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sauce, hot chile, sriracha",
+      "canonicalId": "sriracha",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Spices, pepper, white",
+      "canonicalId": "white-pepper",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Spices, pepper, white",
+      "canonicalId": "white-pepper",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, olive, salad or cooking",
+      "canonicalId": "olive-oil",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, vegetable, soybean, refined",
+      "canonicalId": "vegetable-oil",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, vegetable, soybean, refined",
+      "canonicalId": "vegetable-oil",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, salted",
+      "canonicalId": "butter",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, salted",
+      "canonicalId": "butter",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salt, table",
+      "canonicalId": "salt",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salt, table",
+      "canonicalId": "salt",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Spices, pepper, black",
+      "canonicalId": "black-pepper",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Spices, pepper, black",
+      "canonicalId": "black-pepper",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanut butter, creamy",
+      "canonicalId": "peanut-butter",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanut butter, creamy",
+      "canonicalId": "peanut-butter",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Catsup",
+      "canonicalId": "ketchup",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Catsup",
+      "canonicalId": "ketchup",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Salad dressing, mayonnaise, regular",
+      "canonicalId": "mayonnaise",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, PAM cooking spray, original",
+      "canonicalId": "cooking-spray",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oil, PAM cooking spray, original",
+      "canonicalId": "cooking-spray",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Ginger root, raw",
+      "canonicalId": "ginger",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Ginger root, raw",
+      "canonicalId": "ginger",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Bananas, raw",
+      "canonicalId": "banana",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Bananas, raw",
+      "canonicalId": "banana",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Coriander (cilantro) leaves, raw",
+      "canonicalId": "cilantro",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Coriander (cilantro) leaves, raw",
+      "canonicalId": "cilantro",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Limes, raw",
+      "canonicalId": "lime",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Limes, raw",
+      "canonicalId": "lime",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "kcalPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "carbsPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, bok choy, raw",
+      "canonicalId": "bok-choy",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, bok choy, raw",
+      "canonicalId": "bok-choy",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Mushrooms, shiitake",
+      "canonicalId": "shiitake-mushroom",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Mushrooms, shiitake",
+      "canonicalId": "shiitake-mushroom",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tofu, extra firm, prepared with nigari",
+      "canonicalId": "tofu-firm",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tofu, extra firm, prepared with nigari",
+      "canonicalId": "tofu-firm",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, fresh, belly, raw",
+      "canonicalId": "pork-belly",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, fresh, belly, raw",
+      "canonicalId": "pork-belly",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Fish, salmon, chinook, raw",
+      "canonicalId": "salmon",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Fish, salmon, chinook, raw",
+      "canonicalId": "salmon",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, cheddar",
+      "canonicalId": "cheddar-cheese",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, cheddar",
+      "canonicalId": "cheddar-cheese",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, parmesan, hard",
+      "canonicalId": "parmesan",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, parmesan, hard",
+      "canonicalId": "parmesan",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Yogurt, Greek, plain, lowfat",
+      "canonicalId": "greek-yogurt",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Yogurt, Greek, plain, lowfat",
+      "canonicalId": "greek-yogurt",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Seeds, sesame seeds, whole, dried",
+      "canonicalId": "sesame",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Seeds, sesame seeds, whole, dried",
+      "canonicalId": "sesame",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)",
+      "canonicalId": "tahini",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)",
+      "canonicalId": "tahini",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    }
+  ]
+}

@@ -189,7 +189,7 @@ export function AddPantryItemSheet({ visible, onClose }: Props) {
       {canonical ? (
         <Caption muted>
           {predicted
-            ? `Predicted expiry: ${friendlyDate(predicted)} (estimate).`
+            ? `Expected quality through ${friendlyDate(predicted)} (estimate).`
             : 'No shelf-life estimate for this spot — no date will be claimed.'}
         </Caption>
       ) : null}

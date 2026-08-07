@@ -31,6 +31,12 @@ describe('bucketFor', () => {
   test('an already-expired item still lands in use_first', () => {
     expect(bucketFor(-3)).toBe('use_first');
   });
+
+  test('uses a catalogue warning threshold without weakening use_first', () => {
+    expect(bucketFor(8, 5)).toBe('available');
+    expect(bucketFor(5, 5)).toBe('use_soon');
+    expect(bucketFor(USE_FIRST_DAYS, 1)).toBe('use_first');
+  });
 });
 
 describe('urgency', () => {
@@ -123,6 +129,25 @@ describe('bucketStock, against the fixture kitchens', () => {
     const canonicals = new Map(kitchen.canonicals.map((c) => [c.id, c]));
     const bucketed = bucketStock(kitchen.items, canonicals, kitchen.today);
     expect(bucketed.use_first).toEqual([]);
+  });
+
+  test('passes each canonical warning threshold into bucketing', () => {
+    const warningCanonical = canonical({
+      id: 'warning-window',
+      displayName: 'Warning window',
+      earlyWarningDays: 5,
+    });
+    const warningItem = item({
+      canonicalId: warningCanonical.id,
+      expiresAt: '2026-06-18',
+    });
+    const bucketed = bucketStock(
+      [warningItem],
+      new Map([[warningCanonical.id, warningCanonical]]),
+      TODAY,
+    );
+    expect(bucketed.available).toHaveLength(1);
+    expect(bucketed.use_soon).toHaveLength(0);
   });
 });
 

@@ -12,7 +12,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 500,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 1.15
+    "densityGPerMl": 1.15,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 53,
+    "proteinPer100": 8.14,
+    "carbsPer100": 4.93,
+    "fatPer100": 0.57
   },
   {
     "id": "soy-sauce-dark",
@@ -27,7 +44,16 @@
     "typicalUseUnit": "tsp",
     "typicalPkgQty": 500,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 1.2
+    "densityGPerMl": 1.2,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored"
+    }
   },
   {
     "id": "tamari",
@@ -39,7 +65,21 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 60,
+    "proteinPer100": 10.51,
+    "carbsPer100": 5.57,
+    "fatPer100": 0.1
   },
   {
     "id": "doubanjiang",
@@ -51,7 +91,13 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "gochujang",
@@ -67,7 +113,17 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 500,
     "typicalPkgUnit": "g",
-    "densityGPerMl": 1.2
+    "densityGPerMl": 1.2,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored"
+    }
   },
   {
     "id": "gochugaru",
@@ -80,7 +136,14 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "fish-sauce",
@@ -95,7 +158,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 700,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 1.2
+    "densityGPerMl": 1.2,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 35,
+    "proteinPer100": 5.06,
+    "carbsPer100": 3.64,
+    "fatPer100": 0.01
   },
   {
     "id": "oyster-sauce",
@@ -111,7 +191,25 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 510,
     "typicalPkgUnit": "g",
-    "densityGPerMl": 1.3
+    "densityGPerMl": 1.3,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 51,
+    "proteinPer100": 1.35,
+    "carbsPer100": 10.92,
+    "fatPer100": 0.25
   },
   {
     "id": "shaoxing-wine",
@@ -125,7 +223,15 @@
     "typicalUseQty": 2,
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 640,
-    "typicalPkgUnit": "ml"
+    "typicalPkgUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "mirin",
@@ -139,7 +245,15 @@
     "typicalUseQty": 1,
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 300,
-    "typicalPkgUnit": "ml"
+    "typicalPkgUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "miso",
@@ -154,7 +268,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 500,
     "typicalPkgUnit": "g",
-    "densityGPerMl": 1.25
+    "densityGPerMl": 1.25,
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 198,
+    "proteinPer100": 12.79,
+    "carbsPer100": 25.37,
+    "fatPer100": 6.01
   },
   {
     "id": "belacan",
@@ -166,7 +297,13 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "kecap-manis",
@@ -180,7 +317,15 @@
     "typicalUseQty": 1,
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 600,
-    "typicalPkgUnit": "ml"
+    "typicalPkgUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "sesame-oil",
@@ -195,7 +340,24 @@
     "typicalUseUnit": "tsp",
     "typicalPkgQty": 250,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 0.92
+    "densityGPerMl": 0.92,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 884,
+    "proteinPer100": 0,
+    "carbsPer100": 0,
+    "fatPer100": 100
   },
   {
     "id": "rice-vinegar",
@@ -209,7 +371,15 @@
     "typicalUseQty": 1,
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 296,
-    "typicalPkgUnit": "ml"
+    "typicalPkgUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "hoisin-sauce",
@@ -222,7 +392,22 @@
     },
     "openLifeDays": 180,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 220,
+    "proteinPer100": 3.31,
+    "carbsPer100": 44.08,
+    "fatPer100": 3.39
   },
   {
     "id": "xo-sauce",
@@ -235,7 +420,14 @@
     },
     "openLifeDays": 90,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "sriracha",
@@ -249,7 +441,23 @@
     "typicalUseQty": 1,
     "typicalUseUnit": "tsp",
     "typicalPkgQty": 480,
-    "typicalPkgUnit": "ml"
+    "typicalPkgUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 93,
+    "proteinPer100": 1.93,
+    "carbsPer100": 19.16,
+    "fatPer100": 0.93
   },
   {
     "id": "tamarind-paste",
@@ -261,7 +469,13 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "white-pepper",
@@ -273,7 +487,21 @@
     },
     "openLifeDays": 1095,
     "typicalUseQty": 0.5,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 296,
+    "proteinPer100": 10.4,
+    "carbsPer100": 68.61,
+    "fatPer100": 2.12
   },
   {
     "id": "five-spice",
@@ -285,7 +513,13 @@
     },
     "openLifeDays": 1095,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "jasmine-rice",
@@ -299,7 +533,14 @@
     "typicalUseQty": 75,
     "typicalUseUnit": "g",
     "typicalPkgQty": 5000,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "dried-pasta",
@@ -313,7 +554,14 @@
     "typicalUseQty": 90,
     "typicalUseUnit": "g",
     "typicalPkgQty": 500,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "all-purpose-flour",
@@ -327,7 +575,23 @@
     "typicalUseQty": 120,
     "typicalUseUnit": "g",
     "typicalPkgQty": 2270,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 358,
+    "proteinPer100": 13.1,
+    "carbsPer100": 73.2,
+    "fatPer100": 1.48
   },
   {
     "id": "sugar",
@@ -337,11 +601,27 @@
     "shelfLifeDays": {
       "pantry": 1825
     },
-    "openLifeDays": null,
+    "openLifeDays": 720,
     "typicalUseQty": 1,
     "typicalUseUnit": "tsp",
     "typicalPkgQty": 1000,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "openLifeDays": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 385,
+    "proteinPer100": 0,
+    "carbsPer100": 99.6,
+    "fatPer100": 0.32
   },
   {
     "id": "olive-oil",
@@ -356,7 +636,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 750,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 0.91
+    "densityGPerMl": 0.91,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 884,
+    "proteinPer100": 0,
+    "carbsPer100": 0,
+    "fatPer100": 100
   },
   {
     "id": "vegetable-oil",
@@ -371,7 +668,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 1000,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 0.92
+    "densityGPerMl": 0.92,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 884,
+    "proteinPer100": 0,
+    "carbsPer100": 0,
+    "fatPer100": 100
   },
   {
     "id": "butter",
@@ -386,7 +700,24 @@
     "typicalUseQty": 1,
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 454,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 717,
+    "proteinPer100": 0.85,
+    "carbsPer100": 0.06,
+    "fatPer100": 81.11
   },
   {
     "id": "ghee",
@@ -394,11 +725,27 @@
     "class": "dairy",
     "defaultLocation": "pantry",
     "shelfLifeDays": {
-      "pantry": 365
+      "pantry": 365,
+      "fridge": 730
     },
     "openLifeDays": 180,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.fridge": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 900,
+    "proteinPer100": 0,
+    "carbsPer100": 0,
+    "fatPer100": 100
   },
   {
     "id": "salt",
@@ -410,7 +757,20 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 0.5,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 0,
+    "proteinPer100": 0,
+    "carbsPer100": 0,
+    "fatPer100": 0
   },
   {
     "id": "black-pepper",
@@ -422,7 +782,21 @@
     },
     "openLifeDays": 1095,
     "typicalUseQty": 0.5,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 251,
+    "proteinPer100": 10.39,
+    "carbsPer100": 63.95,
+    "fatPer100": 3.26
   },
   {
     "id": "honey",
@@ -434,7 +808,20 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 304,
+    "proteinPer100": 0.3,
+    "carbsPer100": 82.4,
+    "fatPer100": 0
   },
   {
     "id": "peanut-butter",
@@ -449,7 +836,24 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 454,
     "typicalPkgUnit": "g",
-    "densityGPerMl": 1.08
+    "densityGPerMl": 1.08,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 24,
+    "carbsPer100": 22.7,
+    "fatPer100": 49.4,
+    "kcalPer100": 632
   },
   {
     "id": "ketchup",
@@ -462,7 +866,22 @@
     },
     "openLifeDays": 180,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 101,
+    "proteinPer100": 1.04,
+    "carbsPer100": 27.4,
+    "fatPer100": 0.1
   },
   {
     "id": "mayonnaise",
@@ -475,7 +894,22 @@
     },
     "openLifeDays": 60,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 680,
+    "proteinPer100": 0.96,
+    "carbsPer100": 0.57,
+    "fatPer100": 74.85
   },
   {
     "id": "dijon-mustard",
@@ -488,7 +922,14 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tsp"
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "salad-dressing",
@@ -501,7 +942,14 @@
     },
     "openLifeDays": 90,
     "typicalUseQty": 2,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "cooking-spray",
@@ -513,7 +961,21 @@
     },
     "openLifeDays": 365,
     "typicalUseQty": 1,
-    "typicalUseUnit": "serving"
+    "typicalUseUnit": "serving",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 792,
+    "proteinPer100": 0.26,
+    "carbsPer100": 20.69,
+    "fatPer100": 78.69
   },
   {
     "id": "oats",
@@ -525,7 +987,20 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 40,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 13.49645,
+    "carbsPer100": 68.65755,
+    "fatPer100": 5.89,
+    "kcalPer100": 381.626
   },
   {
     "id": "coffee-beans",
@@ -537,7 +1012,13 @@
     },
     "openLifeDays": 30,
     "typicalUseQty": 18,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "green-onion",
@@ -550,7 +1031,15 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.counter": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central"
+    },
+    "proteinPer100": 0.66875
   },
   {
     "id": "garlic",
@@ -559,11 +1048,29 @@
     "defaultLocation": "counter",
     "shelfLifeDays": {
       "counter": 120,
-      "fridge": 120
+      "fridge": 120,
+      "pantry": 30,
+      "freezer": 30
     },
     "openLifeDays": null,
     "typicalUseQty": 2,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.pantry": "foodkeeper",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 143,
+    "proteinPer100": 6.62,
+    "carbsPer100": 28.2,
+    "fatPer100": 0.38
   },
   {
     "id": "ginger",
@@ -573,11 +1080,30 @@
     "shelfLifeDays": {
       "counter": 30,
       "fridge": 60,
-      "freezer": 180
+      "freezer": 180,
+      "pantry": 5
     },
     "openLifeDays": null,
     "typicalUseQty": 10,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.pantry": "foodkeeper",
+      "earlyWarningDays": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "earlyWarningDays": 2,
+    "kcalPer100": 80,
+    "proteinPer100": 1.82,
+    "carbsPer100": 17.77,
+    "fatPer100": 0.75
   },
   {
     "id": "yellow-onion",
@@ -590,7 +1116,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 38,
+    "proteinPer100": 0.83,
+    "carbsPer100": 8.61,
+    "fatPer100": 0.05
   },
   {
     "id": "banana",
@@ -598,11 +1138,28 @@
     "class": "produce",
     "defaultLocation": "counter",
     "shelfLifeDays": {
-      "counter": 6
+      "counter": 6,
+      "fridge": 3,
+      "freezer": 90
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.fridge": "foodkeeper",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 89,
+    "proteinPer100": 1.09,
+    "carbsPer100": 22.84,
+    "fatPer100": 0.33
   },
   {
     "id": "tomato",
@@ -611,11 +1168,27 @@
     "defaultLocation": "counter",
     "shelfLifeDays": {
       "counter": 7,
-      "fridge": 12
+      "fridge": 12,
+      "freezer": 60
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 0.695625,
+    "carbsPer100": 3.837475,
+    "fatPer100": 0.425,
+    "kcalPer100": 21.9574
   },
   {
     "id": "cucumber",
@@ -627,7 +1200,20 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 0.5,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 0.625,
+    "carbsPer100": 2.9525,
+    "fatPer100": 0.1775,
+    "kcalPer100": 15.9075
   },
   {
     "id": "cilantro",
@@ -635,11 +1221,26 @@
     "class": "produce",
     "defaultLocation": "fridge",
     "shelfLifeDays": {
-      "fridge": 7
+      "fridge": 7,
+      "pantry": 14
     },
     "openLifeDays": null,
     "typicalUseQty": 10,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.pantry": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 23,
+    "proteinPer100": 2.13,
+    "carbsPer100": 3.67,
+    "fatPer100": 0.52
   },
   {
     "id": "lime",
@@ -652,7 +1253,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 1,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 30,
+    "proteinPer100": 0.7,
+    "carbsPer100": 10.54,
+    "fatPer100": 0.2
   },
   {
     "id": "napa-cabbage",
@@ -664,7 +1279,14 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 200,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central"
+    },
+    "proteinPer100": 1.06375
   },
   {
     "id": "bok-choy",
@@ -672,11 +1294,26 @@
     "class": "produce",
     "defaultLocation": "fridge",
     "shelfLifeDays": {
-      "fridge": 7
+      "fridge": 7,
+      "freezer": 360
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 1.02375,
+    "carbsPer100": 3.51495,
+    "fatPer100": 0.2338,
+    "kcalPer100": 20.259
   },
   {
     "id": "shiitake-mushroom",
@@ -688,7 +1325,20 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 50,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 2.414375,
+    "carbsPer100": 8.170625,
+    "fatPer100": 0.195,
+    "kcalPer100": 44.095
   },
   {
     "id": "daikon",
@@ -700,7 +1350,12 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "tofu-firm",
@@ -708,13 +1363,31 @@
     "class": "protein",
     "defaultLocation": "fridge",
     "shelfLifeDays": {
-      "fridge": 7
+      "fridge": 7,
+      "freezer": 150
     },
     "openLifeDays": 4,
     "typicalUseQty": 150,
     "typicalUseUnit": "g",
     "typicalPkgQty": 400,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 83,
+    "proteinPer100": 9.98,
+    "carbsPer100": 1.18,
+    "fatPer100": 5.26
   },
   {
     "id": "chicken-breast",
@@ -727,7 +1400,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 200,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 22.525,
+    "carbsPer100": 0,
+    "fatPer100": 1.934,
+    "kcalPer100": 106.034
   },
   {
     "id": "chicken-thigh",
@@ -740,7 +1427,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 200,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 18.6125,
+    "carbsPer100": 0,
+    "fatPer100": 7.916,
+    "kcalPer100": 144.07
   },
   {
     "id": "ground-pork",
@@ -753,7 +1454,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 200,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 17.80625,
+    "carbsPer100": 0,
+    "fatPer100": 17.49,
+    "kcalPer100": 228.2728
   },
   {
     "id": "pork-belly",
@@ -766,7 +1481,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 200,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 518,
+    "proteinPer100": 9.34,
+    "carbsPer100": 0,
+    "fatPer100": 53.01
   },
   {
     "id": "eggs",
@@ -780,7 +1509,14 @@
     "typicalUseQty": 2,
     "typicalUseUnit": "piece",
     "typicalPkgQty": 12,
-    "typicalPkgUnit": "piece"
+    "typicalPkgUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "shrimp",
@@ -793,7 +1529,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 85,
+    "proteinPer100": 20.1,
+    "carbsPer100": 0,
+    "fatPer100": 0.51
   },
   {
     "id": "salmon",
@@ -806,7 +1556,21 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 179,
+    "proteinPer100": 19.93,
+    "carbsPer100": 0,
+    "fatPer100": 10.43
   },
   {
     "id": "bacon",
@@ -819,7 +1583,14 @@
     },
     "openLifeDays": 7,
     "typicalUseQty": 2,
-    "typicalUseUnit": "slice"
+    "typicalUseUnit": "slice",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "milk",
@@ -834,7 +1605,16 @@
     "typicalUseUnit": "ml",
     "typicalPkgQty": 3780,
     "typicalPkgUnit": "ml",
-    "densityGPerMl": 1.03
+    "densityGPerMl": 1.03,
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored"
+    }
   },
   {
     "id": "cheddar-cheese",
@@ -846,7 +1626,21 @@
     },
     "openLifeDays": 21,
     "typicalUseQty": 30,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 408,
+    "proteinPer100": 23.3,
+    "carbsPer100": 2.44,
+    "fatPer100": 34
   },
   {
     "id": "parmesan",
@@ -858,7 +1652,21 @@
     },
     "openLifeDays": 60,
     "typicalUseQty": 10,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 392,
+    "proteinPer100": 35.75,
+    "carbsPer100": 3.22,
+    "fatPer100": 25
   },
   {
     "id": "greek-yogurt",
@@ -866,11 +1674,29 @@
     "class": "dairy",
     "defaultLocation": "fridge",
     "shelfLifeDays": {
-      "fridge": 14
+      "fridge": 14,
+      "freezer": 60
     },
     "openLifeDays": 7,
     "typicalUseQty": 170,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "shelfLifeDays.freezer": "foodkeeper",
+      "earlyWarningDays": "foodkeeper",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "earlyWarningDays": 7,
+    "kcalPer100": 73,
+    "proteinPer100": 9.95,
+    "carbsPer100": 3.94,
+    "fatPer100": 1.92
   },
   {
     "id": "heavy-cream",
@@ -883,7 +1709,22 @@
     "openLifeDays": 7,
     "typicalUseQty": 2,
     "typicalUseUnit": "tbsp",
-    "densityGPerMl": 0.99
+    "densityGPerMl": 0.99,
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 2.017994,
+    "carbsPer100": 3.799506,
+    "fatPer100": 35.56,
+    "kcalPer100": 343.31
   },
   {
     "id": "frozen-peas",
@@ -895,7 +1736,12 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 80,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "frozen-dumplings",
@@ -907,7 +1753,12 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 6,
-    "typicalUseUnit": "piece"
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "peanut",
@@ -921,7 +1772,23 @@
     "typicalUseQty": 30,
     "typicalUseUnit": "g",
     "typicalPkgQty": 340,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central",
+      "kcalPer100": "food-data-central"
+    },
+    "proteinPer100": 23.205,
+    "carbsPer100": 26.498,
+    "fatPer100": 43.28,
+    "kcalPer100": 588.332
   },
   {
     "id": "tree-nut",
@@ -935,7 +1802,15 @@
     "typicalUseQty": 30,
     "typicalUseUnit": "g",
     "typicalPkgQty": 300,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "wheat",
@@ -949,7 +1824,15 @@
     "typicalUseQty": 100,
     "typicalUseUnit": "g",
     "typicalPkgQty": 1000,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "soy",
@@ -963,7 +1846,15 @@
     "typicalUseQty": 100,
     "typicalUseUnit": "g",
     "typicalPkgQty": 500,
-    "typicalPkgUnit": "g"
+    "typicalPkgUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored"
+    }
   },
   {
     "id": "sesame",
@@ -975,7 +1866,21 @@
     },
     "openLifeDays": 180,
     "typicalUseQty": 1,
-    "typicalUseUnit": "tbsp"
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 573,
+    "proteinPer100": 17.73,
+    "carbsPer100": 23.45,
+    "fatPer100": 49.67
   },
   {
     "id": "fish",
@@ -988,7 +1893,13 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "shellfish",
@@ -1001,7 +1912,13 @@
     },
     "openLifeDays": null,
     "typicalUseQty": 150,
-    "typicalUseUnit": "g"
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   },
   {
     "id": "tahini",
@@ -1016,6 +1933,23 @@
     "typicalUseUnit": "tbsp",
     "typicalPkgQty": 400,
     "typicalPkgUnit": "g",
-    "densityGPerMl": 1.03
+    "densityGPerMl": 1.03,
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored",
+      "typicalPkgQty": "hand-authored",
+      "typicalPkgUnit": "hand-authored",
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "food-data-central",
+      "proteinPer100": "food-data-central",
+      "carbsPer100": "food-data-central",
+      "fatPer100": "food-data-central"
+    },
+    "kcalPer100": 595,
+    "proteinPer100": 17,
+    "carbsPer100": 21.19,
+    "fatPer100": 53.76
   }
 ]

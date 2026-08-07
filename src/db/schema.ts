@@ -376,6 +376,21 @@ INSERT INTO alias_bigrams (alias_id, bigram)
 SELECT alias_id, substr(padded, pos, 2) FROM split;
 `;
 
+/**
+ * Migration 10: defensible open-data catalogue values. The shipped asset is
+ * still the source of the data; these columns make its early-warning range,
+ * field-level provenance, and nullable generic nutrition available offline.
+ * Existing values predate the pipeline and are therefore hand-authored.
+ */
+const OPEN_DATA_CATALOGUE = `
+ALTER TABLE canonical_items ADD COLUMN early_warning_days INTEGER;
+ALTER TABLE canonical_items ADD COLUMN sources TEXT NOT NULL DEFAULT '{"shelfLifeDays":"hand-authored","openLifeDays":"hand-authored","typicalUseQty":"hand-authored","typicalUseUnit":"hand-authored","typicalPkgQty":"hand-authored","typicalPkgUnit":"hand-authored","densityGPerMl":"hand-authored"}';
+ALTER TABLE canonical_items ADD COLUMN kcal_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN protein_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN carbs_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN fat_per_100 REAL;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -386,6 +401,7 @@ export const MIGRATIONS: readonly string[] = [
   RECEIPT_MONEY_AND_QUANTITY,
   DIETARY_PROFILE,
   CJK_CANDIDATE_RETRIEVAL,
+  OPEN_DATA_CATALOGUE,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

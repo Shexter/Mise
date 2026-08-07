@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
+import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
@@ -16,7 +17,8 @@ import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
 import { lastVenue } from '@/db/queries';
-import type { MeasureUnit, MealType, MealVenue } from '@/types';
+import { catalogueNutrition } from '@/logic/nutrition';
+import type { CanonicalItem, MeasureUnit, MealType, MealVenue } from '@/types';
 
 const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
   value: type,
@@ -55,12 +57,27 @@ export default function ManualScreen() {
   const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
   const [venue, setVenue] = useState<MealVenue>('home');
   const [saving, setSaving] = useState(false);
+  const [canonical, setCanonical] = useState<CanonicalItem | null>(null);
+  const [pickingCanonical, setPickingCanonical] = useState(false);
 
   useEffect(() => {
     void lastVenue().then((last) => {
       if (last) setVenue(last);
     });
   }, []);
+
+  useEffect(() => {
+    if (!canonical) return;
+    const parsedQuantity = Number.parseFloat(quantity);
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity < 0) return;
+    const result = catalogueNutrition(canonical, parsedQuantity, unit);
+    if (!result) return;
+    const field = (value: number | null) => value == null ? '' : String(value);
+    setCalories(field(result.values.calories));
+    setProtein(field(result.values.proteinG));
+    setCarbs(field(result.values.carbsG));
+    setFat(field(result.values.fatG));
+  }, [canonical, quantity, unit]);
 
   const kcal = Number.parseFloat(calories);
   const valid = name.trim().length > 0 && Number.isFinite(kcal) && kcal >= 0;
@@ -93,6 +110,7 @@ export default function ManualScreen() {
           carbsG: num(carbs),
           fatG: num(fat),
           isManualAddition: false,
+          canonicalId: canonical?.id ?? null,
         },
       ],
     };
@@ -116,7 +134,22 @@ export default function ManualScreen() {
           <Image source={{ uri: photoUri }} style={styles.photo} />
         ) : null}
 
-        <Field value={name} onChangeText={setName} label="Name" placeholder="Chicken salad" autoFocus />
+        <Field
+          value={name}
+          onChangeText={(value) => {
+            setName(value);
+            if (canonical && value !== canonical.displayName) setCanonical(null);
+          }}
+          label="Name"
+          placeholder="Chicken salad"
+          autoFocus
+        />
+
+        <Button
+          label={canonical ? `Catalogue: ${canonical.displayName}` : 'Choose a catalogue ingredient'}
+          variant="ghost"
+          onPress={() => setPickingCanonical(true)}
+        />
 
         <Field
           value={quantity}
@@ -175,6 +208,9 @@ export default function ManualScreen() {
           <Field style={styles.macroField} value={carbs} onChangeText={setCarbs} keyboardType="decimal-pad" suffix="C g" numeric />
           <Field style={styles.macroField} value={fat} onChangeText={setFat} keyboardType="decimal-pad" suffix="F g" numeric />
         </View>
+        {canonical && catalogueNutrition(canonical, num(quantity), unit) ? (
+          <Caption muted>Nutrition from USDA FoodData Central.</Caption>
+        ) : null}
 
         <View style={styles.mealType}>
           <SectionLabel muted style={styles.mealTypeLabel}>
@@ -194,6 +230,17 @@ export default function ManualScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
         <Button label="Save meal" onPress={() => void save()} disabled={!valid} loading={saving} />
       </View>
+
+      <CanonicalPickerSheet
+        visible={pickingCanonical}
+        title="Catalogue ingredient"
+        onPick={(item) => {
+          setCanonical(item);
+          setName(item.displayName);
+          setPickingCanonical(false);
+        }}
+        onClose={() => setPickingCanonical(false)}
+      />
     </View>
   );
 }

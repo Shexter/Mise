@@ -59,6 +59,15 @@ export function PantryItemSheet({ entry, onClose }: Props) {
           {statusLabel(entry.status, entry.statusConfident)}
         </ScreenTitle>
         <Caption muted>{expiryLabel(entry)}</Caption>
+        {entry.expiryIsPredicted && entry.expiryDataSource ? (
+          <Caption muted>
+            Quality timing: {entry.expiryDataSource === 'foodkeeper'
+              ? 'USDA FoodKeeper'
+              : entry.expiryDataSource === 'food-data-central'
+                ? 'USDA FoodData Central'
+                : 'Mise catalogue'}.
+          </Caption>
+        ) : null}
         {entry.userEnteredQty ? (
           <Caption muted>Your entry: {entry.userEnteredQty}</Caption>
         ) : null}

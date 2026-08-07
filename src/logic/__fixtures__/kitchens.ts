@@ -39,6 +39,12 @@ export function canonical(
     isSeed: true,
     createdAt: '2026-01-01T00:00:00Z',
     ...overrides,
+    earlyWarningDays: overrides.earlyWarningDays ?? null,
+    sources: overrides.sources ?? {},
+    kcalPer100: overrides.kcalPer100 ?? null,
+    proteinPer100: overrides.proteinPer100 ?? null,
+    carbsPer100: overrides.carbsPer100 ?? null,
+    fatPer100: overrides.fatPer100 ?? null,
   };
 }
 

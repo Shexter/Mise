@@ -19,6 +19,12 @@ function canonical(overrides: Partial<CanonicalItem> & { id: string }): Canonica
     isSeed: true,
     createdAt: '2026-01-01',
     ...overrides,
+    earlyWarningDays: overrides.earlyWarningDays ?? null,
+    sources: overrides.sources ?? {},
+    kcalPer100: overrides.kcalPer100 ?? null,
+    proteinPer100: overrides.proteinPer100 ?? null,
+    carbsPer100: overrides.carbsPer100 ?? null,
+    fatPer100: overrides.fatPer100 ?? null,
   };
 }
 

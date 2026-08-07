@@ -1700,6 +1700,14 @@ estimate of the actual plate outranks a table figure for the ingredient.
 Missing nutrition stays unknown rather than zero, following
 `add-fibre-tracking`'s discipline.
 
+Implementation measurement, 2026-08-06: FoodKeeper matched 23 of 77 catalogue
+entries and sent 40 more matches to review. FoodData Central supplied usable
+nutrition for 49 of 77 entries. The merge report recorded 17 conflicts and
+kept every hand-authored value. Coverage remains US-centric. Regional Asian
+ingredients and condiments still depend on the hand-authored catalogue, while
+the USDA datasets cover common produce, dairy, proteins, and pantry staples
+more reliably.
+
 **144. Open Food Facts is held behind a licence answer, not adopted.** `OPEN`
 The taxonomy is the single largest thing available: measured directly at 4,733
 ingredients with 944 Japanese, 783 Chinese and 606 Korean translations, stored

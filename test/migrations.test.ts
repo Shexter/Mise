@@ -320,6 +320,46 @@ describe('migrations', () => {
     db.close();
   });
 
+  test('an install at user_version 9 gains open-data catalogue fields without inventing values', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 9);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days,
+          open_life_days, is_seed, created_at)
+       VALUES ('miso', 'Miso', 'condiment', 'fridge', '{"fridge":365}',
+               90, 1, '2026-01-01T00:00:00Z')`,
+    ).run();
+
+    migrate(db, 9, LATEST_VERSION);
+
+    const row = db
+      .prepare(
+        `SELECT early_warning_days, sources, kcal_per_100,
+                protein_per_100, carbs_per_100, fat_per_100
+         FROM canonical_items WHERE id = 'miso'`,
+      )
+      .get() as {
+      early_warning_days: number | null;
+      sources: string;
+      kcal_per_100: number | null;
+      protein_per_100: number | null;
+      carbs_per_100: number | null;
+      fat_per_100: number | null;
+    };
+
+    expect(row.early_warning_days).toBeNull();
+    expect(JSON.parse(row.sources)).toMatchObject({
+      shelfLifeDays: 'hand-authored',
+      openLifeDays: 'hand-authored',
+    });
+    expect(row.kcal_per_100).toBeNull();
+    expect(row.protein_per_100).toBeNull();
+    expect(row.carbs_per_100).toBeNull();
+    expect(row.fat_per_100).toBeNull();
+    db.close();
+  });
+
   test('DROP_ALL removes every table including the identity layer', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);

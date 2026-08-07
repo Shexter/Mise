@@ -17,6 +17,7 @@ import {
   type NewPantryItem,
 } from '@/db/queries';
 import { isFreezable } from '@/logic/expiry';
+import { shelfLifeKey } from '@/logic/expiry';
 import { daysUntil, stockStatusWithConfidence } from '@/logic/stockStatus';
 import type {
   CanonicalItem,
@@ -25,6 +26,7 @@ import type {
   Location,
   LocationKind,
   PantryItem,
+  SourceId,
   StockStatus,
 } from '@/types';
 
@@ -57,6 +59,8 @@ export interface PantryEntry {
   daysLeft: number | null;
   /** True when predicted rather than user- or label-supplied. */
   expiryIsPredicted: boolean;
+  /** Origin of the shelf-life figure used for a predicted date. */
+  expiryDataSource: SourceId | null;
   opened: boolean;
   freezable: boolean;
   /** Uses-tracked items only; the user's own four-state setting. */
@@ -157,6 +161,10 @@ function toEntry(
     expiresAt: item.expiresAt,
     daysLeft: daysUntil(item.expiresAt),
     expiryIsPredicted: item.expirySource === 'predicted',
+    expiryDataSource:
+      canonical.sources[`shelfLifeDays.${shelfLifeKey(location.kind)}`] ??
+      canonical.sources.shelfLifeDays ??
+      null,
     opened: item.openedAt !== null,
     freezable: isFreezable(canonical) && location.kind !== 'freezer',
     fullness: item.fullness,

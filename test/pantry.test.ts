@@ -5,6 +5,7 @@ import {
   discardItem,
   freezeItem,
   getLocations,
+  getCanonicalById,
   getPantryItem,
   insertPantryItem,
   listPantryItems,
@@ -18,6 +19,7 @@ import {
   updateItemLocation,
 } from '../src/db/queries';
 import { localDateString } from '../src/logic/dates';
+import { usePantryStore } from '../src/store/pantryStore';
 import { openTestDatabase, resetTestDatabase } from './stubs/db';
 
 beforeEach(async () => {
@@ -94,6 +96,26 @@ describe('expiry on write events', () => {
     expect(fridge.expiresAt).toBe('2026-06-03');
     expect(freezer.expiresAt).toBe('2027-02-26');
     expect(fridge.expirySource).toBe('predicted');
+  });
+
+  test('a FoodKeeper location figure drives expiry and remains traceable', async () => {
+    const banana = await getCanonicalById('banana');
+    expect(banana?.shelfLifeDays.fridge).toBe(3);
+    expect(banana?.sources['shelfLifeDays.fridge']).toBe('foodkeeper');
+
+    const item = await insertPantryItem({
+      canonicalId: 'banana',
+      locationId: 'fridge',
+      purchasedAt: '2026-06-01',
+    });
+    expect(item.expiresAt).toBe('2026-06-04');
+
+    await usePantryStore.getState().refresh();
+    const entry = usePantryStore
+      .getState()
+      .groups.find((group) => group.canonicalId === 'banana')
+      ?.entries.find((candidate) => candidate.id === item.id);
+    expect(entry?.expiryDataSource).toBe('foodkeeper');
   });
 
   test('marking opened shortens the prediction', async () => {
