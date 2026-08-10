@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
 import {
+  CATALOGUE_SOURCES,
   chooseFdcFood,
   durationToDays,
+  enrichWithCofid,
   flattenFoodKeeperRow,
   foodKeeperRows,
   hasSpeciesConflict,
@@ -28,6 +30,18 @@ function entry(overrides: Partial<CatalogueEntry> = {}): CatalogueEntry {
 
 function reportLists(): Pick<BuildReport, 'filled' | 'conflicts' | 'skipped'> {
   return { filled: [], conflicts: [], skipped: [] };
+}
+
+function buildReport(): BuildReport {
+  return {
+    sources: CATALOGUE_SOURCES,
+    foodkeeper: { rows: 0, matched: 0, uncertain: [], unmatched: [], guarded: [] },
+    foodDataCentral: { queried: 0, matched: 0, unmatched: [], review: {}, skipped: true },
+    cofid: { reviewed: 0, matched: 0 },
+    filled: [],
+    conflicts: [],
+    skipped: [],
+  };
 }
 
 describe('catalogue build pipeline', () => {
@@ -249,5 +263,54 @@ describe('catalogue build pipeline', () => {
         123,
       ),
     ).toBeNull();
+  });
+
+  test('fills Dark soy sauce from the reviewed CoFID row without inventing trace fat', () => {
+    const report = buildReport();
+    const darkSoy = entry({
+      id: 'soy-sauce-dark',
+      displayName: 'Dark soy sauce',
+      class: 'condiment',
+      defaultLocation: 'pantry',
+      shelfLifeDays: { pantry: 1095 },
+    });
+    const [enriched] = enrichWithCofid([darkSoy], report);
+
+    expect(enriched).toMatchObject({
+      kcalPer100: 79,
+      proteinPer100: 3,
+      carbsPer100: 17.9,
+      sources: {
+        kcalPer100: 'cofid',
+        proteinPer100: 'cofid',
+        carbsPer100: 'cofid',
+      },
+    });
+    expect(enriched?.fatPer100).toBeUndefined();
+    expect(report.cofid).toEqual({ reviewed: 1, matched: 1 });
+    expect(report.skipped).toContainEqual(
+      expect.objectContaining({ source: 'cofid', field: 'fatPer100', reason: 'unknown' }),
+    );
+  });
+
+  test('CoFID is attribution-only and never overwrites existing FDC nutrition', () => {
+    const report = buildReport();
+    const existing = entry({
+      id: 'soy-sauce-dark',
+      displayName: 'Dark soy sauce',
+      class: 'condiment',
+      kcalPer100: 53,
+      sources: { kcalPer100: 'food-data-central' },
+    });
+    const [enriched] = enrichWithCofid([existing], report);
+
+    expect(CATALOGUE_SOURCES.cofid).toMatchObject({
+      licence: 'Open Government Licence v3.0',
+      attribution: expect.stringMatching(/licensed under the Open Government Licence v3\.0/),
+    });
+    expect(enriched?.kcalPer100).toBe(53);
+    expect(report.conflicts).toContainEqual(
+      expect.objectContaining({ source: 'cofid', field: 'kcalPer100', existing: 53, proposed: 79 }),
+    );
   });
 });

@@ -33,6 +33,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.mise.app',
+    softwareKeyboardLayoutMode: 'resize',
     adaptiveIcon: {
       backgroundColor: '#EDEAE4',
       foregroundImage: './assets/android-icon-foreground.png',

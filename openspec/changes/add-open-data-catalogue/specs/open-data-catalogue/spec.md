@@ -40,6 +40,12 @@ licence terms alongside the data.
 - **WHEN** a source contributes data to the catalogue
 - **THEN** that source and its licence are recorded
 
+#### Scenario: An attribution-only source is incorporated
+
+- **GIVEN** a government dataset permits reuse with attribution and imposes no share-alike obligation
+- **WHEN** it contributes a reviewed value to the catalogue
+- **THEN** the catalogue records the source and required attribution beside the data
+
 #### Scenario: A share-alike source is not incorporated here
 
 - **WHEN** a source carries a share-alike obligation
@@ -193,6 +199,13 @@ a table figure for the ingredient.
 - **WHEN** an ingredient has no recorded nutrition
 - **THEN** its figures are unknown
 - **AND** they are not reported as zero
+
+#### Scenario: Missing nutrition is explained
+
+- **GIVEN** a user selects a catalogue ingredient whose nutrition is wholly unavailable
+- **WHEN** automatic nutrition cannot be calculated
+- **THEN** the manual-entry screen explains that catalogue nutrition is unavailable
+- **AND** it invites the user to enter the figures manually
 
 ### Requirement: Expiry is described as quality, never as safety
 

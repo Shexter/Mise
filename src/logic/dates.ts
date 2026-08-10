@@ -1,4 +1,15 @@
-import { addDays, format, parseISO, startOfWeek } from 'date-fns';
+import {
+  addDays,
+  addMonths as addCalendarMonths,
+  addWeeks as addCalendarWeeks,
+  differenceInCalendarDays,
+  endOfMonth,
+  endOfWeek,
+  format,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns';
 
 import type { MealType } from '@/types';
 
@@ -26,6 +37,29 @@ export function isFuture(localDate: string): boolean {
 export function weekOf(localDate: string): string[] {
   const start = startOfWeek(parseLocalDate(localDate), { weekStartsOn: 1 });
   return Array.from({ length: 7 }, (_, i) => localDateString(addDays(start, i)));
+}
+
+/** Monday-first grid for the month, including adjacent-month spill days. */
+export function monthOf(localDate: string): string[] {
+  const month = parseLocalDate(localDate);
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  const count = differenceInCalendarDays(end, start) + 1;
+  return Array.from({ length: count }, (_, index) =>
+    localDateString(addDays(start, index)),
+  );
+}
+
+export function addMonths(localDate: string, amount: number): string {
+  return localDateString(addCalendarMonths(parseLocalDate(localDate), amount));
+}
+
+export function addWeeks(localDate: string, amount: number): string {
+  return localDateString(addCalendarWeeks(parseLocalDate(localDate), amount));
+}
+
+export function monthLabel(localDate: string): string {
+  return format(parseLocalDate(localDate), 'MMMM yyyy');
 }
 
 export function weekdayInitial(localDate: string): string {

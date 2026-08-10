@@ -14,5 +14,11 @@
     "name": "USDA FoodData Central",
     "licence": "CC0 1.0",
     "url": "https://fdc.nal.usda.gov/data-documentation.html"
+  },
+  "cofid": {
+    "name": "McCance and Widdowson's Composition of Foods Integrated Dataset 2021",
+    "licence": "Open Government Licence v3.0",
+    "url": "https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid",
+    "attribution": "Contains public sector information licensed under the Open Government Licence v3.0."
   }
 }

@@ -1,7 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -17,7 +25,12 @@ import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
 import { lastVenue } from '@/db/queries';
-import { catalogueNutrition } from '@/logic/nutrition';
+import {
+  CATALOGUE_NUTRITION_UNAVAILABLE,
+  catalogueNutrition,
+  hasCatalogueNutrition,
+  nutritionSourceLabel,
+} from '@/logic/nutrition';
 import type { CanonicalItem, MeasureUnit, MealType, MealVenue } from '@/types';
 
 const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
@@ -87,6 +100,10 @@ export default function ManualScreen() {
     return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
   };
 
+  const displayedNutrition = canonical
+    ? catalogueNutrition(canonical, num(quantity), unit)
+    : null;
+
   const save = async () => {
     if (!valid) return;
     setSaving(true);
@@ -129,7 +146,18 @@ export default function ManualScreen() {
         <Button label="Cancel" variant="ghost" block={false} onPress={() => router.back()} />
       </View>
 
-      <View style={styles.body}>
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top}
+      >
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.bodyContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.photo} />
         ) : null}
@@ -208,8 +236,12 @@ export default function ManualScreen() {
           <Field style={styles.macroField} value={carbs} onChangeText={setCarbs} keyboardType="decimal-pad" suffix="C g" numeric />
           <Field style={styles.macroField} value={fat} onChangeText={setFat} keyboardType="decimal-pad" suffix="F g" numeric />
         </View>
-        {canonical && catalogueNutrition(canonical, num(quantity), unit) ? (
-          <Caption muted>Nutrition from USDA FoodData Central.</Caption>
+        {displayedNutrition ? (
+          <Caption muted>
+            {nutritionSourceLabel(displayedNutrition.source)}
+          </Caption>
+        ) : canonical && !hasCatalogueNutrition(canonical) ? (
+          <Caption muted>{CATALOGUE_NUTRITION_UNAVAILABLE}</Caption>
         ) : null}
 
         <View style={styles.mealType}>
@@ -225,11 +257,12 @@ export default function ManualScreen() {
           </SectionLabel>
           <Segmented options={VENUE_OPTIONS} value={venue} onChange={setVenue} />
         </View>
-      </View>
+        </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
-        <Button label="Save meal" onPress={() => void save()} disabled={!valid} loading={saving} />
-      </View>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
+          <Button label="Save meal" onPress={() => void save()} disabled={!valid} loading={saving} />
+        </View>
+      </KeyboardAvoidingView>
 
       <CanonicalPickerSheet
         visible={pickingCanonical}
@@ -255,10 +288,12 @@ const styles = StyleSheet.create({
     paddingRight: space.sm,
     paddingTop: space.sm,
   },
-  body: {
-    flex: 1,
+  keyboardArea: { flex: 1 },
+  body: { flex: 1 },
+  bodyContent: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.base,
+    paddingBottom: space.xl,
     gap: space.base,
   },
   photo: {

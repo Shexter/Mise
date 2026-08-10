@@ -2447,3 +2447,25 @@ It matters for what the feature is *for*, too: someone scrolling back through a
 month wants to find the day they ate the thing they are trying to remember. A
 grid that scores them on adherence is answering a question they did not ask —
 which is why charts, streaks and heatmaps are non-goals rather than a phase two.
+
+## Open data, refined
+
+**185. Attribution-only government data is permitted; share-alike still is
+not.** `SETTLED`
+The original `add-open-data-catalogue` boundary named only CC0 and public-domain
+sources. Testing exposed a regional coverage gap that those sources cannot
+honestly fill: FoodData Central has shoyu and tamari but no Dark soy sauce,
+while the UK government's CoFID 2021 explicitly analyses "Soy sauce, light and
+dark varieties" across eight samples and four brands.
+
+CoFID is reusable under the Open Government Licence v3.0, which requires
+attribution and imposes no share-alike obligation. That is compatible with the
+reason behind decision 144's gate: avoid a reciprocal licence on the shipped
+catalogue, not avoid attribution itself. The source registry carries the
+required wording, provenance stays per field, and the app still makes no
+runtime dataset request.
+
+The reviewed row supplies 79 kcal, 3.0 g protein, and 17.9 g carbohydrate per
+100 g to Dark soy sauce. Its fat value is `Trace`, which remains unknown rather
+than being laundered into zero. Light soy sauce keeps its existing FoodData
+Central values; fill-empty and conflict rules still apply source by source.

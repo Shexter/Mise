@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
 import aliasSeed from '../assets/item-aliases.json';
+import cofidSelections from '../assets/catalogue-cofid-selections.json';
 import fdcSelections from '../assets/catalogue-fdc-selections.json';
 import { resolve, type MatchOutcome, type MatchStore } from '../src/logic/match';
 import { normalise } from '../src/logic/normalise';
@@ -36,6 +37,12 @@ export const CATALOGUE_SOURCES = {
     name: 'USDA FoodData Central',
     licence: 'CC0 1.0',
     url: 'https://fdc.nal.usda.gov/data-documentation.html',
+  },
+  cofid: {
+    name: "McCance and Widdowson's Composition of Foods Integrated Dataset 2021",
+    licence: 'Open Government Licence v3.0',
+    url: 'https://www.gov.uk/government/publications/composition-of-foods-integrated-dataset-cofid',
+    attribution: 'Contains public sector information licensed under the Open Government Licence v3.0.',
   },
 } as const;
 
@@ -95,6 +102,7 @@ export interface BuildReport {
     review: Record<string, FdcReviewCandidate[]>;
     skipped: boolean;
   };
+  cofid: { reviewed: number; matched: number };
   filled: BuildIssue[];
   conflicts: BuildIssue[];
   skipped: BuildIssue[];
@@ -131,6 +139,16 @@ export interface FdcReviewCandidate {
 
 interface FdcSearchResponse {
   foods?: FdcFood[];
+}
+
+interface CofidSelection {
+  rowId: string;
+  description: string;
+  sample: string;
+  kcalPer100: number | null;
+  proteinPer100: number | null;
+  carbsPer100: number | null;
+  fatPer100: number | null;
 }
 
 interface RunOptions {
@@ -659,6 +677,32 @@ export async function enrichWithFdc(
   });
 }
 
+/** Applies only human-reviewed CoFID rows committed beside the catalogue. */
+export function enrichWithCofid(
+  entries: readonly CatalogueEntry[],
+  report: BuildReport,
+): CatalogueEntry[] {
+  const selections = cofidSelections as Record<string, CofidSelection>;
+  report.cofid.reviewed = Object.keys(selections).length;
+  return entries.map((entry) => {
+    const selection = selections[entry.id];
+    if (!selection) return entry;
+    report.cofid.matched += 1;
+    return mergeCataloguePatch(
+      entry,
+      {
+        kcalPer100: selection.kcalPer100,
+        proteinPer100: selection.proteinPer100,
+        carbsPer100: selection.carbsPer100,
+        fatPer100: selection.fatPer100,
+      },
+      'cofid',
+      `${selection.rowId}: ${selection.description}`,
+      report,
+    );
+  });
+}
+
 export function stableCatalogueJson(entries: readonly CatalogueEntry[]): string {
   return `${JSON.stringify(entries, null, 2)}\n`;
 }
@@ -668,6 +712,7 @@ function createReport(foodKeeperRowsCount: number, skipNutrition: boolean): Buil
     sources: CATALOGUE_SOURCES,
     foodkeeper: { rows: foodKeeperRowsCount, matched: 0, uncertain: [], unmatched: [], guarded: [] },
     foodDataCentral: { queried: 0, matched: 0, unmatched: [], review: {}, skipped: skipNutrition },
+    cofid: { reviewed: 0, matched: 0 },
     filled: [],
     conflicts: [],
     skipped: [],
@@ -691,6 +736,7 @@ export async function runBuild(options: RunOptions): Promise<BuildReport> {
   const rows = foodKeeperRows(workbook);
   const report = createReport(rows.length, options.skipNutrition);
   let enriched = await enrichWithFoodKeeper(entries, rows, report);
+  enriched = enrichWithCofid(enriched, report);
   if (!options.skipNutrition) {
     if (!options.apiKey) throw new Error('USDA_API_KEY is required unless --skip-nutrition is used');
     enriched = await enrichWithFdc(enriched, options.apiKey, report);
@@ -736,6 +782,7 @@ async function main(): Promise<void> {
         ).length,
         skipped: report.foodDataCentral.skipped,
       },
+      cofid: report.cofid,
       filled: report.filled.length,
       conflicts: report.conflicts.length,
       skipped: report.skipped.length,

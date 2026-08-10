@@ -293,3 +293,39 @@ The section that protects the product from its own data pipeline.
 - [x] 10.8 Run `npm run typecheck` and `npm test`, then record the measured hit
       rate, the number of conflicts, and the US-centricity limitation in
       `docs/product-decisions.md`.
+
+## 11. Owner in-app acceptance
+
+Implementation and automated verification are complete. Keep this change
+unarchived until the owner completes these checks in the installed app.
+
+- [ ] 11.1 Upgrade an existing installation with saved data. Confirm the app
+      opens and the catalogue migration preserves the existing database.
+- [ ] 11.2 Add a banana to the fridge with a known purchase date. Confirm the
+      predicted date uses FoodKeeper's three-day figure, shows its source, and
+      describes expected quality rather than safety.
+- [ ] 11.3 In manual meal entry, select Olive oil and enter 100 g. Confirm the
+      app shows 884 kcal and recalculates the figures when quantity changes.
+- [ ] 11.4 Select an ingredient with partial nutrition, such as Green onion.
+      Confirm missing figures stay blank instead of becoming zero.
+- [ ] 11.5 Disable network access and repeat one expiry and nutrition lookup.
+      Record owner acceptance before permitting archival.
+
+## 12. Dark soy nutrition remediation
+
+- [x] 12.1 Add CoFID 2021 to the source registry as Open Government Licence
+      v3.0 data, including the required attribution and no runtime dependency.
+- [x] 12.2 Add the reviewed CoFID row `17-721`, "Soy sauce, light and dark
+      varieties", as build input for Dark soy sauce: 79 kcal, 3.0 g protein,
+      17.9 g carbohydrate, and unknown fat per 100 g.
+- [x] 12.3 Merge the reviewed row through the existing fill-empty and
+      per-field-provenance rules; do not overwrite Light soy sauce's existing
+      FoodData Central values and do not coerce trace fat to zero.
+- [x] 12.4 Show explicit manual-entry guidance when a selected catalogue
+      ingredient has no nutrition at all, while retaining partial values and
+      blanks for partially known nutrition.
+- [x] 12.5 Test CoFID provenance, attribution, Dark soy scaling for grams and
+      volume, trace-fat handling, unavailable guidance, partial nutrition, and
+      the absence of runtime dataset requests.
+- [x] 12.6 Run `npm run typecheck`, `npm test`, `git diff --check`, and strict
+      OpenSpec validation. Keep group 11 unchecked for owner device acceptance.

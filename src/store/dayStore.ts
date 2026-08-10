@@ -3,23 +3,27 @@ import { create } from 'zustand';
 import {
   deleteMeal,
   ensureDailyTarget,
+  getDaySummaries,
+  getMeal,
   getLoggedDates,
   getMealsForDate,
   insertMeal,
   restoreMeal,
   type NewMeal,
 } from '@/db/queries';
-import { localDateString } from '@/logic/dates';
+import { addMonths, localDateString, monthOf } from '@/logic/dates';
 import {
   depleteForMeal,
+  saveEditedMeal,
   undepleteForMeal,
   type DepletionSummary,
 } from '@/logic/depletionService';
+import { mealsHaveSameEditableValues } from '@/logic/mealEdit';
 import { macroTargets } from '@/logic/macros';
 import { macrosOfMeals } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import { useProfileStore } from '@/store/profileStore';
-import type { DailyTarget, Macros, MealWithItems } from '@/types';
+import type { DailyTarget, DaySummary, Macros, MealWithItems } from '@/types';
 
 /** How long the undo toast stays up before the delete becomes permanent. */
 export const UNDO_WINDOW_MS = 5_000;
@@ -39,6 +43,11 @@ interface DayState {
   consumed: Macros;
   /** Dates with at least one meal, for the date strip dots. */
   loggedDates: string[];
+  /** Constant-time membership for the week strip and month grid. */
+  loggedDateSet: ReadonlySet<string>;
+  earliestLoggedDate: string | null;
+  /** One grouped query result per displayed calendar month. */
+  monthSummaries: Record<string, DaySummary[]>;
   /** The last deleted meal, held until the undo window closes. */
   pendingUndo: MealWithItems | null;
   /** What the last commit decremented, so the change is visible not silent. */
@@ -56,7 +65,9 @@ interface DayState {
   /** Resumes tracking today. Call when the Today screen loses focus. */
   resumeFollowing: () => void;
   refresh: () => Promise<void>;
+  loadMonthSummaries: (localDate: string) => Promise<DaySummary[]>;
   addMeal: (meal: NewMeal) => Promise<MealWithItems>;
+  updateMeal: (meal: MealWithItems) => Promise<MealWithItems>;
   clearLastDepletion: () => void;
   removeMeal: (id: string) => Promise<void>;
   undoRemove: () => Promise<void>;
@@ -75,12 +86,16 @@ export const useDayStore = create<DayState>((set, get) => ({
   target: null,
   consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   loggedDates: [],
+  loggedDateSet: new Set(),
+  earliestLoggedDate: null,
+  monthSummaries: {},
   pendingUndo: null,
   lastDepletion: null,
 
   selectDate: async (localDate) => {
-    // A tap is a deliberate pick and must survive the next re-sync.
-    set({ selectedDate: localDate, following: false });
+    if (localDate > localDateString()) return;
+    // A past tap is deliberate; choosing today resumes real-date following.
+    set({ selectedDate: localDate, following: localDate === localDateString() });
     await get().refresh();
   },
 
@@ -105,10 +120,27 @@ export const useDayStore = create<DayState>((set, get) => ({
     set({
       meals,
       loggedDates,
+      loggedDateSet: new Set(loggedDates),
+      earliestLoggedDate:
+        loggedDates.length === 0
+          ? null
+          : loggedDates.reduce((earliest, date) => date < earliest ? date : earliest),
       target,
       consumed: macrosOfMeals(meals),
       loading: false,
     });
+  },
+
+  loadMonthSummaries: async (localDate) => {
+    const key = monthKey(localDate);
+    const cached = get().monthSummaries[key];
+    if (cached) return cached;
+    const grid = monthOf(localDate);
+    const summaries = await getDaySummaries(grid[0]!, grid[grid.length - 1]!);
+    set((state) => ({
+      monthSummaries: { ...state.monthSummaries, [key]: summaries },
+    }));
+    return summaries;
   },
 
   addMeal: async (meal) => {
@@ -117,6 +149,7 @@ export const useDayStore = create<DayState>((set, get) => ({
       await ensureDailyTarget(meal.localDate, profile);
     }
     const stored = await insertMeal(meal);
+    set((state) => ({ monthSummaries: omitMonth(state.monthSummaries, stored.localDate) }));
     // Depletion runs here, on commit — never while the user is still
     // correcting the estimate on the review screen. A failure must not cost
     // the user their meal, so it is caught rather than propagated.
@@ -136,6 +169,27 @@ export const useDayStore = create<DayState>((set, get) => ({
     return stored;
   },
 
+  updateMeal: async (meal) => {
+    const current = await getMeal(meal.id);
+    if (!current) throw new Error('Meal no longer exists.');
+    if (mealsHaveSameEditableValues(current, meal)) return current;
+
+    // Planning is read-only; the actual meal, pantry, and ledger writes happen
+    // together inside saveEditedMeal's query transaction.
+    const { meal: stored, summary } = await saveEditedMeal(meal);
+    set({
+      lastDepletion: summary.names.length > 0 ? summary : null,
+      selectedDate: stored.localDate,
+      // Pushing the editor temporarily blurs Today, whose existing lifecycle
+      // resumes following. Pin the edited date again before returning so a
+      // deliberately selected past day does not jump to today.
+      following: false,
+      monthSummaries: omitMonth(get().monthSummaries, stored.localDate),
+    });
+    await get().refresh();
+    return stored;
+  },
+
   removeMeal: async (id) => {
     // Commit any delete still waiting — one undo at a time.
     get().commitRemove();
@@ -144,7 +198,12 @@ export const useDayStore = create<DayState>((set, get) => ({
     // Reverse before the row goes: the ledger cascades with the meal.
     await undepleteForMeal(id);
     await deleteMeal(id);
-    set({ pendingUndo: meal });
+    set((state) => ({
+      pendingUndo: meal,
+      monthSummaries: meal
+        ? omitMonth(state.monthSummaries, meal.localDate)
+        : state.monthSummaries,
+    }));
     await get().refresh();
   },
 
@@ -153,6 +212,9 @@ export const useDayStore = create<DayState>((set, get) => ({
     if (!meal) return;
     set({ pendingUndo: null });
     await restoreMeal(meal);
+    set((state) => ({
+      monthSummaries: omitMonth(state.monthSummaries, meal.localDate),
+    }));
     // Undo restores the meal, so its depletion has to come back with it.
     try {
       await depleteForMeal(meal);
@@ -171,6 +233,28 @@ export const useDayStore = create<DayState>((set, get) => ({
     set({ pendingUndo: null });
   },
 }));
+
+function monthKey(localDate: string): string {
+  return localDate.slice(0, 7);
+}
+
+function omitMonth(
+  summaries: Record<string, DaySummary[]>,
+  localDate: string,
+): Record<string, DaySummary[]> {
+  // Month grids include leading/trailing days, so a mutation can stale the
+  // adjacent month's cached grid as well as its own.
+  const centre = `${monthKey(localDate)}-15`;
+  const keys = new Set([
+    monthKey(localDate),
+    monthKey(addMonths(centre, -1)),
+    monthKey(addMonths(centre, 1)),
+  ]);
+  if (![...keys].some((key) => key in summaries)) return summaries;
+  const next = { ...summaries };
+  for (const key of keys) delete next[key];
+  return next;
+}
 
 /**
  * A day's target: the one stored at the time if the day has been logged,

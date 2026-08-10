@@ -1,0 +1,328 @@
+import { randomUUID } from 'expo-crypto';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
+import { Segmented } from '@/components/Choice';
+import { EmptyState } from '@/components/EmptyState';
+import { Field } from '@/components/Field';
+import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
+import { Screen } from '@/components/Screen';
+import { Body, Caption, MealCalories, ScreenTitle, SectionLabel } from '@/components/Type';
+import { useToast } from '@/components/Toast';
+import { color, opacity, space } from '@/constants/theme';
+import { getMeal } from '@/db/queries';
+import {
+  hasMealEditErrors,
+  isMealDraftDirty,
+  mealToDraft,
+  normaliseMealDraft,
+  validateMealDraft,
+  type MealEditDraft,
+  type MealItemDraft,
+} from '@/logic/mealEdit';
+import { catalogueNutrition } from '@/logic/nutrition';
+import { macrosOfItems, roundCalories } from '@/logic/scaling';
+import { useDayStore } from '@/store/dayStore';
+import {
+  MEAL_TYPES,
+  MEAL_VENUES,
+  MEASURE_UNITS,
+  type CanonicalItem,
+  type MealType,
+  type MealVenue,
+  type MeasureUnit,
+} from '@/types';
+
+const MEAL_OPTIONS = MEAL_TYPES.map((value) => ({
+  value,
+  label: value.charAt(0).toUpperCase() + value.slice(1),
+}));
+const VENUE_LABELS: Record<MealVenue, string> = {
+  home: 'Cooked in', out: 'Ate out', leftovers: 'Leftovers',
+};
+const VENUE_OPTIONS = MEAL_VENUES.map((value) => ({ value, label: VENUE_LABELS[value] }));
+const UNIT_OPTIONS = MEASURE_UNITS.map((value) => ({ value, label: value }));
+
+export default function MealEditorScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const toast = useToast();
+  const updateMeal = useDayStore((state) => state.updateMeal);
+  const [draft, setDraft] = useState<MealEditDraft | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [pickingItemId, setPickingItemId] = useState<string | null>(null);
+  const allowLeave = useRef(false);
+
+  useEffect(() => {
+    if (!id) {
+      setNotFound(true);
+      return;
+    }
+    void getMeal(id).then((meal) => {
+      if (meal) setDraft(mealToDraft(meal));
+      else setNotFound(true);
+    });
+  }, [id]);
+
+  const dirty = draft ? isMealDraftDirty(draft) : false;
+  useEffect(
+    () => navigation.addListener('beforeRemove', (event) => {
+      if (!dirty || allowLeave.current) return;
+      event.preventDefault();
+      Alert.alert('Discard changes?', 'Your meal and pantry will stay unchanged.', [
+        { text: 'Keep editing', style: 'cancel' },
+        {
+          text: 'Discard', style: 'destructive', onPress: () => {
+            allowLeave.current = true;
+            navigation.dispatch(event.data.action);
+          },
+        },
+      ]);
+    }),
+    [dirty, navigation],
+  );
+
+  const errors = useMemo(() => draft ? validateMealDraft(draft) : null, [draft]);
+  const valid = errors ? !hasMealEditErrors(errors) : false;
+  const preview = draft ? normaliseMealDraft(draft) : null;
+  const totals = preview ? macrosOfItems(preview.items) : null;
+
+  const patchDraft = (patch: Partial<MealEditDraft>) => {
+    setDraft((current) => current ? { ...current, ...patch } : current);
+  };
+  const patchItem = (itemId: string, patch: Partial<MealItemDraft>) => {
+    setDraft((current) => current ? {
+      ...current,
+      items: current.items.map((item) => item.id === itemId ? { ...item, ...patch } : item),
+    } : current);
+  };
+
+  const save = async () => {
+    if (!draft || !valid) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateMeal(normaliseMealDraft(draft));
+      allowLeave.current = true;
+      toast.show({ message: 'Meal updated.' });
+      router.back();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not save the meal.');
+      setSaving(false);
+    }
+  };
+
+  if (notFound) {
+    return (
+      <Screen contentStyle={styles.center}>
+        <EmptyState
+          title="Meal no longer available"
+          detail="It may have been deleted from another screen."
+          actionLabel="Go back"
+          onAction={() => router.back()}
+        />
+      </Screen>
+    );
+  }
+  if (!draft || !totals) {
+    return (
+      <Screen contentStyle={styles.center}>
+        <ActivityIndicator color={color.ink} accessibilityLabel="Loading meal" />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen
+      scroll
+      contentStyle={styles.content}
+      footer={
+        <View style={styles.footer}>
+          {saveError ? <Caption style={styles.error}>{saveError}</Caption> : null}
+          <View style={styles.footerButtons}>
+            <Button label="Cancel" variant="secondary" onPress={() => router.back()} style={styles.button} />
+            <Button label="Save changes" onPress={() => void save()} disabled={!valid} loading={saving} style={styles.button} />
+          </View>
+        </View>
+      }
+    >
+      <View style={styles.header}>
+        <ScreenTitle>Edit meal</ScreenTitle>
+      </View>
+
+      <Field
+        label="Name" value={draft.name} onChangeText={(name) => patchDraft({ name })}
+        error={errors?.name}
+      />
+
+      <View style={styles.section}>
+        <SectionLabel muted>Meal</SectionLabel>
+        <Segmented
+          options={MEAL_OPTIONS} value={draft.mealType}
+          onChange={(mealType: MealType) => patchDraft({ mealType })}
+        />
+      </View>
+      <View style={styles.section}>
+        <SectionLabel muted>Where from</SectionLabel>
+        <Segmented
+          options={VENUE_OPTIONS} value={draft.venue}
+          onChange={(venue: MealVenue) => patchDraft({ venue })}
+        />
+      </View>
+      {draft.venue === 'home' ? (
+        <Field
+          label="Servings made" value={draft.servingsMult}
+          onChangeText={(servingsMult) => patchDraft({ servingsMult })}
+          keyboardType="decimal-pad" numeric error={errors?.servingsMult}
+          hint="Pantry use is multiplied by the number of servings made."
+        />
+      ) : null}
+
+      <Card title="Current total">
+        <MealCalories numeric>{roundCalories(totals.calories)} kcal</MealCalories>
+        <Caption muted numeric>
+          P {totals.proteinG.toFixed(1)} g · C {totals.carbsG.toFixed(1)} g · F {totals.fatG.toFixed(1)} g
+        </Caption>
+      </Card>
+
+      <View style={styles.itemsHeader}>
+        <SectionLabel muted>Items</SectionLabel>
+        <Pressable
+          accessibilityRole="button" accessibilityLabel="Add meal item"
+          onPress={() => patchDraft({
+            items: [...draft.items, newItemDraft()],
+          })}
+          style={({ pressed }) => pressed && { opacity: opacity.pressed }}
+        >
+          <Body>+ Add item</Body>
+        </Pressable>
+      </View>
+      {errors?.items ? <Caption style={styles.error}>{errors.items}</Caption> : null}
+
+      {draft.items.map((item, index) => {
+        const itemErrors = errors?.itemFields[item.id];
+        return (
+          <Card key={item.id} title={`Item ${index + 1}`} style={styles.itemCard}>
+            <View style={styles.itemFields}>
+              <Field
+                label="Name" value={item.name}
+                onChangeText={(name) => patchItem(item.id, { name })}
+                error={itemErrors?.name}
+              />
+              <View style={styles.twoColumns}>
+                <Field
+                  style={styles.flex} label="Quantity" value={item.quantity}
+                  onChangeText={(quantity) => patchItem(item.id, { quantity })}
+                  keyboardType="decimal-pad" numeric error={itemErrors?.quantity}
+                />
+                <View style={styles.flex}>
+                  <SectionLabel muted style={styles.unitLabel}>Unit</SectionLabel>
+                  <Segmented
+                    options={UNIT_OPTIONS.slice(0, 4)} value={item.unit}
+                    onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
+                  />
+                  <Segmented
+                    options={UNIT_OPTIONS.slice(4)} value={item.unit}
+                    onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
+                    style={styles.unitRow}
+                  />
+                </View>
+              </View>
+              <Field
+                label="Calories" value={item.calories}
+                onChangeText={(calories) => patchItem(item.id, { calories })}
+                keyboardType="decimal-pad" suffix="kcal" numeric error={itemErrors?.calories}
+              />
+              <View style={styles.threeColumns}>
+                <Field style={styles.flex} label="Protein" value={item.proteinG} onChangeText={(proteinG) => patchItem(item.id, { proteinG })} keyboardType="decimal-pad" suffix="g" numeric error={itemErrors?.proteinG} />
+                <Field style={styles.flex} label="Carbs" value={item.carbsG} onChangeText={(carbsG) => patchItem(item.id, { carbsG })} keyboardType="decimal-pad" suffix="g" numeric error={itemErrors?.carbsG} />
+                <Field style={styles.flex} label="Fat" value={item.fatG} onChangeText={(fatG) => patchItem(item.id, { fatG })} keyboardType="decimal-pad" suffix="g" numeric error={itemErrors?.fatG} />
+              </View>
+              <Button
+                label={item.canonicalId ? `Catalogue: ${item.canonicalId}` : 'Choose catalogue ingredient'}
+                variant="secondary" onPress={() => setPickingItemId(item.id)}
+              />
+              <View style={styles.itemActions}>
+                {item.canonicalId ? <Button label="Clear match" variant="ghost" block={false} onPress={() => patchItem(item.id, { canonicalId: null })} /> : null}
+                {index > 0 ? <Button label="Move up" variant="ghost" block={false} onPress={() => patchDraft({ items: move(draft.items, index, index - 1) })} /> : null}
+                {index < draft.items.length - 1 ? <Button label="Move down" variant="ghost" block={false} onPress={() => patchDraft({ items: move(draft.items, index, index + 1) })} /> : null}
+                <Button label="Remove" variant="destructive" block={false} onPress={() => patchDraft({ items: draft.items.filter((candidate) => candidate.id !== item.id) })} />
+              </View>
+            </View>
+          </Card>
+        );
+      })}
+
+      <CanonicalPickerSheet
+        visible={pickingItemId !== null}
+        title="Catalogue ingredient"
+        onPick={(canonical) => {
+          if (pickingItemId) applyCanonical(pickingItemId, canonical, draft, patchItem);
+          setPickingItemId(null);
+        }}
+        onClose={() => setPickingItemId(null)}
+      />
+    </Screen>
+  );
+}
+
+function newItemDraft(): MealItemDraft {
+  return {
+    id: randomUUID(), name: '', quantity: '1', unit: 'serving', calories: '0',
+    proteinG: '0', carbsG: '0', fatG: '0', isManualAddition: true, canonicalId: null,
+  };
+}
+
+function move<T>(items: readonly T[], from: number, to: number): T[] {
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  if (item !== undefined) next.splice(to, 0, item);
+  return next;
+}
+
+function applyCanonical(
+  itemId: string,
+  canonical: CanonicalItem,
+  draft: MealEditDraft,
+  patchItem: (itemId: string, patch: Partial<MealItemDraft>) => void,
+) {
+  const item = draft.items.find((candidate) => candidate.id === itemId);
+  if (!item) return;
+  const nutrition = catalogueNutrition(canonical, Number(item.quantity), item.unit);
+  patchItem(itemId, {
+    canonicalId: canonical.id,
+    name: canonical.displayName,
+    ...(nutrition ? {
+      calories: String(nutrition.values.calories ?? 0),
+      proteinG: String(nutrition.values.proteinG ?? 0),
+      carbsG: String(nutrition.values.carbsG ?? 0),
+      fatG: String(nutrition.values.fatG ?? 0),
+    } : {}),
+  });
+}
+
+const styles = StyleSheet.create({
+  center: { alignItems: 'center', justifyContent: 'center' },
+  content: { gap: space.lg, paddingTop: space.sm },
+  header: { paddingBottom: space.sm },
+  section: { gap: space.sm },
+  footer: { gap: space.sm },
+  footerButtons: { flexDirection: 'row', gap: space.sm },
+  button: { flex: 1 },
+  error: { color: color.paprika },
+  itemsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  itemCard: { gap: space.base },
+  itemFields: { gap: space.base },
+  twoColumns: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
+  threeColumns: { flexDirection: 'row', gap: space.sm },
+  flex: { flex: 1 },
+  unitLabel: { marginBottom: space.sm, marginLeft: space.xs },
+  unitRow: { marginTop: space.xs },
+  itemActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end' },
+});

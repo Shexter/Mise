@@ -43,8 +43,10 @@ all and a generated dinner suggestion's calories are a guess inside a guess.
   reason to drop or blank them.
 - **The app makes no safety claim.** FoodKeeper is a food safety publication.
   What the app shows is a quality estimate, and the wording says so.
-- **CC0 and public-domain sources only** in this change. Nothing here is
-  encumbered, which is why it can start immediately.
+- **CC0, public-domain, and attribution-only sources without share-alike** in
+  this change. FoodData Central is CC0, FoodKeeper is public domain, and the UK
+  CoFID dataset is available under the Open Government Licence v3.0. Source
+  attribution ships beside the data; no reciprocal licence is introduced.
 
 ## Capabilities
 
@@ -98,6 +100,12 @@ through the existing seed path.
 
 **Dependencies.** None added to the app. The build script may use whatever it
 likes; it does not ship.
+
+**Additional source.** The UK government's 2021 Composition of Foods
+Integrated Dataset (CoFID) supplies the reviewed row "Soy sauce, light and dark
+varieties" where FoodData Central cannot distinguish Dark soy sauce. Its
+per-100-g record is 79 kcal, 3.0 g protein, 17.9 g carbohydrate, and trace fat;
+trace remains unknown rather than being converted to zero.
 
 **Depends on** `add-identity-layer` (merged) for `resolve()`, which is how a
 FoodKeeper row finds its canonical ingredient.

@@ -1,9 +1,11 @@
 import {
   applyDepletion,
   getAllCanonicals,
+  getConsumptionEvents,
   listPantryItems,
   reapplyDepletion,
   reverseDepletion,
+  updateMealWithDepletion,
 } from '@/db/queries';
 import { HIDDEN_INGREDIENTS } from '@/constants/hiddenIngredients';
 import { planDepletion, type ConsumedIngredient, type Decrement } from '@/logic/deplete';
@@ -101,7 +103,7 @@ async function resolveIngredients(
   return resolved.filter((entry): entry is ConsumedIngredient => Boolean(entry));
 }
 
-async function planFor(meal: MealWithItems): Promise<{
+export async function planMealDepletion(meal: MealWithItems): Promise<{
   decrements: Decrement[];
   canonicals: Map<string, CanonicalItem>;
 }> {
@@ -121,7 +123,51 @@ async function planFor(meal: MealWithItems): Promise<{
   return { decrements, canonicals };
 }
 
-function summarise(
+/**
+ * Plans an edit against the pantry state that will exist after the old
+ * ledger rows are reversed. This matters when the old meal marked an item
+ * out: planning against the current snapshot would incorrectly skip it.
+ */
+async function planEditedMealDepletion(meal: MealWithItems): Promise<{
+  decrements: Decrement[];
+  canonicals: Map<string, CanonicalItem>;
+}> {
+  const [canonicalList, currentItems, events] = await Promise.all([
+    getAllCanonicals(),
+    listPantryItems(),
+    getConsumptionEvents(meal.id),
+  ]);
+  const canonicals = new Map(canonicalList.map((canonical) => [canonical.id, canonical]));
+  if (meal.venue !== 'home') return { decrements: [], canonicals };
+
+  const restoredItems = currentItems.map((item) => {
+    const rows = events.filter((event) => event.pantryItemId === item.id);
+    if (rows.length === 0) return item;
+    const restoredQty = rows.reduce<number | null>(
+      (quantity, event) => event.qty === null ? quantity : (quantity ?? 0) + event.qty,
+      item.qtyRemaining,
+    );
+    return {
+      ...item,
+      qtyRemaining: restoredQty,
+      usesCount: Math.max(0, item.usesCount - rows.reduce((sum, event) => sum + event.uses, 0)),
+      status: item.status === 'out' && (restoredQty ?? 0) > 0 ? 'in_stock' as const : item.status,
+    };
+  });
+  const ingredients = await resolveIngredients(meal);
+  return {
+    decrements: planDepletion({
+      venue: meal.venue,
+      servingsMult: meal.servingsMult,
+      ingredients,
+      catalogue: restoredItems,
+      canonicals,
+    }),
+    canonicals,
+  };
+}
+
+export function summariseDepletion(
   decrements: readonly Decrement[],
   canonicals: ReadonlyMap<string, CanonicalItem>,
 ): DepletionSummary {
@@ -147,19 +193,28 @@ function summarise(
 export async function depleteForMeal(
   meal: MealWithItems,
 ): Promise<DepletionSummary> {
-  const { decrements, canonicals } = await planFor(meal);
+  const { decrements, canonicals } = await planMealDepletion(meal);
   if (decrements.length === 0) return { names: [], uncatalogued: 0 };
   await applyDepletion(meal.id, decrements, meal.servingsMult);
-  return summarise(decrements, canonicals);
+  return summariseDepletion(decrements, canonicals);
 }
 
 /** Re-commits an edited meal: reverse, then reapply, in one transaction. */
 export async function redepleteForMeal(
   meal: MealWithItems,
 ): Promise<DepletionSummary> {
-  const { decrements, canonicals } = await planFor(meal);
+  const { decrements, canonicals } = await planMealDepletion(meal);
   await reapplyDepletion(meal.id, decrements, meal.servingsMult);
-  return summarise(decrements, canonicals);
+  return summariseDepletion(decrements, canonicals);
+}
+
+/** Saves the meal rows and their corrected depletion in one transaction. */
+export async function saveEditedMeal(
+  meal: MealWithItems,
+): Promise<{ meal: MealWithItems; summary: DepletionSummary }> {
+  const { decrements, canonicals } = await planEditedMealDepletion(meal);
+  const stored = await updateMealWithDepletion(meal, decrements);
+  return { meal: stored, summary: summariseDepletion(decrements, canonicals) };
 }
 
 /** Restores everything a deleted meal took. */

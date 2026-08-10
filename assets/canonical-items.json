@@ -52,8 +52,14 @@
       "typicalUseUnit": "hand-authored",
       "typicalPkgQty": "hand-authored",
       "typicalPkgUnit": "hand-authored",
-      "densityGPerMl": "hand-authored"
-    }
+      "densityGPerMl": "hand-authored",
+      "kcalPer100": "cofid",
+      "proteinPer100": "cofid",
+      "carbsPer100": "cofid"
+    },
+    "kcalPer100": 79,
+    "proteinPer100": 3,
+    "carbsPer100": 17.9
   },
   {
     "id": "tamari",

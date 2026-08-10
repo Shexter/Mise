@@ -1,0 +1,11 @@
+{
+  "soy-sauce-dark": {
+    "rowId": "17-721",
+    "description": "Soy sauce, light and dark varieties",
+    "sample": "8 samples, 4 brands",
+    "kcalPer100": 79,
+    "proteinPer100": 3,
+    "carbsPer100": 17.9,
+    "fatPer100": null
+  }
+}

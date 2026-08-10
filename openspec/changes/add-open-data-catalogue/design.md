@@ -20,6 +20,9 @@ What the sources give:
   Days, Weeks, Months, *When Ripe*, *Indefinitely*, *Not Recommended*.
 - **FoodData Central** (USDA, CC0): 600,000+ foods with full nutrient panels,
   behind a free data.gov API key.
+- **CoFID 2021** (UK government, Open Government Licence v3.0): reviewed food
+  composition data, including one row explicitly covering light and dark soy
+  sauce varieties.
 
 ## Goals / Non-Goals
 
@@ -140,6 +143,26 @@ and worse than a look at the food.
 
 *Missing nutrition is unknown, not zero* — the same discipline
 `add-fibre-tracking` argued for, and for the same reason.
+
+### CoFID fills a reviewed regional gap and carries attribution
+
+FoodData Central's generic shoyu and tamari records do not identify Dark soy
+sauce. Applying either automatically would make the requested feature appear to
+work by attaching the wrong variety's numbers. CoFID 2021 row `17-721`, "Soy
+sauce, light and dark varieties", explicitly covers eight samples across four
+brands and supplies 79 kcal, 3.0 g protein, 17.9 g carbohydrate, and trace fat
+per 100 g.
+
+The reviewed CoFID selection is committed as build input, merged by the same
+fill-empty and per-field-provenance rules as the other sources. `Trace` is not
+zero and maps to null. The source registry records the Open Government Licence
+v3.0 and the shipped attribution: "Contains public sector information licensed
+under the Open Government Licence v3.0."
+
+*Why not copy the Light soy sauce row:* FoodData Central's record describes
+shoyu. Dark soy differs by processing and formulation, and the existing report
+already identified the missing distinction. A source explicitly covering both
+varieties is more defensible than silently claiming they are identical.
 
 ## Risks / Trade-offs
 

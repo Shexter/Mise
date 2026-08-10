@@ -41,7 +41,7 @@ export function MealRow({ meal, onPress, onDelete }: Props) {
         accessibilityLabel={`${meal.name}, ${calories} calories, ${capitalise(
           meal.mealType,
         )} at ${timeOfDay(meal.loggedAt)}`}
-        accessibilityHint="Swipe left to delete"
+        accessibilityHint="Double tap to edit meal details. Swipe left to delete."
         style={({ pressed }) => [
           styles.row,
           pressed && { opacity: opacity.pressed },

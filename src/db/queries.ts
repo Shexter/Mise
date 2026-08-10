@@ -27,6 +27,7 @@ import type {
   ConsumptionEvent,
   ConsumptionKind,
   DailyTarget,
+  DaySummary,
   DietaryRule,
   DietaryRuleKind,
   ExpirySource,
@@ -460,6 +461,104 @@ export async function deleteMeal(id: string): Promise<void> {
   await db().runAsync('DELETE FROM meals WHERE id = ?', [id]);
 }
 
+export type MealEditFailureStage = 'meal' | 'item' | 'pantry' | 'event';
+
+/** Test-only fault injection; production callers omit this argument. */
+export interface MealEditOptions {
+  failAt?: MealEditFailureStage;
+}
+
+/**
+ * Replaces an edited meal and its depletion ledger as one transaction.
+ * Immutable provenance columns are deliberately absent from the UPDATE.
+ */
+export async function updateMealWithDepletion(
+  edited: MealWithItems,
+  decrements: readonly Decrement[],
+  options: MealEditOptions = {},
+): Promise<MealWithItems> {
+  const venue = edited.venue;
+  const servingsMult = venue === 'home' ? Math.max(1, edited.servingsMult) : 1;
+  let stored: MealWithItems | null = null;
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const row = await txn.getFirstAsync<MealRow>(
+      'SELECT * FROM meals WHERE id = ?',
+      [edited.id],
+    );
+    if (!row) throw new Error('Meal no longer exists.');
+    const original = toMeal(row);
+    const existingEvents = await txn.getAllAsync<ConsumptionEventRow>(
+      'SELECT * FROM consumption_events WHERE meal_id = ?',
+      [edited.id],
+    );
+
+    if (existingEvents.length > 0) {
+      await reverseRows(txn, existingEvents, edited.id);
+    }
+
+    await txn.runAsync(
+      `UPDATE meals
+         SET meal_type = ?, name = ?, venue = ?, servings_mult = ?
+       WHERE id = ?`,
+      [edited.mealType, edited.name, venue, servingsMult, edited.id],
+    );
+    if (options.failAt === 'meal') throw new Error('Injected meal edit failure.');
+
+    await txn.runAsync('DELETE FROM meal_items WHERE meal_id = ?', [edited.id]);
+    const items = edited.items.map((item, sortOrder) => ({
+      ...item,
+      mealId: edited.id,
+      sortOrder,
+    }));
+    for (const item of items) {
+      await txn.runAsync(
+        `INSERT INTO meal_items
+           (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
+            is_manual_addition, sort_order, canonical_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item.id, item.mealId, item.name, item.quantity, item.unit,
+          item.calories, item.proteinG, item.carbsG, item.fatG,
+          item.isManualAddition ? 1 : 0, item.sortOrder, item.canonicalId,
+        ],
+      );
+    }
+    if (options.failAt === 'item') throw new Error('Injected item edit failure.');
+
+    const now = new Date().toISOString();
+    for (const decrement of decrements) {
+      const applied = decrement.pantryItemId
+        ? await applyToItem(txn, decrement, now)
+        : decrement.qty;
+      if (options.failAt === 'pantry') throw new Error('Injected pantry edit failure.');
+      await txn.runAsync(
+        `INSERT INTO consumption_events
+           (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
+            servings_mult, kind, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          randomUUID(), decrement.pantryItemId, decrement.canonicalId, edited.id,
+          applied, decrement.unit, decrement.uses, servingsMult, decrement.kind, now,
+        ],
+      );
+      if (options.failAt === 'event') throw new Error('Injected event edit failure.');
+    }
+
+    stored = {
+      ...original,
+      mealType: edited.mealType,
+      name: edited.name,
+      venue,
+      servingsMult,
+      items,
+    };
+  });
+
+  if (!stored) throw new Error('Meal update did not complete.');
+  return stored;
+}
+
 /**
  * Meals logged in the last `days` days (inclusive of today). Nothing reads
  * a window today — `getMealsForDate` reads one day and `getLoggedDates`
@@ -499,6 +598,40 @@ export async function getLoggedDates(): Promise<string[]> {
     'SELECT DISTINCT local_date FROM meals',
   );
   return rows.map((row) => row.local_date);
+}
+
+interface DaySummaryRow {
+  local_date: string;
+  calories: number;
+  target_calories: number | null;
+}
+
+/**
+ * One grouped read for the whole calendar range. Starting from `meals` makes
+ * an unlogged day structurally absent; COALESCE applies only to a logged meal
+ * whose item rows happen to total no calories.
+ */
+export async function getDaySummaries(
+  from: string,
+  to: string,
+): Promise<DaySummary[]> {
+  const rows = await db().getAllAsync<DaySummaryRow>(
+    `SELECT m.local_date,
+            COALESCE(SUM(mi.calories), 0) AS calories,
+            dt.target_calories
+       FROM meals m
+       LEFT JOIN meal_items mi ON mi.meal_id = m.id
+       LEFT JOIN daily_targets dt ON dt.local_date = m.local_date
+      WHERE m.local_date BETWEEN ? AND ?
+      GROUP BY m.local_date, dt.target_calories
+      ORDER BY m.local_date ASC`,
+    [from, to],
+  );
+  return rows.map((row) => ({
+    localDate: row.local_date,
+    calories: row.calories,
+    targetCalories: row.target_calories,
+  }));
 }
 
 /* -------------------------------------------------------------------------- */

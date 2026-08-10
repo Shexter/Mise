@@ -132,6 +132,14 @@ export interface DailyTarget {
   fatG: number;
 }
 
+/** One logged day's calendar summary. Missing days have no object at all. */
+export interface DaySummary {
+  localDate: string;
+  calories: number;
+  /** The target snapshotted for that day; null means no comparison is honest. */
+  targetCalories: number | null;
+}
+
 /** A hidden-ingredient quick-pick, loaded from `assets/hidden-ingredients.json`. */
 export interface HiddenIngredient {
   name: string;
@@ -207,12 +215,14 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
 export type SourceId =
   | 'hand-authored'
   | 'foodkeeper'
-  | 'food-data-central';
+  | 'food-data-central'
+  | 'cofid';
 
 export const SOURCE_IDS: readonly SourceId[] = [
   'hand-authored',
   'foodkeeper',
   'food-data-central',
+  'cofid',
 ];
 
 /** The food concept — one row per real-world ingredient. `id` is the slug. */

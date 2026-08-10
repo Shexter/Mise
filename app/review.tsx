@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -317,11 +319,18 @@ export default function ReviewScreen() {
 
   return (
     <View style={[styles.reviewRoot, { paddingTop: insets.top }]}>
-      <ScrollView
-        contentContainerStyle={styles.reviewContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top}
       >
+        <ScrollView
+          style={styles.reviewScroll}
+          contentContainerStyle={styles.reviewContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.thumb} />
         ) : null}
@@ -432,17 +441,18 @@ export default function ReviewScreen() {
             </Caption>
           </View>
         ) : null}
-      </ScrollView>
+        </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
-        <Button
-          label="Save meal"
-          onPress={() => void save()}
-          disabled={items.length === 0}
-          loading={saving}
-        />
-        <Button label="Discard" variant="ghost" onPress={discard} />
-      </View>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
+          <Button
+            label="Save meal"
+            onPress={() => void save()}
+            disabled={items.length === 0}
+            loading={saving}
+          />
+          <Button label="Discard" variant="ghost" onPress={discard} />
+        </View>
+      </KeyboardAvoidingView>
 
       <QuantitySheet
         item={editing}
@@ -510,6 +520,8 @@ const styles = StyleSheet.create({
   errorActions: { gap: space.sm, marginTop: space.base },
 
   reviewRoot: { flex: 1, backgroundColor: color.ground },
+  keyboardArea: { flex: 1 },
+  reviewScroll: { flex: 1 },
   reviewContent: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.base,

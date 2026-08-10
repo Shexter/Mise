@@ -1,3 +1,4 @@
+import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,6 +18,7 @@ import { DateStrip } from '@/components/DateStrip';
 import { DayRail } from '@/components/DayRail';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
+import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { MacroBars } from '@/components/MacroBars';
 import { MealRow } from '@/components/MealRow';
 import { Body, Caption, ScreenTitle, SectionLabel } from '@/components/Type';
@@ -44,7 +46,9 @@ export default function TodayScreen() {
     meals,
     target,
     consumed,
-    loggedDates,
+    loggedDateSet,
+    earliestLoggedDate,
+    loadMonthSummaries,
     selectDate,
     syncToToday,
     resumeFollowing,
@@ -55,6 +59,7 @@ export default function TodayScreen() {
 
   const [keyMissing, setKeyMissing] = useState(false);
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // The Today tab opens on today: sync (which resets `selectedDate` only
   // when `following` is true) before refreshing, so a day chosen earlier in
@@ -117,17 +122,22 @@ export default function TodayScreen() {
         <View style={styles.header}>
           <ScreenTitle>{friendlyDate(selectedDate)}</ScreenTitle>
           <Pressable
-            onPress={() => router.push('/debug/tokens')}
-            onLongPress={() => router.push('/debug/tokens')}
+            onPress={() => setCalendarOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Design tokens"
-            style={styles.debugDot}
-          />
+            accessibilityLabel="Open meal history calendar"
+            style={({ pressed }) => [
+              styles.calendarButton,
+              pressed && { opacity: opacity.pressed },
+            ]}
+          >
+            <Feather name="calendar" size={20} color={color.ink} />
+          </Pressable>
         </View>
 
         <DateStrip
           selectedDate={selectedDate}
-          loggedDates={loggedDates}
+          loggedDates={loggedDateSet}
+          earliestLoggedDate={earliestLoggedDate}
           onSelect={(date) => void selectDate(date)}
         />
 
@@ -159,7 +169,7 @@ export default function TodayScreen() {
           meals={meals}
           targetCalories={targetCalories}
           highlightMealId={highlightMealId}
-          onSelectMeal={(mealId) => scrollToMeal(mealId)}
+          onSelectMeal={(mealId) => router.push(`/meal/${mealId}`)}
         />
 
         {target ? (
@@ -220,7 +230,7 @@ export default function TodayScreen() {
                   <MealRow
                     meal={meal}
                     onDelete={onDelete}
-                    onPress={() => scrollToMeal(meal.id)}
+                    onPress={(mealId) => router.push(`/meal/${mealId}`)}
                   />
                 </View>
               ))}
@@ -235,14 +245,19 @@ export default function TodayScreen() {
           onSecondary={() => router.push('/manual')}
         />
       </View>
+
+      <HistoryCalendarSheet
+        visible={calendarOpen}
+        selectedDate={selectedDate}
+        earliestLoggedDate={earliestLoggedDate}
+        loggedDates={loggedDateSet}
+        loadSummaries={loadMonthSummaries}
+        onSelect={(date) => void selectDate(date)}
+        onClose={() => setCalendarOpen(false)}
+      />
     </View>
   );
 }
-
-// The rail's tap-to-meal is a nicety; a full scroll-to would need row layout
-// measurement. For now, selecting a segment is acknowledged silently — the row
-// list is short enough to be on screen already.
-function scrollToMeal(_mealId: string): void {}
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ground },
@@ -255,11 +270,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  debugDot: {
-    width: 12,
-    height: 12,
-    borderRadius: radius.full,
-    backgroundColor: color.line,
+  calendarButton: {
+    width: layout.minTouchTarget,
+    height: layout.minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.input,
   },
   hero: { alignItems: 'center', gap: space.xs },
   macros: {},

@@ -94,6 +94,7 @@ export default function RootLayout() {
             />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="meal/[id]" />
             <Stack.Screen name="match-queue" options={{ presentation: 'modal' }} />
             <Stack.Screen name="locations" options={{ presentation: 'modal' }} />
             <Stack.Screen name="merge-canonicals" options={{ presentation: 'modal' }} />
