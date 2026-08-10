@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
   buildDishScoreContext,
+  decorateSuggestionForDisplay,
   scoreDish,
   selectDisplayed,
   type DishScoreContext,
@@ -195,6 +196,26 @@ describe('scoreDish and selectDisplayed — purity (4.8)', () => {
     const first = selectDisplayed(wellStockedAsianPantryPool, ctx, 3).map((s) => s.dish);
     const second = selectDisplayed(wellStockedAsianPantryPool, ctx, 3).map((s) => s.dish);
     expect(second).toEqual(first);
+  });
+});
+
+describe('template display decoration', () => {
+  test('quick adds a factual time cue and lighter portions never turn unknown calories into a recommendation', () => {
+    const base = dish({
+      dish: 'Quick dish', uses: [{ canonicalId: 'untracked', qty: 1, unit: 'g' }], effortMinutes: 20, kcalPerServing: 900,
+    });
+    const quickContext: DishScoreContext = {
+      stockIndex: new Map(), remainingCalories: 400,
+      personalisation: { cuisineLean: null, topCuisine: null, frequentDishes: [], recentlyEaten: [] },
+      dislikedCanonicalIds: new Set(),
+      tonightPreference: { baseIntent: 'lighter_portions', prepSpeed: 'quick', source: 'saved' },
+    };
+    const decorated = decorateSuggestionForDisplay(base, quickContext);
+    expect(decorated.reasons.map((reason) => reason.label)).toContain('About 20 minutes of active time');
+    expect(decorated.portionRecommendation).toMatchObject({ servings: expect.any(Number) });
+
+    const unavailable = decorateSuggestionForDisplay(base, { ...quickContext, remainingCalories: null });
+    expect(unavailable.portionRecommendation).toBeNull();
   });
 });
 

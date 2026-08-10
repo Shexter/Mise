@@ -48,10 +48,10 @@ export function mealToDraft(meal: MealWithItems): MealEditDraft {
       name: item.name,
       quantity: String(item.quantity),
       unit: item.unit,
-      calories: String(item.calories),
-      proteinG: String(item.proteinG),
-      carbsG: String(item.carbsG),
-      fatG: String(item.fatG),
+      calories: item.calories === null ? '' : String(item.calories),
+      proteinG: item.proteinG === null ? '' : String(item.proteinG),
+      carbsG: item.carbsG === null ? '' : String(item.carbsG),
+      fatG: item.fatG === null ? '' : String(item.fatG),
       isManualAddition: item.isManualAddition,
       canonicalId: item.canonicalId,
     })),
@@ -83,8 +83,8 @@ export function validateMealDraft(draft: MealEditDraft): MealEditErrors {
     }
     for (const key of ['calories', 'proteinG', 'carbsG', 'fatG'] as const) {
       const value = finite(item[key]);
-      if (value === null || value < 0) {
-        fields[key] = 'Enter zero or a positive number.';
+      if (value !== null && value < 0) {
+        fields[key] = 'Enter zero or a positive number, or leave it unknown.';
       }
     }
     if (Object.keys(fields).length > 0) errors.itemFields[item.id] = fields;
@@ -113,10 +113,10 @@ export function normaliseMealDraft(draft: MealEditDraft): MealWithItems {
     name: item.name.trim(),
     quantity: finite(item.quantity) ?? 0,
     unit: item.unit,
-    calories: finite(item.calories) ?? 0,
-    proteinG: finite(item.proteinG) ?? 0,
-    carbsG: finite(item.carbsG) ?? 0,
-    fatG: finite(item.fatG) ?? 0,
+    calories: finite(item.calories),
+    proteinG: finite(item.proteinG),
+    carbsG: finite(item.carbsG),
+    fatG: finite(item.fatG),
     isManualAddition: item.isManualAddition,
     sortOrder,
     canonicalId: item.canonicalId,

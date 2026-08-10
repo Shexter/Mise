@@ -107,11 +107,11 @@ export interface MealItem {
   quantity: number;
   unit: MeasureUnit;
   /** Calories for the whole row, i.e. already multiplied by `quantity`. */
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
-  /** Null when this item predates fibre tracking or its estimate omitted it. */
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  /** Null when this item predates tracking or its estimate omitted it. */
   fibreG?: number | null;
   isManualAddition: boolean;
   sortOrder: number;
@@ -145,10 +145,10 @@ export interface MealWithItems extends Meal {
 }
 
 export interface Macros {
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   fibreG?: number | null;
 }
 
@@ -164,7 +164,8 @@ export interface DailyTarget {
 /** One logged day's calendar summary. Missing days have no object at all. */
 export interface DaySummary {
   localDate: string;
-  calories: number;
+  /** Null when any logged meal on the day has unknown calories. */
+  calories: number | null;
   /** The target snapshotted for that day; null means no comparison is honest. */
   targetCalories: number | null;
 }
@@ -523,11 +524,30 @@ export type SuggestionReasonKind =
   | 'clears_stock'
   | 'saves_value'
   | 'fits_calories'
-  | 'matches_history';
+  | 'matches_history'
+  | 'matches_template';
 
 export interface SuggestionReason {
   kind: SuggestionReasonKind;
   /** Rendered text, e.g. "saves $8 of stock". */
+  label: string;
+}
+
+/**
+ * An optional provider estimate for the completed dish, expressed per serving.
+ * It is never ingredient-level catalogue data and stays labelled as an estimate.
+ */
+export interface SuggestionNutritionEstimate {
+  calories: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  source: 'provider';
+}
+
+/** A visible serving adjustment derived locally, never a nutrition target. */
+export interface SuggestionPortionRecommendation {
+  servings: number;
   label: string;
 }
 
@@ -541,12 +561,61 @@ export interface Suggestion {
   uses: SuggestionUse[];
   missing: SuggestionMissing[];
   method: string[];
+  /** Absent on cached suggestions created before macro-gap estimates shipped. */
+  estimatedNutritionPerServing?: SuggestionNutritionEstimate | null;
+  /** Derived locally for the displayed set; never sent back to a provider. */
+  portionRecommendation?: SuggestionPortionRecommendation | null;
 }
 
 /** The objective a generated set was produced for. */
-export type SuggestionMode = 'tonight' | 'stretch';
+export type SuggestionMode = 'tonight' | 'stretch' | 'macro_gap';
 
-export const SUGGESTION_MODES: readonly SuggestionMode[] = ['tonight', 'stretch'];
+export const SUGGESTION_MODES: readonly SuggestionMode[] = ['tonight', 'stretch', 'macro_gap'];
+export type SuggestionTargetMacro = 'protein' | 'carbs' | 'fat';
+
+/** A durable, fixed dinner intent. It is not a request mode. */
+export type SuggestionBaseIntent =
+  | 'balanced'
+  | 'use_it_up'
+  | 'protein_forward'
+  | 'lighter_portions'
+  | 'familiar_favourites';
+
+export const SUGGESTION_BASE_INTENTS: readonly SuggestionBaseIntent[] = [
+  'balanced',
+  'use_it_up',
+  'protein_forward',
+  'lighter_portions',
+  'familiar_favourites',
+];
+
+/** An optional time preference that composes with a base intent. */
+export type SuggestionPrepSpeed = 'standard' | 'quick';
+
+export const SUGGESTION_PREP_SPEEDS: readonly SuggestionPrepSpeed[] = ['standard', 'quick'];
+
+export type SuggestionPreferenceSource = 'saved' | 'profile_default';
+
+/** The resolved preference a tonight request actually uses. */
+export interface TonightSuggestionPreference {
+  baseIntent: SuggestionBaseIntent;
+  prepSpeed: SuggestionPrepSpeed;
+  source: SuggestionPreferenceSource;
+}
+
+/** The durable choice, deliberately separate from the profile. */
+export interface SavedSuggestionPreference {
+  baseIntent: SuggestionBaseIntent;
+  prepSpeed: SuggestionPrepSpeed;
+  updatedAt: string;
+}
+
+/** The locally defensible macro-gap facts that framed a generated set. */
+export interface MacroGapContext {
+  shortfallG: number;
+  bestAchievableG: number;
+  partialCoverage: boolean;
+}
 
 /** "Make it to Sunday": a plan rather than three independent dishes. */
 export interface StretchPlan {
@@ -561,6 +630,12 @@ export interface SuggestionSet {
   id: string;
   localDate: string;
   mode: SuggestionMode;
+  /** Required only for the independently cached macro-gap request. */
+  targetMacro: SuggestionTargetMacro | null;
+  /** Null for tonight/stretch and cache rows written before macro-gap support. */
+  macroGapContext: MacroGapContext | null;
+  /** Present only for a tonight request. */
+  tonightPreference: TonightSuggestionPreference | null;
   fingerprint: string;
   /** The displayed set — `dishScore.ts`'s top picks from `pool`, in scored order. */
   suggestions: Suggestion[];
@@ -723,6 +798,20 @@ export interface ReceiptLine {
 
 export interface ReceiptWithLines extends Receipt {
   lines: ReceiptLine[];
+}
+
+/** One durable photograph contributing to a receipt draft. */
+export type ReceiptFrameStatus = 'pending' | 'extracted' | 'failed';
+
+export interface ReceiptFrame {
+  id: string;
+  receiptId: string;
+  imageUri: string;
+  sortOrder: number;
+  status: ReceiptFrameStatus;
+  lastErrorKind: string | null;
+  createdAt: string;
+  extractedAt: string | null;
 }
 
 /** A camera image retained until it can be interpreted and reviewed. */

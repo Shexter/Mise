@@ -1,15 +1,16 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Caption, SectionLabel } from '@/components/Type';
 import { color, macroColor, radius, space } from '@/constants/theme';
 import { formatGrams } from '@/logic/scaling';
-import type { Macros } from '@/types';
+import type { Macros, SuggestionTargetMacro } from '@/types';
 
 interface Props {
   consumed: Macros;
   targetProteinG: number;
   targetCarbsG: number;
   targetFatG: number;
+  onRequest?: (macro: SuggestionTargetMacro) => void;
 }
 
 export function MacroBars({
@@ -17,6 +18,7 @@ export function MacroBars({
   targetProteinG,
   targetCarbsG,
   targetFatG,
+  onRequest,
 }: Props) {
   return (
     <View style={styles.group}>
@@ -25,18 +27,24 @@ export function MacroBars({
         consumed={consumed.proteinG}
         target={targetProteinG}
         fill={macroColor.protein}
+        macro="protein"
+        onRequest={onRequest}
       />
       <MacroBar
         label="Carbs"
         consumed={consumed.carbsG}
         target={targetCarbsG}
         fill={macroColor.carbs}
+        macro="carbs"
+        onRequest={onRequest}
       />
       <MacroBar
         label="Fat"
         consumed={consumed.fatG}
         target={targetFatG}
         fill={macroColor.fat}
+        macro="fat"
+        onRequest={onRequest}
       />
     </View>
   );
@@ -44,21 +52,27 @@ export function MacroBars({
 
 interface BarProps {
   label: string;
-  consumed: number;
+  consumed: number | null;
   target: number;
   fill: string;
+  macro: SuggestionTargetMacro;
+  onRequest?: (macro: SuggestionTargetMacro) => void;
 }
 
-function MacroBar({ label, consumed, target, fill }: BarProps) {
-  const ratio = target > 0 ? Math.min(1, consumed / target) : 0;
+function MacroBar({ label, consumed, target, fill, macro, onRequest }: BarProps) {
+  const ratio = consumed === null || target <= 0 ? 0 : Math.min(1, consumed / target);
+  const shortfall = consumed === null ? null : Math.max(0, target - consumed);
+  const canRequest = onRequest && shortfall !== null && shortfall > 0;
 
   return (
-    <View
+    <Pressable
+      disabled={!canRequest}
+      onPress={() => onRequest?.(macro)}
       accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel={`${label}, ${formatGrams(consumed)} of ${formatGrams(
-        target,
-      )} grams`}
+      accessibilityRole={canRequest ? 'button' : 'progressbar'}
+      accessibilityLabel={consumed === null
+        ? `${label} is unavailable because one or more meal values are unknown.`
+        : `${label}, ${formatGrams(consumed)} of ${formatGrams(target)} grams${canRequest ? `, get ideas for ${formatGrams(shortfall)} grams remaining` : ''}`}
     >
       <View style={styles.header}>
         <SectionLabel muted>{label}</SectionLabel>
@@ -74,7 +88,7 @@ function MacroBar({ label, consumed, target, fill }: BarProps) {
           ]}
         />
       </View>
-    </View>
+    </Pressable>
   );
 }
 

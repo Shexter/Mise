@@ -1,213 +1,178 @@
 ## Context
 
-See `proposal.md` — Why, plus its two closing sections: why a template is a bias
-rather than a promise, and why no template may switch off the use-first
-constraint.
+See `proposal.md` for motivation. The current engine has three intentionally
+different request modes: `tonight`, `stretch`, and `macro_gap`.
+`src/logic/suggestionService.ts` owns stock loading, cache reuse, provider
+generation, dietary filtering, and the cook-this route. `src/logic/dishScore.ts`
+locally selects a varied displayed set from a provider candidate pool. The
+macro-gap mode additionally carries a targeted macro and nullable nutrition
+context; it must remain macro-first. `app/dinner.tsx` already exposes tonight
+and stretch as a segmented control and enters macro-gap from the macro bars.
 
-What exists today: `Profile.goal` is `'lose' | 'maintain' | 'gain'`, collected at
-onboarding, read by `energyTargets` in `src/logic/bmr.ts` and nowhere else.
-`docs/dinner-decision.md`'s output contract already carries `effort_minutes` and
-notes that it is "worth a quick/proper toggle on the screen" — nothing reads it.
-`add-macro-gap-suggestions` established that the engine takes an objective and
-that the cache is keyed by it.
-
-What does not exist: `src/logic/suggest.ts`, `src/api/suggestPrompt.ts`, and the
-dinner decision surface are all planned and unimplemented. This change specifies
-their shape rather than retrofitting them.
+`suggestion_cache` is currently keyed by date, mode, and target macro. Cache
+data is disposable. `Profile.goal` is a durable nutritional preference; it must
+not be used as a write target for a one-evening dinner preference.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- The user states their objective once, or never, and gets suggestions shaped by
-  it.
-- Adding a template is a table entry, not a feature.
-- Nothing about templates weakens the constraints that make the feature more
-  than a chatbot.
+- Make the tonight answer meaningfully personal with no mandatory new decision.
+- Let time compose with the user's dinner intent without multiplying screens or
+  creating a second suggestion engine.
+- Make selection explainable, testable, locally safe, and cache-correct.
+- Preserve explicit unknown nutrition as `null` end-to-end.
 
 **Non-Goals:**
 
-- Diet plans, outcome claims, per-template targets, filtering, a template
-  editor, stacking, new model calls. See the proposal.
+- Changing the semantics, UI, prompt contract, or cache identity of stretch and
+  macro-gap requests.
+- A nutrition coach, a weekly meal plan, user-authored scoring, or a clinical
+  outcome claim.
 
 ## Decisions
 
-### The template set
+### Modes and preference context are separate layers
 
-Six, chosen to cover distinct questions rather than to be comprehensive:
+`SuggestionMode` remains the job being requested:
 
-| Template | The question it answers |
-|---|---|
-| `use_it_up` | What clears the most food that is about to go off? |
-| `lean` | What is filling and protein-forward for its calories? |
-| `strength` | What gets the most protein in, calories welcome? |
-| `balanced` | What should I cook? (the neutral default) |
-| `quick` | What can I make in twenty minutes? |
-| `stretch` | What gets me to Sunday without shopping? |
+| Mode | Job | Template context |
+| --- | --- | --- |
+| `tonight` | Pick a few dinners for now | Required after resolution |
+| `stretch` | Produce a no-shopping multi-dinner plan | Not applicable |
+| `macro_gap` | Contribute to a selected macro shortfall | Not applicable |
 
-*Why these six:* each changes the answer for the same kitchen. A seventh that
-reorders nothing is a label, and labels that do nothing are how a picker becomes
-noise.
-
-*Why `use_it_up` is on the list at all,* given that every template must already
-use expiring stock: the constraint says *at least one* item. `use_it_up` makes
-clearing the maximum value at risk the whole objective rather than a floor. It is
-the product's native question, and having it selectable is what lets the other
-templates be honestly about something else.
-
-*Why `quick` sits alongside the nutrition ones* despite being a different axis:
-because it is the question people actually have on a Tuesday, and because
-`effort_minutes` is already in the output contract. Mixing axes in one picker is
-the cost, and it is the open question below.
-
-*Why `stretch` moves here:* `add-dinner-decision` planned "make it to Sunday" as
-its own mode. It is an objective over the same engine, which is exactly what a
-template is. One surface, one control, one less concept.
-
-### The scorer this change was written against does not exist
-
-Corrected after `add-dinner-decision` shipped. `src/logic/suggest.ts` exports
-`urgency`, `bucketStock`, `shapeStockPayload`, `summarisePersonalisation` and
-`computeFingerprint`. Every one of those ranks or shapes **stock items** for the
-payload. Nothing sorts the returned dishes — the model's order is the order the
-user sees.
-
-So "a template is a weight vector over the existing scorer" describes a scorer
-that was never built, and decision 124 is wrong as recorded. What is actually
-available to a template is three levers, all real:
-
-- **Payload shaping** — which stock reaches the model, in what detail, and with
-  what summary. `shapeStockPayload` already makes these choices and they are
-  where `use_it_up` and `stretch` genuinely live.
-- **Prompt framing** — one sentence of objective, which is what `lean`,
-  `strength` and `quick` mostly are.
-- **Portion policy** — post-parse, local, and the correct home for the calorie
-  dimension for the reason argued below.
-
-That is a weaker mechanism than a weight vector and it is honest. Whether this
-change should also build the missing dish scorer is a real question and a much
-larger one; it should not be answered as a side effect of adding templates, for
-the same reason `add-dietary-profile` declined to build it to hold one dislike
-weight.
-
-### A template is a weight vector, not a code path
-
-`src/logic/templates.ts`, pure:
+Only a `tonight` request receives:
 
 ```
-TEMPLATES: Record<TemplateId, Template>
-Template = { weights, portionPolicy, framing, reasonKinds }
-defaultTemplate(goal): TemplateId
+TonightPreference = {
+  baseIntent: 'balanced' | 'use_it_up' | 'protein_forward' |
+              'lighter_portions' | 'familiar_favourites',
+  prepSpeed: 'standard' | 'quick',
+  source: 'saved' | 'profile_default'
+}
 ```
 
-The scorer reads weights from the active template. It does not branch on which
-one is active.
+This prevents a macro request from silently becoming a protein-template request
+and prevents a multi-dinner plan from inheriting a one-night preference. The
+alternative — folding stretch and macro-gap into a single objective enum — was
+rejected because they have distinct payloads, output shapes, cache semantics,
+and user entry points.
 
-*Why:* a template that can run its own logic will, and six code paths through the
-ranker is six places for the use-first constraint to be forgotten. A weight
-vector cannot forget a constraint, because the constraint is not in the weights.
+### A base intent and prep-speed compose, but only two controlled axes
 
-*Why the facts are shared:* every template weights the same inputs — urgency,
-value at risk, familiarity, effort, macro fit. A template that introduced a
-private input would make its results incomparable and its bugs unreproducible
-under any other template.
+The base intent answers *what trade-off matters tonight*:
 
-### Portion is how a template expresses calories
+| Base intent | Selection bias | Copy boundary |
+| --- | --- | --- |
+| `balanced` | Retains the existing neutral balance | "A balanced starting point" |
+| `use_it_up` | Raises value-at-risk and expiry pressure | "Puts what needs using first" |
+| `protein_forward` | Prefers available, labelled protein evidence | "Leans toward protein-forward ideas" |
+| `lighter_portions` | Prefers calorie fit and a smaller visible portion | "Sizes portions against today" |
+| `familiar_favourites` | Raises history and cuisine familiarity | "Leans toward what you cook" |
 
-Decision 36 says calories inform and never filter, and `add-dinner-decision`
-already specifies that an overshooting dish is offered at a smaller portion.
-`lean` and `strength` push on *that* dial: `lean` sizes toward the remaining
-allowance, `strength` sizes up and allows the overshoot.
+`quick` is not a competing base intent. It is the `prepSpeed` modifier that
+raises the effort term and adds a short provider instruction. This lets a user
+choose, for example, protein-forward + quick without accepting unlimited,
+unexplainable combinations. There are no other stacking controls.
 
-*Why this rather than a calorie weight:* weighting dishes by calories would
-quietly become the filter decision 36 rejected — a low enough weight on a high
-enough calorie count is exclusion with extra steps. Portion keeps every dish
-reachable and puts the adjustment where the user can see and change it.
+### Policies are pure, data-driven, and conservative about unknowns
 
-### The default comes from `goal`, and the choice never writes back
+`src/logic/suggestionTemplates.ts` will export a closed policy table and
+helpers. Each base policy contains named score-weight multipliers, a portion
+policy, prompt framing, accessible label/description, and a reason policy. The
+speed policy supplies only the effort multiplier and prompt framing. No scorer
+branch tests an id; it reads the resolved policy.
 
-`defaultTemplate(goal)`: `lose → lean`, `gain → strength`, `maintain →
-balanced`.
+The existing dish facts remain shared: value at risk, expiry pressure, effort,
+calorie fit, familiarity, recency, and disliked-ingredient penalty. A
+template-specific nutrition term is allowed only where the existing suggestion
+contains a labelled whole-dish estimate. Missing nutrition supplies a neutral
+term, never a zero, penalty, or exclusion. The macro-gap local assessment
+remains the sole macro-first eligibility calculation.
 
-*Why default from it:* the user already answered this question at onboarding.
-Asking again is asking twice, and the whole argument for templates is that the
-objective should be stated once or never.
+### Defaults are recommendations; explicit choices win until reset
 
-*Why the choice must not write back:* picking `strength` for one dinner because
-there is a lot of chicken to use is not a decision to gain weight, and
-`profileStore.update` recalculates `targetCalories` through `energyTargets` on
-every write. A per-meal choice silently moving the user's calorie target would be
-a serious and invisible bug — the two concepts touch at exactly one point and
-must not touch anywhere else.
+`defaultBaseIntent(goal)` maps `lose` to `lighter_portions`, `gain` to
+`protein_forward`, and `maintain` to `balanced`. A durable explicit choice is
+stored in a one-row local `suggestion_preferences` table with the selected base
+intent and prep speed. On resolution, that explicit choice wins; otherwise the
+profile maps to a recommendation and `standard` prep speed.
 
-*Why the last choice is remembered anyway:* remembering a selection is not the
-same as editing a profile. It lives with the suggestion state.
+Changing the profile goal updates the displayed recommendation but does not
+overwrite an explicit choice. "Use recommended" clears the stored selection.
+This is intentional: profile edits are long-term, while an explicit dinner
+preference should not vanish as a side effect. Neither path writes `profile`.
 
-### Templates rank; dietary rules exclude; the order is fixed
+### Selection, portions, and reasons use a strict precedence order
 
-Exclusion runs first, ranking second.
+1. Provider prompt and local validation enforce dietary and canonical-id rules.
+2. Local dietary exclusion removes hard exclusions.
+3. The existing use-first constraint is checked; any candidate that misses it
+   remains excluded, independently of policy weights.
+4. The policy scores the surviving pool and the variety selector chooses the
+   displayed set.
+5. A visible portion recommendation is derived only from known calories and
+   remaining allowance. It never hides a dish; unavailable data yields no
+   recommendation.
+6. A locally generated explanatory cue is shown only if its condition is
+   defensible (for example, an effort value under the quick threshold). Existing
+   stock and dietary reason chips are retained.
 
-*Why stated explicitly:* the two features both "affect which suggestions appear"
-and it would be easy to implement them as one pass. They are not the same kind
-of thing — decision 103 makes exclusion a local, deterministic guarantee, and a
-template is a preference. Running them together risks a weight ever being able to
-outrank an exclusion, which must never happen.
+This preserves decisions 34 and 36. It also makes the feature auditable: a
+policy can change order but cannot reach a hard gate.
 
-### The cache key gains the template
+### Prompt and cache use the resolved context, not label text
 
-`add-macro-gap-suggestions` already requires that a cached set is not reused
-across objectives. Templates make the objective a small enumerated value, so the
-key is a column rather than a hash of a payload.
+The provider sees a short, factual base-intent sentence and optional speed
+sentence only for `tonight`; raw UI copy is not interpolated into the prompt.
+The cache stores enum values `template_id` and `prep_speed`. Query, deletion,
+and index predicates use all of `(local_date, mode, target_macro,
+template_id, prep_speed)`. Non-tonight rows store both new columns as `NULL`.
 
-*Cost, stated plainly:* decision 40 caches daily to avoid spending money on every
-tab open. Six templates means up to six generations a day for a user who tries
-them all. Mitigation is that the default is right for most people and the picker
-is not the primary control — but this is a real cost and the tasks measure it
-rather than assuming.
+The migration appends to `MIGRATIONS`, creates `suggestion_preferences`, adds
+the two nullable cache columns and index, and clears existing cache rows. A
+cache is a performance artifact, so clearing it is safer than assigning old
+generic rows a potentially misleading preference identity. `DROP_ALL` already
+covers `suggestion_cache`; it must be extended for the new preferences table.
+
+### The surface is progressive, not a configuration screen
+
+The existing mode control remains. Tonight displays the resolved concise summary
+and a secondary “Tune dinner” affordance. Its sheet contains base-intent cards,
+a two-option prep-speed control, short non-outcome descriptions, and “Use
+recommended.” It announces selection changes accessibly and reloads through the
+cache-aware service. The sheet is absent in stretch and macro-gap modes.
 
 ## Risks / Trade-offs
 
-**A picker turns a one-tap screen into a decision** → the thing this feature
-exists to remove. Mitigation: the default is correct without input, the control
-is secondary to the suggestions, and no template is required to be chosen.
+**More controls can create decision fatigue** → the recommended context works
+without interaction; tuning is collapsed and has only two axes.
 
-**Named templates read as health advice** → `lean` and `strength` especially.
-Mitigation is a spec requirement and a copy audit, following decision 108's
-approach for dietary language: describe the bias, never the outcome, and test the
-strings.
+**Provider candidates may not contain enough nutrition evidence** → missing
+evidence is neutral; it does not fabricate a nutrition ranking claim.
 
-**Six templates multiply the cost of a day's suggestions** → measured, not
-assumed. If it is bad, the fix is a shared payload with a cheaper re-rank, which
-the weight-vector design already allows.
+**Cache combinations increase provider cost** → cache exact combinations,
+surface cache origin, and measure distinct combinations in owner testing before
+changing the policy set.
 
-**`quick` and the nutrition templates are different axes** → a user wanting a
-quick high-protein dinner cannot say so. Real, chosen, and the open question.
+**A saved preference can become stale after a goal edit** → show the current
+recommendation and provide an explicit reset rather than silently replacing the
+person's choice.
 
-**A template makes the suggestions worse** → a strong weight on one fact
-produces monotonous results, which is the failure `add-dinner-decision` already
-names. Mitigation: the weights are tuned against the fixture corpus that change
-already requires, and per-template variety is measured.
+**Policy tuning can create repetitive results** → use the existing varied
+selection mechanism and fixture tests that assert both meaningful ordering and
+variety across intents.
 
 ## Migration Plan
 
-One forward-only migration: the template on the suggestion cache key, and the
-remembered last choice. `profile` is untouched, so no existing row changes and
-every existing user gets a correct default from the goal they already recorded.
-
-`DROP_ALL` gains nothing new if the cache table is already covered; confirm
-rather than assume.
-
-Rollback is to the single implicit objective, which is `balanced`.
+1. Append the migration and cover old/new database upgrade tests.
+2. Ship with a profile-derived recommendation when no preference exists.
+3. Delete old cache rows during migration; regeneration remains demand-driven.
+4. Roll back by ignoring preference context and using the existing neutral
+   scorer. Persisted preferences and cache columns are harmless forward data.
 
 ## Open Questions
 
-- **Whether `quick` should be a separate toggle rather than a template.** It is
-  orthogonal to the nutrition templates, and one active template means a user
-  cannot ask for quick *and* protein-forward. A second control is more
-  expressive and is one more thing on a screen whose whole point is to answer a
-  question rather than ask one. Deliberately deferred until there is a real
-  screen to judge it on.
-- **Whether `stretch` belongs in the same picker.** It answers a weekly question
-  from a screen that answers a nightly one. Same engine, different cadence.
-- **The weight values.** Every one is a named constant tuned against the fixture
-  corpus, and none of them changes an interface.
+None. The initial policy weights and quick threshold are named tunables covered
+by fixture and owner-app evaluation; changing them does not alter this approach.

@@ -57,7 +57,7 @@ The handler nothing else in the queue owns.
 - [x] 5.1 Build one Add to pantry screen on `CameraView`, following
       `app/capture.tsx`'s conventions. Tokens from `src/constants/theme.ts`, no
       literals.
-- [ ] 5.2 Enable native barcode detection alongside stills, so a code in frame
+- [x] 5.2 Enable native barcode detection alongside stills, so a code in frame
       resolves without the user doing anything different.
 - [x] 5.3 Offer no choice of input method anywhere on the surface.
 - [x] 5.4 Keep manual entry reachable, as the path needing no key, connection, or
@@ -67,9 +67,9 @@ The handler nothing else in the queue owns.
 
 ## 6. Review before write
 
-- [ ] 6.1 Route each destination to its review surface — receipt drafts to
+- [x] 6.1 Route each destination to its review surface — receipt drafts to
       receipt review, items to item review, and products to product confirmation.
-- [ ] 6.2 Confirm no path writes a pantry item or stock change before the user
+- [x] 6.2 Confirm no path writes a pantry item or stock change before the user
       accepts. A receipt draft may be persisted before review and is removed if
       the user discards it.
 - [x] 6.3 Confirm abandoning a capture leaves no trace.
@@ -82,7 +82,7 @@ The handler nothing else in the queue owns.
 - [x] 7.2 Report a capture containing nothing usable rather than inventing items.
 - [x] 7.3 Handle no-key and offline plainly: say so, retain the capture for
       later, leave manual entry working.
-- [ ] 7.4 Confirm a cached barcode resolves with no request at all.
+- [x] 7.4 Confirm a cached barcode resolves with no request at all.
 
 ## 7a. Receipts longer than a frame
 
@@ -91,24 +91,28 @@ photograph. The change currently assumes one capture is one thing, which holds
 for a barcode and a bag of onions and fails for the input the receipt path most
 wants — the big shop, which is also the one that fills a pantry.
 
-- [ ] 7a.1 Let further captures be added to the same receipt from the review
-      surface, showing what has been captured so far.
-- [ ] 7a.2 Send each frame for complete receipt-draft extraction and merge the
-      returned typed lines into one receipt, rather than asking the model to
-      stitch images.
-- [ ] 7a.3 De-duplicate across the overlap. People overlap deliberately to avoid
-      missing a line, so overlap is the normal case, not the error case. Match on
-      line text, price, and position rather than text alone — receipts repeat
-      items legitimately, and decision 111 says a repeat is two purchases.
-- [ ] 7a.4 Prefer the receipt's own printed total from whichever frame carries
-      the tail, and let decision 113's arithmetic check catch a merge that
-      dropped or duplicated a line. The check earns its keep here.
-- [ ] 7a.5 Allow a frame to be retaken or removed without losing the others.
-- [ ] 7a.6 Do not prompt for more frames when one sufficed. An extra step on
-      every small receipt to serve the occasional long one is the friction this
-      change exists to remove.
-- [ ] 7a.7 Add a two-frame and a three-frame receipt to the fixtures, one pair
-      with deliberate overlap.
+- [x] 7a.1 Append a forward-only migration for `receipt_frames` and
+      `receipt_frame_lines`. Store each frame URI, order, extraction state, and
+      extracted fields with a frame-local position. Preserve existing
+      single-frame receipts and extend `DROP_ALL` plus media deletion.
+- [x] 7a.2 Refactor `receiptService` so a new receipt creates its first frame,
+      each later frame is retained before extraction, and any failed frame can
+      retry independently without recapturing the others.
+- [x] 7a.3 Add the receipt-review frame strip and its explicit **Add another
+      photo** action. Show retained frames, but never prompt for another one
+      when a single frame suffices.
+- [x] 7a.4 Rebuild one reviewable receipt from the extracted frames in one
+      transaction. De-duplicate only adjacent-frame edge lines matching on
+      normalised text, price, and position; preserve legitimate repeated
+      purchases under decision 111.
+- [x] 7a.5 Take header totals from the latest captured frame that reports them,
+      so the tail supplies the printed arithmetic check under decision 113.
+- [ ] 7a.6 Allow an unedited frame to be retaken or removed without losing the
+      others. Once a line is manually edited, excluded, reclassified, or matched,
+      block further frame changes rather than overwrite that correction.
+- [ ] 7a.7 Add two-frame and three-frame receipt fixtures, including deliberate
+      overlap, identical legitimate purchases, a tail-only total, frame retry,
+      removal, and retake cases.
 
 ## 7b. The pending queue
 

@@ -14,10 +14,10 @@ export function scaleItemQuantity(item: MealItem, nextQuantity: number): MealIte
   return {
     ...item,
     quantity: nextQuantity,
-    calories: item.calories * factor,
-    proteinG: item.proteinG * factor,
-    carbsG: item.carbsG * factor,
-    fatG: item.fatG * factor,
+    calories: item.calories === null ? null : item.calories * factor,
+    proteinG: item.proteinG === null ? null : item.proteinG * factor,
+    carbsG: item.carbsG === null ? null : item.carbsG * factor,
+    fatG: item.fatG === null ? null : item.fatG * factor,
     fibreG: item.fibreG == null ? null : item.fibreG * factor,
   };
 }
@@ -44,16 +44,23 @@ export function macrosOfMeals(meals: readonly MealWithItems[]): Macros {
 }
 
 /** Display rounding: calories to integers, macro grams to one decimal. */
-export function roundCalories(value: number): number {
-  return Math.round(value);
+export function roundCalories(value: number): number;
+export function roundCalories(value: null): null;
+export function roundCalories(value: number | null): number | null;
+export function roundCalories(value: number | null): number | null {
+  return value === null ? null : Math.round(value);
 }
 
-export function roundGrams(value: number): number {
-  return Math.round(value * 10) / 10;
+export function roundGrams(value: number): number;
+export function roundGrams(value: null): null;
+export function roundGrams(value: number | null): number | null;
+export function roundGrams(value: number | null): number | null {
+  return value === null ? null : Math.round(value * 10) / 10;
 }
 
-export function formatGrams(value: number): string {
+export function formatGrams(value: number | null): string {
   const rounded = roundGrams(value);
+  if (rounded === null) return '—';
   return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
 }
 

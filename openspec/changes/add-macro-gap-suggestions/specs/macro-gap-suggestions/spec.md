@@ -42,6 +42,57 @@ where it discloses something as missing.
 - **WHEN** a suggestion is requested
 - **THEN** no suggestion is fabricated from ingredients the user does not have
 
+### Requirement: Macro contributions use only known catalogue nutrition
+
+The system SHALL calculate and state a macro contribution only for stock whose
+catalogue nutrition for that macro is known. Missing nutrition MUST remain
+unknown and MUST NOT be treated as zero or inferred from another ingredient.
+
+#### Scenario: Unknown nutrition is not a false non-contributor
+
+- **GIVEN** stock with no known protein nutrition
+- **WHEN** the user requests a protein-gap suggestion
+- **THEN** that stock is not described as contributing zero protein
+
+#### Scenario: Insufficient measured coverage is stated plainly
+
+- **GIVEN** no owned ingredient has known nutrition for the targeted macro
+- **WHEN** the user requests a suggestion
+- **THEN** the system states that it cannot calculate a pantry contribution from current catalogue data
+
+### Requirement: Recipe estimates are explicit fallback data
+
+The system SHALL prefer local canonical nutrition for known ingredients and
+quantities. A provider estimate MAY fill recipe-level uncertainty only when it
+is returned in the same suggestion request, and the interface MUST label it as
+an estimate.
+
+#### Scenario: Known canonical data takes precedence
+
+- **GIVEN** a suggestion whose used ingredients have known canonical nutrition
+- **WHEN** the user records cooking it
+- **THEN** the stored meal nutrition uses the local calculation
+
+#### Scenario: An estimate does not require a second request
+
+- **GIVEN** a suggestion with incomplete catalogue nutrition
+- **WHEN** the user records cooking it
+- **THEN** the app uses any estimate returned with that suggestion and makes no new provider request
+
+#### Scenario: An unresolved recipe nutrient remains unknown
+
+- **GIVEN** a suggestion has an ingredient whose nutrition cannot be calculated
+  and its initial response omits the whole-dish estimate
+- **WHEN** the user records cooking it
+- **THEN** the meal and pantry depletion are recorded
+- **AND** the unresolved nutrient is stored and displayed as unknown, never zero
+
+#### Scenario: An unknown consumed total has no defensible macro gap
+
+- **GIVEN** the day's consumed total for a target macro is unknown
+- **WHEN** the user requests a suggestion for that macro
+- **THEN** the system states that it cannot calculate the gap from current meal data
+
 ### Requirement: The answer is scaled to the gap and the time of day
 
 The system SHALL size a suggestion to the shortfall and the hour, offering an
@@ -111,6 +162,12 @@ Where a suggestion closes part of the gap, the system SHALL state how much.
 
 - **WHEN** a suggestion closes part of the shortfall
 - **THEN** it is not described in terms implying the shortfall is met
+
+#### Scenario: Partial catalogue coverage remains qualified
+
+- **GIVEN** some owned ingredients lack nutrition for the targeted macro
+- **WHEN** a known-nutrition suggestion closes only part of the gap
+- **THEN** the stated contribution is qualified as the measurable pantry contribution
 
 ### Requirement: Suggestions are requested, never pushed
 

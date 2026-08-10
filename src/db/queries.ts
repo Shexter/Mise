@@ -7,6 +7,7 @@ import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
 import { localDateString } from '@/logic/dates';
+import { mergeReceiptFrameLines, type ReceiptFrameLineInput } from '@/logic/receiptFrames';
 import {
   canRecomputeExpiry,
   freezeExpiry,
@@ -23,8 +24,14 @@ import type {
   BarcodeMiss,
   Confidence,
   SuggestionMode,
+  SuggestionTargetMacro,
+  SuggestionBaseIntent,
+  SuggestionPrepSpeed,
+  SavedSuggestionPreference,
+  TonightSuggestionPreference,
   SuggestionSet,
   Suggestion,
+  MacroGapContext,
   StretchPlan,
   ConsumptionEvent,
   ConsumptionKind,
@@ -58,6 +65,7 @@ import type {
   ReceiptType,
   QuantityKind,
   ReceiptWithLines,
+  ReceiptFrame,
   ReferenceSource,
   SourceId,
   StockStatus,
@@ -130,10 +138,10 @@ interface MealItemRow {
   name: string;
   quantity: number;
   unit: string;
-  calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
   fibre_g: number | null;
   is_manual_addition: number;
   sort_order: number;
@@ -362,10 +370,10 @@ export interface NewMealItem {
   name: string;
   quantity: number;
   unit: MeasureUnit;
-  calories: number;
-  proteinG: number;
-  carbsG: number;
-  fatG: number;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   fibreG?: number | null;
   isManualAddition: boolean;
   /** Carried identity from a cooked suggestion (decision 61). Optional; every existing caller omits it and gets today's resolve-by-name behaviour. */
@@ -668,14 +676,14 @@ export async function getLoggedDates(): Promise<string[]> {
 
 interface DaySummaryRow {
   local_date: string;
-  calories: number;
+  calories: number | null;
   target_calories: number | null;
 }
 
 /**
  * One grouped read for the whole calendar range. Starting from `meals` makes
- * an unlogged day structurally absent; COALESCE applies only to a logged meal
- * whose item rows happen to total no calories.
+ * an unlogged day structurally absent. A single unknown calorie value makes
+ * the day's total unknown rather than letting SQL SUM silently skip it.
  */
 export async function getDaySummaries(
   from: string,
@@ -683,7 +691,10 @@ export async function getDaySummaries(
 ): Promise<DaySummary[]> {
   const rows = await db().getAllAsync<DaySummaryRow>(
     `SELECT m.local_date,
-            COALESCE(SUM(mi.calories), 0) AS calories,
+            CASE
+              WHEN COUNT(mi.id) > COUNT(mi.calories) THEN NULL
+              ELSE COALESCE(SUM(mi.calories), 0)
+            END AS calories,
             dt.target_calories
        FROM meals m
        LEFT JOIN meal_items mi ON mi.meal_id = m.id
@@ -2315,9 +2326,55 @@ interface SuggestionCacheRow {
   id: string;
   local_date: string;
   mode: string;
+  target_macro: string | null;
+  template_id: string | null;
+  prep_speed: string | null;
   fingerprint: string;
   payload: string;
   created_at: string;
+}
+
+interface SuggestionPreferenceRow {
+  base_intent: string;
+  prep_speed: string;
+  updated_at: string;
+}
+
+function toSavedSuggestionPreference(row: SuggestionPreferenceRow): SavedSuggestionPreference {
+  return {
+    baseIntent: row.base_intent as SuggestionBaseIntent,
+    prepSpeed: row.prep_speed as SuggestionPrepSpeed,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** The durable explicit choice. Profile remains the owner of long-term targets. */
+export async function getSuggestionPreference(): Promise<SavedSuggestionPreference | null> {
+  const row = await db().getFirstAsync<SuggestionPreferenceRow>(
+    'SELECT * FROM suggestion_preferences WHERE id = 1',
+  );
+  return row ? toSavedSuggestionPreference(row) : null;
+}
+
+export async function saveSuggestionPreference(
+  baseIntent: SuggestionBaseIntent,
+  prepSpeed: SuggestionPrepSpeed,
+): Promise<SavedSuggestionPreference> {
+  const updatedAt = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO suggestion_preferences (id, base_intent, prep_speed, updated_at)
+     VALUES (1, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       base_intent = excluded.base_intent,
+       prep_speed = excluded.prep_speed,
+       updated_at = excluded.updated_at`,
+    [baseIntent, prepSpeed, updatedAt],
+  );
+  return { baseIntent, prepSpeed, updatedAt };
+}
+
+export async function clearSuggestionPreference(): Promise<void> {
+  await db().runAsync('DELETE FROM suggestion_preferences WHERE id = 1');
 }
 
 interface CachedPayload {
@@ -2333,6 +2390,8 @@ interface CachedPayload {
   pool?: Suggestion[];
   /** Absent on rows cached before `add-dietary-profile` shipped — treated as zero. */
   droppedForDiet?: number;
+  /** Null before macro-gap support, and for non-macro request modes. */
+  macroGapContext?: MacroGapContext | null;
 }
 
 function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
@@ -2341,6 +2400,15 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
     id: row.id,
     localDate: row.local_date,
     mode: row.mode as SuggestionMode,
+    targetMacro: row.target_macro as SuggestionTargetMacro | null,
+    tonightPreference: row.template_id && row.prep_speed
+      ? {
+          baseIntent: row.template_id as SuggestionBaseIntent,
+          prepSpeed: row.prep_speed as SuggestionPrepSpeed,
+          source: 'saved',
+        }
+      : null,
+    macroGapContext: payload.macroGapContext ?? null,
     fingerprint: row.fingerprint,
     suggestions: payload.suggestions,
     stretch: payload.stretch,
@@ -2360,12 +2428,15 @@ function toSuggestionSet(row: SuggestionCacheRow): SuggestionSet {
 export async function getSuggestionCache(
   localDate: string,
   mode: SuggestionMode,
+  targetMacro: SuggestionTargetMacro | null = null,
+  preference: TonightSuggestionPreference | null = null,
 ): Promise<SuggestionSet | null> {
   const row = await db().getFirstAsync<SuggestionCacheRow>(
     `SELECT * FROM suggestion_cache
-     WHERE local_date = ? AND mode = ?
+     WHERE local_date = ? AND mode = ? AND target_macro IS ?
+       AND template_id IS ? AND prep_speed IS ?
      ORDER BY created_at DESC LIMIT 1`,
-    [localDate, mode],
+    [localDate, mode, targetMacro, preference?.baseIntent ?? null, preference?.prepSpeed ?? null],
   );
   return row ? toSuggestionSet(row) : null;
 }
@@ -2378,26 +2449,35 @@ export async function getSuggestionCache(
 export async function saveSuggestionCache(
   localDate: string,
   mode: SuggestionMode,
+  targetMacro: SuggestionTargetMacro | null,
+  preference: TonightSuggestionPreference | null,
   fingerprint: string,
   suggestions: Suggestion[],
   stretch: StretchPlan | null,
   droppedForConstraint: number,
   pool: Suggestion[],
   droppedForDiet: number,
+  macroGapContext: MacroGapContext | null,
 ): Promise<SuggestionSet> {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
-  const payload: CachedPayload = { suggestions, stretch, droppedForConstraint, pool, droppedForDiet };
+  const payload: CachedPayload = {
+    suggestions, stretch, droppedForConstraint, pool, droppedForDiet, macroGapContext,
+  };
 
   await db().withExclusiveTransactionAsync(async (txn) => {
     await txn.runAsync(
-      'DELETE FROM suggestion_cache WHERE local_date = ? AND mode = ?',
-      [localDate, mode],
+      `DELETE FROM suggestion_cache
+       WHERE local_date = ? AND mode = ? AND target_macro IS ?
+         AND template_id IS ? AND prep_speed IS ?`,
+      [localDate, mode, targetMacro, preference?.baseIntent ?? null, preference?.prepSpeed ?? null],
     );
     await txn.runAsync(
-      `INSERT INTO suggestion_cache (id, local_date, mode, fingerprint, payload, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, localDate, mode, fingerprint, JSON.stringify(payload), createdAt],
+      `INSERT INTO suggestion_cache
+       (id, local_date, mode, target_macro, template_id, prep_speed, fingerprint, payload, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, localDate, mode, targetMacro, preference?.baseIntent ?? null, preference?.prepSpeed ?? null,
+        fingerprint, JSON.stringify(payload), createdAt],
     );
   });
 
@@ -2405,6 +2485,9 @@ export async function saveSuggestionCache(
     id,
     localDate,
     mode,
+    targetMacro,
+    tonightPreference: preference,
+    macroGapContext,
     fingerprint,
     suggestions,
     stretch,
@@ -2447,6 +2530,36 @@ interface ReceiptLineRow {
   pantry_item_id: string | null;
   excluded: number;
   created_at: string;
+}
+
+interface ReceiptFrameRow {
+  id: string;
+  receipt_id: string;
+  image_uri: string;
+  sort_order: number;
+  status: string;
+  last_error_kind: string | null;
+  store: string | null;
+  purchased_at: string | null;
+  receipt_type: string | null;
+  subtotal_cents: number | null;
+  tax_cents: number | null;
+  total_cents: number | null;
+  created_at: string;
+  extracted_at: string | null;
+}
+
+interface ReceiptFrameLineRow {
+  frame_id: string;
+  frame_position: number;
+  raw_text: string;
+  kind: string;
+  qty: number | null;
+  unit: string | null;
+  quantity_kind: string | null;
+  line_total_cents: number | null;
+  unit_price_cents: number | null;
+  applies_to_text: string | null;
 }
 
 interface PendingCaptureRow {
@@ -2517,6 +2630,19 @@ function toReceiptLine(row: ReceiptLineRow): ReceiptLine {
   };
 }
 
+function toReceiptFrame(row: ReceiptFrameRow): ReceiptFrame {
+  return {
+    id: row.id,
+    receiptId: row.receipt_id,
+    imageUri: row.image_uri,
+    sortOrder: row.sort_order,
+    status: row.status as ReceiptFrame['status'],
+    lastErrorKind: row.last_error_kind,
+    createdAt: row.created_at,
+    extractedAt: row.extracted_at,
+  };
+}
+
 export interface NewReceiptLine {
   rawText: string;
   kind: ReceiptLineKind;
@@ -2561,9 +2687,153 @@ export async function insertCapturedReceipt(
      VALUES (?, 'grocery', NULL, ?, NULL, NULL, NULL, ?, 'pending', ?)`,
     [id, captureDate, imageUri, now],
   );
+  await db().runAsync(
+    `INSERT INTO receipt_frames
+       (id, receipt_id, image_uri, sort_order, status, last_error_kind, created_at, extracted_at)
+     VALUES (?, ?, ?, 0, 'pending', NULL, ?, NULL)`,
+    [randomUUID(), id, imageUri, now],
+  );
   const stored = await getReceipt(id);
   if (!stored) throw new Error('Receipt vanished on insert.');
   return stored;
+}
+
+/** Frames are ordered photographs of one receipt, retained before extraction. */
+export async function addReceiptFrame(
+  receiptId: string,
+  imageUri: string,
+): Promise<ReceiptFrame> {
+  const next = await db().getFirstAsync<{ next: number }>(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM receipt_frames WHERE receipt_id = ?',
+    [receiptId],
+  );
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO receipt_frames
+       (id, receipt_id, image_uri, sort_order, status, last_error_kind, created_at, extracted_at)
+     VALUES (?, ?, ?, ?, 'pending', NULL, ?, NULL)`,
+    [id, receiptId, imageUri, next?.next ?? 0, now],
+  );
+  const stored = await db().getFirstAsync<ReceiptFrameRow>('SELECT * FROM receipt_frames WHERE id = ?', [id]);
+  if (!stored) throw new Error('Receipt frame vanished on insert.');
+  return toReceiptFrame(stored);
+}
+
+export async function getReceiptFrames(receiptId: string): Promise<ReceiptFrame[]> {
+  const rows = await db().getAllAsync<ReceiptFrameRow>(
+    'SELECT * FROM receipt_frames WHERE receipt_id = ? ORDER BY sort_order ASC',
+    [receiptId],
+  );
+  return rows.map(toReceiptFrame);
+}
+
+export async function recordReceiptFrameFailure(frameId: string, errorKind: string): Promise<void> {
+  await db().runAsync(
+    "UPDATE receipt_frames SET status = 'failed', last_error_kind = ? WHERE id = ?",
+    [errorKind, frameId],
+  );
+}
+
+/** Stores one frame's complete raw result, then rematerializes the review draft. */
+export async function recordReceiptFrameExtraction(
+  frameId: string,
+  extracted: ExtractedReceiptHeader,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('DELETE FROM receipt_frame_lines WHERE frame_id = ?', [frameId]);
+    await txn.runAsync(
+      `UPDATE receipt_frames
+       SET status = 'extracted', last_error_kind = NULL, store = ?, purchased_at = ?, receipt_type = ?,
+           subtotal_cents = ?, tax_cents = ?, total_cents = ?, extracted_at = ?
+       WHERE id = ?`,
+      [
+        extracted.store,
+        extracted.purchasedAt,
+        extracted.receiptType,
+        extracted.subtotalCents,
+        extracted.taxCents,
+        extracted.totalCents,
+        now,
+        frameId,
+      ],
+    );
+    for (const [position, line] of extracted.lines.entries()) {
+      await txn.runAsync(
+        `INSERT INTO receipt_frame_lines
+           (id, frame_id, frame_position, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
+            unit_price_cents, applies_to_text, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          randomUUID(), frameId, position, line.rawText, line.kind, line.qty, line.unit,
+          line.quantityKind, line.lineTotalCents, line.unitPriceCents, line.appliesToText, now,
+        ],
+      );
+    }
+  });
+  await rebuildReceiptFromFrames(frameId);
+}
+
+/** Recreates unreviewed receipt lines from all extracted frames of one receipt. */
+export async function rebuildReceiptFromFrames(frameId: string): Promise<void> {
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const frame = await txn.getFirstAsync<ReceiptFrameRow>(
+      'SELECT * FROM receipt_frames WHERE id = ?', [frameId],
+    );
+    if (!frame) throw new Error('Receipt frame not found.');
+    const frames = await txn.getAllAsync<ReceiptFrameRow>(
+      "SELECT * FROM receipt_frames WHERE receipt_id = ? AND status = 'extracted' ORDER BY sort_order ASC",
+      [frame.receipt_id],
+    );
+    const rawLines = await txn.getAllAsync<ReceiptFrameLineRow>(
+      `SELECT receipt_frame_lines.* FROM receipt_frame_lines
+       JOIN receipt_frames ON receipt_frames.id = receipt_frame_lines.frame_id
+       WHERE receipt_frames.receipt_id = ? AND receipt_frames.status = 'extracted'
+       ORDER BY receipt_frames.sort_order ASC, receipt_frame_lines.frame_position ASC`,
+      [frame.receipt_id],
+    );
+    const linesByFrame = new Map<string, ReceiptFrameLineInput[]>();
+    for (const line of rawLines) {
+      const lines = linesByFrame.get(line.frame_id) ?? [];
+      lines.push({
+        rawText: line.raw_text, kind: line.kind, qty: line.qty, unit: line.unit,
+        quantityKind: line.quantity_kind, lineTotalCents: line.line_total_cents,
+        unitPriceCents: line.unit_price_cents, appliesToText: line.applies_to_text,
+      });
+      linesByFrame.set(line.frame_id, lines);
+    }
+    const merged = mergeReceiptFrameLines(frames.map((item) => ({
+      frameId: item.id,
+      lines: linesByFrame.get(item.id) ?? [],
+    })));
+    const header = [...frames].reverse().find((item) => item.total_cents !== null) ?? frames.at(-1);
+    if (!header) return;
+    const now = new Date().toISOString();
+    const ids = merged.map(() => randomUUID());
+    const idByRawText = new Map<string, string>();
+    merged.forEach((line, index) => {
+      if (!idByRawText.has(line.rawText)) idByRawText.set(line.rawText, ids[index]!);
+    });
+    await txn.runAsync('DELETE FROM receipt_lines WHERE receipt_id = ?', [frame.receipt_id]);
+    await txn.runAsync(
+      `UPDATE receipts SET store = ?, purchased_at = ?, type = ?, subtotal_cents = ?, tax_cents = ?, total_cents = ?
+       WHERE id = ?`,
+      [header.store, header.purchased_at, header.receipt_type, header.subtotal_cents,
+        header.tax_cents, header.total_cents, frame.receipt_id],
+    );
+    for (const [index, line] of merged.entries()) {
+      await txn.runAsync(
+        `INSERT INTO receipt_lines
+           (id, receipt_id, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
+            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
+        [ids[index]!, frame.receipt_id, line.rawText, line.kind, line.qty, line.unit,
+          line.quantityKind, line.lineTotalCents, line.unitPriceCents,
+          line.appliesToText ? (idByRawText.get(line.appliesToText) ?? null) : null, now],
+      );
+    }
+  });
 }
 
 /** Retains an uninterpretable capture without storing a credential or result. */
@@ -2635,6 +2905,13 @@ export async function attachExtractedLines(
   receiptId: string,
   extracted: ExtractedReceiptHeader,
 ): Promise<void> {
+  const frame = await db().getFirstAsync<ReceiptFrameRow>(
+    'SELECT * FROM receipt_frames WHERE receipt_id = ? ORDER BY sort_order ASC LIMIT 1', [receiptId],
+  );
+  if (frame) {
+    await recordReceiptFrameExtraction(frame.id, extracted);
+    return;
+  }
   const now = new Date().toISOString();
   const ids = extracted.lines.map(() => randomUUID());
   const idByRawText = new Map<string, string>();
@@ -2773,6 +3050,19 @@ export async function deletePendingReceiptDraft(id: string): Promise<string | nu
   if (!receipt) return null;
   await db().runAsync("DELETE FROM receipts WHERE id = ? AND status = 'pending'", [id]);
   return receipt.image_uri;
+}
+
+/** Removes a pending receipt draft and returns every distinct retained frame image. */
+export async function deletePendingReceiptFrames(id: string): Promise<string[]> {
+  const receipt = await db().getFirstAsync<ReceiptRow>(
+    "SELECT * FROM receipts WHERE id = ? AND status = 'pending'", [id],
+  );
+  if (!receipt) return [];
+  const frames = await db().getAllAsync<{ image_uri: string }>(
+    'SELECT image_uri FROM receipt_frames WHERE receipt_id = ?', [id],
+  );
+  await db().runAsync("DELETE FROM receipts WHERE id = ? AND status = 'pending'", [id]);
+  return [...new Set(frames.map((frame) => frame.image_uri).concat(receipt.image_uri))];
 }
 
 /**

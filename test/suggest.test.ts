@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { parseSuggestResponse } from '../src/api/suggest';
-import { buildSuggestUserPrompt } from '../src/api/suggestPrompt';
+import { buildSuggestUserPrompt, SUGGEST_SYSTEM_PROMPT } from '../src/api/suggestPrompt';
 import type { ExclusionSet } from '../src/logic/dietary';
 import { KITCHENS } from '../src/logic/__fixtures__/kitchens';
 import { bucketStock, shapeStockPayload, summarisePersonalisation } from '../src/logic/suggest';
@@ -129,9 +129,74 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
     const parsed = JSON.parse(prompt) as { use_first: unknown[] };
     expect(parsed.use_first.length).toBeGreaterThan(0);
   });
+
+  test('only tonight carries typed template framing', () => {
+    const kitchen = KITCHENS.find((k) => k.name === 'costly protein expiring tomorrow')!;
+    const { stock, personalisation } = payloadFor(kitchen);
+    const tonight = JSON.parse(buildSuggestUserPrompt({
+      mode: 'tonight', stock, personalisation, remainingCalories: 800,
+      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 }, dietaryRules: [],
+      tonightPreference: { baseIntent: 'protein_forward', prepSpeed: 'quick', source: 'saved' },
+    }));
+    const macro = JSON.parse(buildSuggestUserPrompt({
+      mode: 'macro_gap', targetMacro: 'protein', stock, personalisation,
+      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      macroGapContext: { shortfallG: 30, bestAchievableG: 12, partialCoverage: true }, dietaryRules: [],
+      tonightPreference: null,
+    }));
+    expect(tonight.tonight_preference).toMatchObject({
+      base_intent: 'protein_forward', prep_speed: 'quick',
+    });
+    expect(macro.tonight_preference).toBeNull();
+  });
+
+  test('a macro-gap prompt carries the measurable shortfall and qualification', () => {
+    const kitchen = KITCHENS.find((k) => k.name === 'costly protein expiring tomorrow')!;
+    const { stock, personalisation } = payloadFor(kitchen);
+    const prompt = buildSuggestUserPrompt({
+      mode: 'macro_gap', targetMacro: 'protein', stock, personalisation,
+      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      macroGapContext: { shortfallG: 30, bestAchievableG: 12, partialCoverage: true }, dietaryRules: [],
+    });
+    expect(JSON.parse(prompt).macro_gap_request).toEqual({
+      shortfall_g: 30, best_measurable_pantry_contribution_g: 12, catalogue_coverage_is_partial: true,
+    });
+  });
+
+  test('the provider contract asks for an explicit whole-dish estimate', () => {
+    expect(SUGGEST_SYSTEM_PROMPT).toContain('estimated_nutrition_per_serving');
+  });
 });
 
 describe('parseSuggestResponse — the refusal to invent an id', () => {
+  test('keeps a complete provider estimate labelled and rejects a partial one', () => {
+    const candidateIds = new Set(['real-id']);
+    const suggestion = {
+      dish: 'Test dish', reason_tags: ['uses what is on hand'], kcal_per_serving: 400,
+      servings: 1, effort_minutes: 10,
+      uses: [{ canonical_id: 'real-id', qty: 1, unit: 'g' }], missing: [], method: [],
+    };
+    const raw = JSON.stringify({ suggestions: [
+      {
+        ...suggestion,
+        estimated_nutrition_per_serving: {
+          calories: 420, protein_g: 33, carbs_g: 12, fat_g: 20,
+        },
+      },
+      {
+        ...suggestion,
+        dish: 'Partial estimate',
+        estimated_nutrition_per_serving: { calories: 420, protein_g: 33 },
+      },
+    ] });
+
+    const result = parseSuggestResponse(raw, candidateIds, new Set(), EMPTY_EXCLUSION, false);
+    expect(result.suggestions[0]?.estimatedNutritionPerServing).toEqual({
+      calories: 420, proteinG: 33, carbsG: 12, fatG: 20, source: 'provider',
+    });
+    expect(result.suggestions[1]?.estimatedNutritionPerServing).toBeNull();
+  });
+
   test('a uses entry citing an unknown canonical id is dropped, not the suggestion', () => {
     const candidateIds = new Set(['real-id']);
     const raw = JSON.stringify({

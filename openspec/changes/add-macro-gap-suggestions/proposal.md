@@ -18,14 +18,18 @@ and turns it into an entry point rather than a hint passed to another feature.
 - **The macro bars become the entry point.** Tapping a bar asks for a suggestion
   that closes *that* gap from what is in the kitchen. The gap is already on
   screen; this makes it actionable where it is stated.
-- **A third objective for the suggestion engine.** `add-dinner-decision` builds
-  the engine and gives it two objectives — tonight's dinner, and stretching to a
-  date. This adds "close this macro gap", reusing the payload, the prompt
-  discipline, the cache, and the cook-this path. **It must not build a second
-  engine.**
+- **A macro-gap request through the shipped suggestion engine.** It extends the
+  existing tonight/stretch request flow, reusing its stock payload, dietary
+  filtering, cache, candidate validation, dish scoring, and cook-this path.
+  **It must not build a second engine.**
 - **Suggestions are scaled to the gap and the hour.** A snack, an addition to a
   planned meal, or a whole meal — chosen from how large the gap is and what time
   it is, not fixed at "a meal".
+- **Recipe nutrition is hybrid.** Known canonical nutrition and quantities are
+  calculated locally. The same suggestion request may provide an explicitly
+  labelled whole-dish estimate for any remainder; accepting a suggestion makes
+  no second provider request. If neither source can defend a nutrient, the
+  logged meal preserves it as unknown rather than storing zero.
 - **Expiry becomes a tiebreak, not the objective.** Among foods that close the
   gap, prefer the ones about to go off. The dinner decision inverts this, and
   the inversion is the point of having two objectives.
@@ -47,8 +51,8 @@ and turns it into an entry point rather than a hint passed to another feature.
 
 ### Modified Capabilities
 
-- `dinner-decision`: the engine gains an objective parameter, so a caller can
-  ask it to close a macro gap rather than plan a dinner.
+- `dinner-decision`: the shipped engine accepts an isolated macro-gap request
+  while preserving its current tonight and stretch behaviour.
 
 ## Non-goals
 
@@ -63,20 +67,25 @@ and turns it into an entry point rather than a hint passed to another feature.
 
 ## Impact
 
-**Schema.** None. The suggestion cache from `add-dinner-decision` gains an
-objective in its fingerprint, which is a value change rather than a shape change.
+**Schema.** Forward-only migrations isolate persisted macro-gap cache rows and
+allow meal nutrient fields to be null when a cooked suggestion has an
+unresolved recipe-level value.
 
 **Code.**
-- `src/logic/suggest.ts` — an objective parameter, and gap-first ranking.
-- `src/api/suggestPrompt.ts` — an objective-specific instruction block.
+- `src/logic/suggest.ts` — macro-nutrition eligibility and gap-first ranking.
+- `src/logic/suggestionService.ts` — a macro-gap request through the shipped
+  cache, dietary, scoring, and cook-this seams.
+- `src/api/suggestPrompt.ts` — a macro-gap instruction block.
+- `src/api/suggest.ts` — parses a labelled recipe-level nutrition estimate.
 - `src/components/MacroBars.tsx` — bars become pressable.
 - `app/(tabs)/index.tsx` — routing from a bar to the suggestion surface.
 
 **Dependencies.** None added.
 
-**Depends on** `add-dinner-decision` for the engine. Optionally on
-`add-fibre-tracking` — protein, carbohydrate, and fat work without it; fibre is
-the one macro the app cannot currently answer for, because it does not record it.
+**Depends on** the shipped dinner-decision engine. It initially supports
+protein, carbohydrate, and fat. Fibre is deferred until `add-fibre-tracking`
+ships. Catalogue nutrition is nullable; a suggestion may only claim a macro
+contribution that current per-100 g data can defend.
 
 **Risk.** The failure here is a suggestion that is technically responsive and
 practically useless — "eat 400 g of chicken" to close a protein gap is arithmetic,
@@ -86,8 +95,5 @@ fixtures rather than a matter of prompt taste.
 
 ## A note on sequencing
 
-`add-dinner-decision` has not started. Its engine should take an objective from
-the outset rather than being retrofitted, which is why that change gains a small
-task here rather than this one reaching into it later. The same seam approach
-worked for ownership bias in `add-identity-layer`, where the mechanism shipped
-with an empty data source and the later change simply filled it.
+`add-dinner-decision` is shipped. This change extends its established request
+and caching seams while preserving today’s tonight and stretch behaviour.

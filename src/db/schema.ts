@@ -456,6 +456,99 @@ ALTER TABLE profile ADD COLUMN fibre_target_g REAL NOT NULL DEFAULT 30;
 ALTER TABLE daily_targets ADD COLUMN fibre_g REAL NOT NULL DEFAULT 30;
 `;
 
+/** Migration 16: a long receipt is one draft with several durable frames. */
+const RECEIPT_FRAMES = `
+CREATE TABLE receipt_frames (
+  id              TEXT PRIMARY KEY,
+  receipt_id      TEXT NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+  image_uri       TEXT NOT NULL,
+  sort_order      INTEGER NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending',
+  last_error_kind TEXT,
+  store           TEXT,
+  purchased_at    TEXT,
+  receipt_type    TEXT,
+  subtotal_cents  INTEGER,
+  tax_cents       INTEGER,
+  total_cents     INTEGER,
+  created_at      TEXT NOT NULL,
+  extracted_at    TEXT
+);
+CREATE INDEX idx_receipt_frames_receipt ON receipt_frames(receipt_id, sort_order);
+
+CREATE TABLE receipt_frame_lines (
+  id                TEXT PRIMARY KEY,
+  frame_id          TEXT NOT NULL REFERENCES receipt_frames(id) ON DELETE CASCADE,
+  frame_position    INTEGER NOT NULL,
+  raw_text          TEXT NOT NULL,
+  kind              TEXT NOT NULL,
+  qty               REAL,
+  unit              TEXT,
+  quantity_kind     TEXT,
+  line_total_cents  INTEGER,
+  unit_price_cents  INTEGER,
+  applies_to_text   TEXT,
+  created_at        TEXT NOT NULL
+);
+CREATE INDEX idx_receipt_frame_lines_frame ON receipt_frame_lines(frame_id, frame_position);
+`;
+
+/** Migration 17: macro-gap cache rows are distinct per requested macro. */
+const MACRO_GAP_SUGGESTION_CACHE = `
+ALTER TABLE suggestion_cache ADD COLUMN target_macro TEXT;
+DROP INDEX IF EXISTS idx_suggestion_cache_date;
+CREATE INDEX idx_suggestion_cache_date ON suggestion_cache(local_date, mode, target_macro);
+`;
+
+/**
+ * Migration 18: a cooked recipe can have a genuinely unknown nutrient when
+ * neither the catalogue nor its initial provider response can defend it.
+ * Rebuild the table because SQLite cannot remove the original NOT NULL
+ * constraints in place; all existing values and carried identities survive.
+ */
+const NULLABLE_MEAL_NUTRITION = `
+ALTER TABLE meal_items RENAME TO meal_items_old;
+CREATE TABLE meal_items (
+  id TEXT PRIMARY KEY,
+  meal_id TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  quantity REAL NOT NULL,
+  unit TEXT NOT NULL,
+  calories REAL,
+  protein_g REAL,
+  carbs_g REAL,
+  fat_g REAL,
+  is_manual_addition INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  canonical_id TEXT REFERENCES canonical_items(id),
+  fibre_g REAL
+);
+INSERT INTO meal_items
+  (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
+   is_manual_addition, sort_order, canonical_id, fibre_g)
+SELECT id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
+       is_manual_addition, sort_order, canonical_id, fibre_g
+FROM meal_items_old;
+DROP TABLE meal_items_old;
+CREATE INDEX idx_meal_items_meal ON meal_items(meal_id);
+`;
+
+/** Migration 19: durable tonight preferences and cache isolation by policy. */
+const SUGGESTION_TEMPLATE_PREFERENCES = `
+CREATE TABLE suggestion_preferences (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  base_intent TEXT NOT NULL,
+  prep_speed TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+ALTER TABLE suggestion_cache ADD COLUMN template_id TEXT;
+ALTER TABLE suggestion_cache ADD COLUMN prep_speed TEXT;
+DELETE FROM suggestion_cache;
+DROP INDEX IF EXISTS idx_suggestion_cache_date;
+CREATE INDEX idx_suggestion_cache_date
+  ON suggestion_cache(local_date, mode, target_macro, template_id, prep_speed);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -472,15 +565,22 @@ export const MIGRATIONS: readonly string[] = [
   BARCODE_MISS_CACHE,
   PENDING_CAPTURES,
   FIBRE_TRACKING,
+  RECEIPT_FRAMES,
+  MACRO_GAP_SUGGESTION_CACHE,
+  NULLABLE_MEAL_NUTRITION,
+  SUGGESTION_TEMPLATE_PREFERENCES,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS suggestion_preferences;
 DROP TABLE IF EXISTS dish_venue_defaults;
 DROP TABLE IF EXISTS body_measurements;
 DROP TABLE IF EXISTS pending_captures;
+DROP TABLE IF EXISTS receipt_frame_lines;
+DROP TABLE IF EXISTS receipt_frames;
 DROP TABLE IF EXISTS barcode_misses;
 DROP TABLE IF EXISTS alias_bigrams;
 DROP TABLE IF EXISTS dietary_rules;

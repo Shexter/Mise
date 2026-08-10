@@ -13,8 +13,11 @@ import {
   type Macros,
   type MeasureUnit,
   type Suggestion,
+  type SuggestionNutritionEstimate,
   type SuggestionMissing,
   type SuggestionMode,
+  type SuggestionTargetMacro,
+  type TonightSuggestionPreference,
   type SuggestionReason,
   type SuggestionReasonKind,
   type SuggestionUse,
@@ -29,10 +32,14 @@ import {
 
 export interface SuggestRequest {
   mode: SuggestionMode;
+  targetMacro?: SuggestionTargetMacro;
+  macroGapContext?: import('@/types').MacroGapContext;
   stock: StockPayload;
   personalisation: PersonalisationSummary;
-  remainingCalories: number;
+  remainingCalories: number | null;
   macroGap: Macros;
+  /** Resolved only for tonight; stretch and macro-gap deliberately pass null. */
+  tonightPreference?: TonightSuggestionPreference | null;
   untilDate?: string;
   /** For the prompt only — a request, never the mechanism. Empty when the user has recorded nothing. */
   dietaryRules: readonly DietaryRule[];
@@ -269,7 +276,25 @@ function toSuggestion(
     uses,
     missing,
     method,
+    estimatedNutritionPerServing: toNutritionEstimate(record['estimated_nutrition_per_serving']),
   };
+}
+
+/** A partial provider answer remains unknown instead of looking measured. */
+function toNutritionEstimate(value: unknown): SuggestionNutritionEstimate | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const record = value as Record<string, unknown>;
+  const calories = asNumber(record['calories']);
+  const proteinG = asNumber(record['protein_g']);
+  const carbsG = asNumber(record['carbs_g']);
+  const fatG = asNumber(record['fat_g']);
+  if (
+    calories === null || proteinG === null || carbsG === null || fatG === null ||
+    calories < 0 || proteinG < 0 || carbsG < 0 || fatG < 0
+  ) {
+    return null;
+  }
+  return { calories, proteinG, carbsG, fatG, source: 'provider' };
 }
 
 function toUse(

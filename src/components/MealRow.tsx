@@ -15,6 +15,7 @@ interface Props {
 
 export function MealRow({ meal, onPress, onDelete }: Props) {
   const calories = roundCalories(macrosOfItems(meal.items).calories);
+  const calorieLabel = calories === null ? 'Nutrition unavailable' : `${calories} calories`;
 
   return (
     <Swipeable
@@ -38,7 +39,7 @@ export function MealRow({ meal, onPress, onDelete }: Props) {
       <Pressable
         onPress={() => onPress?.(meal.id)}
         accessibilityRole="button"
-        accessibilityLabel={`${meal.name}, ${calories} calories, ${capitalise(
+        accessibilityLabel={`${meal.name}, ${calorieLabel}, ${capitalise(
           meal.mealType,
         )} at ${timeOfDay(meal.loggedAt)}`}
         accessibilityHint="Double tap to edit meal details. Swipe left to delete."
@@ -60,7 +61,7 @@ export function MealRow({ meal, onPress, onDelete }: Props) {
           </Caption>
         </View>
 
-        <MealCalories numeric>{calories}</MealCalories>
+        <MealCalories numeric>{calories === null ? '—' : calories}</MealCalories>
       </Pressable>
     </Swipeable>
   );

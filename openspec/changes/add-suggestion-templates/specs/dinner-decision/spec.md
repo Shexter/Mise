@@ -1,55 +1,68 @@
 ## ADDED Requirements
 
-### Requirement: The engine's objective is one of a named set
+### Requirement: Tonight preferences are distinct from request modes
 
-The objective the suggestion engine accepts SHALL be one of the named templates,
-rather than an open parameter constructed by each caller.
+The dinner decision system SHALL retain `tonight`, stretch planning, and
+macro-gap as distinct request modes. Only a tonight request SHALL carry a
+resolved suggestion-template preference.
 
-Adding a template MUST NOT require a second engine, a second prompt module, or a
-second cache.
+#### Scenario: A tonight request carries a resolved preference
 
-#### Scenario: Callers name a template rather than describing an objective
+- **WHEN** dinner ideas for tonight are requested
+- **THEN** the request uses one resolved base intent and one prep-speed value
 
-- **WHEN** suggestions are requested
-- **THEN** the request names one of the templates
+#### Scenario: A stretch plan remains a plan
 
-#### Scenario: A new template needs no new engine
+- **WHEN** the user requests dinners through a date
+- **THEN** the request does not apply a tonight template or prep-speed modifier
+- **AND** it retains its no-shopping plan behaviour
 
-- **WHEN** a template is added to the set
-- **THEN** the engine, prompt module, and cache are unchanged in structure
+#### Scenario: A macro-gap request remains macro-first
 
-### Requirement: Scoring weights come from the active template
+- **WHEN** the user requests help with a named macro gap
+- **THEN** the request does not apply a tonight template or prep-speed modifier
+- **AND** it retains its targeted macro identity and partial-coverage behaviour
 
-The ranking weights the engine applies SHALL be read from the active template
-rather than fixed in the scorer.
+### Requirement: Tonight selection uses the resolved preference safely
 
-The facts being weighted — urgency, value at risk, familiarity, effort, macro
-fit — SHALL be the same under every template.
+The system SHALL apply the resolved tonight preference to provider framing and
+local selection without bypassing dietary exclusion, use-first eligibility, or
+the calorie non-filter rule.
 
-#### Scenario: Weights vary, facts do not
+#### Scenario: Preference changes the surviving ordering
 
-- **GIVEN** two templates
-- **WHEN** the same kitchen is scored under each
-- **THEN** the same facts are used
-- **AND** they are weighted differently
+- **GIVEN** the same eligible candidate pool
+- **WHEN** two resolved tonight preferences are selected
+- **THEN** the system may order the candidates differently
+- **AND** it uses the same underlying candidate facts for both
 
-#### Scenario: No template introduces a private fact
+#### Scenario: A preference cannot restore an excluded dish
 
-- **WHEN** a template is applied
-- **THEN** it uses no ranking input unavailable to the others
+- **GIVEN** a candidate excluded by a dietary rule or the use-first constraint
+- **WHEN** any tonight preference is selected
+- **THEN** the candidate is not displayed
 
-### Requirement: Planning to a date is a template
+#### Scenario: Unknown nutrition stays neutral
 
-The mode that produces enough dinners to last until a date SHALL be one of the
-templates rather than a separate surface with its own control.
+- **GIVEN** a candidate with unknown nutrition evidence for a template-specific signal
+- **WHEN** the candidate is selected under that template
+- **THEN** the unknown value is not converted to zero or a negative score
+- **AND** the candidate is not hidden for that reason
 
-#### Scenario: Stretching to a date is selected like any other objective
+### Requirement: Cached tonight results are isolated by preference
 
-- **WHEN** the user wants dinners lasting until a date
-- **THEN** they select it as a template
+The system SHALL not reuse a cached tonight result for a different resolved
+base intent or prep-speed value. Stretch and macro-gap cache identities SHALL
+remain independent of tonight preferences.
 
-#### Scenario: It behaves as the mode already specifies
+#### Scenario: Changing a base intent does not reuse a result
 
-- **WHEN** that template is active
-- **THEN** it produces a set of dinners requiring no shopping
-- **AND** states the gap honestly where one exists
+- **GIVEN** a cached tonight result under one base intent
+- **WHEN** a different base intent is resolved
+- **THEN** that cached result is not shown as the result for the new intent
+
+#### Scenario: Changing prep speed does not reuse a result
+
+- **GIVEN** a cached tonight result under standard preparation speed
+- **WHEN** quick preparation speed is resolved
+- **THEN** that cached result is not shown as the result for quick speed

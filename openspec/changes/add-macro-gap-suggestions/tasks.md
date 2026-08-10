@@ -1,80 +1,57 @@
-## 1. The engine seam
+## 1. Existing-engine seam
 
-Do this inside `add-dinner-decision` if it has not landed. Retrofitting a
-parameter into a single-purpose engine means unpicking its signature.
+- [x] 1.1 Extend the shipped suggestion request context with a macro-gap mode
+      and targeted macro while preserving `tonight` and `stretch` callers.
+- [x] 1.2 Isolate every macro-gap request in the suggestion cache. Append a
+      forward-only migration if the current mode-based cache key cannot carry
+      the target macro without collisions.
+- [x] 1.3 Regression-test cache reads, dietary filtering, candidate validation,
+      dish scoring, and cook-this behaviour for existing tonight/stretch modes.
 
-- [ ] 1.1 Give the engine an `objective` of `dinner | stretch | macro_gap`,
-      selecting a ranking function and an instruction block. Payload shaping,
-      model call, parsing, and caching stay shared.
-- [ ] 1.2 Include the objective in the cache fingerprint, so a dinner set is
-      never served to a macro-gap request.
-- [ ] 1.3 Test that two objectives against the same kitchen produce different
-      results and do not share a cache entry.
+## 2. Measurable pantry contribution
 
-## 2. Fixtures
+- [x] 2.1 Define protein, carbohydrate, and fat gap targets from the shipped
+      daily-target and consumed-meal calculation; defer fibre to fibre tracking.
+- [x] 2.2 Implement local candidate eligibility and contribution calculation
+      from nullable per-100 g catalogue nutrition and defensible quantities.
+- [x] 2.3 Return an explicit insufficient-data outcome when no owned stock has
+      known nutrition for the requested macro; never coerce missing data to zero.
+- [x] 2.4 Implement macro-first ranking with expiry only as a tiebreak among
+      comparable known contributors, plus the best measurable contribution.
 
-- [ ] 2.1 Extend the kitchen fixtures with gap scenarios: a large protein gap
-      late at night, a small one at a mealtime, a gap the kitchen cannot close,
-      and a kitchen whose only expiring item does not supply the targeted macro.
-- [ ] 2.2 Record a model response per scenario so shape assertions run without a
-      provider.
+## 3. Fixtures and prompt
 
-## 3. Gap ranking
+- [x] 3.1 Add offline fixtures for late large and small gaps, mealtime gaps,
+      unclosable gaps, expiring non-contributors, and unknown-nutrition stock.
+- [ ] 3.2 Record provider responses for the fixture cases so shape assertions
+      run without a key or network.
+- [x] 3.3 Add a macro-gap prompt block containing the target, shortfall, clock,
+      meal type, known contribution, and partial-coverage qualification.
+- [x] 3.4 Preserve canonical-id candidate validation and the no-health-claims
+      rule for macro-gap parsing and presentation.
+- [x] 3.5 Extend the same suggestion response contract with optional whole-dish
+      estimated macros and explicit estimate provenance; record fixture responses.
 
-Pure logic. No database, no network.
+## 4. Pull-only surface
 
-- [ ] 3.1 Implement `gapScore(item, canonical, macro)` ranking by contribution
-      to the targeted macro.
-- [ ] 3.2 Use approaching expiry only to separate comparable contributors.
-      **Expiry must not override contribution** — an expiring ingredient that
-      does not supply the macro is not an answer, and this inversion from the
-      dinner objective is the point of having two.
-- [ ] 3.3 Compute the best achievable contribution from stock, so an unclosable
-      gap is known before the model is asked.
-- [ ] 3.4 Unit-test all four fixture scenarios, especially that the expiring
-      non-contributor does not rank first.
+- [x] 4.1 Make below-target protein, carbohydrate, and fat bars pressable with
+      accessible labels naming the macro and shortfall.
+- [x] 4.2 Route a press to the existing suggestion review surface with the
+      macro-gap request; a met target has no action.
+- [x] 4.3 State insufficient data, an unclosable measurable gap, and a partial
+      measurable contribution plainly; add no prompt, notification, or badge.
+- [x] 4.4 Use theme tokens and canonical display names throughout.
 
-## 4. Scale and prompt
+## 5. Logging and verification
 
-- [ ] 4.1 Put the shortfall, the hour, and `mealTypeForTime`'s answer in the
-      payload.
-- [ ] 4.2 Add the macro-gap instruction block: close the stated gap, size the
-      answer to the shortfall and the hour, use only stock.
-- [ ] 4.3 Instruct that a partial answer must state its contribution rather than
-      implying the gap is met.
-- [ ] 4.4 Keep decision 64's rule — no health claims, no advice about how much
-      of a macro anyone should eat.
-- [ ] 4.5 Reject canonical ids outside the candidate list at parse time, as the
-      other objectives already do.
-
-## 5. Surface
-
-- [ ] 5.1 Make the bars in `src/components/MacroBars.tsx` pressable, with an
-      accessible label naming the macro and its shortfall.
-- [ ] 5.2 Route a press to the suggestion surface with that macro as objective.
-- [ ] 5.3 Do nothing when the macro is at or above target.
-- [ ] 5.4 State an unclosable gap plainly, and state the contribution of a
-      partial answer.
-- [ ] 5.5 Add no prompt, notification, or badge. Pull-only is a rule, not a
-      default.
-- [ ] 5.6 Tokens from `src/constants/theme.ts`, no literals; canonical display
-      names throughout.
-
-## 6. Logging what was eaten
-
-- [ ] 6.1 Reuse the cook-this path from `add-dinner-decision` — the suggestion's
-      ingredients become meal items carrying canonical ids.
-- [ ] 6.2 Confirm the targeted macro's figure for the day moves after logging.
-- [ ] 6.3 Confirm stock is debited by identity, not by name.
-
-## 7. Verification
-
-- [ ] 7.1 Shape-assert the fixtures: a late small gap yields a small item, not a
-      slab of protein; a mealtime gap may yield a meal.
-- [ ] 7.2 Confirm the unclosable-gap kitchen reports that plainly rather than
-      offering a fifth of an answer framed as a solution.
-- [ ] 7.3 Confirm the expiring non-contributor kitchen ranks contribution first.
-- [ ] 7.4 Confirm no prompt, notification, or badge appears for a shortfall.
-- [ ] 7.5 Confirm a met target offers nothing.
-- [ ] 7.6 Run `npm run typecheck` and `npm test`, then record observations on
-      answer quality in `docs/product-decisions.md`.
+- [x] 5.1 Reuse the shipped cook-this path so accepted suggestions create meals
+      with canonical identities and debit stock by identity.
+- [x] 5.2 Calculate known recipe macros locally at acceptance, use the initial
+      response's labelled whole-dish estimate only for an unresolved remainder,
+      and make no second provider request. Append a forward-only nullable-meal
+      nutrition migration; propagate unknown nutrients through totals, editing,
+      Today display, and macro-gap eligibility without coercing them to zero.
+- [x] 5.3 Test all fixture outcomes, cache isolation, expiry tiebreaks, and the
+      absence of push affordances; run `npm run typecheck` and `npm test`.
+- [ ] 5.4 Record answer-quality observations and partial-coverage limitations in
+      `docs/product-decisions.md` after real-provider review.

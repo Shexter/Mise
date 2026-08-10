@@ -52,10 +52,14 @@ export const EMPTY_MACROS: Macros = {
 
 export function addMacros(a: Macros, b: Macros): Macros {
   return {
-    calories: a.calories + b.calories,
-    proteinG: a.proteinG + b.proteinG,
-    carbsG: a.carbsG + b.carbsG,
-    fatG: a.fatG + b.fatG,
+    calories: addNullable(a.calories, b.calories),
+    proteinG: addNullable(a.proteinG, b.proteinG),
+    carbsG: addNullable(a.carbsG, b.carbsG),
+    fatG: addNullable(a.fatG, b.fatG),
     fibreG: a.fibreG == null || b.fibreG == null ? null : a.fibreG + b.fibreG,
   };
+}
+
+function addNullable(left: number | null, right: number | null): number | null {
+  return left === null || right === null ? null : left + right;
 }

@@ -371,7 +371,7 @@ export default function ReviewScreen() {
         <View style={styles.totals}>
           <View>
             <SectionLabel muted>Total</SectionLabel>
-            <MealCalories numeric>{roundCalories(totals.calories)}</MealCalories>
+            <MealCalories numeric>{totals.calories === null ? '—' : roundCalories(totals.calories)}</MealCalories>
           </View>
           <Caption muted numeric style={styles.totalsMacros}>
             P {formatGrams(totals.proteinG)} · C {formatGrams(totals.carbsG)} · F{' '}

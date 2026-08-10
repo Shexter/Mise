@@ -122,12 +122,12 @@ export function HistoryCalendarSheet({
                 const todayDate = date === today;
                 const outsideMonth = date.slice(0, 7) !== shownKey;
                 const disabled = date < earliestLoggedDate || isFuture(date);
-                const over = summary?.targetCalories !== null && summary !== undefined
+                const over = summary?.calories !== null && summary?.targetCalories !== null && summary !== undefined
                   ? summary.calories > summary.targetCalories!
                   : false;
                 const accessibilitySummary = summary
-                  ? `, ${roundCalories(summary.calories)} calories${
-                    summary.targetCalories === null
+                  ? `, ${summary.calories === null ? 'calories unavailable' : `${roundCalories(summary.calories)} calories`}${
+                    summary.calories === null || summary.targetCalories === null
                       ? ''
                       : summary.calories > summary.targetCalories ? ', over target' : ', under target'
                   }`
@@ -154,7 +154,7 @@ export function HistoryCalendarSheet({
                     </RowTitle>
                     {summary ? (
                       <Caption numeric style={selected ? styles.selectedText : undefined}>
-                        {roundCalories(summary.calories)}
+                        {summary.calories === null ? '—' : roundCalories(summary.calories)}
                       </Caption>
                     ) : <View style={styles.totalPlaceholder} />}
                     <View

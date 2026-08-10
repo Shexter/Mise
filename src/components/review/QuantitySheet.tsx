@@ -76,7 +76,7 @@ export function QuantitySheet({ item, onClose, onApply }: Props) {
       <View style={styles.preview}>
         <View>
           <SectionLabel muted>Calories</SectionLabel>
-          <MealCalories numeric>{roundCalories(preview.calories)}</MealCalories>
+          <MealCalories numeric>{preview.calories === null ? '—' : roundCalories(preview.calories)}</MealCalories>
         </View>
         <Caption muted numeric style={styles.macros}>
           P {formatGrams(preview.proteinG)} · C {formatGrams(preview.carbsG)} · F{' '}

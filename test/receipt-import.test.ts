@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { parseReceiptResponse } from '../src/api/receipt';
 import {
   attachExtractedLines,
+  addReceiptFrame,
   deletePendingReceiptDraft,
   getAllCanonicals,
+  getReceiptFrames,
   getLocations,
   getMatchQueue,
   getPantryItem,
@@ -15,6 +17,7 @@ import {
   listReceipts,
   loadSeedData,
   markItemUsedUp,
+  recordReceiptFrameExtraction,
   setReceiptLineExcluded,
 } from '../src/db/queries';
 import { RECEIPTS } from '../src/logic/__fixtures__/receipts';
@@ -97,6 +100,37 @@ describe('abandoning a receipt review', () => {
 
     await expect(deletePendingReceiptDraft(receipt.id)).resolves.toBe('file://receipt.jpg');
     await expect(getReceipt(receipt.id)).resolves.toBeNull();
+  });
+});
+
+describe('multi-frame receipt capture', () => {
+  test('retains both frames, suppresses their shared edge, and uses the tail total', async () => {
+    const receipt = await insertCapturedReceipt('file://top.jpg', '2026-06-01');
+    const [top] = await getReceiptFrames(receipt.id);
+    const bottom = await addReceiptFrame(receipt.id, 'file://bottom.jpg');
+    expect(top).toBeDefined();
+
+    await recordReceiptFrameExtraction(top!.id, {
+      store: 'Top Store', purchasedAt: '2026-06-01', receiptType: 'grocery',
+      subtotalCents: null, taxCents: null, totalCents: null,
+      lines: [
+        { rawText: 'Milk', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 499, unitPriceCents: 499, appliesToText: null },
+        { rawText: 'Apples', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 399, unitPriceCents: 399, appliesToText: null },
+      ],
+    });
+    await recordReceiptFrameExtraction(bottom.id, {
+      store: 'Bottom Store', purchasedAt: '2026-06-01', receiptType: 'grocery',
+      subtotalCents: 898, taxCents: 0, totalCents: 898,
+      lines: [
+        { rawText: 'Apples', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 399, unitPriceCents: 399, appliesToText: null },
+        { rawText: 'Bread', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 299, unitPriceCents: 299, appliesToText: null },
+      ],
+    });
+
+    const rebuilt = await getReceipt(receipt.id);
+    expect(rebuilt?.lines.map((line) => line.rawText)).toEqual(['Milk', 'Apples', 'Bread']);
+    expect(rebuilt?.store).toBe('Bottom Store');
+    expect(rebuilt?.totalCents).toBe(898);
   });
 });
 

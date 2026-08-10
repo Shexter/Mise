@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -17,6 +17,7 @@ import {
   getAllCanonicals,
   getLocations,
   getReceipt,
+  getReceiptFrames,
   listPantryItems,
   markItemUsedUp,
   setReceiptLineDetails,
@@ -40,6 +41,7 @@ import type {
   MeasureUnit,
   PantryItem,
   ReceiptLine,
+  ReceiptFrame,
   ReceiptType,
   ReceiptWithLines,
 } from '@/types';
@@ -63,6 +65,7 @@ export default function ReceiptReviewScreen() {
   const { receiptId } = useLocalSearchParams<{ receiptId: string }>();
 
   const [receipt, setReceipt] = useState<ReceiptWithLines | null>(null);
+  const [frames, setFrames] = useState<ReceiptFrame[]>([]);
   const [canonicals, setCanonicals] = useState<Map<string, CanonicalItem>>(new Map());
   const [catalogue, setCatalogue] = useState<PantryItem[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -77,16 +80,18 @@ export default function ReceiptReviewScreen() {
 
   const load = useCallback(async () => {
     if (!receiptId) return;
-    const [stored, canonicalList, items, locs] = await Promise.all([
+    const [stored, canonicalList, items, locs, storedFrames] = await Promise.all([
       getReceipt(receiptId),
       getAllCanonicals(),
       listPantryItems(),
       getLocations(),
+      getReceiptFrames(receiptId),
     ]);
     setReceipt(stored);
     setCanonicals(new Map(canonicalList.map((c) => [c.id, c])));
     setCatalogue(items);
     setLocations(locs);
+    setFrames(storedFrames);
   }, [receiptId]);
 
   useEffect(() => {
@@ -236,6 +241,21 @@ export default function ReceiptReviewScreen() {
 
       <View style={styles.typeRow}>
         <Segmented options={TYPE_OPTIONS} value={receipt.type} onChange={(t) => void changeType(t)} />
+      </View>
+
+      <View style={styles.frameSection}>
+        <ScrollView horizontal contentContainerStyle={styles.frameStrip} showsHorizontalScrollIndicator={false}>
+          {frames.map((frame) => (
+            <Image key={frame.id} source={{ uri: frame.imageUri }} style={styles.frameImage} />
+          ))}
+          <Button
+            label="Add another photo"
+            variant="secondary"
+            block={false}
+            onPress={() => router.push({ pathname: '/receipt-capture', params: { receiptId: receipt.id } })}
+            disabled={saving}
+          />
+        </ScrollView>
       </View>
 
       {captureItemsFromReceiptLines(receipt.lines).length > 0 ? (
@@ -488,6 +508,9 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, marginRight: space.sm },
   typeRow: { paddingHorizontal: layout.screenGutter, paddingTop: space.sm },
+  frameSection: { paddingHorizontal: layout.screenGutter, paddingTop: space.sm },
+  frameStrip: { alignItems: 'center', gap: space.sm },
+  frameImage: { width: 48, height: 64, borderRadius: radius.input, backgroundColor: color.line },
   correction: {
     paddingHorizontal: layout.screenGutter,
     paddingBottom: space.sm,

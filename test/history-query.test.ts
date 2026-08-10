@@ -41,6 +41,21 @@ describe('getDaySummaries', () => {
     expect(rows.some((row) => row.localDate === '2026-04-03')).toBe(false);
   });
 
+  test('preserves an unknown calorie value instead of letting SQL sum it as zero', async () => {
+    const localDate = '2026-04-12';
+    await insertMeal({
+      loggedAt: `${localDate}T12:00:00.000Z`, localDate, mealType: 'lunch', name: 'Unknown recipe',
+      photoUri: null, source: 'suggestion', confidence: null,
+      items: [{
+        name: 'Unknown recipe', quantity: 1, unit: 'serving', calories: null,
+        proteinG: null, carbsG: null, fatG: null, isManualAddition: false,
+      }],
+    });
+    expect(await getDaySummaries('2026-04-01', '2026-04-30')).toEqual([
+      { localDate, calories: null, targetCalories: null },
+    ]);
+  });
+
   test('sums every logged day in a full month in one range result', async () => {
     for (let day = 1; day <= 28; day += 1) {
       const localDate = `2026-02-${String(day).padStart(2, '0')}`;

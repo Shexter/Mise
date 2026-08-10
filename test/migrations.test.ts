@@ -47,6 +47,59 @@ describe('migrations', () => {
     expect(tables).toContain('dish_venue_defaults');
     expect(tables).toContain('body_measurements');
     expect(tables).toContain('barcode_misses');
+    expect(tables).toContain('receipt_frames');
+    expect(tables).toContain('receipt_frame_lines');
+    const cacheColumns = db.prepare("PRAGMA table_info(suggestion_cache)").all() as { name: string }[];
+    expect(cacheColumns.map((column) => column.name)).toContain('target_macro');
+    expect(cacheColumns.map((column) => column.name)).toContain('template_id');
+    expect(cacheColumns.map((column) => column.name)).toContain('prep_speed');
+    expect(tables).toContain('suggestion_preferences');
+    const nutritionColumns = db.prepare('PRAGMA table_info(meal_items)').all() as {
+      name: string; notnull: number;
+    }[];
+    for (const column of nutritionColumns.filter((column) =>
+      ['calories', 'protein_g', 'carbs_g', 'fat_g'].includes(column.name),
+    )) {
+      expect(column.notnull).toBe(0);
+    }
+    db.close();
+  });
+
+  test('the nullable-nutrition migration preserves old values and accepts an unknown one', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 17);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('m1', '2026-01-01T12:00:00Z', '2026-01-01', 'lunch', 'Noodles', 'manual', '2026-01-01T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO meal_items (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g)
+       VALUES ('i1', 'm1', 'Noodles', 1, 'serving', 500, 20, 70, 12)`,
+    ).run();
+
+    migrate(db, 17, LATEST_VERSION);
+    const preserved = db.prepare('SELECT calories, protein_g FROM meal_items WHERE id = ?').get('i1') as {
+      calories: number; protein_g: number;
+    };
+    expect(preserved).toEqual({ calories: 500, protein_g: 20 });
+    db.prepare(
+      `INSERT INTO meal_items (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g)
+       VALUES ('i2', 'm1', 'Unknown sauce', 1, 'serving', NULL, NULL, NULL, NULL)`,
+    ).run();
+    expect(db.prepare('SELECT protein_g FROM meal_items WHERE id = ?').get('i2')).toEqual({ protein_g: null });
+    db.close();
+  });
+
+  test('the template migration clears disposable cache rows and preserves durable profile data', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 18);
+    db.prepare(
+      `INSERT INTO suggestion_cache (id, local_date, mode, target_macro, fingerprint, payload, created_at)
+       VALUES ('cache', '2026-08-10', 'tonight', NULL, 'old', '{}', '2026-08-10T00:00:00Z')`,
+    ).run();
+    migrate(db, 18, LATEST_VERSION);
+    expect(db.prepare('SELECT COUNT(*) AS count FROM suggestion_cache').get()).toEqual({ count: 0 });
+    expect(tableNames(db)).toContain('suggestion_preferences');
     db.close();
   });
 

@@ -48,6 +48,16 @@ describe('meal edit draft', () => {
     expect(errors.itemFields['item-1']?.fatG).toBeTruthy();
   });
 
+  test('keeps an unknown nutrient blank through editing instead of turning it into zero', () => {
+    const draft = mealToDraft({
+      ...meal,
+      items: [{ ...meal.items[0]!, proteinG: null }],
+    });
+    expect(draft.items[0]?.proteinG).toBe('');
+    expect(hasMealEditErrors(validateMealDraft(draft))).toBe(false);
+    expect(normaliseMealDraft(draft).items[0]?.proteinG).toBeNull();
+  });
+
   test('normalises non-home servings and preserves immutable provenance', () => {
     const draft = mealToDraft(meal);
     draft.name = '  Corrected bowl  ';

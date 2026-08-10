@@ -169,8 +169,9 @@ Where a receipt does not fit legibly in a single frame, the system SHALL allow
 further captures to be added to the same receipt, and SHALL produce one receipt
 from them.
 
-The system SHALL show what has been captured so far, and SHALL allow a capture
-to be retaken or removed before interpretation.
+The system SHALL retain every frame locally before interpretation, show what has
+been captured so far, and SHALL allow a capture to be retaken or removed before
+the user applies the receipt.
 
 #### Scenario: Several frames make one receipt
 
@@ -183,6 +184,30 @@ to be retaken or removed before interpretation.
 - **GIVEN** two captures of one receipt that overlap
 - **WHEN** they are interpreted
 - **THEN** a line appearing in both is not recorded twice
+
+#### Scenario: A legitimate repeated purchase remains distinct
+
+- **GIVEN** two separately printed lines have the same text and price
+- **WHEN** they are not the overlapping edge of adjacent frames
+- **THEN** both lines remain in the receipt
+
+#### Scenario: A removed frame removes only its own contribution
+
+- **GIVEN** a receipt has several captured frames
+- **WHEN** the user removes or retakes one frame
+- **THEN** the other retained frames and their lines remain available
+
+#### Scenario: The tail frame supplies the printed total
+
+- **GIVEN** only the final receipt frame contains the printed total
+- **WHEN** the frames are merged
+- **THEN** the receipt uses that printed total for its existing arithmetic check
+
+#### Scenario: A frame can be retried independently
+
+- **GIVEN** one retained receipt frame could not be interpreted
+- **WHEN** the provider becomes available
+- **THEN** that frame can be interpreted without recapturing the other frames
 
 #### Scenario: A frame can be retaken
 

@@ -60,21 +60,25 @@ export function DayRail({
     meal,
     calories: macrosOfItems(meal.items).calories,
   }));
-  const consumed = perMeal.reduce((sum, entry) => sum + entry.calories, 0);
-  const isOver = consumed > targetCalories && targetCalories > 0;
+  const caloriesKnown = perMeal.every((entry) => entry.calories !== null);
+  const consumed = caloriesKnown
+    ? perMeal.reduce((sum, entry) => sum + (entry.calories ?? 0), 0)
+    : null;
+  const isOver = consumed !== null && consumed > targetCalories && targetCalories > 0;
 
   const usableWidth = Math.max(0, railWidth - (isOver ? OVERAGE_WIDTH : 0));
-  const scaleBasis = isOver ? consumed : targetCalories;
+  const scaleBasis = isOver && consumed !== null ? consumed : targetCalories;
   const gapTotal = Math.max(0, perMeal.length - 1) * SEGMENT_GAP;
 
   const segments: Segment[] =
-    railWidth === 0 || scaleBasis <= 0
+    !caloriesKnown || railWidth === 0 || scaleBasis <= 0
       ? []
       : perMeal.map((entry) => ({
-          ...entry,
+          meal: entry.meal,
+          calories: entry.calories!,
           width: Math.max(
             0,
-            (entry.calories / scaleBasis) * (usableWidth - gapTotal),
+            ((entry.calories ?? 0) / scaleBasis) * (usableWidth - gapTotal),
           ),
         }));
 
@@ -93,6 +97,10 @@ export function DayRail({
       {meals.length === 0 ? (
         <View style={styles.empty}>
           <Caption muted>Your day starts with the first photo.</Caption>
+        </View>
+      ) : !caloriesKnown ? (
+        <View style={styles.empty}>
+          <Caption muted>Calories are unavailable for one or more meals.</Caption>
         </View>
       ) : (
         <View style={styles.track}>
@@ -191,9 +199,9 @@ function RailSegment({ segment, isLast, animate, onPress }: SegmentProps) {
 function dominantMacroColor(meal: MealWithItems): string {
   const macros = macrosOfItems(meal.items);
   const byCalories = [
-    { color: macroColor.protein, value: macros.proteinG * 4 },
-    { color: macroColor.carbs, value: macros.carbsG * 4 },
-    { color: macroColor.fat, value: macros.fatG * 9 },
+    { color: macroColor.protein, value: (macros.proteinG ?? 0) * 4 },
+    { color: macroColor.carbs, value: (macros.carbsG ?? 0) * 4 },
+    { color: macroColor.fat, value: (macros.fatG ?? 0) * 9 },
   ];
   return byCalories.reduce((best, entry) =>
     entry.value > best.value ? entry : best,
@@ -201,11 +209,12 @@ function dominantMacroColor(meal: MealWithItems): string {
 }
 
 function railLabel(
-  consumed: number,
+  consumed: number | null,
   target: number,
   mealCount: number,
 ): string {
   if (mealCount === 0) return 'Nothing logged yet';
+  if (consumed === null) return 'Calories unavailable for one or more meals';
   const suffix = mealCount === 1 ? '1 meal' : `${mealCount} meals`;
   return `${roundCalories(consumed)} of ${target} calories, ${suffix}`;
 }

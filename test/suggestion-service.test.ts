@@ -11,18 +11,23 @@ import { generateSuggestions } from '../src/api/suggest';
 import { hasApiKey } from '../src/api/keyStore';
 import {
   getAllCanonicals,
+  getProfile,
   getPantryItem,
   insertMeal,
   insertPantryItem,
   loadSeedData,
+  clearSuggestionPreference,
+  saveSuggestionPreference,
+  saveProfile,
 } from '../src/db/queries';
 import { depleteForMeal } from '../src/logic/depletionService';
 import {
   getOrGenerateSuggestions,
   mealFromSuggestion,
+  nutritionFromSuggestion,
 } from '../src/logic/suggestionService';
 import { localDateString } from '../src/logic/dates';
-import type { CanonicalItem, Suggestion } from '../src/types';
+import type { CanonicalItem, Profile, Suggestion } from '../src/types';
 import { openTestDatabase } from './stubs/db';
 
 /**
@@ -59,7 +64,6 @@ describe('getOrGenerateSuggestions caching', () => {
   test('generates and caches on a cold cache', async () => {
     vi.mocked(hasApiKey).mockResolvedValue(true);
     const localDate = localDateString();
-
     const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
 
     expect(result.status).toBe('ready');
@@ -73,6 +77,13 @@ describe('getOrGenerateSuggestions caching', () => {
   test('no rules recorded means no dietary behaviour anywhere (task 5.7/10.7)', async () => {
     vi.mocked(hasApiKey).mockResolvedValue(true);
     const localDate = localDateString();
+    const profile: Profile = {
+      sex: 'female', age: 30, heightCm: 170, weightKg: 65, activityLevel: 'moderate',
+      goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
+      statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
+      fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+    };
+    await saveProfile(profile);
 
     const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
 
@@ -110,6 +121,46 @@ describe('getOrGenerateSuggestions caching', () => {
     expect(generateSuggestions).toHaveBeenCalledTimes(1);
   });
 
+  test('a saved intent and speed have their own cache identity, without changing the profile', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    const localDate = localDateString();
+    const profile: Profile = {
+      sex: 'female', age: 30, heightCm: 170, weightKg: 65, activityLevel: 'moderate',
+      goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
+      statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
+      fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+    };
+    await saveProfile(profile);
+
+    await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    await saveSuggestionPreference('protein_forward', 'quick');
+    const tuned = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    const reopened = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+
+    expect(tuned).toMatchObject({ status: 'ready', fromCache: false });
+    expect(reopened).toMatchObject({ status: 'ready', fromCache: true });
+    expect(generateSuggestions).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(generateSuggestions).mock.calls[1]?.[0]).toMatchObject({
+      mode: 'tonight',
+      tonightPreference: { baseIntent: 'protein_forward', prepSpeed: 'quick', source: 'saved' },
+    });
+    expect(await getProfile()).toEqual(profile);
+
+    await saveProfile({ ...profile, goal: 'lose' });
+    const stillSaved = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(stillSaved).toMatchObject({
+      status: 'ready', fromCache: true,
+      set: { tonightPreference: { baseIntent: 'protein_forward', prepSpeed: 'quick', source: 'saved' } },
+    });
+
+    await clearSuggestionPreference();
+    const reset = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    expect(reset).toMatchObject({
+      status: 'ready', fromCache: false,
+      set: { tonightPreference: { baseIntent: 'lighter_portions', prepSpeed: 'standard', source: 'profile_default' } },
+    });
+  });
+
   test('an explicit refresh spends a call even though nothing changed', async () => {
     vi.mocked(hasApiKey).mockResolvedValue(true);
     const localDate = localDateString();
@@ -132,6 +183,75 @@ describe('getOrGenerateSuggestions caching', () => {
 
     const result = await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
     expect(result.status).toBe('no_key');
+    expect(generateSuggestions).not.toHaveBeenCalled();
+  });
+
+  test('a macro-gap target has a cache entry distinct from tonight and reopens without a call', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    const localDate = localDateString();
+    await saveProfile({
+      sex: 'female', age: 30, heightCm: 170, weightKg: 65, activityLevel: 'moderate',
+      goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
+      statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
+      fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+    });
+    await insertPantryItem({
+      canonicalId: 'chicken-breast', locationId: 'fridge', qtyRemaining: 500, qtyUnit: 'g',
+    });
+
+    await getOrGenerateSuggestions({ localDate, mode: 'tonight' });
+    const first = await getOrGenerateSuggestions({
+      localDate, mode: 'macro_gap', targetMacro: 'protein',
+    });
+    const second = await getOrGenerateSuggestions({
+      localDate, mode: 'macro_gap', targetMacro: 'protein',
+    });
+
+    expect(first.status).toBe('ready');
+    expect(second).toMatchObject({ status: 'ready', fromCache: true });
+    expect(generateSuggestions).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(generateSuggestions).mock.calls[1]?.[0]).toMatchObject({
+      mode: 'macro_gap', targetMacro: 'protein',
+      tonightPreference: null,
+    });
+  });
+
+  test('stretch does not carry a tonight preference', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    const localDate = localDateString();
+    const result = await getOrGenerateSuggestions({
+      localDate, mode: 'stretch', untilDate: localDate,
+    });
+    expect(result.status).toBe('ready');
+    expect(vi.mocked(generateSuggestions).mock.calls[0]?.[0]).toMatchObject({
+      mode: 'stretch', tonightPreference: null,
+    });
+  });
+
+  test('does not invent a macro gap when an earlier meal has an unknown target macro', async () => {
+    vi.mocked(hasApiKey).mockResolvedValue(true);
+    const localDate = localDateString();
+    await saveProfile({
+      sex: 'female', age: 30, heightCm: 170, weightKg: 65, activityLevel: 'moderate',
+      goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
+      statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
+      fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+    });
+    await insertMeal({
+      loggedAt: `${localDate}T12:00:00.000Z`, localDate, mealType: 'lunch', name: 'Unknown meal',
+      photoUri: null, source: 'suggestion', confidence: null,
+      items: [{
+        name: 'Unknown sauce', quantity: 1, unit: 'serving', calories: 100,
+        proteinG: null, carbsG: 0, fatG: 0, isManualAddition: false,
+      }],
+    });
+
+    const result = await getOrGenerateSuggestions({
+      localDate, mode: 'macro_gap', targetMacro: 'protein',
+    });
+    expect(result).toEqual({
+      status: 'insufficient_data', targetMacro: 'protein', reason: 'consumed_total_unknown',
+    });
     expect(generateSuggestions).not.toHaveBeenCalled();
   });
 });
@@ -314,10 +434,48 @@ describe('mealFromSuggestion — "I cooked this"', () => {
     expect(ingredientItems).toEqual([
       expect.objectContaining({ canonicalId: 'soy-sauce-light', quantity: 10, unit: 'ml' }),
     ]);
-    // Calories land on the dish item; ingredient items are not double-counted.
+    // Nutrition lands on the dish item; ingredient items are not double-counted.
     const dishItem = meal.items.find((item) => !item.canonicalId);
-    expect(dishItem?.calories).toBe(FAKE_SUGGESTION.kcalPerServing);
+    expect(dishItem?.calories).toBe(nutritionFromSuggestion(FAKE_SUGGESTION, canonicals).calories);
     expect(ingredientItems.every((item) => item.calories === 0)).toBe(true);
+  });
+
+  test('uses a whole-dish provider estimate only when local recipe nutrition is unresolved', () => {
+    const suggestion: Suggestion = {
+      ...FAKE_SUGGESTION,
+      uses: [{ canonicalId: 'unknown-ingredient', qty: 100, unit: 'g' }],
+      estimatedNutritionPerServing: {
+        calories: 320, proteinG: 24, carbsG: 16, fatG: 12, source: 'provider',
+      },
+    };
+    const nutrition = nutritionFromSuggestion(suggestion, canonicals);
+    expect(nutrition).toMatchObject({ calories: 320, proteinG: 24, carbsG: 16, fatG: 12 });
+  });
+
+  test('keeps complete local recipe nutrition ahead of a conflicting provider estimate', () => {
+    const suggestion: Suggestion = {
+      ...FAKE_SUGGESTION,
+      estimatedNutritionPerServing: {
+        calories: 999, proteinG: 999, carbsG: 999, fatG: 999, source: 'provider',
+      },
+    };
+    expect(nutritionFromSuggestion(suggestion, canonicals)).toEqual(
+      nutritionFromSuggestion(FAKE_SUGGESTION, canonicals),
+    );
+  });
+
+  test('stores unresolved recipe nutrients as null while keeping the meal loggable', () => {
+    const suggestion: Suggestion = {
+      ...FAKE_SUGGESTION,
+      uses: [{ canonicalId: 'unknown-ingredient', qty: 100, unit: 'g' }],
+      estimatedNutritionPerServing: null,
+    };
+    const meal = mealFromSuggestion({
+      suggestion, servingsMade: suggestion.servings, localDate: '2026-06-01', canonicals,
+    });
+    const dishItem = meal.items.find((item) => !item.canonicalId);
+    expect(dishItem).toMatchObject({ calories: null, proteinG: null, carbsG: null, fatG: null });
+    expect(meal.items.find((item) => item.canonicalId)?.canonicalId).toBe('unknown-ingredient');
   });
 
   test('a cooked suggestion commits through the ordinary meal flow and debits by identity', async () => {

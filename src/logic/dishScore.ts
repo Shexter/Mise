@@ -1,7 +1,12 @@
 import { CUISINE_KEYWORDS } from '@/logic/suggest';
 import type { BucketedItem, PersonalisationSummary } from '@/logic/suggest';
 import { daysUntil } from '@/logic/stockStatus';
-import type { Suggestion, UrgencyBucket } from '@/types';
+import {
+  QUICK_EFFORT_MINUTES,
+  SUGGESTION_INTENT_POLICIES,
+  scoreMultipliersFor,
+} from '@/logic/suggestionTemplates';
+import type { Suggestion, SuggestionReason, TonightSuggestionPreference, UrgencyBucket } from '@/types';
 
 /**
  * Ranks a generated candidate pool locally (decision 149, `add-dish-scorer`).
@@ -36,7 +41,7 @@ export interface StockIndexEntry {
 
 export interface DishScoreContext {
   stockIndex: ReadonlyMap<string, StockIndexEntry>;
-  remainingCalories: number;
+  remainingCalories: number | null;
   personalisation: PersonalisationSummary;
   /**
    * Canonical ids the user dislikes, expanded through the derivative
@@ -48,6 +53,8 @@ export interface DishScoreContext {
    * scorer rather than building a second mechanism beside it).
    */
   dislikedCanonicalIds: ReadonlySet<string>;
+  /** Null outside tonight mode, so stretch and macro-gap retain their current behaviour. */
+  tonightPreference?: TonightSuggestionPreference | null;
 }
 
 /**
@@ -88,16 +95,18 @@ function nearer(a: number | null, b: number | null): number | null {
 
 export function buildDishScoreContext(
   bucketed: Record<UrgencyBucket, BucketedItem[]>,
-  remainingCalories: number,
+  remainingCalories: number | null,
   personalisation: PersonalisationSummary,
   today?: string,
   dislikedCanonicalIds: ReadonlySet<string> = new Set(),
+  tonightPreference: TonightSuggestionPreference | null = null,
 ): DishScoreContext {
   return {
     stockIndex: buildStockIndex(bucketed, today),
     remainingCalories,
     personalisation,
     dislikedCanonicalIds,
+    tonightPreference,
   };
 }
 
@@ -158,11 +167,19 @@ function effortTerm(suggestion: Suggestion): number {
 }
 
 function calorieFitTerm(suggestion: Suggestion, context: DishScoreContext): number {
+  if (context.remainingCalories === null) return 0;
   const overshoot = Math.max(
     0,
     suggestion.kcalPerServing - Math.max(context.remainingCalories, 0),
   );
   return 1 / (1 + overshoot / CALORIE_FIT_HALF_LIFE);
+}
+
+/** Provider-estimated protein can guide a preference, but a missing estimate is neutral. */
+function proteinDensityTerm(suggestion: Suggestion): number {
+  const estimate = suggestion.estimatedNutritionPerServing;
+  if (!estimate || estimate.calories <= 0) return 0;
+  return Math.min(1, estimate.proteinG / estimate.calories * 10);
 }
 
 function familiarityTerm(suggestion: Suggestion, context: DishScoreContext): number {
@@ -203,15 +220,71 @@ function cuisineOf(dish: string): string | null {
  * produce the same number, and nothing here reaches outside its arguments.
  */
 export function scoreDish(suggestion: Suggestion, context: DishScoreContext): number {
+  const weights = scoreMultipliersFor(context.tonightPreference ?? null);
   return (
-    VALUE_AT_RISK_WEIGHT * valueAtRiskTerm(suggestion, context) +
-    EXPIRY_PRESSURE_WEIGHT * expiryPressureTerm(suggestion, context) +
-    EFFORT_WEIGHT * effortTerm(suggestion) +
-    CALORIE_FIT_WEIGHT * calorieFitTerm(suggestion, context) +
-    FAMILIARITY_WEIGHT * familiarityTerm(suggestion, context) +
+    VALUE_AT_RISK_WEIGHT * weights.valueAtRisk * valueAtRiskTerm(suggestion, context) +
+    EXPIRY_PRESSURE_WEIGHT * weights.expiryPressure * expiryPressureTerm(suggestion, context) +
+    EFFORT_WEIGHT * weights.effort * effortTerm(suggestion) +
+    CALORIE_FIT_WEIGHT * weights.calorieFit * calorieFitTerm(suggestion, context) +
+    FAMILIARITY_WEIGHT * weights.familiarity * familiarityTerm(suggestion, context) +
+    weights.proteinDensity * proteinDensityTerm(suggestion) +
     RECENCY_PENALTY_WEIGHT * recencyTerm(suggestion, context) +
     DISLIKE_PENALTY_WEIGHT * dislikeTerm(suggestion, context)
   );
+}
+
+function portionRecommendation(suggestion: Suggestion, context: DishScoreContext) {
+  const preference = context.tonightPreference ?? null;
+  if (!preference || SUGGESTION_INTENT_POLICIES[preference.baseIntent].portionPolicy !== 'lighter') {
+    return null;
+  }
+  if (context.remainingCalories === null || context.remainingCalories <= 0 ||
+      suggestion.kcalPerServing <= context.remainingCalories || suggestion.kcalPerServing <= 0) {
+    return null;
+  }
+  const servings = Math.max(0.5, Math.min(1, context.remainingCalories / suggestion.kcalPerServing));
+  const rounded = Math.round(servings * 4) / 4;
+  return { servings: rounded, label: `Try about ${rounded} serving${rounded === 1 ? '' : 's'}` };
+}
+
+function templateReasons(suggestion: Suggestion, context: DishScoreContext): SuggestionReason[] {
+  const preference = context.tonightPreference ?? null;
+  if (!preference) return [];
+  const reasons: SuggestionReason[] = [];
+  if (preference.prepSpeed === 'quick' && suggestion.effortMinutes <= QUICK_EFFORT_MINUTES) {
+    reasons.push({ kind: 'matches_template', label: `About ${suggestion.effortMinutes} minutes of active time` });
+  }
+  if (preference.baseIntent === 'use_it_up' && valueAtRiskTerm(suggestion, context) > 0) {
+    reasons.push({ kind: 'matches_template', label: 'Prioritises what needs using' });
+  }
+  if (preference.baseIntent === 'protein_forward' && suggestion.estimatedNutritionPerServing) {
+    reasons.push({
+      kind: 'matches_template',
+      label: `About ${Math.round(suggestion.estimatedNutritionPerServing.proteinG)} g protein per serving (estimate)`,
+    });
+  }
+  if (preference.baseIntent === 'familiar_favourites' && familiarityTerm(suggestion, context) > 0) {
+    reasons.push({ kind: 'matches_template', label: 'Leans toward a familiar cooking style' });
+  }
+  const portion = portionRecommendation(suggestion, context);
+  if (portion) reasons.push({ kind: 'matches_template', label: portion.label });
+  return reasons;
+}
+
+/** Adds only locally defensible, preference-specific display metadata. */
+export function decorateSuggestionForDisplay(
+  suggestion: Suggestion,
+  context: DishScoreContext,
+): Suggestion {
+  const reasons = [
+    ...suggestion.reasons.filter((reason) => reason.kind !== 'matches_template'),
+    ...templateReasons(suggestion, context),
+  ];
+  return {
+    ...suggestion,
+    reasons,
+    portionRecommendation: portionRecommendation(suggestion, context),
+  };
 }
 
 /* -------------------------------------------------------------------------- */

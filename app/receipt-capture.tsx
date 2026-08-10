@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,7 +21,7 @@ import {
 } from '@/constants/theme';
 import { localDateString } from '@/logic/dates';
 import { preparePhoto, type SourceImage } from '@/media/photos';
-import { captureReceipt, needsExtraction } from '@/logic/receiptService';
+import { addReceiptPhoto, captureReceipt, needsExtraction } from '@/logic/receiptService';
 
 type FlashMode = 'off' | 'on' | 'auto';
 
@@ -34,6 +34,7 @@ type FlashMode = 'off' | 'on' | 'auto';
  */
 export default function ReceiptCaptureScreen() {
   const router = useRouter();
+  const { receiptId } = useLocalSearchParams<{ receiptId?: string }>();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null);
   const toast = useToast();
@@ -45,14 +46,13 @@ export default function ReceiptCaptureScreen() {
   const proceed = async (source: SourceImage) => {
     setBusy(true);
     const prepared = await preparePhoto(source, 'receipts');
-    const receipt = await captureReceipt(
-      prepared.base64,
-      prepared.uri,
-      localDateString(),
-    );
+    const receipt = receiptId
+      ? await addReceiptPhoto(receiptId, prepared.base64, prepared.uri, localDateString())
+      : await captureReceipt(prepared.base64, prepared.uri, localDateString());
     setBusy(false);
+    if (!receipt) return;
 
-    if (needsExtraction(receipt)) {
+    if (!receiptId && needsExtraction(receipt)) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.show({
         message: "Receipt saved. It'll finish importing once you're online with a key set.",

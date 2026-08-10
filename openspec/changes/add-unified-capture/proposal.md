@@ -38,6 +38,9 @@ decision 60 both assuming it exists.
   owns. This is the third handler and it has to be built here.
 - **One question, only when the app genuinely cannot tell.** Ambiguity is
   resolved by asking, once, rather than by guessing.
+- **Long receipts retain their frames.** Each frame is interpreted separately,
+  then merged into one reviewable draft without treating an overlapping line as
+  a second purchase (decisions 111 and 113).
 
 ## Capabilities
 
@@ -77,10 +80,10 @@ router rather than through screens of their own.
 
 ## Impact
 
-**Schema.** One forward-only migration adds `pending_captures`, the durable
-queue for captures that cannot yet be interpreted. A receipt draft is stored in
-the existing `receipts` and `receipt_lines` tables before review; it is not
-applied stock.
+**Schema.** Forward-only migrations add `pending_captures` and durable receipt
+frames with their extracted lines. A receipt draft remains the one reviewable
+record, while its retained frames provide the source needed to merge, retake,
+remove, and retry individual photographs. None of these records applies stock.
 
 **Code.**
 - `src/api/capturePrompt.ts` and `src/api/capture.ts` — the classifying
@@ -92,6 +95,8 @@ applied stock.
   network.
 - `app/` — one capture screen, replacing what would have been three.
 - `src/media/photos.ts` — extended for pantry captures.
+- `src/logic/receiptService.ts` and receipt review — frame lifecycle and a
+  repeat-safe merge before the existing review step.
 
 **Dependencies.** None added. `expo-camera` already scans barcodes natively and
 is already a dependency.

@@ -97,8 +97,8 @@ export default function TodayScreen() {
   }, [params.savedMealId]);
 
   const targetCalories = target?.targetCalories ?? 0;
-  const remaining = targetCalories - roundCalories(consumed.calories);
-  const isOver = remaining < 0;
+  const remaining = consumed.calories === null ? null : targetCalories - roundCalories(consumed.calories);
+  const isOver = remaining !== null && remaining < 0;
 
   const onDelete = (mealId: string) => {
     void removeMeal(mealId);
@@ -143,18 +143,18 @@ export default function TodayScreen() {
 
         <View style={styles.hero}>
           <SectionLabel muted>
-            {isOver ? 'Over target' : 'Remaining today'}
+            {remaining === null ? 'Calories unavailable' : isOver ? 'Over target' : 'Remaining today'}
           </SectionLabel>
-          <CountingNumber
+          {remaining === null ? (
+            <ScreenTitle>—</ScreenTitle>
+          ) : <CountingNumber
             value={Math.abs(remaining)}
             dimmed={isOver}
-            accessibilityLabel={
-              isOver
-                ? `${Math.abs(remaining)} calories over target`
-                : `${remaining} calories remaining`
-            }
-          />
-          {isOver ? (
+            accessibilityLabel={isOver ? `${Math.abs(remaining)} calories over target` : `${remaining} calories remaining`}
+          />}
+          {remaining === null ? (
+            <Caption muted>One or more meals have unknown calories.</Caption>
+          ) : isOver ? (
             <Caption muted numeric>
               {Math.abs(remaining)} over — a fact, not a verdict.
             </Caption>
@@ -179,6 +179,7 @@ export default function TodayScreen() {
               targetProteinG={target.proteinG}
               targetCarbsG={target.carbsG}
               targetFatG={target.fatG}
+              onRequest={(macro) => router.push({ pathname: '/dinner', params: { macro } })}
             />
           </View>
         ) : null}

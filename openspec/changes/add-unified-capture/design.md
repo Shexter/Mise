@@ -94,6 +94,57 @@ the user's; a router makes it the app's, and the only honest compensation is
 that a mistake is visible before it costs anything. It also means classification
 does not have to be perfect to be better than a menu — it has to be recoverable.
 
+### Receipt frames are durable sources; the receipt remains the review draft
+
+`receipts` remains the one object the user reviews and later applies. A new
+forward-only migration adds `receipt_frames`, one ordered row per photographed
+frame, with its image URI, extraction state, last error kind, and timestamps.
+The existing `receipts.image_uri` remains the first frame's URI for backwards
+compatibility with existing drafts and media cleanup.
+
+The migration also adds `receipt_frame_lines`, containing each frame's complete
+extracted line with its frame-local position and monetary fields. These are the
+durable extraction source. `receipt_lines` remains the merged, user-reviewable
+set. Keeping the two levels separate means removing a frame can rebuild the
+merge from the retained frames instead of losing an overlapping line that was
+previously suppressed.
+
+*Why not store frame URIs in JSON on `receipts`:* individual frame retry,
+deletion, ordering, and extraction state are first-class lifecycle operations.
+A child table gives each operation a durable identity and lets `DROP_ALL` and
+receipt abandonment remove the corresponding images deliberately.
+
+*Why not make frames separate receipts:* a multi-frame roll is one purchase,
+one printed total, and one confirmation. Multiple receipt drafts would make the
+user reconcile the same purchase manually and would break decision 113's one
+arithmetic check.
+
+### Frames merge before review, with deliberate repeated purchases preserved
+
+The receipt service extracts each frame once through the existing complete
+receipt-draft contract. It stores the frame header and lines, then rebuilds the
+reviewable `receipt_lines` set in one transaction from every extracted frame.
+The merge compares normalised text, line price, and frame-local position only
+across adjacent frames at their overlapping edges. A text match by itself never
+suppresses a line: two identical items elsewhere on the receipt remain two
+purchases, as required by decision 111.
+
+The latest captured frame carrying a printed total supplies the receipt total,
+subtotal, and tax fields. In the ordinary top-to-bottom capture order, this is
+the tail frame. The existing arithmetic check remains advisory and exposes a
+missed or duplicated merge instead of altering a line, as required by decision
+113.
+
+*Why rebuild rather than append:* removing or retaking a frame must make its
+lines disappear while restoring any overlap that only its replacement had
+suppressed. Rebuilding from retained frame lines is deterministic; append-only
+deduplication cannot recover that state.
+
+Frame controls are available from receipt review before a manual line edit.
+Once the user edits, excludes, reclassifies, or manually matches a line, the
+review tells them to finish that draft or discard it before adding frames. This
+avoids silently overwriting a deliberate correction during a rebuild.
+
 ### Ambiguity asks rather than guesses, and asking is rare by construction
 
 `kind: 'unclear'` triggers a single question.
@@ -135,13 +186,22 @@ and measures per-kind accuracy independently against fixtures.
 after. Mitigation: the router degrades to the handlers that exist and gains the
 rest as they arrive, which is why it does not depend on either landing first.
 
+**A merge mistakes a repeated purchase for overlap** → it would erase a real
+container. Mitigation: compare text, price, position, adjacent-frame order, and
+only their touching edges; fixture coverage includes a deliberate repeat.
+
+**A frame is removed after another supplied the only duplicate copy** → the
+merged draft could lose a line. Mitigation: rebuild from `receipt_frame_lines`
+after every frame mutation instead of deleting individual merged rows.
+
 ## Migration Plan
 
-Append one forward-only migration creating `pending_captures` with an id, image
-URI, nullable detected kind, status, retry count, last error kind, and created
-and updated timestamps. Add it to `DROP_ALL`, deleting its images with the
-other capture media. Existing receipt drafts continue to use their existing
-tables; the queue only owns captures that cannot yet enter a review flow.
+Append forward-only migrations creating `pending_captures`, `receipt_frames`,
+and `receipt_frame_lines`. Add each table to `DROP_ALL`; delete every frame
+image exactly once when a receipt draft is abandoned or all data is removed.
+Existing single-frame receipts retain their `receipts.image_uri` and need no
+rewrite. New receipts create their first frame alongside the compatible receipt
+row.
 
 `add-receipt-import` task 7.2 and `add-barcode-capture` task 5.1 are amended so
 each builds its handler and review surface without a capture screen of its own.
@@ -151,7 +211,8 @@ nothing is discarded.
 
 Rollback: reverting leaves the specialised handlers reachable only if their own
 entry points are restored, which is why the amendment is a task edit rather than
-a deletion.
+a deletion. Older builds ignore the new frame tables and retain their existing
+single-frame receipt behavior.
 
 ## Open Questions
 

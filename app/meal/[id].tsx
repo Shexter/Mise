@@ -24,7 +24,7 @@ import {
   type MealItemDraft,
 } from '@/logic/mealEdit';
 import { catalogueNutrition } from '@/logic/nutrition';
-import { macrosOfItems, roundCalories } from '@/logic/scaling';
+import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { useDayStore } from '@/store/dayStore';
 import {
   MEAL_TYPES,
@@ -185,9 +185,9 @@ export default function MealEditorScreen() {
       ) : null}
 
       <Card title="Current total">
-        <MealCalories numeric>{roundCalories(totals.calories)} kcal</MealCalories>
+        <MealCalories numeric>{totals.calories === null ? '—' : `${roundCalories(totals.calories)} kcal`}</MealCalories>
         <Caption muted numeric>
-          P {totals.proteinG.toFixed(1)} g · C {totals.carbsG.toFixed(1)} g · F {totals.fatG.toFixed(1)} g
+          P {formatGrams(totals.proteinG)} g · C {formatGrams(totals.carbsG)} g · F {formatGrams(totals.fatG)} g
         </Caption>
       </Card>
 
@@ -274,8 +274,8 @@ export default function MealEditorScreen() {
 
 function newItemDraft(): MealItemDraft {
   return {
-    id: randomUUID(), name: '', quantity: '1', unit: 'serving', calories: '0',
-    proteinG: '0', carbsG: '0', fatG: '0', isManualAddition: true, canonicalId: null,
+    id: randomUUID(), name: '', quantity: '1', unit: 'serving', calories: '',
+    proteinG: '', carbsG: '', fatG: '', isManualAddition: true, canonicalId: null,
   };
 }
 
@@ -299,10 +299,10 @@ function applyCanonical(
     canonicalId: canonical.id,
     name: canonical.displayName,
     ...(nutrition ? {
-      calories: String(nutrition.values.calories ?? 0),
-      proteinG: String(nutrition.values.proteinG ?? 0),
-      carbsG: String(nutrition.values.carbsG ?? 0),
-      fatG: String(nutrition.values.fatG ?? 0),
+      calories: nutrition.values.calories === null ? '' : String(nutrition.values.calories),
+      proteinG: nutrition.values.proteinG === null ? '' : String(nutrition.values.proteinG),
+      carbsG: nutrition.values.carbsG === null ? '' : String(nutrition.values.carbsG),
+      fatG: nutrition.values.fatG === null ? '' : String(nutrition.values.fatG),
     } : {}),
   });
 }

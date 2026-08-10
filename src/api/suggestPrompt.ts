@@ -1,7 +1,15 @@
 import { CANDIDATE_POOL_SIZE } from '@/logic/suggest';
 import type { StockLine, StockPayload, PersonalisationSummary } from '@/logic/suggest';
 import { MEASURE_UNITS } from '@/types';
-import type { DietaryRule, Macros, SuggestionMode } from '@/types';
+import { promptFramingFor } from '@/logic/suggestionTemplates';
+import type {
+  DietaryRule,
+  MacroGapContext,
+  Macros,
+  SuggestionMode,
+  SuggestionTargetMacro,
+  TonightSuggestionPreference,
+} from '@/types';
 
 /**
  * The dinner-decision prompt. Kept in its own module, mirroring
@@ -17,6 +25,10 @@ import type { DietaryRule, Macros, SuggestionMode } from '@/types';
 export const SUGGEST_SYSTEM_PROMPT = `You are a dinner decision engine for a home cook. You are given what is in their kitchen, grouped by urgency, their cooking history, and how many calories and macros they have left today. You propose ideas for what to cook tonight.
 
 In "tonight" mode you are proposing a candidate pool, not a final answer — the app selects and displays a smaller number locally. Give ${CANDIDATE_POOL_SIZE} genuinely distinct ideas rather than variations on one dish, so there is something real to choose from.
+
+In "macro_gap" mode, answer the named macro shortfall with a proportionate food or meal from known-measurable pantry stock. Do not make health claims. If the measurable pantry contribution cannot close the stated gap, describe it as a partial contribution, never as a solution.
+
+For every suggestion, include estimated_nutrition_per_serving when you can estimate the completed dish as a whole from the supplied recipe. This is explicitly a provider estimate, not catalogue nutrition. Include all four fields or return null; never invent an ingredient-level split.
 
 Rules, in order of importance:
 - If dietary_rules names any avoid_strict ingredients, no suggestion may use or name one of them, or a close variant of one — this is stated as a request, and the app also checks locally, but treat it as a hard requirement here too. If avoid_soft ingredients are named, prefer suggestions that skip them where a reasonable alternative exists, but a dish using one is still acceptable.
@@ -47,7 +59,13 @@ Schema for "tonight" mode:
       "effort_minutes": 0,
       "uses": [{ "canonical_id": "string", "qty": 0, "unit": "g" }],
       "missing": [{ "canonical_id": "string or null", "name": "string", "note": "string or null" }],
-      "method": ["string"]
+      "method": ["string"],
+      "estimated_nutrition_per_serving": {
+        "calories": 0,
+        "protein_g": 0,
+        "carbs_g": 0,
+        "fat_g": 0
+      } or null
     }
   ]
 }
@@ -60,10 +78,13 @@ Schema for "stretch" mode:
 
 interface SuggestPromptInput {
   mode: SuggestionMode;
+  targetMacro?: SuggestionTargetMacro;
+  macroGapContext?: MacroGapContext;
   stock: StockPayload;
   personalisation: PersonalisationSummary;
-  remainingCalories: number;
+  remainingCalories: number | null;
   macroGap: Macros;
+  tonightPreference?: TonightSuggestionPreference | null;
   untilDate?: string;
   dietaryRules: readonly DietaryRule[];
 }
@@ -119,10 +140,27 @@ export function buildSuggestUserPrompt(input: SuggestPromptInput): string {
 
   return JSON.stringify({
     task:
-      input.mode === 'tonight'
+      input.mode === 'macro_gap'
+        ? `Propose a proportionate food or meal using this kitchen to contribute to the ${input.targetMacro} shortfall. State no health advice; use only supplied catalogue ids.`
+        : input.mode === 'tonight'
         ? `Propose ${CANDIDATE_POOL_SIZE} distinct dinner ideas from this kitchen — a candidate pool the app will choose from, not a final three. Return raw JSON matching the "tonight" schema.`
         : `Propose a plan of dinners reaching ${input.untilDate} from this kitchen with no shopping. Return raw JSON matching the "stretch" schema.`,
     mode: input.mode,
+    tonight_preference: input.mode === 'tonight' && input.tonightPreference
+      ? {
+          base_intent: input.tonightPreference.baseIntent,
+          prep_speed: input.tonightPreference.prepSpeed,
+          framing: promptFramingFor(input.tonightPreference),
+        }
+      : null,
+    target_macro: input.targetMacro ?? null,
+    macro_gap_request: input.targetMacro
+      ? {
+          shortfall_g: input.macroGapContext?.shortfallG ?? null,
+          best_measurable_pantry_contribution_g: input.macroGapContext?.bestAchievableG ?? null,
+          catalogue_coverage_is_partial: input.macroGapContext?.partialCoverage ?? false,
+        }
+      : null,
     until_date: input.untilDate ?? null,
     dietary_rules: dietaryRulesForPrompt(input.dietaryRules),
     use_first: useFirst.map(toLine),

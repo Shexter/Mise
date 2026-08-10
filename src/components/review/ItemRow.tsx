@@ -36,9 +36,9 @@ export function ItemRow({ item, onPress, onRemove }: Props) {
       <Pressable
         onPress={() => onPress(item)}
         accessibilityRole="button"
-        accessibilityLabel={`${item.name}, ${formatQuantity(item.quantity)} ${
-          item.unit
-        }, ${roundCalories(item.calories)} calories. Edit quantity.`}
+        accessibilityLabel={`${item.name}, ${formatQuantity(item.quantity)} ${item.unit}, ${
+          item.calories === null ? 'nutrition unavailable' : `${roundCalories(item.calories)} calories`
+        }. Edit quantity.`}
         style={({ pressed }) => [
           styles.row,
           pressed && { opacity: opacity.pressed },
@@ -61,7 +61,7 @@ export function ItemRow({ item, onPress, onRemove }: Props) {
             {formatGrams(item.fatG)}
           </Caption>
         </View>
-        <MealCalories numeric>{roundCalories(item.calories)}</MealCalories>
+        <MealCalories numeric>{item.calories === null ? '—' : roundCalories(item.calories)}</MealCalories>
       </Pressable>
     </Swipeable>
   );

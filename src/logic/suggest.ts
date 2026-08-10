@@ -339,7 +339,7 @@ export function summarisePersonalisation(
 export interface FingerprintInput {
   /** Every use_first / use_soon item's id and remaining amount. */
   urgentStock: { canonicalId: string; qtyRemaining: number | null }[];
-  remainingCalories: number;
+  remainingCalories: number | null;
   recentlyEaten: readonly string[];
 }
 
@@ -359,7 +359,7 @@ export function computeFingerprint(input: FingerprintInput): string {
       .map((entry) => `${entry.canonicalId}:${entry.qtyRemaining ?? 'null'}`),
     // Rounded so a one-calorie fluctuation from rounding elsewhere does not
     // spuriously invalidate the cache; a logged meal moves this by far more.
-    calories: Math.round(input.remainingCalories / 10) * 10,
+    calories: input.remainingCalories === null ? null : Math.round(input.remainingCalories / 10) * 10,
     recentlyEaten: [...input.recentlyEaten].sort(),
   });
   return djb2(stable);

@@ -1,178 +1,111 @@
 ## Purpose
 
-Named objectives for the suggestion engine, so that the question the user has —
-eat lighter, eat more, get it done in twenty minutes, clear the fridge — is
-stated once rather than re-derived from three dinner ideas.
+Suggestion templates make the normal tonight answer fit a person's immediate
+cooking priorities while keeping long-term nutrition settings, food safety, and
+other suggestion modes separate.
 
 ## ADDED Requirements
 
-### Requirement: The suggestion engine offers a fixed set of named templates
+### Requirement: Tonight offers fixed, composable preference controls
 
-The system SHALL offer a fixed set of named templates, each expressing a
-different objective for the same kitchen, and SHALL allow the user to select one.
+The system SHALL offer a fixed base intent set of balanced, use-it-up,
+protein-forward, lighter-portions, and familiar-favourites. It SHALL also offer
+standard and quick prep-speed values. The set SHALL NOT be user-editable.
 
-Exactly one template SHALL be active for a given request. The set SHALL NOT be
-user-editable.
+#### Scenario: The available choices are understandable
 
-#### Scenario: Templates are selectable
+- **WHEN** the user opens tonight preference controls
+- **THEN** each base intent describes how it shapes suggestions
+- **AND** prep speed is presented as a separate choice
 
-- **WHEN** the suggestion surface is shown
-- **THEN** the available templates are shown
-- **AND** the active one is indicated
+#### Scenario: A user combines intent and speed
 
-#### Scenario: One is active at a time
+- **WHEN** the user selects protein-forward and quick
+- **THEN** both values are active for tonight suggestions
 
-- **WHEN** the user selects a template
-- **THEN** it becomes the active one
-- **AND** the previously active one is not also applied
+#### Scenario: The controls do not claim an outcome
 
-#### Scenario: The set is fixed
+- **WHEN** any template label or description is shown
+- **THEN** it does not promise weight, health, or body-composition results
 
-- **WHEN** the user browses templates
-- **THEN** they cannot create or edit one
+### Requirement: The default is profile-informed and an explicit choice is reversible
 
-### Requirement: The active template defaults from the profile
+The system SHALL derive a recommended base intent from the profile goal when no
+explicit preference exists. It SHALL persist an explicit base-intent and
+prep-speed choice locally, provide a way to return to the recommendation, and
+MUST NOT alter the profile or its targets as a consequence.
 
-The system SHALL derive the initially active template from the user's recorded
-goal, and SHALL allow it to be changed.
+#### Scenario: A new preference derives from the profile
 
-Selecting a template MUST NOT alter the profile, its goal, or any calorie or
-macro target.
+- **GIVEN** no saved dinner preference and a profile goal
+- **WHEN** the user opens tonight suggestions
+- **THEN** a matching recommended base intent and standard prep speed are active
 
-#### Scenario: A goal produces a starting template
+#### Scenario: An explicit choice persists without changing the profile
 
-- **GIVEN** a profile with a recorded goal
-- **WHEN** the suggestion surface is first opened
-- **THEN** a template consistent with that goal is active
+- **WHEN** the user saves an explicit dinner preference
+- **THEN** it is active when tonight suggestions are opened again
+- **AND** the profile goal, calorie target, and macro targets are unchanged
 
-#### Scenario: Choosing a template leaves the profile alone
+#### Scenario: Reset returns to the current recommendation
 
-- **WHEN** the user selects a different template
-- **THEN** the profile's goal is unchanged
-- **AND** the calorie and macro targets are unchanged
+- **GIVEN** a saved dinner preference
+- **WHEN** the user chooses to use the recommendation
+- **THEN** the saved preference is cleared
+- **AND** the current profile-derived base intent and standard prep speed become active
 
-#### Scenario: A later change of goal moves the default
+### Requirement: Preferences rank and explain, but do not exclude
 
-- **WHEN** the user changes their goal in the profile
-- **THEN** the default template follows it
+The resolved preference SHALL influence candidate framing, local ordering,
+visible portion guidance, and factual explanation cues. It MUST NOT itself
+exclude a candidate or relax a hard constraint.
 
-### Requirement: A template changes ranking and portion, never availability
+#### Scenario: A lighter-portion intent preserves availability
 
-A template SHALL express itself by weighting the existing ranking and by sizing
-the portion offered, and MUST NOT exclude a dish from the results.
+- **GIVEN** a dish above the remaining calorie allowance
+- **WHEN** lighter-portions is active
+- **THEN** the dish may still be suggested
+- **AND** a smaller portion is offered only when it can be calculated
 
-#### Scenario: The same kitchen produces different orderings
+#### Scenario: Quick has a factual explanation
 
-- **GIVEN** one kitchen
-- **WHEN** suggestions are requested under two templates
-- **THEN** the results differ
+- **GIVEN** quick prep speed is active and a displayed dish meets the quick-time threshold
+- **WHEN** the dish is shown
+- **THEN** its explanation includes a cue based on its known effort estimate
 
-#### Scenario: No dish is withheld by a template
+#### Scenario: Existing reasons remain visible
 
-- **WHEN** a dish does not suit the active template
-- **THEN** it may still be suggested
-- **AND** it is ranked accordingly
+- **WHEN** a suggestion clears expiring stock or is affected by dietary filtering
+- **THEN** template explanation cues do not replace the existing reason information
 
-#### Scenario: Calorie fit is expressed as a portion
+### Requirement: Preference controls are progressive and mode-appropriate
 
-- **GIVEN** a template that favours a lighter meal
-- **WHEN** a suggested dish exceeds the remaining allowance
-- **THEN** a smaller portion is offered
-- **AND** the dish is not withheld
+The system SHALL present tonight preferences as a secondary, accessible control.
+It SHALL not show that control in stretch planning or macro-gap suggestion flows.
 
-### Requirement: No template may relax the use-first constraint
+#### Scenario: The recommendation requires no action
 
-Every suggestion SHALL use at least one item bucketed for use first, under every
-template without exception.
+- **WHEN** the user opens tonight suggestions without tuning
+- **THEN** suggestions load using the recommendation or saved preference
 
-Where the active template cannot be served within that constraint, the system
-SHALL return fewer suggestions and say so, and MUST NOT return suggestions that
-ignore expiring stock.
+#### Scenario: Macro-gap remains focused
 
-#### Scenario: The constraint holds under every template
+- **WHEN** the user opens a macro-gap suggestion flow
+- **THEN** no tonight template or prep-speed control is shown
 
-- **WHEN** suggestions are produced under any template
-- **THEN** each uses at least one item that should be used first
+### Requirement: Templates preserve deterministic dietary and urgency safeguards
 
-#### Scenario: An unservable template returns less, not different
+Dietary exclusion and the use-first constraint SHALL be applied before template
+ranking. Unknown nutrition SHALL remain unknown in both template display and
+selection logic.
 
-- **GIVEN** a template that cannot be served from the expiring stock
-- **WHEN** suggestions are produced
-- **THEN** fewer suggestions are returned
-- **AND** the user is told why
+#### Scenario: Every intent retains the use-first requirement
 
-#### Scenario: Clearing stock is itself a template
+- **WHEN** suggestions are generated under every base intent and prep speed
+- **THEN** every displayed eligible suggestion uses an item that needs using first
 
-- **WHEN** the user wants clearing expiring stock to be the whole objective
-- **THEN** a template expressing that is available
+#### Scenario: An unknown nutrient is not falsified
 
-### Requirement: Templates describe their bias, never an outcome
-
-Where a template is named or described, the system SHALL describe what it
-changes about the suggestions, and MUST NOT state or imply that following it
-produces a health, weight, or body-composition outcome.
-
-#### Scenario: A template explains what it does
-
-- **WHEN** a template's description is shown
-- **THEN** it describes how suggestions are shaped
-
-#### Scenario: No outcome is promised
-
-- **WHEN** any template is named or described
-- **THEN** no weight, health, or body-composition result is claimed
-
-### Requirement: Reason chips are drawn from the active template
-
-Each suggestion's stated reasons SHALL include at least one drawn from what the
-active template optimises, in addition to the reasons the engine already gives.
-
-#### Scenario: The reason matches what was asked for
-
-- **GIVEN** an active template
-- **WHEN** a suggestion is shown
-- **THEN** at least one of its reasons reflects that template's objective
-
-#### Scenario: Existing reasons are not displaced
-
-- **WHEN** a suggestion clears expiring stock
-- **THEN** that reason is still shown
-
-### Requirement: Suggestions are cached per template
-
-Cached suggestions SHALL be keyed by the active template, so that a set produced
-for one is never shown for another.
-
-#### Scenario: A different template regenerates
-
-- **GIVEN** suggestions cached under one template
-- **WHEN** suggestions are requested under another
-- **THEN** the cached set is not reused
-
-#### Scenario: The same template reuses its cache
-
-- **GIVEN** suggestions cached under a template
-- **WHEN** they are requested again under the same template and the same kitchen
-- **THEN** the cached set is reused
-
-#### Scenario: The last choice is remembered
-
-- **WHEN** the user returns to the suggestion surface
-- **THEN** the template they last selected is active
-
-### Requirement: Dietary rules apply under every template
-
-Where dietary rules are recorded, they SHALL be applied to suggestions under
-every template, and a template MUST NOT cause an excluded suggestion to be shown.
-
-#### Scenario: Exclusion survives the template
-
-- **GIVEN** a recorded allergen
-- **WHEN** suggestions are produced under any template
-- **THEN** no suggestion containing it is shown
-
-#### Scenario: Ranking and exclusion compose
-
-- **GIVEN** recorded dislikes and an active template
-- **WHEN** suggestions are ranked
-- **THEN** both the template's weights and the dislike's weight apply
+- **WHEN** a preference needs nutrition information that is unavailable
+- **THEN** the interface does not display a zero-value nutrition claim
+- **AND** the preference does not remove the dish solely for that absence

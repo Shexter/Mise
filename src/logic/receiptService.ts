@@ -2,17 +2,21 @@ import { extractReceipt, type ExtractedReceipt } from '@/api/receipt';
 import {
   applyReceiptChanges,
   attachExtractedLines,
+  addReceiptFrame,
   clearReceiptPantryItems,
-  deletePendingReceiptDraft,
+  deletePendingReceiptFrames,
   getAllCanonicals,
   getLocations,
   getReceipt,
+  getReceiptFrames,
   insertCapturedReceipt,
   listPantryItems,
   listReceipts,
   setReceiptLineCanonical,
   setReceiptLineKind,
   setReceiptType,
+  recordReceiptFrameExtraction,
+  recordReceiptFrameFailure,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { deletePhoto, photoBase64 } from '@/media/photos';
@@ -51,7 +55,10 @@ export async function captureReceipt(
   captureDate: string = localDateString(),
 ): Promise<ReceiptWithLines> {
   const receipt = await insertCapturedReceipt(imageUri, captureDate);
-  return (await tryExtract(receipt.id, base64Jpeg, captureDate)) ?? receipt;
+  const [frame] = await getReceiptFrames(receipt.id);
+  return frame
+    ? ((await tryExtractFrame(receipt.id, frame.id, base64Jpeg, captureDate)) ?? receipt)
+    : receipt;
 }
 
 /** Persists a receipt already extracted by the unified one-request capture path. */
@@ -61,12 +68,25 @@ export async function captureExtractedReceipt(
   captureDate: string = localDateString(),
 ): Promise<ReceiptWithLines> {
   const receipt = await insertCapturedReceipt(imageUri, captureDate);
-  return attachAndResolveReceipt(receipt.id, extracted);
+  const [frame] = await getReceiptFrames(receipt.id);
+  if (!frame) return receipt;
+  return attachAndResolveReceipt(receipt.id, frame.id, extracted);
+}
+
+/** Adds one further receipt photo and extracts only that durable frame. */
+export async function addReceiptPhoto(
+  receiptId: string,
+  base64Jpeg: string,
+  imageUri: string,
+  captureDate: string = localDateString(),
+): Promise<ReceiptWithLines | null> {
+  const frame = await addReceiptFrame(receiptId, imageUri);
+  return (await tryExtractFrame(receiptId, frame.id, base64Jpeg, captureDate)) ?? getReceipt(receiptId);
 }
 
 /** Drops an unaccepted receipt and its image when review is abandoned. */
 export async function abandonReceiptReview(receiptId: string): Promise<void> {
-  deletePhoto(await deletePendingReceiptDraft(receiptId));
+  for (const imageUri of await deletePendingReceiptFrames(receiptId)) deletePhoto(imageUri);
 }
 
 /**
@@ -77,18 +97,30 @@ export async function retryExtraction(
   receiptId: string,
 ): Promise<ReceiptWithLines | null> {
   const receipt = await getReceipt(receiptId);
-  if (!receipt || !needsExtraction(receipt)) return receipt;
-  const base64Jpeg = await photoBase64(receipt.imageUri);
-  return (await tryExtract(receiptId, base64Jpeg, receipt.purchasedAt)) ?? receipt;
+  if (!receipt) return null;
+  const frames = await getReceiptFrames(receiptId);
+  const retryable = frames.filter((frame) => frame.status !== 'extracted');
+  if (retryable.length === 0) return receipt;
+  for (const frame of retryable) {
+    const base64Jpeg = await photoBase64(frame.imageUri);
+    await tryExtractFrame(receiptId, frame.id, base64Jpeg, receipt.purchasedAt);
+  }
+  return getReceipt(receiptId);
 }
 
 /** Receipts still waiting for extraction to complete. */
 export async function pendingReceipts(): Promise<Receipt[]> {
   const all = await listReceipts();
-  const withLines = await Promise.all(
-    all.filter((r) => r.status === 'pending').map((r) => getReceipt(r.id)),
+  const withFrames = await Promise.all(
+    all.filter((r) => r.status === 'pending').map(async (receipt) => ({
+      receipt: await getReceipt(receipt.id),
+      frames: await getReceiptFrames(receipt.id),
+    })),
   );
-  return withLines.filter((r): r is ReceiptWithLines => r !== null && needsExtraction(r));
+  return withFrames
+    .filter((entry): entry is { receipt: ReceiptWithLines; frames: Awaited<ReturnType<typeof getReceiptFrames>> } =>
+      entry.receipt !== null && entry.frames.some((frame) => frame.status !== 'extracted'))
+    .map((entry) => entry.receipt);
 }
 
 /**
@@ -107,8 +139,9 @@ export async function retryAllPending(): Promise<number> {
   return completed;
 }
 
-async function tryExtract(
+async function tryExtractFrame(
   receiptId: string,
+  frameId: string,
   base64Jpeg: string,
   captureDate: string,
 ): Promise<ReceiptWithLines | null> {
@@ -116,17 +149,19 @@ async function tryExtract(
   try {
     extracted = await extractReceipt(base64Jpeg, captureDate);
   } catch {
+    await recordReceiptFrameFailure(frameId, 'extraction_failed');
     return null;
   }
 
-  return attachAndResolveReceipt(receiptId, extracted);
+  return attachAndResolveReceipt(receiptId, frameId, extracted);
 }
 
 async function attachAndResolveReceipt(
   receiptId: string,
+  frameId: string,
   extracted: ExtractedReceipt,
 ): Promise<ReceiptWithLines> {
-  await attachExtractedLines(receiptId, {
+  await recordReceiptFrameExtraction(frameId, {
     store: extracted.store,
     purchasedAt: extracted.purchasedAt,
     receiptType: extracted.receiptType,

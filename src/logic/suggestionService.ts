@@ -7,12 +7,19 @@ import {
   getProfile,
   getRecentMeals,
   getSuggestionCache,
+  getSuggestionPreference,
   listPantryItems,
   saveSuggestionCache,
   type NewMeal,
   type NewMealItem,
 } from '@/db/queries';
-import { buildDishScoreContext, selectDisplayed, type DishScoreContext } from '@/logic/dishScore';
+import {
+  buildDishScoreContext,
+  decorateSuggestionForDisplay,
+  selectDisplayed,
+  type DishScoreContext,
+} from '@/logic/dishScore';
+import { defaultBaseIntent, resolveTonightPreference } from '@/logic/suggestionTemplates';
 import { applyDietary, type ExclusionSet } from '@/logic/dietary';
 import {
   dislikedCanonicalIds,
@@ -22,6 +29,8 @@ import {
 } from '@/logic/dietaryService';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { macrosOfMeals } from '@/logic/scaling';
+import { assessMacroGap, macroShortfall } from '@/logic/macroGap';
+import { catalogueNutrition } from '@/logic/nutrition';
 import {
   bucketStock,
   computeFingerprint,
@@ -34,11 +43,14 @@ import {
 } from '@/logic/suggest';
 import type {
   CanonicalItem,
+  MacroGapContext,
   Macros,
   MealType,
   Suggestion,
   SuggestionMode,
+  SuggestionTargetMacro,
   SuggestionSet,
+  TonightSuggestionPreference,
   UrgencyBucket,
 } from '@/types';
 
@@ -53,6 +65,8 @@ import type {
 export interface SuggestionRequestContext {
   localDate: string;
   mode: SuggestionMode;
+  /** Required for the independently cached macro-gap request. */
+  targetMacro?: SuggestionTargetMacro;
   /** Required, and only meaningful, for `mode: 'stretch'`. */
   untilDate?: string;
   /** Bypasses the cache. The only on-demand path that spends a call. */
@@ -61,11 +75,32 @@ export interface SuggestionRequestContext {
 
 export type SuggestionOutcome =
   | { status: 'ready'; set: SuggestionSet; fromCache: boolean }
+  | {
+      status: 'insufficient_data';
+      targetMacro: SuggestionTargetMacro;
+      reason?: 'consumed_total_unknown' | 'pantry_coverage_unknown';
+    }
+  | { status: 'met_target'; targetMacro: SuggestionTargetMacro }
   | { status: 'no_key' }
   | { status: 'error'; message: string };
 
+/** Shared by the surface before a request and by the request itself. */
+export async function getResolvedTonightPreference(): Promise<TonightSuggestionPreference> {
+  const [profile, savedPreference] = await Promise.all([
+    getProfile(),
+    getSuggestionPreference(),
+  ]);
+  return resolveTonightPreference(profile?.goal ?? 'maintain', savedPreference);
+}
+
+/** The profile-derived recommendation, even when a saved choice currently wins. */
+export async function getRecommendedTonightBaseIntent() {
+  const profile = await getProfile();
+  return defaultBaseIntent(profile?.goal ?? 'maintain');
+}
+
 async function remainingCalories(localDate: string): Promise<{
-  remaining: number;
+  remaining: number | null;
   macroGap: Macros;
 }> {
   const profile = await getProfile();
@@ -76,12 +111,12 @@ async function remainingCalories(localDate: string): Promise<{
   const meals = await getMealsForDate(localDate);
   const consumed = macrosOfMeals(meals);
   return {
-    remaining: target.targetCalories - consumed.calories,
+    remaining: consumed.calories === null ? null : target.targetCalories - consumed.calories,
     macroGap: {
-      calories: target.targetCalories - consumed.calories,
-      proteinG: target.proteinG - consumed.proteinG,
-      carbsG: target.carbsG - consumed.carbsG,
-      fatG: target.fatG - consumed.fatG,
+      calories: consumed.calories === null ? null : target.targetCalories - consumed.calories,
+      proteinG: consumed.proteinG === null ? null : target.proteinG - consumed.proteinG,
+      carbsG: consumed.carbsG === null ? null : target.carbsG - consumed.carbsG,
+      fatG: consumed.fatG === null ? null : target.fatG - consumed.fatG,
     },
   };
 }
@@ -108,8 +143,36 @@ export async function getOrGenerateSuggestions(
   context: SuggestionRequestContext,
 ): Promise<SuggestionOutcome> {
   const localDate = context.localDate;
-  const { payload: stock, bucketed } = await buildStockPayload(localDate);
+  const [profile, tonightPreference] = await Promise.all([
+    getProfile(),
+    context.mode === 'tonight' ? getResolvedTonightPreference() : Promise.resolve(null),
+  ]);
+  const { payload: stock, bucketed, canonicals } = await buildStockPayload(localDate);
   const { remaining, macroGap } = await remainingCalories(localDate);
+  const targetMacro = context.mode === 'macro_gap' ? context.targetMacro : undefined;
+  let macroGapContext: MacroGapContext | undefined;
+  if (context.mode === 'macro_gap' && !targetMacro) {
+    return { status: 'error', message: 'Choose a macro to target.' };
+  }
+  if (targetMacro) {
+    if (!profile) return { status: 'insufficient_data', targetMacro };
+    const target = await ensureDailyTarget(localDate, profile);
+    const consumed = macrosOfMeals(await getMealsForDate(localDate));
+    const shortfallG = macroShortfall(target, consumed, targetMacro);
+    if (shortfallG === null) {
+      return { status: 'insufficient_data', targetMacro, reason: 'consumed_total_unknown' };
+    }
+    if (shortfallG <= 0) return { status: 'met_target', targetMacro };
+    const assessment = assessMacroGap(await listPantryItems(), canonicals, targetMacro, localDate);
+    if (!assessment.hasMeasuredCoverage) {
+      return { status: 'insufficient_data', targetMacro, reason: 'pantry_coverage_unknown' };
+    }
+    macroGapContext = {
+      shortfallG,
+      bestAchievableG: assessment.bestAchievableG,
+      partialCoverage: assessment.hasUnmeasuredStock,
+    };
+  }
   const recentMeals = await getRecentMeals(HISTORY_WINDOW_DAYS);
   const personalisation = summarisePersonalisation(recentMeals, localDate);
 
@@ -127,6 +190,7 @@ export async function getOrGenerateSuggestions(
     personalisation,
     localDate,
     dislikedIds,
+    tonightPreference,
   );
 
   const urgentStock = [...stock.full]
@@ -139,8 +203,16 @@ export async function getOrGenerateSuggestions(
   });
 
   if (!context.forceRefresh) {
-    const cached = await getSuggestionCache(localDate, context.mode);
-    if (cached && cached.fingerprint === fingerprint) {
+    const cached = await getSuggestionCache(
+      localDate,
+      context.mode,
+      targetMacro ?? null,
+      tonightPreference,
+    );
+    if (
+      cached && cached.fingerprint === fingerprint &&
+      sameMacroGapContext(cached.macroGapContext, macroGapContext ?? null)
+    ) {
       return {
         status: 'ready',
         set: reselect(cached, context.mode, scoreContext, exclusionSet, allergenRulesExist),
@@ -156,10 +228,13 @@ export async function getOrGenerateSuggestions(
   try {
     const result = await generateSuggestions({
       mode: context.mode,
+      targetMacro,
+      macroGapContext,
       stock,
       personalisation,
       remainingCalories: remaining,
       macroGap,
+      tonightPreference,
       untilDate: context.untilDate,
       dietaryRules: rules,
       exclusionSet,
@@ -177,18 +252,23 @@ export async function getOrGenerateSuggestions(
     // set from it (task 7). Stretch mode is untouched by the scorer — its
     // dinners already live inside `stretch`, so pool and displayed both
     // stay empty for that row (design's "leave stretch mode alone").
-    const pool = context.mode === 'tonight' ? result.suggestions : [];
-    const displayed =
-      context.mode === 'tonight' ? selectDisplayed(pool, scoreContext, DISPLAYED_COUNT) : [];
+    const pool = context.mode === 'stretch' ? [] : result.suggestions;
+    const displayed = context.mode === 'stretch'
+      ? []
+      : selectDisplayed(pool, scoreContext, DISPLAYED_COUNT)
+        .map((suggestion) => decorateSuggestionForDisplay(suggestion, scoreContext));
     const set = await saveSuggestionCache(
       localDate,
       context.mode,
+      targetMacro ?? null,
+      tonightPreference,
       fingerprint,
       displayed,
       stretch,
       result.droppedForConstraint,
       pool,
       result.droppedForDiet,
+      macroGapContext ?? null,
     );
     return { status: 'ready', set, fromCache: false };
   } catch (error) {
@@ -219,15 +299,27 @@ function reselect(
   exclusionSet: ExclusionSet,
   allergenRulesExist: boolean,
 ): SuggestionSet {
-  if (mode !== 'tonight' || cached.pool.length === 0) return cached;
+  if (mode === 'stretch' || cached.pool.length === 0) return cached;
   const eligible = cached.pool.filter(
     (suggestion) => !applyDietary(suggestion, exclusionSet, allergenRulesExist).excluded,
   );
   return {
     ...cached,
-    suggestions: selectDisplayed(eligible, scoreContext, DISPLAYED_COUNT),
+    tonightPreference: scoreContext.tonightPreference ?? null,
+    suggestions: selectDisplayed(eligible, scoreContext, DISPLAYED_COUNT)
+      .map((suggestion) => decorateSuggestionForDisplay(suggestion, scoreContext)),
     droppedForDiet: cached.pool.length - eligible.length,
   };
+}
+
+function sameMacroGapContext(
+  cached: MacroGapContext | null,
+  current: MacroGapContext | null,
+): boolean {
+  if (cached === null || current === null) return cached === current;
+  return cached.shortfallG === current.shortfallG &&
+    cached.bestAchievableG === current.bestAchievableG &&
+    cached.partialCoverage === current.partialCoverage;
 }
 
 export interface CookSuggestionInput {
@@ -237,6 +329,56 @@ export interface CookSuggestionInput {
   localDate: string;
   mealType?: MealType;
   canonicals: ReadonlyMap<string, CanonicalItem>;
+}
+
+/**
+ * One completed-dish value per nutrient. A provider estimate is a whole-dish
+ * fallback, so it is used only when the corresponding local recipe total is
+ * not defensible; it is never added on top of local ingredients.
+ */
+export function nutritionFromSuggestion(
+  suggestion: Suggestion,
+  canonicals: ReadonlyMap<string, CanonicalItem>,
+): Macros {
+  const totals: Macros = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
+  const unresolved = new Set<keyof Pick<Macros, 'calories' | 'proteinG' | 'carbsG' | 'fatG'>>();
+
+  for (const use of suggestion.uses) {
+    const canonical = canonicals.get(use.canonicalId);
+    const nutrition = canonical ? catalogueNutrition(canonical, use.qty, use.unit) : null;
+    for (const key of ['calories', 'proteinG', 'carbsG', 'fatG'] as const) {
+      const value = nutrition?.values[key];
+      if (value === null || value === undefined) {
+        unresolved.add(key);
+      } else if (!unresolved.has(key)) {
+        totals[key] = (totals[key] ?? 0) + value;
+      }
+    }
+  }
+
+  if (suggestion.missing.length > 0) {
+    unresolved.add('calories');
+    unresolved.add('proteinG');
+    unresolved.add('carbsG');
+    unresolved.add('fatG');
+  }
+
+  const estimate = suggestion.estimatedNutritionPerServing;
+  const servings = Math.max(1, suggestion.servings);
+  return {
+    calories: unresolved.has('calories')
+      ? estimate?.calories ?? null
+      : (totals.calories ?? 0) / servings,
+    proteinG: unresolved.has('proteinG')
+      ? estimate?.proteinG ?? null
+      : (totals.proteinG ?? 0) / servings,
+    carbsG: unresolved.has('carbsG')
+      ? estimate?.carbsG ?? null
+      : (totals.carbsG ?? 0) / servings,
+    fatG: unresolved.has('fatG')
+      ? estimate?.fatG ?? null
+      : (totals.fatG ?? 0) / servings,
+  };
 }
 
 /**
@@ -259,15 +401,16 @@ export function mealFromSuggestion(input: CookSuggestionInput): NewMeal {
   const servingsMult =
     Math.max(1, input.servingsMade) / Math.max(1, input.suggestion.servings);
 
+  const nutrition = nutritionFromSuggestion(input.suggestion, input.canonicals);
   const items: NewMealItem[] = [
     {
       name: input.suggestion.dish,
       quantity: 1,
       unit: 'serving',
-      calories: input.suggestion.kcalPerServing,
-      proteinG: 0,
-      carbsG: 0,
-      fatG: 0,
+      calories: nutrition.calories,
+      proteinG: nutrition.proteinG,
+      carbsG: nutrition.carbsG,
+      fatG: nutrition.fatG,
       isManualAddition: false,
     },
     ...input.suggestion.uses.map((use) => ({
