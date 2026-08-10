@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { looksLikeApiKey, setApiKey } from '@/api/keyStore';
+import { looksLikeApiKey, providerForKey, setApiKey, setOpenAIEndpoint } from '@/api/keyStore';
 import { VisionError, verifyApiKey } from '@/api/vision';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -33,13 +33,16 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
   const [value, setValue] = useState('');
   const [test, setTest] = useState<TestState>({ status: 'idle' });
   const [helpOpen, setHelpOpen] = useState(false);
+  const [endpoint, setEndpoint] = useState('');
 
   const shaped = looksLikeApiKey(value);
+  const isOpenAI = providerForKey(value) === 'openai';
 
   const runTest = async () => {
     setTest({ status: 'testing' });
     try {
       await setApiKey(value);
+      if (isOpenAI) await setOpenAIEndpoint(endpoint);
       await verifyApiKey();
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTest({ status: 'passed' });
@@ -64,6 +67,7 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
 
   const save = async () => {
     await setApiKey(value);
+    if (isOpenAI) await setOpenAIEndpoint(endpoint);
     onSaved();
   };
 
@@ -76,20 +80,29 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
           setTest({ status: 'idle' });
         }}
         label="API key"
-        placeholder="sk-ant-… or a Google AI key"
+        placeholder="sk-ant-…, sk-…, or a Google AI key"
         secureTextEntry
         autoFocus
         hint={
           shaped || value.length === 0
-            ? 'Anthropic or Google Gemini. Stored in this phone’s keychain; it never leaves the device except to call that provider.'
+            ? 'Anthropic, OpenAI, or Google Gemini. Stored in this phone’s keychain; it never leaves the device except to call that provider.'
             : undefined
         }
         error={
           value.length > 0 && !shaped
-            ? 'That doesn’t look like an Anthropic (sk-ant-…) or Google AI key.'
+            ? 'That doesn’t look like an Anthropic, OpenAI, or Google AI key.'
             : undefined
         }
       />
+      {isOpenAI ? (
+        <Field
+          value={endpoint}
+          onChangeText={setEndpoint}
+          label="OpenAI endpoint (optional)"
+          placeholder="https://api.openai.com/v1"
+          hint="Leave blank for OpenAI’s standard endpoint. This is saved locally and is not tested here."
+        />
+      ) : null}
 
       <Pressable
         onPress={() => setHelpOpen((open) => !open)}
@@ -113,8 +126,8 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
         <View style={styles.helpBody}>
           <Body muted>
             Mise calls the provider directly from your phone with your own key —
-            no server in between. Use an Anthropic key, or a Google AI (Gemini)
-            key, which has a free tier. Create one, copy it once, and paste it
+            no server in between. Use an Anthropic, OpenAI, or Google AI
+            (Gemini) key, which has a free tier. Create one, copy it once, and paste it
             here.
           </Body>
           <Button

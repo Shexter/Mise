@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
 /**
- * The only module that touches the Anthropic API key.
+ * The only module that touches provider credentials.
  *
  * The key lives in the device Keychain / Keystore via `expo-secure-store`. It is
  * never written to SQLite, never put in a Zustand store, never logged, and never
@@ -22,6 +22,10 @@ import * as SecureStore from 'expo-secure-store';
 
 const STORAGE_KEY = 'anthropic_api_key';
 const SEEDED_FLAG = 'anthropic_api_key_seeded';
+const OPENAI_ENDPOINT_KEY = 'openai_endpoint';
+
+/** Base URL for OpenAI-compatible chat and model endpoints. */
+export const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1';
 
 function bundledDevKey(): string | null {
   const value = Constants.expoConfig?.extra?.['devApiKey'];
@@ -67,6 +71,22 @@ export async function clearApiKey(): Promise<void> {
   await SecureStore.deleteItemAsync(STORAGE_KEY);
 }
 
+/** An optional OpenAI-compatible endpoint. It stays in secure storage with the
+ * key and is never persisted with app data. No request is made to validate it. */
+export async function getOpenAIEndpoint(): Promise<string> {
+  return (await SecureStore.getItemAsync(OPENAI_ENDPOINT_KEY)) ?? DEFAULT_OPENAI_ENDPOINT;
+}
+
+export async function setOpenAIEndpoint(value: string): Promise<void> {
+  const endpoint = value.trim().replace(/\/+$/, '');
+  if (endpoint) await SecureStore.setItemAsync(OPENAI_ENDPOINT_KEY, endpoint);
+  else await SecureStore.deleteItemAsync(OPENAI_ENDPOINT_KEY);
+}
+
+export async function clearOpenAIEndpoint(): Promise<void> {
+  await SecureStore.deleteItemAsync(OPENAI_ENDPOINT_KEY);
+}
+
 /** `sk-ant-…4f2a` — enough to recognise a key, not enough to use one. */
 export function maskKey(value: string): string {
   if (value.length <= 12) return '••••••••';
@@ -78,26 +98,31 @@ export async function maskedApiKey(): Promise<string | null> {
   return key ? maskKey(key) : null;
 }
 
-export type Provider = 'anthropic' | 'gemini';
+export type Provider = 'anthropic' | 'gemini' | 'openai';
 
 /**
  * Which service a key belongs to, inferred from its prefix. Anthropic keys
- * start with `sk-ant-`; anything else is treated as a Google (Gemini) key,
- * which is what the app's only other provider uses.
+ * start with `sk-ant-`; OpenAI keys start with `sk-`; Google AI keys use
+ * either the `AIza` or `AQ.` prefix.
  */
-export function providerForKey(value: string): Provider {
-  return value.trim().startsWith('sk-ant-') ? 'anthropic' : 'gemini';
+export function providerForKey(value: string): Provider | null {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('sk-ant-')) return 'anthropic';
+  if (/^sk-[A-Za-z0-9_-]{20,}$/.test(trimmed)) return 'openai';
+  if (/^(AIza|AQ\.)[A-Za-z0-9_.\-]{10,}$/.test(trimmed)) return 'gemini';
+  return null;
 }
 
 /**
  * Shape check only. A real check costs a request — see `verifyApiKey` in
  * `src/api/vision.ts`. Accepts both an Anthropic key (`sk-ant-…`) and a Google
- * AI key (`AIza…` or the newer `AQ.…` form).
+ * AI key (`AIza…` or the newer `AQ.…` form), and OpenAI-compatible keys
+ * beginning with `sk-`.
  */
 export function looksLikeApiKey(value: string): boolean {
   const trimmed = value.trim();
   return (
-    /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(trimmed) ||
+    /^sk-(?:ant-)?[A-Za-z0-9_-]{20,}$/.test(trimmed) ||
     /^(AIza|AQ\.)[A-Za-z0-9_.\-]{10,}$/.test(trimmed)
   );
 }

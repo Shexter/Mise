@@ -1,7 +1,8 @@
 import { estimateWithAnthropic, verifyAnthropicKey } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
 import { estimateWithGemini, verifyGeminiKey } from '@/api/gemini';
-import { getApiKey, providerForKey } from '@/api/keyStore';
+import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
+import { estimateWithOpenAI, verifyOpenAIKey } from '@/api/openai';
 import { parseEstimate } from '@/api/parse';
 import type { MealEstimate } from '@/types';
 
@@ -34,10 +35,16 @@ export async function estimateMeal(
   }
   const provider = providerForKey(apiKey);
 
-  const request = () =>
-    provider === 'anthropic'
-      ? estimateWithAnthropic(apiKey, base64Jpeg, signal)
-      : estimateWithGemini(apiKey, base64Jpeg, signal);
+  if (!provider) {
+    throw new VisionError('no_key', 'The saved API key is not recognised.');
+  }
+  const request = async () => {
+    if (provider === 'anthropic') return estimateWithAnthropic(apiKey, base64Jpeg, signal);
+    if (provider === 'openai') {
+      return estimateWithOpenAI(apiKey, base64Jpeg, signal, await getOpenAIEndpoint());
+    }
+    return estimateWithGemini(apiKey, base64Jpeg, signal);
+  };
 
   try {
     return parseEstimate(await request());
@@ -55,9 +62,11 @@ export async function verifyApiKey(): Promise<void> {
   if (!apiKey) {
     throw new VisionError('no_key', 'No API key is set.');
   }
-  return providerForKey(apiKey) === 'anthropic'
-    ? verifyAnthropicKey(apiKey)
-    : verifyGeminiKey(apiKey);
+  const provider = providerForKey(apiKey);
+  if (provider === 'anthropic') return verifyAnthropicKey(apiKey);
+  if (provider === 'openai') return verifyOpenAIKey(apiKey, await getOpenAIEndpoint());
+  if (provider === 'gemini') return verifyGeminiKey(apiKey);
+  throw new VisionError('no_key', 'The saved API key is not recognised.');
 }
 
 /* -------------------------------------------------------------------------- */

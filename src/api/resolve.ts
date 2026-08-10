@@ -1,7 +1,8 @@
 import { completeWithAnthropic } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
 import { completeWithGemini } from '@/api/gemini';
-import { getApiKey, providerForKey } from '@/api/keyStore';
+import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
+import { completeWithOpenAI } from '@/api/openai';
 import { extractJsonObject } from '@/api/parse';
 import { buildResolveUserPrompt, RESOLVE_SYSTEM_PROMPT } from '@/api/resolvePrompt';
 import type {
@@ -45,10 +46,19 @@ export async function resolveWithModel(
     throw new VisionError('no_key', 'No API key is set.');
   }
   const user = buildResolveUserPrompt(batch);
-  const raw =
-    providerForKey(apiKey) === 'anthropic'
-      ? await completeWithAnthropic(apiKey, RESOLVE_SYSTEM_PROMPT, user, signal)
-      : await completeWithGemini(apiKey, RESOLVE_SYSTEM_PROMPT, user, signal);
+  const provider = providerForKey(apiKey);
+  let raw: string;
+  if (provider === 'anthropic') {
+    raw = await completeWithAnthropic(apiKey, RESOLVE_SYSTEM_PROMPT, user, signal);
+  } else if (provider === 'openai') {
+    raw = await completeWithOpenAI(
+      apiKey, RESOLVE_SYSTEM_PROMPT, user, signal, await getOpenAIEndpoint(),
+    );
+  } else if (provider === 'gemini') {
+    raw = await completeWithGemini(apiKey, RESOLVE_SYSTEM_PROMPT, user, signal);
+  } else {
+    throw new VisionError('no_key', 'The saved API key is not recognised.');
+  }
 
   return parseResolutions(raw, batch);
 }

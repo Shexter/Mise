@@ -1,6 +1,7 @@
 import { completeVisionWithAnthropic } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
-import { providerForKey, getApiKey } from '@/api/keyStore';
+import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
+import { completeVisionWithOpenAI } from '@/api/openai';
 import { extractJsonObject } from '@/api/parse';
 import { completeVisionWithGemini } from '@/api/gemini';
 import { RECEIPT_SYSTEM_PROMPT, RECEIPT_USER_PROMPT } from '@/api/receiptPrompt';
@@ -65,22 +66,35 @@ export async function extractReceipt(
   }
   const provider = providerForKey(apiKey);
 
-  const raw =
-    provider === 'anthropic'
-      ? await completeVisionWithAnthropic(
-          apiKey,
-          RECEIPT_SYSTEM_PROMPT,
-          RECEIPT_USER_PROMPT,
-          base64Jpeg,
-          signal,
-        )
-      : await completeVisionWithGemini(
-          apiKey,
-          RECEIPT_SYSTEM_PROMPT,
-          RECEIPT_USER_PROMPT,
-          base64Jpeg,
-          signal,
-        );
+  let raw: string;
+  if (provider === 'anthropic') {
+    raw = await completeVisionWithAnthropic(
+      apiKey,
+      RECEIPT_SYSTEM_PROMPT,
+      RECEIPT_USER_PROMPT,
+      base64Jpeg,
+      signal,
+    );
+  } else if (provider === 'openai') {
+    raw = await completeVisionWithOpenAI(
+      apiKey,
+      RECEIPT_SYSTEM_PROMPT,
+      RECEIPT_USER_PROMPT,
+      base64Jpeg,
+      signal,
+      await getOpenAIEndpoint(),
+    );
+  } else if (provider === 'gemini') {
+    raw = await completeVisionWithGemini(
+      apiKey,
+      RECEIPT_SYSTEM_PROMPT,
+      RECEIPT_USER_PROMPT,
+      base64Jpeg,
+      signal,
+    );
+  } else {
+    throw new VisionError('no_key', 'The saved API key is not recognised.');
+  }
 
   return parseReceiptResponse(raw, captureDate);
 }

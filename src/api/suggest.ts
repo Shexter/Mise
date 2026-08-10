@@ -1,7 +1,8 @@
 import { completeWithAnthropic } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
 import { completeWithGemini } from '@/api/gemini';
-import { getApiKey, providerForKey } from '@/api/keyStore';
+import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
+import { completeWithOpenAI } from '@/api/openai';
 import { extractJsonObject } from '@/api/parse';
 import { buildSuggestUserPrompt, SUGGEST_SYSTEM_PROMPT } from '@/api/suggestPrompt';
 import { applyDietary, type ExclusionSet } from '@/logic/dietary';
@@ -91,10 +92,19 @@ export async function generateSuggestions(
     throw new VisionError('no_key', 'No API key is set.');
   }
   const user = buildSuggestUserPrompt(request);
-  const raw =
-    providerForKey(apiKey) === 'anthropic'
-      ? await completeWithAnthropic(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal)
-      : await completeWithGemini(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal);
+  const provider = providerForKey(apiKey);
+  let raw: string;
+  if (provider === 'anthropic') {
+    raw = await completeWithAnthropic(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal);
+  } else if (provider === 'openai') {
+    raw = await completeWithOpenAI(
+      apiKey, SUGGEST_SYSTEM_PROMPT, user, signal, await getOpenAIEndpoint(),
+    );
+  } else if (provider === 'gemini') {
+    raw = await completeWithGemini(apiKey, SUGGEST_SYSTEM_PROMPT, user, signal);
+  } else {
+    throw new VisionError('no_key', 'The saved API key is not recognised.');
+  }
 
   return parseSuggestResponse(
     raw,
