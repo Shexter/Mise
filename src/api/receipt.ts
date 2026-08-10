@@ -110,6 +110,14 @@ export function parseReceiptResponse(
   } catch {
     throw new VisionError('malformed', 'The receipt could not be read.');
   }
+  return parseReceiptObject(parsed, captureDate);
+}
+
+/** Shared by the unified capture parser so receipt fields have one contract. */
+export function parseReceiptObject(
+  parsed: unknown,
+  captureDate: string,
+): ExtractedReceipt {
   if (typeof parsed !== 'object' || parsed === null) {
     throw new VisionError('malformed', 'The receipt could not be read.');
   }

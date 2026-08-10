@@ -18,7 +18,7 @@ type TestState =
 
 interface Props {
   /** Called once a key has been stored, whether or not it was tested. */
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
   saveLabel?: string;
 }
 
@@ -70,7 +70,7 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
   const save = async () => {
     await setApiKey(value);
     if (isOpenAI) await setOpenAIEndpoint(endpoint);
-    onSaved();
+    await onSaved();
   };
 
   return (

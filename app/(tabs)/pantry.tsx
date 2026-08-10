@@ -13,6 +13,7 @@ import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { pendingReceipts, retryAllPending } from '@/logic/receiptService';
+import { listPendingCaptures } from '@/db/queries';
 import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
 
@@ -29,6 +30,7 @@ export default function PantryScreen() {
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCaptureCount, setPendingCaptureCount] = useState(0);
   // Derived from the store so the sheet reflects taps live; null once the
   // entry leaves the catalogue (e.g. discarded).
   const selected =
@@ -37,6 +39,7 @@ export default function PantryScreen() {
 
   const checkPending = useCallback(async () => {
     setPendingCount((await pendingReceipts()).length);
+    setPendingCaptureCount((await listPendingCaptures()).length);
   }, []);
 
   // Retrying on every Pantry visit is what "completes extraction when a
@@ -112,6 +115,18 @@ export default function PantryScreen() {
             {pendingCount} receipt{pendingCount > 1 ? 's' : ''} waiting to import
           </Body>
           <Caption muted>No key or connection yet — tap to try again.</Caption>
+        </Pressable>
+      ) : null}
+
+      {pendingCaptureCount > 0 ? (
+        <Pressable
+          onPress={() => router.push('/pending-captures')}
+          accessibilityRole="button"
+          accessibilityLabel={`${pendingCaptureCount} saved capture${pendingCaptureCount > 1 ? 's' : ''}. Open saved captures.`}
+          style={({ pressed }) => [styles.banner, pressed && { opacity: opacity.pressed }]}
+        >
+          <Body>{pendingCaptureCount} saved capture{pendingCaptureCount > 1 ? 's' : ''}</Body>
+          <Caption muted>Waiting for a key or connection — tap to view.</Caption>
         </Pressable>
       ) : null}
 

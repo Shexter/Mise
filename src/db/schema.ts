@@ -433,6 +433,29 @@ CREATE TABLE barcode_misses (
 );
 `;
 
+/** Migration 14: durable offline capture queue. Images stay in the document
+ * directory; this table only tracks their retry and deletion lifecycle. */
+const PENDING_CAPTURES = `
+CREATE TABLE pending_captures (
+  id              TEXT PRIMARY KEY,
+  image_uri       TEXT NOT NULL,
+  detected_kind   TEXT,
+  status          TEXT NOT NULL DEFAULT 'pending',
+  retry_count     INTEGER NOT NULL DEFAULT 0,
+  last_error_kind TEXT,
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
+);
+CREATE INDEX idx_pending_captures_status ON pending_captures(status, created_at);
+`;
+
+/** Migration 15: nullable fibre preserves the honest unknown for old meals. */
+const FIBRE_TRACKING = `
+ALTER TABLE meal_items ADD COLUMN fibre_g REAL;
+ALTER TABLE profile ADD COLUMN fibre_target_g REAL NOT NULL DEFAULT 30;
+ALTER TABLE daily_targets ADD COLUMN fibre_g REAL NOT NULL DEFAULT 30;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -447,6 +470,8 @@ export const MIGRATIONS: readonly string[] = [
   VENUE_INFERENCE,
   ENERGY_SOURCES,
   BARCODE_MISS_CACHE,
+  PENDING_CAPTURES,
+  FIBRE_TRACKING,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
@@ -455,6 +480,7 @@ export const LATEST_VERSION = MIGRATIONS.length;
 export const DROP_ALL = `
 DROP TABLE IF EXISTS dish_venue_defaults;
 DROP TABLE IF EXISTS body_measurements;
+DROP TABLE IF EXISTS pending_captures;
 DROP TABLE IF EXISTS barcode_misses;
 DROP TABLE IF EXISTS alias_bigrams;
 DROP TABLE IF EXISTS dietary_rules;

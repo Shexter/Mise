@@ -83,11 +83,12 @@ The system MUST NOT make a separate classification request before extracting.
 - **THEN** exactly one request is made
 - **AND** the result states what kind of thing it found
 
-#### Scenario: A receipt returns receipt content
+#### Scenario: A receipt returns a complete receipt draft
 
 - **WHEN** a receipt is interpreted
 - **THEN** the result identifies it as a receipt
-- **AND** carries its lines
+- **AND** carries its store, purchase date, type, totals, and typed lines
+- **AND** receipt review receives that draft without another interpretation request
 
 #### Scenario: Groceries return item content
 
@@ -119,22 +120,24 @@ Multiple items in one photograph SHALL each be identified separately.
 - **THEN** a storage location is proposed for it
 - **AND** the user can change it
 
-### Requirement: Nothing is written before the user reviews it
+### Requirement: Nothing is applied before the user reviews it
 
 Every route SHALL present what it found for review, and MUST NOT create pantry
-items, receipts, or stock changes before the user accepts.
+items or stock changes before the user accepts. A receipt draft MAY be persisted
+before review so it can be corrected, retried, and reviewed durably.
 
 #### Scenario: A misrouted capture is visible before it is applied
 
 - **GIVEN** a capture the system classified wrongly
 - **WHEN** the result is presented
 - **THEN** the mistake is visible
-- **AND** nothing has been written
+- **AND** no pantry item or stock change has been written
 
 #### Scenario: Abandoning a capture leaves no trace
 
 - **WHEN** the user abandons a capture without accepting
-- **THEN** no pantry item, receipt, or stock change exists for it
+- **THEN** no pantry item or stock change exists for it
+- **AND** any unreviewed draft or pending capture is discarded with its image
 
 ### Requirement: Genuine ambiguity is resolved by asking once
 
@@ -213,7 +216,7 @@ possible, and leave manual entry available.
 
 ### Requirement: A pending capture lands on review, never on the pantry
 
-The system SHALL hold pending captures until they can be interpreted, SHALL
+The system SHALL persist pending captures until they can be interpreted, SHALL
 present each interpreted result for review, and MUST NOT apply a pending capture
 without the user reviewing it.
 

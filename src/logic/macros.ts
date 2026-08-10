@@ -16,6 +16,9 @@ export interface MacroTargets {
   fatG: number;
 }
 
+/** Fibre is an absolute user-owned daily target, never a calorie percentage. */
+export const DEFAULT_FIBRE_TARGET_G = 30;
+
 /** Grams of each macro implied by a calorie target and a percentage split. */
 export function macroTargets(
   targetCalories: number,
@@ -44,6 +47,7 @@ export const EMPTY_MACROS: Macros = {
   proteinG: 0,
   carbsG: 0,
   fatG: 0,
+  fibreG: 0,
 };
 
 export function addMacros(a: Macros, b: Macros): Macros {
@@ -52,5 +56,6 @@ export function addMacros(a: Macros, b: Macros): Macros {
     proteinG: a.proteinG + b.proteinG,
     carbsG: a.carbsG + b.carbsG,
     fatG: a.fatG + b.fatG,
+    fibreG: a.fibreG == null || b.fibreG == null ? null : a.fibreG + b.fibreG,
   };
 }

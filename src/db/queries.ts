@@ -13,7 +13,7 @@ import {
   predictExpiry,
 } from '@/logic/expiry';
 import type { Decrement } from '@/logic/deplete';
-import { macroTargets } from '@/logic/macros';
+import { DEFAULT_FIBRE_TARGET_G, macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
 import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
@@ -46,6 +46,8 @@ import type {
   MealVenue,
   MealWithItems,
   PantryItem,
+  PendingCapture,
+  PendingCaptureKind,
   Product,
   Profile,
   QuantitySource,
@@ -90,6 +92,7 @@ interface ProfileRow {
   protein_pct: number;
   carbs_pct: number;
   fat_pct: number;
+  fibre_target_g: number;
   units: string;
   onboarded_at: string;
   target_source: string;
@@ -131,6 +134,7 @@ interface MealItemRow {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fibre_g: number | null;
   is_manual_addition: number;
   sort_order: number;
   canonical_id: string | null;
@@ -142,6 +146,7 @@ interface DailyTargetRow {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  fibre_g: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -163,6 +168,7 @@ function toProfile(row: ProfileRow): Profile {
     proteinPct: row.protein_pct,
     carbsPct: row.carbs_pct,
     fatPct: row.fat_pct,
+    fibreTargetG: row.fibre_target_g,
     units: row.units as Profile['units'],
     onboardedAt: row.onboarded_at,
   };
@@ -204,6 +210,7 @@ function toMealItem(row: MealItemRow): MealItem {
     proteinG: row.protein_g,
     carbsG: row.carbs_g,
     fatG: row.fat_g,
+    fibreG: row.fibre_g,
     isManualAddition: row.is_manual_addition === 1,
     sortOrder: row.sort_order,
     canonicalId: row.canonical_id,
@@ -217,6 +224,7 @@ function toDailyTarget(row: DailyTargetRow): DailyTarget {
     proteinG: row.protein_g,
     carbsG: row.carbs_g,
     fatG: row.fat_g,
+    fibreG: row.fibre_g,
   };
 }
 
@@ -235,9 +243,9 @@ export async function saveProfile(profile: Profile): Promise<void> {
   await db().runAsync(
     `INSERT INTO profile (
        id, sex, age, height_cm, weight_kg, activity_level, goal,
-       target_calories, protein_pct, carbs_pct, fat_pct, units, onboarded_at,
+       target_calories, protein_pct, carbs_pct, fat_pct, fibre_target_g, units, onboarded_at,
        target_source, stated_calories, stated_figure_kind
-     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        sex = excluded.sex,
        age = excluded.age,
@@ -249,6 +257,7 @@ export async function saveProfile(profile: Profile): Promise<void> {
        protein_pct = excluded.protein_pct,
        carbs_pct = excluded.carbs_pct,
        fat_pct = excluded.fat_pct,
+       fibre_target_g = excluded.fibre_target_g,
        units = excluded.units,
        target_source = excluded.target_source,
        stated_calories = excluded.stated_calories,
@@ -264,6 +273,7 @@ export async function saveProfile(profile: Profile): Promise<void> {
       profile.proteinPct,
       profile.carbsPct,
       profile.fatPct,
+      profile.fibreTargetG ?? DEFAULT_FIBRE_TARGET_G,
       profile.units,
       profile.onboardedAt,
       profile.targetSource,
@@ -326,17 +336,19 @@ export async function ensureDailyTarget(
     proteinG: macros.proteinG,
     carbsG: macros.carbsG,
     fatG: macros.fatG,
+    fibreG: profile.fibreTargetG ?? DEFAULT_FIBRE_TARGET_G,
   };
   await db().runAsync(
     `INSERT OR IGNORE INTO daily_targets
-       (local_date, target_calories, protein_g, carbs_g, fat_g)
-     VALUES (?, ?, ?, ?, ?)`,
+       (local_date, target_calories, protein_g, carbs_g, fat_g, fibre_g)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       target.localDate,
       target.targetCalories,
       target.proteinG,
       target.carbsG,
       target.fatG,
+      target.fibreG ?? DEFAULT_FIBRE_TARGET_G,
     ],
   );
   return target;
@@ -354,6 +366,7 @@ export interface NewMealItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fibreG?: number | null;
   isManualAddition: boolean;
   /** Carried identity from a cooked suggestion (decision 61). Optional; every existing caller omits it and gets today's resolve-by-name behaviour. */
   canonicalId?: string | null;
@@ -388,6 +401,7 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     proteinG: item.proteinG,
     carbsG: item.carbsG,
     fatG: item.fatG,
+    fibreG: item.fibreG ?? null,
     isManualAddition: item.isManualAddition,
     sortOrder: index,
     canonicalId: item.canonicalId ?? null,
@@ -444,9 +458,9 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
     for (const item of meal.items) {
       await txn.runAsync(
         `INSERT INTO meal_items
-           (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
+           (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g, fibre_g,
             is_manual_addition, sort_order, canonical_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           item.id,
           item.mealId,
@@ -457,6 +471,7 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
           item.proteinG,
           item.carbsG,
           item.fatG,
+          item.fibreG ?? null,
           item.isManualAddition ? 1 : 0,
           item.sortOrder,
           item.canonicalId,
@@ -565,12 +580,12 @@ export async function updateMealWithDepletion(
     for (const item of items) {
       await txn.runAsync(
         `INSERT INTO meal_items
-           (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g,
+           (id, meal_id, name, quantity, unit, calories, protein_g, carbs_g, fat_g, fibre_g,
             is_manual_addition, sort_order, canonical_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           item.id, item.mealId, item.name, item.quantity, item.unit,
-          item.calories, item.proteinG, item.carbsG, item.fatG,
+          item.calories, item.proteinG, item.carbsG, item.fatG, item.fibreG ?? null,
           item.isManualAddition ? 1 : 0, item.sortOrder, item.canonicalId,
         ],
       );
@@ -2434,6 +2449,40 @@ interface ReceiptLineRow {
   created_at: string;
 }
 
+interface PendingCaptureRow {
+  id: string;
+  image_uri: string;
+  detected_kind: string | null;
+  status: string;
+  retry_count: number;
+  last_error_kind: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A small, explicit bound prevents retained camera files growing forever. */
+export const MAX_PENDING_CAPTURES = 20;
+
+export class PendingCaptureLimitError extends Error {
+  constructor() {
+    super(`Only ${MAX_PENDING_CAPTURES} captures can wait at once.`);
+    this.name = 'PendingCaptureLimitError';
+  }
+}
+
+function toPendingCapture(row: PendingCaptureRow): PendingCapture {
+  return {
+    id: row.id,
+    imageUri: row.image_uri,
+    detectedKind: row.detected_kind as PendingCaptureKind | null,
+    status: row.status as PendingCapture['status'],
+    retryCount: row.retry_count,
+    lastErrorKind: row.last_error_kind,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function toReceipt(row: ReceiptRow): Receipt {
   return {
     id: row.id,
@@ -2515,6 +2564,62 @@ export async function insertCapturedReceipt(
   const stored = await getReceipt(id);
   if (!stored) throw new Error('Receipt vanished on insert.');
   return stored;
+}
+
+/** Retains an uninterpretable capture without storing a credential or result. */
+export async function insertPendingCapture(
+  imageUri: string,
+  detectedKind: PendingCaptureKind | null = null,
+): Promise<PendingCapture> {
+  const count = await db().getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM pending_captures',
+  );
+  if ((count?.count ?? 0) >= MAX_PENDING_CAPTURES) throw new PendingCaptureLimitError();
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO pending_captures
+       (id, image_uri, detected_kind, status, retry_count, last_error_kind, created_at, updated_at)
+     VALUES (?, ?, ?, 'pending', 0, NULL, ?, ?)`,
+    [id, imageUri, detectedKind, now, now],
+  );
+  return { id, imageUri, detectedKind, status: 'pending', retryCount: 0, lastErrorKind: null, createdAt: now, updatedAt: now };
+}
+
+export async function listPendingCaptures(): Promise<PendingCapture[]> {
+  const rows = await db().getAllAsync<PendingCaptureRow>(
+    'SELECT * FROM pending_captures ORDER BY created_at ASC',
+  );
+  return rows.map(toPendingCapture);
+}
+
+export async function getPendingCapture(id: string): Promise<PendingCapture | null> {
+  const row = await db().getFirstAsync<PendingCaptureRow>(
+    'SELECT * FROM pending_captures WHERE id = ?', [id],
+  );
+  return row ? toPendingCapture(row) : null;
+}
+
+export async function recordPendingCaptureAttempt(
+  id: string,
+  errorKind: string | null,
+  failed: boolean,
+): Promise<void> {
+  await db().runAsync(
+    `UPDATE pending_captures
+     SET retry_count = retry_count + 1, last_error_kind = ?, status = ?, updated_at = ?
+     WHERE id = ?`,
+    [errorKind, failed ? 'failed' : 'pending', new Date().toISOString(), id],
+  );
+}
+
+export async function removePendingCapture(id: string): Promise<string | null> {
+  const capture = await db().getFirstAsync<PendingCaptureRow>(
+    'SELECT * FROM pending_captures WHERE id = ?', [id],
+  );
+  if (!capture) return null;
+  await db().runAsync('DELETE FROM pending_captures WHERE id = ?', [id]);
+  return capture.image_uri;
 }
 
 /**
@@ -2658,6 +2763,16 @@ export async function setReceiptType(
 
 export async function discardReceipt(id: string): Promise<void> {
   await db().runAsync("UPDATE receipts SET status = 'discarded' WHERE id = ?", [id]);
+}
+
+/** Removes an unaccepted receipt draft and returns its unshared image URI. */
+export async function deletePendingReceiptDraft(id: string): Promise<string | null> {
+  const receipt = await db().getFirstAsync<ReceiptRow>(
+    "SELECT * FROM receipts WHERE id = ? AND status = 'pending'", [id],
+  );
+  if (!receipt) return null;
+  await db().runAsync("DELETE FROM receipts WHERE id = ? AND status = 'pending'", [id]);
+  return receipt.image_uri;
 }
 
 /**

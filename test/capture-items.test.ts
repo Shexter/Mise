@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
-import { planCaptureItems } from '../src/logic/captureItems';
-import type { CanonicalItem, Location } from '../src/types';
+import { captureItemsFromReceiptLines, planCaptureItems } from '../src/logic/captureItems';
+import type { CanonicalItem, Location, ReceiptLine } from '../src/types';
 
 const tomato = {
   id: 'tomato',
@@ -48,5 +48,22 @@ describe('planCaptureItems', () => {
       location: null,
       predictedExpiry: null,
     });
+  });
+});
+
+describe('captureItemsFromReceiptLines', () => {
+  test('keeps included food lines and excludes receipt-only rows', () => {
+    const line = (overrides: Partial<ReceiptLine>): ReceiptLine => ({
+      id: 'line', receiptId: 'receipt', rawText: 'Rice', kind: 'food', qty: 500,
+      unit: 'g', quantityKind: 'measure', lineTotalCents: 399, unitPriceCents: null,
+      canonicalId: null, appliesToLineId: null, pantryItemId: null, excluded: false,
+      createdAt: '2026-08-09T00:00:00.000Z', ...overrides,
+    });
+
+    expect(captureItemsFromReceiptLines([
+      line({ rawText: 'Rice' }),
+      line({ rawText: 'Bag fee', kind: 'non_food' }),
+      line({ rawText: 'Excluded tofu', excluded: true }),
+    ])).toEqual([{ name: 'Rice', quantity: 500, unit: 'g' }]);
   });
 });

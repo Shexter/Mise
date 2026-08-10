@@ -3,7 +3,7 @@ import { getAllCanonicals, getLocations } from '@/db/queries';
 import { predictExpiry } from '@/logic/expiry';
 import type { MatchOutcome } from '@/logic/match';
 import { resolveIngredientReferences } from '@/logic/resolution';
-import type { CanonicalItem, Location } from '@/types';
+import type { CanonicalItem, Location, ReceiptLine } from '@/types';
 
 /** One photographed grocery item, prepared for review but not persisted. */
 export interface CaptureItemProposal {
@@ -14,6 +14,13 @@ export interface CaptureItemProposal {
   location: Location | null;
   /** The review may show this before the user accepts the item. */
   predictedExpiry: string | null;
+}
+
+/** Turns included food lines from a misrouted receipt into grocery proposals. */
+export function captureItemsFromReceiptLines(lines: readonly ReceiptLine[]): CaptureItem[] {
+  return lines
+    .filter((line) => line.kind === 'food' && !line.excluded)
+    .map((line) => ({ name: line.rawText, quantity: line.qty, unit: line.unit }));
 }
 
 /**

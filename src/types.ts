@@ -95,6 +95,7 @@ export interface Profile {
   proteinPct: number;
   carbsPct: number;
   fatPct: number;
+  fibreTargetG?: number;
   units: Units;
   onboardedAt: string;
 }
@@ -110,6 +111,8 @@ export interface MealItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  /** Null when this item predates fibre tracking or its estimate omitted it. */
+  fibreG?: number | null;
   isManualAddition: boolean;
   sortOrder: number;
   /**
@@ -146,6 +149,7 @@ export interface Macros {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fibreG?: number | null;
 }
 
 export interface DailyTarget {
@@ -154,6 +158,7 @@ export interface DailyTarget {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fibreG?: number;
 }
 
 /** One logged day's calendar summary. Missing days have no object at all. */
@@ -173,6 +178,7 @@ export interface HiddenIngredient {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fibreG?: number | null;
   /** Links the quick-pick to its canonical ingredient, where one exists. */
   canonicalId?: string;
 }
@@ -471,6 +477,7 @@ export interface EstimatedItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  fibreG?: number | null;
 }
 
 /** A parsed, validated vision response. */
@@ -716,4 +723,19 @@ export interface ReceiptLine {
 
 export interface ReceiptWithLines extends Receipt {
   lines: ReceiptLine[];
+}
+
+/** A camera image retained until it can be interpreted and reviewed. */
+export type PendingCaptureKind = 'receipt' | 'items' | 'unclear' | 'nothing';
+export type PendingCaptureStatus = 'pending' | 'failed';
+
+export interface PendingCapture {
+  id: string;
+  imageUri: string;
+  detectedKind: PendingCaptureKind | null;
+  status: PendingCaptureStatus;
+  retryCount: number;
+  lastErrorKind: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

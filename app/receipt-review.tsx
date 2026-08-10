@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +13,7 @@ import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import {
-  discardReceipt,
+  deletePendingReceiptDraft,
   getAllCanonicals,
   getLocations,
   getReceipt,
@@ -22,15 +22,18 @@ import {
   setReceiptLineDetails,
   setReceiptLineExcluded,
 } from '@/db/queries';
+import { captureItemsFromReceiptLines, resolveCapturedItems } from '@/logic/captureItems';
 import { friendlyDate } from '@/logic/dates';
 import { checkArithmetic, planReceiptApply, type PantryChange } from '@/logic/receipt';
 import {
   acceptReceiptReview,
+  abandonReceiptReview,
   changeReceiptType,
   correctReceiptLine,
   reclassifyReceiptLine,
 } from '@/logic/receiptService';
 import { formatQuantity } from '@/logic/scaling';
+import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 import type {
   CanonicalItem,
   Location,
@@ -67,6 +70,10 @@ export default function ReceiptReviewScreen() {
   const [editing, setEditing] = useState<ReceiptLine | null>(null);
   const [dismissedPrompts, setDismissedPrompts] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const finished = useRef(false);
+  const receiptIdRef = useRef<string | null>(null);
+  const setCaptureReview = usePantryCaptureStore((state) => state.set);
 
   const load = useCallback(async () => {
     if (!receiptId) return;
@@ -85,6 +92,16 @@ export default function ReceiptReviewScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    receiptIdRef.current = receipt?.id ?? null;
+  }, [receipt?.id]);
+
+  useEffect(() => () => {
+    if (!finished.current && receiptIdRef.current) {
+      void abandonReceiptReview(receiptIdRef.current);
+    }
+  }, []);
 
   if (!receipt) {
     return (
@@ -165,6 +182,23 @@ export default function ReceiptReviewScreen() {
     setDismissedPrompts((prev) => new Set(prev).add(pantryItemId));
   };
 
+  const switchToGroceries = async () => {
+    if (switching) return;
+    const items = captureItemsFromReceiptLines(receipt.lines);
+    if (items.length === 0) return;
+    setSwitching(true);
+    try {
+      const proposals = await resolveCapturedItems(items, receipt.purchasedAt);
+      const imageUri = await deletePendingReceiptDraft(receipt.id);
+      if (!imageUri) return;
+      finished.current = true;
+      setCaptureReview(imageUri, receipt.purchasedAt, proposals);
+      router.replace('/pantry-capture-review');
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   const accept = async () => {
     setSaving(true);
     try {
@@ -176,6 +210,7 @@ export default function ReceiptReviewScreen() {
             ? `Added ${summary.names.slice(0, 3).join(', ')}${summary.names.length > 3 ? `, and ${summary.names.length - 3} more` : ''}.`
             : 'Receipt saved.',
       });
+      finished.current = true;
       router.dismissAll();
       router.replace('/(tabs)/pantry');
     } finally {
@@ -184,7 +219,8 @@ export default function ReceiptReviewScreen() {
   };
 
   const discard = async () => {
-    await discardReceipt(receipt.id);
+    finished.current = true;
+    await abandonReceiptReview(receipt.id);
     router.back();
   };
 
@@ -201,6 +237,13 @@ export default function ReceiptReviewScreen() {
       <View style={styles.typeRow}>
         <Segmented options={TYPE_OPTIONS} value={receipt.type} onChange={(t) => void changeType(t)} />
       </View>
+
+      {captureItemsFromReceiptLines(receipt.lines).length > 0 ? (
+        <View style={styles.correction}>
+          <Caption muted>Not a receipt after all?</Caption>
+          <Button label="Review as groceries" variant="secondary" block={false} onPress={() => void switchToGroceries()} loading={switching} disabled={saving} />
+        </View>
+      ) : null}
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]}
@@ -445,6 +488,14 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, marginRight: space.sm },
   typeRow: { paddingHorizontal: layout.screenGutter, paddingTop: space.sm },
+  correction: {
+    paddingHorizontal: layout.screenGutter,
+    paddingBottom: space.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
   content: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.lg,

@@ -18,13 +18,15 @@ import {
   goalLabel,
 } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
-import { getBodyMeasurements, saveBodyMeasurement } from '@/db/queries';
+import { getBodyMeasurements, listPendingCaptures, removePendingCapture, saveBodyMeasurement } from '@/db/queries';
 import { exportData } from '@/logic/export';
 import { isMeasurementStale, resolveTarget } from '@/logic/bodyComposition';
+import { retryPendingCapture } from '@/logic/pendingCaptureService';
 import { formatHeight, formatWeight } from '@/logic/units';
 import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 import { useProfileStore } from '@/store/profileStore';
 import { TARGET_SOURCES, type BodyMeasurement, type Profile, type Units } from '@/types';
 
@@ -36,6 +38,7 @@ export default function SettingsScreen() {
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.update);
   const refreshDay = useDayStore((state) => state.refresh);
+  const setCaptureReview = usePantryCaptureStore((state) => state.set);
 
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [profileField, setProfileField] = useState<ProfileField | null>(null);
@@ -46,6 +49,32 @@ export default function SettingsScreen() {
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
   }, []);
+
+  const releasePendingCaptures = async () => {
+    loadKey();
+    const capture = (await listPendingCaptures()).find((item) => item.status === 'pending');
+    if (!capture) return;
+    const result = await retryPendingCapture(capture.id);
+    if (!result) return;
+    if (result.kind === 'items') {
+      setCaptureReview(result.capture.imageUri, result.capture.createdAt.slice(0, 10), result.proposals);
+      router.push('/pantry-capture-review');
+      await removePendingCapture(result.capture.id);
+      return;
+    }
+    if (result.kind === 'receipt') {
+      router.push({ pathname: '/receipt-review', params: { receiptId: result.receipt.id } });
+      await removePendingCapture(result.capture.id);
+      return;
+    }
+    if (result.kind === 'waiting_for_key') {
+      toast.show({ message: 'The saved capture still needs an API key.' });
+    } else if (result.kind === 'failed') {
+      toast.show({ message: 'A saved capture could not be read after several attempts.' });
+    } else {
+      toast.show({ message: 'The saved capture is still waiting for a connection.' });
+    }
+  };
 
   useEffect(loadKey, [loadKey]);
   useEffect(() => { void getBodyMeasurements().then(setMeasurements); }, []);
@@ -307,7 +336,7 @@ export default function SettingsScreen() {
       <ApiKeySheet
         visible={keyOpen}
         onClose={() => setKeyOpen(false)}
-        onSaved={loadKey}
+        onSaved={releasePendingCaptures}
       />
     </Screen>
   );

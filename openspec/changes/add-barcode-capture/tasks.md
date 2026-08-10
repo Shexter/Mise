@@ -61,15 +61,15 @@ not a miss.
       Keep misses out of `products`: a miss has no canonical id, and a resolved
       product must never carry a fabricated one. A rescan then avoids repeating
       a request that already failed.
-- [ ] 3.3 Honour a cached miss for one month before retrying, as a named
+- [x] 3.3 Honour a cached miss for one month before retrying, as a named
       constant.
-- [ ] 3.4 Confirm a cached hit and a cached miss both make no network request.
+- [x] 3.4 Confirm a cached hit and a cached miss both make no network request.
 
 ## 4. Product to ingredient
 
-- [ ] 4.1 Implement `src/logic/barcode.ts`: turn a lookup result into a product
+- [x] 4.1 Implement `src/logic/barcode.ts`: turn a lookup result into a product
       record and a reference for the matcher.
-- [ ] 4.2 Pass the product name to `resolve()` **without** the barcode set —
+- [x] 4.2 Pass the product name to `resolve()` **without** the barcode set —
       step 1 would otherwise consult the product row being created, which
       resolves nothing useful.
 - [ ] 4.3 On a confirm-band outcome, ask the user once, then write the answer

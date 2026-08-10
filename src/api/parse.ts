@@ -82,7 +82,13 @@ function toEstimatedItem(value: unknown): EstimatedItem | null {
     proteinG: Math.max(0, asNumber(record['protein_g']) ?? 0),
     carbsG: Math.max(0, asNumber(record['carbs_g']) ?? 0),
     fatG: Math.max(0, asNumber(record['fat_g']) ?? 0),
+    fibreG: nullableNonNegative(record['fibre_g']),
   };
+}
+
+function nullableNonNegative(value: unknown): number | null {
+  const parsed = asNumber(value);
+  return parsed === null ? null : Math.max(0, parsed);
 }
 
 function asString(value: unknown): string | null {

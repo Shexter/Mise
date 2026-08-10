@@ -3,6 +3,7 @@ import {
   applyReceiptChanges,
   attachExtractedLines,
   clearReceiptPantryItems,
+  deletePendingReceiptDraft,
   getAllCanonicals,
   getLocations,
   getReceipt,
@@ -14,7 +15,7 @@ import {
   setReceiptType,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
-import { photoBase64 } from '@/media/photos';
+import { deletePhoto, photoBase64 } from '@/media/photos';
 import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
 import { planReceiptApply, referencesFromLines } from '@/logic/receipt';
 import type {
@@ -51,6 +52,21 @@ export async function captureReceipt(
 ): Promise<ReceiptWithLines> {
   const receipt = await insertCapturedReceipt(imageUri, captureDate);
   return (await tryExtract(receipt.id, base64Jpeg, captureDate)) ?? receipt;
+}
+
+/** Persists a receipt already extracted by the unified one-request capture path. */
+export async function captureExtractedReceipt(
+  extracted: ExtractedReceipt,
+  imageUri: string,
+  captureDate: string = localDateString(),
+): Promise<ReceiptWithLines> {
+  const receipt = await insertCapturedReceipt(imageUri, captureDate);
+  return attachAndResolveReceipt(receipt.id, extracted);
+}
+
+/** Drops an unaccepted receipt and its image when review is abandoned. */
+export async function abandonReceiptReview(receiptId: string): Promise<void> {
+  deletePhoto(await deletePendingReceiptDraft(receiptId));
 }
 
 /**
@@ -103,6 +119,13 @@ async function tryExtract(
     return null;
   }
 
+  return attachAndResolveReceipt(receiptId, extracted);
+}
+
+async function attachAndResolveReceipt(
+  receiptId: string,
+  extracted: ExtractedReceipt,
+): Promise<ReceiptWithLines> {
   await attachExtractedLines(receiptId, {
     store: extracted.store,
     purchasedAt: extracted.purchasedAt,

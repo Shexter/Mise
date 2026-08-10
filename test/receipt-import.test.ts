@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { parseReceiptResponse } from '../src/api/receipt';
 import {
   attachExtractedLines,
+  deletePendingReceiptDraft,
   getAllCanonicals,
   getLocations,
   getMatchQueue,
@@ -87,6 +88,15 @@ describe('capture without a key or connection', () => {
     const all = await listReceipts();
     expect(all.length).toBe(1);
     expect(all[0]?.status).toBe('pending');
+  });
+});
+
+describe('abandoning a receipt review', () => {
+  test('removes an unaccepted draft and its receipt lines', async () => {
+    const receipt = await extract('supermarketOne');
+
+    await expect(deletePendingReceiptDraft(receipt.id)).resolves.toBe('file://receipt.jpg');
+    await expect(getReceipt(receipt.id)).resolves.toBeNull();
   });
 });
 

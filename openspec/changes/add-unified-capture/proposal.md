@@ -27,9 +27,9 @@ decision 60 both assuming it exists.
   locally with no model call at all. Only when there is no usable barcode does an
   image go to the model.
 - **Classification and extraction in one call**, returning a discriminated
-  result — receipt, or items — rather than classifying and then extracting. Two
-  calls would double cost and latency for a judgement the extraction pass is
-  better placed to make anyway.
+  result — a complete receipt draft, or items — rather than classifying and
+  then extracting. A receipt result carries the same header and typed-line data
+  the receipt review needs, so handing it off does not make a second model call.
 - **A barcode only wins if it resolves.** Receipts frequently carry their own
   barcode; detecting one and looking it up would otherwise send every receipt
   down the product path to fail. A detected code that resolves to nothing falls
@@ -63,8 +63,9 @@ router rather than through screens of their own.
   of food is genuinely ambiguous between them — the app cannot infer which the
   user meant, and guessing wrong writes to the wrong place. Separate tabs,
   separate actions.
-- **Replacing the receipt or barcode extractors.** Those changes own their
-  parsing, lookup, and review surfaces. This owns getting to them.
+- **Replacing the receipt or barcode handlers.** Those changes own their
+  persistence, lookup, and review surfaces. This owns getting to them and uses
+  their shared data contracts so a receipt is interpreted once.
 - **Removing manual entry.** Typing an item stays, as the path that works with
   no key, no connection, and no camera.
 - **Bulk session flows.** Rapid multi-scan belongs to `add-barcode-capture`, and
@@ -76,11 +77,16 @@ router rather than through screens of their own.
 
 ## Impact
 
-**Schema.** None.
+**Schema.** One forward-only migration adds `pending_captures`, the durable
+queue for captures that cannot yet be interpreted. A receipt draft is stored in
+the existing `receipts` and `receipt_lines` tables before review; it is not
+applied stock.
 
 **Code.**
 - `src/api/capturePrompt.ts` and `src/api/capture.ts` — the classifying
-  extractor, through the existing provider facade and error taxonomy.
+  extractor, through the existing provider facade and error taxonomy. Its
+  receipt variant uses the receipt draft contract rather than a lines-only
+  shortcut.
 - `src/logic/captureRoute.ts` — new, pure: given a barcode result and an
   extraction result, decide the destination. Testable with no camera and no
   network.

@@ -1,12 +1,13 @@
 import { CAPTURE_SYSTEM_PROMPT, CAPTURE_USER_PROMPT } from '@/api/capturePrompt';
 import { VisionError } from '@/api/errors';
 import { extractJsonObject } from '@/api/parse';
+import { parseReceiptObject, type ExtractedReceipt } from '@/api/receipt';
 import { completeVision } from '@/api/vision';
 import type { MeasureUnit } from '@/types';
 import { MEASURE_UNITS } from '@/types';
 
 export type CaptureExtraction =
-  | { kind: 'receipt'; lines: { text: string }[] }
+  | { kind: 'receipt'; receipt: ExtractedReceipt }
   | { kind: 'items'; items: CaptureItem[] }
   | { kind: 'unclear' }
   | { kind: 'nothing' };
@@ -39,13 +40,11 @@ export function parseCaptureResponse(raw: string): CaptureExtraction {
   if (typeof parsed !== 'object' || parsed === null) return { kind: 'unclear' };
   const record = parsed as Record<string, unknown>;
   if (record['kind'] === 'receipt') {
-    const lines = Array.isArray(record['receipt_lines'])
-      ? record['receipt_lines'].flatMap((entry) => {
-          const text = asString((entry as Record<string, unknown>)['text']);
-          return text ? [{ text }] : [];
-        })
-      : [];
-    return lines.length > 0 ? { kind: 'receipt', lines } : { kind: 'unclear' };
+    try {
+      return { kind: 'receipt', receipt: parseReceiptObject(record['receipt'], new Date().toISOString().slice(0, 10)) };
+    } catch {
+      return { kind: 'unclear' };
+    }
   }
   if (record['kind'] === 'items') {
     const items = Array.isArray(record['items'])

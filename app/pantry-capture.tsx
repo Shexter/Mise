@@ -2,27 +2,50 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { extractCapture } from '@/api/capture';
+import { VisionError } from '@/api/errors';
 import { Button } from '@/components/Button';
 import { Body, Caption, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { camera, color, fillParent, layout, opacity, radius, space } from '@/constants/theme';
 import { resolveCapturedItems } from '@/logic/captureItems';
 import { localDateString } from '@/logic/dates';
-import { preparePhoto, type SourceImage } from '@/media/photos';
+import { captureExtractedReceipt } from '@/logic/receiptService';
+import { deletePhoto, preparePhoto, type SourceImage } from '@/media/photos';
+import { insertPendingCapture, PendingCaptureLimitError } from '@/db/queries';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 
 export default function PantryCaptureScreen() {
   const router = useRouter(); const toast = useToast(); const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null); const [permission, requestPermission] = useCameraPermissions();
   const [busy, setBusy] = useState(false); const setReview = usePantryCaptureStore((state) => state.set);
-  const proceed = async (source: SourceImage) => { setBusy(true); try {
-    const photo = await preparePhoto(source, 'pantry-captures'); const capture = await extractCapture(photo.base64);
+  const proceed = async (source: SourceImage) => { setBusy(true); let photo: Awaited<ReturnType<typeof preparePhoto>> | null = null; try {
+    photo = await preparePhoto(source, 'pantry-captures'); const capture = await extractCapture(photo.base64);
     if (capture.kind === 'items') { const purchasedAt = localDateString(); setReview(photo.uri, purchasedAt, await resolveCapturedItems(capture.items, purchasedAt)); router.replace('/pantry-capture-review'); return; }
-    toast.show({ message: capture.kind === 'nothing' ? 'No usable food or receipt was found.' : capture.kind === 'unclear' ? 'Mise could not tell what this is. Try another photo.' : 'Receipt capture is available from the receipt camera for now.' });
-  } catch { toast.show({ message: 'Mise could not read that photo. Add an item by hand or try again.' }); } finally { setBusy(false); } };
+    if (capture.kind === 'receipt') { const receipt = await captureExtractedReceipt(capture.receipt, photo.uri, localDateString()); router.replace({ pathname: '/receipt-review', params: { receiptId: receipt.id } }); return; }
+    if (capture.kind === 'nothing') {
+      deletePhoto(photo.uri);
+      toast.show({ message: 'No usable food or receipt was found.' });
+      return;
+    }
+    deletePhoto(photo.uri);
+    Alert.alert('What did you photograph?', 'Mise could not tell from this photo.', [
+      { text: 'Groceries', onPress: () => router.replace('/(tabs)/pantry') },
+      { text: 'Receipt', onPress: () => router.replace('/receipt-capture') },
+      { text: 'Try another photo', style: 'cancel' },
+    ]);
+  } catch (error) {
+    if (photo && error instanceof VisionError && ['no_key', 'network', 'timeout', 'server'].includes(error.kind)) {
+      try {
+        await insertPendingCapture(photo.uri);
+        toast.show({ message: error.kind === 'no_key' ? 'This capture needs an API key. It was saved for later.' : 'This capture was saved and will be retried when you are online.' });
+      } catch (queueError) {
+        toast.show({ message: queueError instanceof PendingCaptureLimitError ? 'Saved captures are full. Add this item manually or discard a saved photo.' : 'Mise could not save that photo. Add an item by hand or try again.' });
+      }
+    } else { toast.show({ message: 'Mise could not read that photo. Add an item by hand or try again.' }); }
+  } finally { setBusy(false); } };
   const take = async () => { const image = await cameraRef.current?.takePictureAsync({ quality: 1 }); if (image) await proceed({ uri: image.uri, width: image.width, height: image.height }); };
   const pick = async () => { const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 }); const image = result.assets?.[0]; if (!result.canceled && image) await proceed({ uri: image.uri, width: image.width, height: image.height }); };
   if (!permission) return <View style={styles.blank} />;

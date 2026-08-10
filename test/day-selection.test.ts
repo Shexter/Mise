@@ -148,6 +148,7 @@ describe('saving a meal while viewing an earlier day', () => {
       proteinG: 20,
       carbsG: 40,
       fatG: 15,
+      fibreG: null,
     });
   });
 });

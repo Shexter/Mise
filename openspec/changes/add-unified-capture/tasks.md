@@ -34,6 +34,9 @@ Pure logic. No camera, no network.
 - [x] 3.3 Implement `src/api/capture.ts` through the existing provider facade and
       `src/api/errors.ts`.
 - [x] 3.4 Parse defensively: an unrecognised `kind` is `unclear`, never a crash.
+- [x] 3.4a Make the receipt branch return the complete receipt draft contract —
+      store, date, type, totals, and typed lines — shared with receipt parsing.
+      Hand the draft to receipt persistence without a second model request.
 - [ ] 3.5 Measure per-kind accuracy across the fixtures and record it.
 
 ## 4. The item path
@@ -45,8 +48,8 @@ The handler nothing else in the queue owns.
 - [x] 4.2 Identify several items in one photograph separately.
 - [x] 4.3 Propose a storage location per item from its canonical's default
       (decision 18), letting the user change it.
-- [ ] 4.4 Show predicted expiry before saving, as manual add already does.
-- [ ] 4.5 Route confirm-band resolutions to the existing confirmation surface
+- [x] 4.4 Show predicted expiry before saving, as manual add already does.
+- [x] 4.5 Route confirm-band resolutions to the existing confirmation surface
       rather than a new one.
 
 ## 5. The capture surface
@@ -64,19 +67,20 @@ The handler nothing else in the queue owns.
 
 ## 6. Review before write
 
-- [ ] 6.1 Route each destination to its review surface — receipt review, item
-      review, or the product confirmation.
-- [ ] 6.2 Confirm no path writes a pantry item, receipt, or stock change before
-      the user accepts.
-- [ ] 6.3 Confirm abandoning a capture leaves no trace.
-- [ ] 6.4 Make a misclassification visible and correctable at review, since the
+- [ ] 6.1 Route each destination to its review surface — receipt drafts to
+      receipt review, items to item review, and products to product confirmation.
+- [ ] 6.2 Confirm no path writes a pantry item or stock change before the user
+      accepts. A receipt draft may be persisted before review and is removed if
+      the user discards it.
+- [x] 6.3 Confirm abandoning a capture leaves no trace.
+- [x] 6.4 Make a misclassification visible and correctable at review, since the
       router made the choice rather than the user.
 
 ## 7. Edges
 
-- [ ] 7.1 Ask once when classification is `unclear`, and only then.
-- [ ] 7.2 Report a capture containing nothing usable rather than inventing items.
-- [ ] 7.3 Handle no-key and offline plainly: say so, retain the capture for
+- [x] 7.1 Ask once when classification is `unclear`, and only then.
+- [x] 7.2 Report a capture containing nothing usable rather than inventing items.
+- [x] 7.3 Handle no-key and offline plainly: say so, retain the capture for
       later, leave manual entry working.
 - [ ] 7.4 Confirm a cached barcode resolves with no request at all.
 
@@ -89,8 +93,9 @@ wants — the big shop, which is also the one that fills a pantry.
 
 - [ ] 7a.1 Let further captures be added to the same receipt from the review
       surface, showing what has been captured so far.
-- [ ] 7a.2 Send each frame for interpretation and merge the returned lines into
-      one receipt, rather than asking the model to stitch images.
+- [ ] 7a.2 Send each frame for complete receipt-draft extraction and merge the
+      returned typed lines into one receipt, rather than asking the model to
+      stitch images.
 - [ ] 7a.3 De-duplicate across the overlap. People overlap deliberately to avoid
       missing a line, so overlap is the normal case, not the error case. Match on
       line text, price, and position rather than text alone — receipts repeat
@@ -109,21 +114,24 @@ wants — the big shop, which is also the one that fills a pantry.
 
 The spec retains an offline capture; nothing yet says what the queue *is*.
 
-- [ ] 7b.1 Persist pending captures with their images, so the queue survives the
+- [x] 7b.1 Append a forward-only migration creating `pending_captures`, with its
+      image URI, status, retry count, last error kind, timestamps, and `DROP_ALL`
+      coverage. Never put an API key or interpreted pantry data in this table.
+- [x] 7b.2 Persist pending captures with their images, so the queue survives the
       app being closed. A queue in memory loses the capture at the moment the
       user is least able to retake it — they have put the shopping away.
-- [ ] 7b.2 Interpret a pending capture when a connection returns **to review, not
+- [x] 7b.3 Interpret a pending capture when a connection returns **to review, not
       to the pantry.** The requirement that nothing is written before review does
       not weaken because the write happens later.
-- [ ] 7b.3 Show pending captures with a count and a thumbnail, and allow
+- [x] 7b.4 Show pending captures with a count and a thumbnail, and allow
       individual discard including the retained image.
-- [ ] 7b.4 Release the queue when a key is configured, not only when a connection
+- [x] 7b.5 Release the queue when a key is configured, not only when a connection
       returns — no-key and offline are different waits with the same shape.
-- [ ] 7b.5 Bound retries and report a persistently failing capture as failing.
+- [x] 7b.6 Bound retries and report a persistently failing capture as failing.
       "Still pending" for a week is a lie by omission.
-- [ ] 7b.6 Include pending capture images in *Delete all data*, alongside meal
+- [x] 7b.7 Include pending capture images in *Delete all data*, alongside meal
       photos and receipt images.
-- [ ] 7b.7 Cap the queue, and say so when it is reached rather than accepting
+- [x] 7b.8 Cap the queue, and say so when it is reached rather than accepting
       captures that will never be interpreted.
 
 ## 8. Amend the sibling changes
@@ -155,4 +163,4 @@ Both are unstarted, so nothing is discarded.
       rather than in the pantry.
 - [ ] 9.6 Record classification accuracy per kind in
       `docs/product-decisions.md`.
-- [ ] 9.7 Run `npm run typecheck` and `npm test`.
+- [x] 9.7 Run `npm run typecheck` and `npm test`.

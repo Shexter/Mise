@@ -18,6 +18,7 @@ export function scaleItemQuantity(item: MealItem, nextQuantity: number): MealIte
     proteinG: item.proteinG * factor,
     carbsG: item.carbsG * factor,
     fatG: item.fatG * factor,
+    fibreG: item.fibreG == null ? null : item.fibreG * factor,
   };
 }
 
@@ -29,6 +30,7 @@ export function macrosOfItems(items: readonly MealItem[]): Macros {
         proteinG: item.proteinG,
         carbsG: item.carbsG,
         fatG: item.fatG,
+        fibreG: item.fibreG,
       }),
     EMPTY_MACROS,
   );
