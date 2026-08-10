@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -24,7 +24,7 @@ import { localDateString, mealTypeForTime } from '@/logic/dates';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
-import { lastVenue } from '@/db/queries';
+import { saveDishVenueDefault } from '@/db/queries';
 import {
   CATALOGUE_NUTRITION_UNAVAILABLE,
   catalogueNutrition,
@@ -32,6 +32,7 @@ import {
   nutritionSourceLabel,
 } from '@/logic/nutrition';
 import type { CanonicalItem, MeasureUnit, MealType, MealVenue } from '@/types';
+import { inferVenueForDraft } from '@/logic/venueService';
 
 const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
   value: type,
@@ -72,12 +73,27 @@ export default function ManualScreen() {
   const [saving, setSaving] = useState(false);
   const [canonical, setCanonical] = useState<CanonicalItem | null>(null);
   const [pickingCanonical, setPickingCanonical] = useState(false);
+  const venueChangedRef = useRef(false);
 
   useEffect(() => {
-    void lastVenue().then((last) => {
-      if (last) setVenue(last);
-    });
-  }, []);
+    const dish = name.trim();
+    if (!dish) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      void inferVenueForDraft(
+        dish,
+        [{ name: dish, canonicalId: canonical?.id ?? null }],
+        null,
+      ).then((inferred) => {
+        if (!active) return;
+        if (!venueChangedRef.current) setVenue(inferred);
+      });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [canonical?.id, name]);
 
   useEffect(() => {
     if (!canonical) return;
@@ -132,6 +148,14 @@ export default function ManualScreen() {
       ],
     };
     const stored = await addMeal(meal);
+    if (venueChangedRef.current) {
+      try {
+        await saveDishVenueDefault(meal.name, venue);
+      } catch {
+        // Preference learning is best-effort; never turn a saved meal into an
+        // apparent failure because this secondary write failed.
+      }
+    }
     clear();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     toast.show({ message: 'Meal saved.' });
@@ -255,7 +279,14 @@ export default function ManualScreen() {
           <SectionLabel muted style={styles.mealTypeLabel}>
             Where from
           </SectionLabel>
-          <Segmented options={VENUE_OPTIONS} value={venue} onChange={setVenue} />
+          <Segmented
+            options={VENUE_OPTIONS}
+            value={venue}
+            onChange={(next) => {
+              if (next !== venue) venueChangedRef.current = true;
+              setVenue(next);
+            }}
+          />
         </View>
         </ScrollView>
 

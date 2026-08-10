@@ -75,9 +75,9 @@ export default function PantryScreen() {
             <Feather name="map-pin" size={20} color={color.ink} />
           </Pressable>
           <Pressable
-            onPress={() => router.push('/receipt-capture')}
+            onPress={() => router.push('/pantry-capture')}
             accessibilityRole="button"
-            accessibilityLabel="Scan a receipt"
+            accessibilityLabel="Add to pantry with camera"
             hitSlop={space.sm}
             style={({ pressed }) => [
               styles.headerButton,

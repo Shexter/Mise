@@ -51,7 +51,9 @@ import { deletePhoto } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
-import { lastServingsForDish, lastVenue } from '@/db/queries';
+import { lastServingsForDish } from '@/db/queries';
+import { saveDishVenueDefault } from '@/db/queries';
+import { inferVenueForDraft } from '@/logic/venueService';
 import { Stepper } from '@/components/Stepper';
 import type {
   Confidence,
@@ -59,10 +61,11 @@ import type {
   MealItem,
   MealType,
   MealVenue,
+  VenueAssessment,
 } from '@/types';
 
 type Phase =
-  | { kind: 'analyzing' }
+  | { kind: 'analyzing'; retryDelayMs?: number }
   | { kind: 'error'; error: VisionError }
   | { kind: 'review' };
 
@@ -103,6 +106,9 @@ export default function ReviewScreen() {
   const [suggestions, setSuggestions] = useState<string[]>(
     estimate?.likelyHiddenIngredients ?? [],
   );
+  const [venueAssessment, setVenueAssessment] = useState<VenueAssessment | null>(
+    estimate?.venueAssessment ?? null,
+  );
   const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
   const [venue, setVenue] = useState<MealVenue>('home');
   const [servings, setServings] = useState(1);
@@ -112,14 +118,21 @@ export default function ReviewScreen() {
   const [saving, setSaving] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+  const venueChangedRef = useRef(false);
 
-  // The venue control defaults to whatever was chosen last — most people
-  // eat the same way most days, so the common case costs no taps.
+  // Combine the estimate with on-device stock, batch, and learned-dish
+  // signals. A user's tap permanently takes precedence over later async work.
   useEffect(() => {
-    void lastVenue().then((last) => {
-      if (last) setVenue(last);
+    if (phase.kind !== 'review') return;
+    let active = true;
+    void inferVenueForDraft(mealName, items, venueAssessment).then((inferred) => {
+      if (!active) return;
+      if (!venueChangedRef.current) setVenue(inferred);
     });
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [items, mealName, phase.kind, venueAssessment]);
 
   // A repeated dish remembers its yield, so the batch cook that made four
   // portions last time offers four again.
@@ -144,11 +157,14 @@ export default function ReviewScreen() {
     abortRef.current = controller;
     setPhase({ kind: 'analyzing' });
     try {
-      const result = await estimateMeal(base64, controller.signal);
+      const result = await estimateMeal(base64, controller.signal, (retryDelayMs) => {
+        setPhase({ kind: 'analyzing', retryDelayMs });
+      });
       setMealName(result.mealName);
       setItems(result.items.map((item) => toMealItem(item, false)));
       setConfidence(result.confidence);
       setSuggestions(result.likelyHiddenIngredients);
+      setVenueAssessment(result.venueAssessment);
       setPhase({ kind: 'review' });
     } catch (error) {
       const visionError =
@@ -250,6 +266,14 @@ export default function ReviewScreen() {
       })),
     };
     const stored = await addMeal(meal);
+    if (venueChangedRef.current) {
+      try {
+        await saveDishVenueDefault(meal.name, venue);
+      } catch {
+        // The meal is the authority. A failed preference write must not make a
+        // successful food log look failed.
+      }
+    }
     clear();
     // The success haptic completes the save sequence in §7.6; the segment
     // scale-in and hero count-down play once Today re-renders with the new meal.
@@ -272,7 +296,11 @@ export default function ReviewScreen() {
         ) : null}
         <View style={styles.analyzing}>
           <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.analyzingText}>Reading your plate…</Caption>
+          <Caption style={styles.analyzingText}>
+            {phase.retryDelayMs
+              ? 'The provider asked Mise to wait a moment before retrying…'
+              : 'Reading your plate…'}
+          </Caption>
           <Button
             label="Cancel"
             variant="ghost"
@@ -290,7 +318,10 @@ export default function ReviewScreen() {
   /* ------------------------------- Error ------------------------------- */
 
   if (phase.kind === 'error') {
-    const copy = copyForError(phase.error);
+    const copy = copyForError(
+      phase.error,
+      phase.error instanceof VisionError ? phase.error.provider : null,
+    );
     return (
       <View style={[styles.root, styles.errorRoot, { paddingTop: insets.top }]}>
         <ScrollView contentContainerStyle={styles.errorContent}>
@@ -413,7 +444,15 @@ export default function ReviewScreen() {
           <SectionLabel muted style={styles.mealTypeLabel}>
             Where from
           </SectionLabel>
-          <Segmented options={VENUE_OPTIONS} value={venue} onChange={setVenue} />
+          <Segmented
+            options={VENUE_OPTIONS}
+            value={venue}
+            onChange={(next) => {
+              if (next !== venue) venueChangedRef.current = true;
+              setVenue(next);
+              if (next !== 'home') setServings(1);
+            }}
+          />
           <Caption muted style={styles.venueHint}>
             {venue === 'home'
               ? 'Cooking at home takes what you used out of the pantry.'

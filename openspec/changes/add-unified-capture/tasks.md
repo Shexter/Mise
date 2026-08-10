@@ -14,36 +14,36 @@ Classification accuracy is the whole risk, and it is measurable.
 
 Pure logic. No camera, no network.
 
-- [ ] 2.1 Implement `routeCapture(barcodeResult, extraction): Destination` in
+- [x] 2.1 Implement `routeCapture(barcodeResult, extraction): Destination` in
       `src/logic/captureRoute.ts`.
-- [ ] 2.2 Encode the decision table: resolved barcode, detected-but-unresolved,
+- [x] 2.2 Encode the decision table: resolved barcode, detected-but-unresolved,
       receipt, items, unclear, nothing usable.
-- [ ] 2.3 **A barcode routes only when it resolves.** Detection alone must not
+- [x] 2.3 **A barcode routes only when it resolves.** Detection alone must not
       route, or every receipt carrying a barcode fails as a bad product scan.
-- [ ] 2.4 Unit-test every branch, especially the receipt-with-barcode fixtures
+- [x] 2.4 Unit-test every branch, especially the receipt-with-barcode fixtures
       from 1.2.
 
 ## 3. Classifying extraction
 
-- [ ] 3.1 Write `src/api/capturePrompt.ts` returning a discriminated result —
+- [x] 3.1 Write `src/api/capturePrompt.ts` returning a discriminated result —
       receipt with lines, items with items, or unclear. Raw JSON only, following
       `src/api/prompt.ts`.
-- [ ] 3.2 One request. Do **not** classify and then extract; the extraction pass
+- [x] 3.2 One request. Do **not** classify and then extract; the extraction pass
       already knows what it is looking at, and two calls double cost and latency
       per capture.
-- [ ] 3.3 Implement `src/api/capture.ts` through the existing provider facade and
+- [x] 3.3 Implement `src/api/capture.ts` through the existing provider facade and
       `src/api/errors.ts`.
-- [ ] 3.4 Parse defensively: an unrecognised `kind` is `unclear`, never a crash.
+- [x] 3.4 Parse defensively: an unrecognised `kind` is `unclear`, never a crash.
 - [ ] 3.5 Measure per-kind accuracy across the fixtures and record it.
 
 ## 4. The item path
 
 The handler nothing else in the queue owns.
 
-- [ ] 4.1 Turn identified items into proposed pantry items, resolving each name
+- [x] 4.1 Turn identified items into proposed pantry items, resolving each name
       through `resolve()` with source `vision`.
-- [ ] 4.2 Identify several items in one photograph separately.
-- [ ] 4.3 Propose a storage location per item from its canonical's default
+- [x] 4.2 Identify several items in one photograph separately.
+- [x] 4.3 Propose a storage location per item from its canonical's default
       (decision 18), letting the user change it.
 - [ ] 4.4 Show predicted expiry before saving, as manual add already does.
 - [ ] 4.5 Route confirm-band resolutions to the existing confirmation surface
@@ -51,15 +51,15 @@ The handler nothing else in the queue owns.
 
 ## 5. The capture surface
 
-- [ ] 5.1 Build one Add to pantry screen on `CameraView`, following
+- [x] 5.1 Build one Add to pantry screen on `CameraView`, following
       `app/capture.tsx`'s conventions. Tokens from `src/constants/theme.ts`, no
       literals.
 - [ ] 5.2 Enable native barcode detection alongside stills, so a code in frame
       resolves without the user doing anything different.
-- [ ] 5.3 Offer no choice of input method anywhere on the surface.
-- [ ] 5.4 Keep manual entry reachable, as the path needing no key, connection, or
+- [x] 5.3 Offer no choice of input method anywhere on the surface.
+- [x] 5.4 Keep manual entry reachable, as the path needing no key, connection, or
       camera.
-- [ ] 5.5 Extend `src/media/photos.ts` with a pantry captures directory, reusing
+- [x] 5.5 Extend `src/media/photos.ts` with a pantry captures directory, reusing
       the existing resize path.
 
 ## 6. Review before write
@@ -130,12 +130,12 @@ The spec retains an offline capture; nothing yet says what the queue *is*.
 
 Both are unstarted, so nothing is discarded.
 
-- [ ] 8.1 Amend `add-receipt-import` task 7.2: build the receipt handler and
+- [x] 8.1 Amend `add-receipt-import` task 7.2: build the receipt handler and
       review surface, not a capture screen.
-- [ ] 8.2 Amend `add-barcode-capture` task 5.1: build lookup, caching, and batch
+- [x] 8.2 Amend `add-barcode-capture` task 5.1: build lookup, caching, and batch
       review, not a scan screen. Rapid multi-scan stays its own, reached from
       the shared surface.
-- [ ] 8.3 Confirm the router degrades gracefully to whichever handlers exist, so
+- [x] 8.3 Confirm the router degrades gracefully to whichever handlers exist, so
       it does not block on either change landing.
 
 ## 9. Verification

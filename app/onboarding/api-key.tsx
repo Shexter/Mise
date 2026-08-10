@@ -46,8 +46,8 @@ export default function ApiKeyStep() {
   return (
     <StepShell
       step="api-key"
-      title="Add your Anthropic key."
-      detail="Mise has no server of its own. Photo estimates go straight from this phone to Anthropic, billed to your key."
+        title="Add an API key."
+        detail="Mise has no server of its own. Photo estimates go straight from this phone to the provider your key belongs to."
     >
       <ApiKeyForm onSaved={() => advance(false)} saveLabel="Save and continue" />
 

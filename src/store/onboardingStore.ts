@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { DEFAULT_SPLIT } from '@/logic/macros';
-import type { ActivityLevel, Goal, Sex, Units } from '@/types';
+import type { ActivityLevel, Goal, Sex, TargetSource, Units } from '@/types';
 
 /**
  * The onboarding draft. Held in memory only — nothing is written to the database
@@ -17,6 +17,7 @@ interface OnboardingDraft {
   units: Units;
   /** True when the user chose to skip the API key step. */
   skippedKey: boolean;
+  targetSource: TargetSource;
 }
 
 interface OnboardingState extends OnboardingDraft {
@@ -33,6 +34,7 @@ const EMPTY: OnboardingDraft = {
   goal: null,
   units: 'metric',
   skippedKey: false,
+  targetSource: 'estimated',
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({

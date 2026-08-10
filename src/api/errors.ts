@@ -18,10 +18,23 @@ export type VisionErrorKind =
 /** Every failure the UI has to say something distinct about. */
 export class VisionError extends Error {
   readonly kind: VisionErrorKind;
+  provider?: import('@/api/keyStore').Provider;
+  readonly retryAfterMs?: number;
 
-  constructor(kind: VisionErrorKind, message: string) {
+  constructor(kind: VisionErrorKind, message: string, retryAfterMs?: number) {
     super(message);
     this.name = 'VisionError';
     this.kind = kind;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+/** Normalises the standard Retry-After response header to milliseconds. */
+export function retryAfterMs(headers: Pick<Headers, 'get'>): number | undefined {
+  const value = headers.get('retry-after');
+  if (!value) return undefined;
+  const seconds = Number.parseFloat(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1000);
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
 }

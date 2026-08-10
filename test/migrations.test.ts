@@ -44,6 +44,9 @@ describe('migrations', () => {
     }
     expect(tables).toContain('meals');
     expect(tables).toContain('profile');
+    expect(tables).toContain('dish_venue_defaults');
+    expect(tables).toContain('body_measurements');
+    expect(tables).toContain('barcode_misses');
     db.close();
   });
 
@@ -357,6 +360,37 @@ describe('migrations', () => {
     expect(row.protein_per_100).toBeNull();
     expect(row.carbs_per_100).toBeNull();
     expect(row.fat_per_100).toBeNull();
+    db.close();
+  });
+
+  test('an install at user_version 10 gains learned venue defaults without touching meals', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 10);
+    db.prepare(
+      `INSERT INTO meals
+         (id, logged_at, local_date, meal_type, name, source, venue, servings_mult, created_at)
+       VALUES ('m1', '2026-08-09T18:00:00Z', '2026-08-09', 'dinner',
+               'Curry', 'manual', 'home', 1, '2026-08-09T18:00:00Z')`,
+    ).run();
+
+    migrate(db, 10, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('dish_venue_defaults');
+    expect(db.prepare("SELECT name FROM meals WHERE id = 'm1'").get()).toMatchObject({
+      name: 'Curry',
+    });
+    db.close();
+  });
+
+  test('a populated profile upgrades to nullable source fields without changing its target', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, 11);
+    db.prepare(`INSERT INTO profile (id, sex, age, height_cm, weight_kg, activity_level, goal, target_calories, onboarded_at)
+      VALUES (1, 'female', 30, 170, 70, 'moderate', 'maintain', 2000, '2026-08-09')`).run();
+    migrate(db, 11, LATEST_VERSION);
+    expect(db.prepare('SELECT target_source, target_calories FROM profile WHERE id = 1').get()).toMatchObject({ target_source: 'estimated', target_calories: 2000 });
+    const columns = (db.prepare('PRAGMA table_info(profile)').all() as { name: string; notnull: number }[]);
+    expect(columns.find((column) => column.name === 'sex')?.notnull).toBe(0);
     db.close();
   });
 

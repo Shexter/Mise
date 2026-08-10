@@ -3,7 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 /**
- * Meal and receipt photos live in the app's document directory, one JPEG
+ * Meal, receipt, and pantry-capture photos live in the app's document directory, one JPEG
  * per photo, named by UUID, each kind in its own subdirectory. They are
  * resized and compressed before anything else touches them — a
  * full-resolution camera frame is several megabytes of base64 nobody needs.
@@ -11,10 +11,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 const MEALS_DIRECTORY = 'meals';
 const RECEIPTS_DIRECTORY = 'receipts';
+const PANTRY_CAPTURES_DIRECTORY = 'pantry-captures';
 const MAX_EDGE = 1024;
 const JPEG_QUALITY = 0.7;
 
-export type PhotoKind = 'meals' | 'receipts';
+export type PhotoKind = 'meals' | 'receipts' | 'pantry-captures';
 
 export interface SourceImage {
   uri: string;
@@ -30,7 +31,14 @@ export interface PreparedPhoto {
 }
 
 function directoryName(kind: PhotoKind): string {
-  return kind === 'receipts' ? RECEIPTS_DIRECTORY : MEALS_DIRECTORY;
+  switch (kind) {
+    case 'receipts':
+      return RECEIPTS_DIRECTORY;
+    case 'pantry-captures':
+      return PANTRY_CAPTURES_DIRECTORY;
+    case 'meals':
+      return MEALS_DIRECTORY;
+  }
 }
 
 function photoDirectory(kind: PhotoKind): Directory {

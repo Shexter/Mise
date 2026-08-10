@@ -18,14 +18,17 @@ import {
   goalLabel,
 } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
+import { getBodyMeasurements, saveBodyMeasurement } from '@/db/queries';
 import { exportData } from '@/logic/export';
+import { isMeasurementStale, resolveTarget } from '@/logic/bodyComposition';
 import { formatHeight, formatWeight } from '@/logic/units';
 import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
+import { useOnboardingStore } from '@/store/onboardingStore';
 import { useProfileStore } from '@/store/profileStore';
-import type { Profile, Units } from '@/types';
+import { TARGET_SOURCES, type BodyMeasurement, type Profile, type Units } from '@/types';
 
-type ProfileField = 'sex' | 'age' | 'height' | 'weight' | 'activity' | 'goal';
+type ProfileField = 'formula' | 'sex' | 'age' | 'height' | 'weight' | 'activity' | 'goal';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -38,18 +41,63 @@ export default function SettingsScreen() {
   const [profileField, setProfileField] = useState<ProfileField | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
   }, []);
 
   useEffect(loadKey, [loadKey]);
+  useEffect(() => { void getBodyMeasurements().then(setMeasurements); }, []);
 
   if (!profile) return <Screen />;
+  const activeMeasurement = measurements.find((item) => item.provider === profile.targetSource);
+  const measurementIsStale = activeMeasurement ? isMeasurementStale(profile, activeMeasurement) : false;
 
   const applyPatch = async (patch: Partial<Profile>) => {
     await updateProfile(patch);
     await refreshDay();
+  };
+
+  const updateMeasurementWeight = async () => {
+    if (!activeMeasurement) return;
+    const updated = {
+      ...activeMeasurement,
+      weightKg: profile.weightKg,
+      measuredAt: new Date().toISOString(),
+    };
+    await saveBodyMeasurement(updated);
+    setMeasurements((current) => current.map((item) =>
+      item.provider === updated.provider ? updated : item,
+    ));
+  };
+
+  const chooseTargetSource = () => {
+    const choices = TARGET_SOURCES.map((source) => {
+      const target = resolveTarget({ ...profile, targetSource: source }, measurements);
+      if (target !== null) {
+        return {
+            text: `${targetSourceLabel(source)} — ${target} kcal`,
+            onPress: () => void applyPatch({ targetSource: source, targetCalories: target }),
+          };
+      }
+      return {
+        text: `Add ${targetSourceLabel(source)} inputs`,
+        onPress: () => {
+          if (source === 'estimated') {
+            setProfileField('formula');
+            return;
+          }
+          useOnboardingStore.getState().set({ targetSource: source });
+          router.push('/onboarding/energy');
+        },
+      };
+    });
+    Alert.alert(
+      'Target source',
+      'Each option is your own calculation. Add the inputs a source needs before using it.',
+      [...choices, { text: 'Cancel', style: 'cancel' }],
+    );
   };
 
   const removeKey = () => {
@@ -99,6 +147,7 @@ export default function SettingsScreen() {
           void (async () => {
             deleteAllPhotos('meals');
             deleteAllPhotos('receipts');
+            deleteAllPhotos('pantry-captures');
             await resetDatabase();
             useProfileStore.setState({ profile: null });
             router.replace('/onboarding/welcome');
@@ -118,17 +167,17 @@ export default function SettingsScreen() {
         <Card title="Profile" padded={false}>
           <SettingsRow
             label="Formula"
-            value={profile.sex === 'male' ? 'Male' : 'Female'}
+            value={profile.sex === null ? 'Not set' : profile.sex === 'male' ? 'Male' : 'Female'}
             onPress={() => setProfileField('sex')}
           />
           <SettingsRow
             label="Age"
-            value={`${profile.age}`}
+            value={profile.age === null ? 'Not set' : `${profile.age}`}
             onPress={() => setProfileField('age')}
           />
           <SettingsRow
             label="Height"
-            value={formatHeight(profile.heightCm, profile.units)}
+            value={profile.heightCm === null ? 'Not set' : formatHeight(profile.heightCm, profile.units)}
             onPress={() => setProfileField('height')}
           />
           <SettingsRow
@@ -150,10 +199,26 @@ export default function SettingsScreen() {
 
         <Card title="Targets" padded={false}>
           <SettingsRow
+            label="Target source"
+            value={targetSourceLabel(profile.targetSource)}
+            onPress={chooseTargetSource}
+          />
+          <SettingsRow
             label="Daily target"
             value={`${profile.targetCalories} kcal`}
             showChevron={false}
           />
+          {measurementIsStale ? (
+            <>
+              <Caption muted style={styles.stale}>
+                Your current weight differs from this measurement. This calculation stays active until you update it.
+              </Caption>
+              <SettingsRow
+                label="Use current weight for measurement"
+                onPress={() => void updateMeasurementWeight()}
+              />
+            </>
+          ) : null}
           <SettingsRow
             label="Macro split"
             value={`${Math.round(profile.proteinPct * 100)} / ${Math.round(
@@ -225,7 +290,9 @@ export default function SettingsScreen() {
         field={profileField}
         profile={profile}
         onClose={() => setProfileField(null)}
-        onSave={(patch) => void applyPatch(patch)}
+        onSave={(patch) => void applyPatch(
+          profileField === 'formula' ? { ...patch, targetSource: 'estimated' } : patch,
+        )}
       />
 
       <MacroSplitSheet
@@ -250,4 +317,9 @@ const styles = StyleSheet.create({
   title: { marginTop: space.base, marginBottom: space.lg },
   groups: { gap: space.lg },
   about: { paddingHorizontal: space.xs, paddingTop: space.sm },
+  stale: { paddingHorizontal: space.base, paddingBottom: space.base },
 });
+
+function targetSourceLabel(source: Profile['targetSource']): string {
+  return source === 'dexa' ? 'DEXA scan' : source === 'inbody' ? 'InBody result' : source === 'stated' ? 'Known figure' : 'Formula';
+}

@@ -20,6 +20,7 @@ import {
 import type { ActivityLevel, Goal, Profile, Sex, Units } from '@/types';
 
 type Editable =
+  | 'formula'
   | 'sex'
   | 'age'
   | 'height'
@@ -47,6 +48,8 @@ export function ProfileSheet({ visible, field, profile, onClose, onSave }: Props
     <Sheet visible={visible} onClose={onClose} title={TITLES[field]}>
       {field === 'sex' ? (
         <SexEditor profile={profile} onSave={onSave} onClose={onClose} />
+      ) : field === 'formula' ? (
+        <FormulaEditor profile={profile} onSave={onSave} onClose={onClose} />
       ) : field === 'age' ? (
         <AgeEditor profile={profile} onSave={onSave} onClose={onClose} />
       ) : field === 'height' ? (
@@ -63,6 +66,7 @@ export function ProfileSheet({ visible, field, profile, onClose, onSave }: Props
 }
 
 const TITLES: Record<Editable, string> = {
+  formula: 'Formula details',
   sex: 'Formula',
   age: 'Age',
   height: 'Height',
@@ -77,8 +81,26 @@ interface EditorProps {
   onClose: () => void;
 }
 
+function FormulaEditor({ profile, onSave, onClose }: EditorProps) {
+  const [sex, setSex] = useState<Sex>(profile.sex ?? 'female');
+  const [ageText, setAgeText] = useState(profile.age === null ? '' : String(profile.age));
+  const [heightText, setHeightText] = useState(profile.heightCm === null ? '' : String(Math.round(profile.heightCm)));
+  const age = Number.parseInt(ageText, 10);
+  const heightCm = Number.parseFloat(heightText);
+  const valid = Number.isFinite(age) && age >= AGE_RANGE.min && age <= AGE_RANGE.max
+    && Number.isFinite(heightCm) && heightCm >= HEIGHT_RANGE_CM.min && heightCm <= HEIGHT_RANGE_CM.max;
+  return (
+    <>
+      <ChoiceList options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={sex} onChange={setSex} />
+      <Field value={ageText} onChangeText={setAgeText} keyboardType="number-pad" suffix="years" numeric />
+      <Field value={heightText} onChangeText={setHeightText} keyboardType="number-pad" suffix="cm" numeric />
+      <Button label="Use formula" disabled={!valid} onPress={() => { onSave({ sex, age, heightCm }); onClose(); }} />
+    </>
+  );
+}
+
 function SexEditor({ profile, onSave, onClose }: EditorProps) {
-  const [sex, setSex] = useState<Sex>(profile.sex);
+  const [sex, setSex] = useState<Sex>(profile.sex ?? 'female');
   return (
     <>
       <ChoiceList
@@ -101,7 +123,7 @@ function SexEditor({ profile, onSave, onClose }: EditorProps) {
 }
 
 function AgeEditor({ profile, onSave, onClose }: EditorProps) {
-  const [value, setValue] = useState(String(profile.age));
+  const [value, setValue] = useState(profile.age === null ? '' : String(profile.age));
   const age = Number.parseInt(value, 10);
   const valid =
     Number.isFinite(age) && age >= AGE_RANGE.min && age <= AGE_RANGE.max;
@@ -130,8 +152,8 @@ function AgeEditor({ profile, onSave, onClose }: EditorProps) {
 
 function HeightEditor({ profile, onSave, onClose }: EditorProps) {
   const [units, setUnits] = useState<Units>(profile.units);
-  const start = cmToFeetInches(profile.heightCm);
-  const [cm, setCm] = useState(String(Math.round(profile.heightCm)));
+  const start = cmToFeetInches(profile.heightCm ?? 0);
+  const [cm, setCm] = useState(profile.heightCm === null ? '' : String(Math.round(profile.heightCm)));
   const [feet, setFeet] = useState(String(start.feet));
   const [inches, setInches] = useState(String(start.inches));
 

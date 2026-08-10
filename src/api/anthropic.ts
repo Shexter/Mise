@@ -1,4 +1,4 @@
-import { VisionError } from '@/api/errors';
+import { retryAfterMs, VisionError } from '@/api/errors';
 import { KEY_CHECK_PROMPT, SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 
 /**
@@ -206,7 +206,7 @@ async function errorForResponse(response: Response): Promise<VisionError> {
     return new VisionError('unauthorized', 'Your API key was rejected.');
   }
   if (status === 429) {
-    return new VisionError('rate_limited', 'Rate limited.');
+    return new VisionError('rate_limited', 'Rate limited.', retryAfterMs(response.headers));
   }
   if (status >= 500) {
     return new VisionError('server', 'The service is unavailable.');

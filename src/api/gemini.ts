@@ -1,4 +1,4 @@
-import { VisionError } from '@/api/errors';
+import { retryAfterMs, VisionError } from '@/api/errors';
 import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 
 /**
@@ -195,6 +195,7 @@ async function errorForResponse(response: Response): Promise<VisionError> {
     return new VisionError(
       'rate_limited',
       'This key has hit its Gemini free-tier limit. Try again later.',
+      retryAfterMs(response.headers),
     );
   }
   if (status >= 500) {

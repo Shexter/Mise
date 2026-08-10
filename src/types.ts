@@ -28,6 +28,10 @@ export type MealSource = 'photo' | 'manual' | 'suggestion';
  */
 export type MealVenue = 'home' | 'out' | 'leftovers';
 
+/** What the photo estimator can infer from the setting itself. Leftovers are
+ * a local history signal, not something a plate photograph can establish. */
+export type VenueAssessment = Exclude<MealVenue, 'leftovers'>;
+
 export const MEAL_VENUES: readonly MealVenue[] = ['home', 'out', 'leftovers'];
 
 export type Confidence = 'high' | 'medium' | 'low';
@@ -60,14 +64,34 @@ export const MEAL_TYPES: readonly MealType[] = [
   'snack',
 ];
 
+export type TargetSource = 'estimated' | 'dexa' | 'inbody' | 'stated';
+export const TARGET_SOURCES: readonly TargetSource[] = ['estimated', 'dexa', 'inbody', 'stated'];
+export type StatedFigureKind = 'resting' | 'total' | 'adjusted';
+export const STATED_FIGURE_KINDS: readonly StatedFigureKind[] = ['resting', 'total', 'adjusted'];
+export type MeasurementProvider = Extract<TargetSource, 'dexa' | 'inbody'>;
+
+/** One current scan per provider; values are retained in the provider's own terms. */
+export interface BodyMeasurement {
+  provider: MeasurementProvider;
+  weightKg: number;
+  measuredAt: string;
+  bodyFatPct: number | null;
+  leanTissueKg: number | null;
+  boneMineralContentKg: number | null;
+  fatFreeMassKg: number;
+}
+
 export interface Profile {
-  sex: Sex;
-  age: number;
-  heightCm: number;
+  sex: Sex | null;
+  age: number | null;
+  heightCm: number | null;
   weightKg: number;
   activityLevel: ActivityLevel;
   goal: Goal;
   targetCalories: number;
+  targetSource: TargetSource;
+  statedCalories: number | null;
+  statedFigureKind: StatedFigureKind | null;
   proteinPct: number;
   carbsPct: number;
   fatPct: number;
@@ -283,6 +307,12 @@ export interface Product {
   fetchedAt: string | null;
 }
 
+/** A valid GTIN that the remote product catalogue did not recognise. */
+export interface BarcodeMiss {
+  gtin: string;
+  fetchedAt: string;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Pantry stock                                                                */
 /* -------------------------------------------------------------------------- */
@@ -449,6 +479,8 @@ export interface MealEstimate {
   confidence: Confidence;
   items: EstimatedItem[];
   likelyHiddenIngredients: string[];
+  /** Optional so older/provider-omitted responses remain valid estimates. */
+  venueAssessment: VenueAssessment | null;
 }
 
 /* -------------------------------------------------------------------------- */

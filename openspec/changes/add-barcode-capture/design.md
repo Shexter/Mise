@@ -47,10 +47,12 @@ reusing the routing is the honest middle.
 is not worth a rename now, but if a third non-vision caller appears the type
 should become `AppError` with `VisionError` as an alias.
 
-### A miss is cached as a miss
+### A miss is cached separately from a product
 
-A barcode the remote source does not know is stored with a not-found marker and
-a timestamp, not left absent.
+A barcode the remote source does not know is stored in `barcode_misses` with
+its GTIN and lookup timestamp, not left absent. `products` remains only for
+resolved products: its required `canonical_id` must never be fabricated for a
+product the lookup could not identify.
 
 *Why:* without this, every scan of the same unknown item repeats a request that
 will fail again, and the fallback path — photograph or manual — is exactly where
@@ -186,12 +188,11 @@ after.
 
 ## Migration Plan
 
-Probably none. `products` already has the required shape, and the not-found
-marker can use the existing `source` column with a dedicated value plus
-`fetched_at`.
+Append one migration creating `barcode_misses` with a unique GTIN and
+`fetched_at`. The miss table has no foreign key because a not-found GTIN has no
+product or canonical ingredient. `DROP_ALL` removes it.
 
-A migration is needed only if scan sessions must survive a restart, which the
-design deliberately does not assume.
+No migration is needed for scan sessions, which deliberately stay in memory.
 
 Rollback: nothing to reverse. Cached products remain and are simply unused.
 

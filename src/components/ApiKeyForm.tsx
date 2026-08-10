@@ -3,15 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { looksLikeApiKey, providerForKey, setApiKey, setOpenAIEndpoint } from '@/api/keyStore';
+import { looksLikeApiKey, PROVIDERS, providerForKey, setApiKey, setOpenAIEndpoint } from '@/api/keyStore';
 import { VisionError, verifyApiKey } from '@/api/vision';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { Body, Caption } from '@/components/Type';
 import { color, opacity, space } from '@/constants/theme';
-
-const CONSOLE_URL = 'https://console.anthropic.com/settings/keys';
-const GEMINI_CONSOLE_URL = 'https://aistudio.google.com/apikey';
 
 type TestState =
   | { status: 'idle' }
@@ -36,7 +33,12 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
   const [endpoint, setEndpoint] = useState('');
 
   const shaped = looksLikeApiKey(value);
-  const isOpenAI = providerForKey(value) === 'openai';
+  const provider = providerForKey(value);
+  const isOpenAI = provider === 'openai';
+  const providers = Object.values(PROVIDERS);
+  const keyFormats = providers.map((provider) => provider.keyFormat).join(', ');
+  const providerNames = providers.map((provider) => provider.displayName).join(', ');
+  const freeProvider = providers.find((provider) => provider.freeTier);
 
   const runTest = async () => {
     setTest({ status: 'testing' });
@@ -59,7 +61,7 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
           kind === 'unauthorized'
             ? 'That key was rejected. Check you copied all of it.'
             : kind === 'billing'
-              ? 'The key works, but the account has no API credits. Add credits at console.anthropic.com → Plans & Billing.'
+              ? `The key works, but the account has no API credits. Add credits at ${provider ? PROVIDERS[provider].billingLocation : 'your provider’s billing page'}.`
               : `Test failed — kind: ${kind}. ${detail}`,
       });
     }
@@ -80,17 +82,17 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
           setTest({ status: 'idle' });
         }}
         label="API key"
-        placeholder="sk-ant-…, sk-…, or a Google AI key"
+        placeholder={keyFormats}
         secureTextEntry
         autoFocus
         hint={
           shaped || value.length === 0
-            ? 'Anthropic, OpenAI, or Google Gemini. Stored in this phone’s keychain; it never leaves the device except to call that provider.'
+            ? `${providerNames}. Stored in this phone’s keychain; it never leaves the device except to call that provider.`
             : undefined
         }
         error={
           value.length > 0 && !shaped
-            ? 'That doesn’t look like an Anthropic, OpenAI, or Google AI key.'
+            ? `That key was not recognised. Use ${keyFormats}.`
             : undefined
         }
       />
@@ -126,20 +128,17 @@ export function ApiKeyForm({ onSaved, saveLabel = 'Save key' }: Props) {
         <View style={styles.helpBody}>
           <Body muted>
             Mise calls the provider directly from your phone with your own key —
-            no server in between. Use an Anthropic, OpenAI, or Google AI
-            (Gemini) key, which has a free tier. Create one, copy it once, and paste it
-            here.
+            no server in between. Create a key, copy it once, and paste it here.
+            {freeProvider ? ` ${freeProvider.displayName} has a free tier.` : ''}
           </Body>
-          <Button
-            label="Anthropic console"
-            variant="secondary"
-            onPress={() => void Linking.openURL(CONSOLE_URL)}
-          />
-          <Button
-            label="Google AI Studio (free)"
-            variant="secondary"
-            onPress={() => void Linking.openURL(GEMINI_CONSOLE_URL)}
-          />
+          {providers.map((provider) => (
+            <Button
+              key={provider.displayName}
+              label={`${provider.displayName}${provider.freeTier ? ' (free tier)' : ''}`}
+              variant="secondary"
+              onPress={() => void Linking.openURL(provider.consoleUrl)}
+            />
+          ))}
         </View>
       ) : null}
 

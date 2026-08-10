@@ -70,10 +70,10 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 
 ## Impact
 
-**Schema.** Likely none. `products` already has `gtin`, `brand`, `name`,
-`pkg_qty`, `pkg_unit`, `canonical_id`, per-100 nutrition, `source`, and
-`fetched_at` — the shape was designed for exactly this and is currently unused.
-A migration is needed only if scan-session state must survive a restart.
+**Schema.** One forward-only migration adds `barcode_misses` with a unique GTIN
+and lookup timestamp. `products` remains the cache for resolved products: its
+required canonical id makes it structurally unable to represent a miss. Scan
+sessions remain in memory and need no persistence.
 
 **Code.**
 - `src/api/openFoodFacts.ts` — lookup by GTIN, with the same timeout, abort, and

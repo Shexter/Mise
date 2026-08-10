@@ -18,6 +18,7 @@ How to estimate:
 - Calories and macros describe the whole quantity on the plate, not one unit of it.
 - Set confidence to "low" when the food is ambiguous, mostly hidden, or the portion is hard to read; "high" only when both the food and the portion are clear.
 - List anything you suspect is present but cannot see in likely_hidden_ingredients — cooking oil, butter, added sugar, dressing. Name the thing, not a sentence.
+- Assess whether the visible setting is "home" or "out". Restaurant signals include commercial table settings, menus, multiple separately plated dishes, service ware, and dining-room surroundings. Home signals include domestic kitchens, household tables, home cookware, and ordinary food containers. Judge the setting, not how polished the plating looks. Omit venue_assessment when the surroundings are not visible enough to support either answer.
 
 Output format:
 - Return raw JSON only. No prose, no explanation, no markdown code fences.
@@ -28,6 +29,7 @@ Schema:
 {
   "meal_name": "string",
   "confidence": "high" | "medium" | "low",
+  "venue_assessment": "home" | "out",
   "items": [
     {
       "name": "string",
@@ -43,7 +45,7 @@ Schema:
 }`;
 
 export const USER_PROMPT =
-  'Estimate the calories and macros for this meal. Return raw JSON matching the schema.';
+  'Estimate the calories and macros for this meal and assess the visible venue in the same response. Return raw JSON matching the schema.';
 
 /** Text used for the one-token key check. */
 export const KEY_CHECK_PROMPT = 'Reply with the single character: ok';

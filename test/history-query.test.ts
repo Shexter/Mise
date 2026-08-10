@@ -11,6 +11,7 @@ import { openTestDatabase } from './stubs/db';
 const profile: Profile = {
   sex: 'male', age: 30, heightCm: 180, weightKg: 80,
   activityLevel: 'moderate', goal: 'maintain', targetCalories: 2200,
+  targetSource: 'estimated', statedCalories: null, statedFigureKind: null,
   proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3, units: 'metric',
   onboardedAt: '2026-01-01T00:00:00.000Z',
 };

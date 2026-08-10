@@ -16,15 +16,15 @@
 
 ## 2. Lookup client
 
-- [ ] 2.1 Implement `src/api/openFoodFacts.ts`: lookup by GTIN with the same
+- [x] 2.1 Implement `src/api/openFoodFacts.ts`: lookup by GTIN with the same
       timeout and abort conventions as `src/api/gemini.ts`.
-- [ ] 2.2 Throw `VisionError` kinds from `src/api/errors.ts` — `network`,
+- [x] 2.2 Throw `VisionError` kinds from `src/api/errors.ts` — `network`,
       `timeout`, `server` — rather than inventing a second error vocabulary for
       one module.
-- [ ] 2.3 Parse defensively. Missing brand, missing package size, and missing
+- [x] 2.3 Parse defensively. Missing brand, missing package size, and missing
       nutrition are all ordinary, not failures.
-- [ ] 2.4 Set a descriptive user-agent, as the service asks of clients.
-- [ ] 2.5 Unit-test parsing against the fixture responses including the
+- [x] 2.4 Set a descriptive user-agent, as the service asks of clients.
+- [x] 2.5 Unit-test parsing against the fixture responses including the
       malformed one.
 
 ## 2a. Codes that are not products
@@ -33,32 +33,34 @@ Three cases the lookup client must dispose of before it makes a request. Each
 would otherwise cost a round trip and then poison the cache with a miss that is
 not a miss.
 
-- [ ] 2a.1 Validate structure and check digit in `src/logic/barcode.ts` for
+- [x] 2a.1 Validate structure and check digit in `src/logic/barcode.ts` for
       EAN-13, EAN-8, UPC-A, and UPC-E. Pure, and worth having as its own tested
       function.
-- [ ] 2a.2 Treat a validation failure as an **unread scan**, not an unknown
+- [x] 2a.2 Treat a validation failure as an **unread scan**, not an unknown
       product. The camera misread; the shelf is fine.
-- [ ] 2a.3 Detect restricted-circulation prefixes — the ranges retailers print
+- [x] 2a.3 Detect restricted-circulation prefixes — the ranges retailers print
       in-store for loose and variable-weight goods — and route them to
       photograph or manual entry without a lookup.
-- [ ] 2a.4 **Never cache either as a miss.** A store-local code means something
+- [x] 2a.4 **Never cache either as a miss.** A store-local code means something
       different in every shop, and a misread means nothing anywhere. Caching
       them makes a rescan fail permanently for no reason.
-- [ ] 2a.5 Never bind a canonical to a store-local code, for the same reason.
+- [x] 2a.5 Never bind a canonical to a store-local code, for the same reason.
       This is the one place where the learn-once-and-stop-asking behaviour is
       actively wrong.
-- [ ] 2a.6 Do not read an embedded price or weight out of a store-local code as
+- [x] 2a.6 Do not read an embedded price or weight out of a store-local code as
       a quantity. The encoding is retailer-specific and the number is often the
       price.
-- [ ] 2a.7 Unit-test all three against the 1.4 fixtures, including that a valid
+- [x] 2a.7 Unit-test all three against the 1.4 fixtures, including that a valid
       code still passes.
 
 ## 3. Cache
 
-- [ ] 3.1 Add product upsert by GTIN to `src/db/queries.ts`, writing name,
+- [x] 3.1 Add product upsert by GTIN to `src/db/queries.ts`, writing name,
       brand, package size, nutrition, source, and fetch time.
-- [ ] 3.2 Store a miss as a marked row rather than nothing, so a rescan does not
-      repeat a request that will fail again.
+- [x] 3.2 Append a `barcode_misses` migration storing GTIN and lookup timestamp.
+      Keep misses out of `products`: a miss has no canonical id, and a resolved
+      product must never carry a fabricated one. A rescan then avoids repeating
+      a request that already failed.
 - [ ] 3.3 Honour a cached miss for one month before retrying, as a named
       constant.
 - [ ] 3.4 Confirm a cached hit and a cached miss both make no network request.

@@ -28,6 +28,11 @@ export function basalMetabolicRate({
   return sex === 'male' ? base + 5 : base - 161;
 }
 
+/** Katch-McArdle resting energy from measured fat-free mass. */
+export function katchMcArdle(fatFreeMassKg: number): number {
+  return 370 + 21.6 * fatFreeMassKg;
+}
+
 /** Total daily energy expenditure — BMR scaled by the activity multiplier. */
 export function totalDailyEnergyExpenditure(
   input: BmrInput,

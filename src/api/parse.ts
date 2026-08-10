@@ -5,6 +5,7 @@ import {
   type EstimatedItem,
   type MeasureUnit,
   type MealEstimate,
+  type VenueAssessment,
 } from '@/types';
 
 /**
@@ -59,7 +60,12 @@ export function parseEstimate(raw: string): MealEstimate {
           .map((value) => asString(value))
           .filter((value): value is string => value !== null)
       : [],
+    venueAssessment: asVenueAssessment(record['venue_assessment']),
   };
+}
+
+function asVenueAssessment(value: unknown): VenueAssessment | null {
+  return value === 'home' || value === 'out' ? value : null;
 }
 
 function toEstimatedItem(value: unknown): EstimatedItem | null {

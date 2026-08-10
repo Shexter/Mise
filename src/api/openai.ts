@@ -1,4 +1,4 @@
-import { VisionError } from '@/api/errors';
+import { retryAfterMs, VisionError } from '@/api/errors';
 import { DEFAULT_OPENAI_ENDPOINT } from '@/api/keyStore';
 import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 
@@ -98,7 +98,11 @@ async function json<T>(response: Response): Promise<T> {
 async function errorForResponse(response: Response): Promise<VisionError> {
   const body: { error?: { code?: string; message?: string } } = await json<{ error?: { code?: string; message?: string } }>(response).catch(() => ({}));
   if (response.status === 401 || response.status === 403) return new VisionError('unauthorized', 'Your API key was rejected.');
-  if (response.status === 429) return new VisionError(body.error?.code === 'insufficient_quota' ? 'billing' : 'rate_limited', body.error?.message ?? 'Rate limited.');
+  if (response.status === 429) return new VisionError(
+    body.error?.code === 'insufficient_quota' ? 'billing' : 'rate_limited',
+    body.error?.message ?? 'Rate limited.',
+    retryAfterMs(response.headers),
+  );
   if (response.status >= 500) return new VisionError('server', 'The service is unavailable.');
   return new VisionError('malformed', body.error?.message ?? `The request was rejected (${response.status}).`);
 }

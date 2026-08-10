@@ -391,6 +391,48 @@ ALTER TABLE canonical_items ADD COLUMN carbs_per_100 REAL;
 ALTER TABLE canonical_items ADD COLUMN fat_per_100 REAL;
 `;
 
+/** Migration 11: venue defaults learned only from a user's correction on an
+ * unknown-origin meal. The normalised dish name is the identity; a later
+ * correction replaces the earlier value through an upsert. */
+const VENUE_INFERENCE = `
+CREATE TABLE dish_venue_defaults (
+  dish_norm  TEXT PRIMARY KEY,
+  venue      TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
+
+/** Migration 12: scan and stated target sources. Profile is rebuilt because
+ * SQLite cannot remove the Mifflin-only NOT NULL constraints in place. */
+const ENERGY_SOURCES = `
+ALTER TABLE profile RENAME TO profile_old;
+CREATE TABLE profile (
+  id INTEGER PRIMARY KEY CHECK (id = 1), sex TEXT, age INTEGER, height_cm REAL,
+  weight_kg REAL NOT NULL, activity_level TEXT NOT NULL, goal TEXT NOT NULL,
+  target_calories INTEGER NOT NULL, protein_pct REAL NOT NULL DEFAULT 0.30,
+  carbs_pct REAL NOT NULL DEFAULT 0.40, fat_pct REAL NOT NULL DEFAULT 0.30,
+  units TEXT NOT NULL DEFAULT 'metric', onboarded_at TEXT NOT NULL,
+  target_source TEXT NOT NULL DEFAULT 'estimated', stated_calories INTEGER,
+  stated_figure_kind TEXT
+);
+INSERT INTO profile (id, sex, age, height_cm, weight_kg, activity_level, goal, target_calories, protein_pct, carbs_pct, fat_pct, units, onboarded_at)
+SELECT id, sex, age, height_cm, weight_kg, activity_level, goal, target_calories, protein_pct, carbs_pct, fat_pct, units, onboarded_at FROM profile_old;
+DROP TABLE profile_old;
+CREATE TABLE body_measurements (
+  provider TEXT PRIMARY KEY, weight_kg REAL NOT NULL, measured_at TEXT NOT NULL,
+  body_fat_pct REAL, lean_tissue_kg REAL, bone_mineral_content_kg REAL,
+  fat_free_mass_kg REAL NOT NULL
+);
+`;
+
+/** Migration 13: unknown but valid GTINs are cached separately from products. */
+const BARCODE_MISS_CACHE = `
+CREATE TABLE barcode_misses (
+  gtin       TEXT PRIMARY KEY,
+  fetched_at TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -402,12 +444,18 @@ export const MIGRATIONS: readonly string[] = [
   DIETARY_PROFILE,
   CJK_CANDIDATE_RETRIEVAL,
   OPEN_DATA_CATALOGUE,
+  VENUE_INFERENCE,
+  ENERGY_SOURCES,
+  BARCODE_MISS_CACHE,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS dish_venue_defaults;
+DROP TABLE IF EXISTS body_measurements;
+DROP TABLE IF EXISTS barcode_misses;
 DROP TABLE IF EXISTS alias_bigrams;
 DROP TABLE IF EXISTS dietary_rules;
 DROP TABLE IF EXISTS canonical_derivatives;

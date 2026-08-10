@@ -34,6 +34,25 @@ export async function resolveIngredientReferences(
   });
 }
 
+/** Runs only the on-device cascade. Venue inference must not spend a second
+ * provider request after the estimator has already examined the photograph. */
+export async function resolveIngredientReferencesLocally(
+  references: RawReference[],
+  source: ReferenceSource,
+): Promise<MatchOutcome[]> {
+  const persisted = dbMatchStore();
+  return resolve(references, source, {
+    store: {
+      ...persisted,
+      // Preselection is a read. Approximate hits and misses are committed by
+      // the normal meal/depletion path later, not while the user is typing.
+      rememberAlias: async () => undefined,
+      enqueue: async () => undefined,
+    },
+    ownership: currentOwnership(),
+  });
+}
+
 /** A one-tap confirmation from the needs-confirmation surface. */
 export async function confirmMatch(
   rawText: string,

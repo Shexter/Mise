@@ -19,6 +19,8 @@ import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
 import type {
   CanonicalItem,
+  BodyMeasurement,
+  BarcodeMiss,
   Confidence,
   SuggestionMode,
   SuggestionSet,
@@ -78,9 +80,9 @@ interface TransactionHandle {
 /* -------------------------------------------------------------------------- */
 
 interface ProfileRow {
-  sex: string;
-  age: number;
-  height_cm: number;
+  sex: string | null;
+  age: number | null;
+  height_cm: number | null;
   weight_kg: number;
   activity_level: string;
   goal: string;
@@ -90,6 +92,19 @@ interface ProfileRow {
   fat_pct: number;
   units: string;
   onboarded_at: string;
+  target_source: string;
+  stated_calories: number | null;
+  stated_figure_kind: string | null;
+}
+
+interface BodyMeasurementRow {
+  provider: string;
+  weight_kg: number;
+  measured_at: string;
+  body_fat_pct: number | null;
+  lean_tissue_kg: number | null;
+  bone_mineral_content_kg: number | null;
+  fat_free_mass_kg: number;
 }
 
 interface MealRow {
@@ -142,11 +157,23 @@ function toProfile(row: ProfileRow): Profile {
     activityLevel: row.activity_level as Profile['activityLevel'],
     goal: row.goal as Profile['goal'],
     targetCalories: row.target_calories,
+    targetSource: row.target_source as Profile['targetSource'],
+    statedCalories: row.stated_calories,
+    statedFigureKind: row.stated_figure_kind as Profile['statedFigureKind'],
     proteinPct: row.protein_pct,
     carbsPct: row.carbs_pct,
     fatPct: row.fat_pct,
     units: row.units as Profile['units'],
     onboardedAt: row.onboarded_at,
+  };
+}
+
+function toBodyMeasurement(row: BodyMeasurementRow): BodyMeasurement {
+  return {
+    provider: row.provider as BodyMeasurement['provider'], weightKg: row.weight_kg,
+    measuredAt: row.measured_at, bodyFatPct: row.body_fat_pct,
+    leanTissueKg: row.lean_tissue_kg, boneMineralContentKg: row.bone_mineral_content_kg,
+    fatFreeMassKg: row.fat_free_mass_kg,
   };
 }
 
@@ -208,8 +235,9 @@ export async function saveProfile(profile: Profile): Promise<void> {
   await db().runAsync(
     `INSERT INTO profile (
        id, sex, age, height_cm, weight_kg, activity_level, goal,
-       target_calories, protein_pct, carbs_pct, fat_pct, units, onboarded_at
-     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       target_calories, protein_pct, carbs_pct, fat_pct, units, onboarded_at,
+       target_source, stated_calories, stated_figure_kind
+     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        sex = excluded.sex,
        age = excluded.age,
@@ -221,7 +249,10 @@ export async function saveProfile(profile: Profile): Promise<void> {
        protein_pct = excluded.protein_pct,
        carbs_pct = excluded.carbs_pct,
        fat_pct = excluded.fat_pct,
-       units = excluded.units`,
+       units = excluded.units,
+       target_source = excluded.target_source,
+       stated_calories = excluded.stated_calories,
+       stated_figure_kind = excluded.stated_figure_kind`,
     [
       profile.sex,
       profile.age,
@@ -235,7 +266,27 @@ export async function saveProfile(profile: Profile): Promise<void> {
       profile.fatPct,
       profile.units,
       profile.onboardedAt,
+      profile.targetSource,
+      profile.statedCalories,
+      profile.statedFigureKind,
     ],
+  );
+}
+
+export async function getBodyMeasurements(): Promise<BodyMeasurement[]> {
+  const rows = await db().getAllAsync<BodyMeasurementRow>('SELECT * FROM body_measurements');
+  return rows.map(toBodyMeasurement);
+}
+
+/** Replaces only the measurement for this provider; the other provider remains. */
+export async function saveBodyMeasurement(measurement: BodyMeasurement): Promise<void> {
+  await db().runAsync(
+    `INSERT INTO body_measurements (provider, weight_kg, measured_at, body_fat_pct, lean_tissue_kg, bone_mineral_content_kg, fat_free_mass_kg)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(provider) DO UPDATE SET weight_kg = excluded.weight_kg, measured_at = excluded.measured_at,
+       body_fat_pct = excluded.body_fat_pct, lean_tissue_kg = excluded.lean_tissue_kg,
+       bone_mineral_content_kg = excluded.bone_mineral_content_kg, fat_free_mass_kg = excluded.fat_free_mass_kg`,
+    [measurement.provider, measurement.weightKg, measurement.measuredAt, measurement.bodyFatPct, measurement.leanTissueKg, measurement.boneMineralContentKg, measurement.fatFreeMassKg],
   );
 }
 
@@ -968,6 +1019,23 @@ export async function getProductByBarcode(
   return row ? toProduct(row) : null;
 }
 
+export async function getBarcodeMiss(gtin: string): Promise<BarcodeMiss | null> {
+  return db().getFirstAsync<BarcodeMiss>(
+    'SELECT gtin, fetched_at AS fetchedAt FROM barcode_misses WHERE gtin = ?',
+    [gtin],
+  );
+}
+
+export async function recordBarcodeMiss(gtin: string): Promise<BarcodeMiss> {
+  const fetchedAt = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO barcode_misses (gtin, fetched_at) VALUES (?, ?)
+     ON CONFLICT(gtin) DO UPDATE SET fetched_at = excluded.fetched_at`,
+    [gtin, fetchedAt],
+  );
+  return { gtin, fetchedAt };
+}
+
 /**
  * The best alias for an exact normalised form. Where the same form points at
  * more than one canonical, a user-made alias wins, then the most-confirmed,
@@ -1309,6 +1377,22 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
     source: product.source,
     fetchedAt,
   };
+}
+
+/** Stores refreshed Open Food Facts fields without creating a second GTIN row. */
+export async function upsertProduct(product: NewProduct): Promise<Product> {
+  const existing = product.gtin ? await getProductByBarcode(product.gtin) : null;
+  if (!existing) return insertProduct(product);
+  const fetchedAt = new Date().toISOString();
+  await db().runAsync(
+    `UPDATE products SET brand = ?, name = ?, pkg_qty = ?, pkg_unit = ?, canonical_id = ?,
+      kcal_per_100 = ?, protein_per_100 = ?, carbs_per_100 = ?, fat_per_100 = ?, source = ?, fetched_at = ?
+     WHERE id = ?`,
+    [product.brand ?? null, product.name, product.pkgQty ?? null, product.pkgUnit ?? null,
+      product.canonicalId, product.kcalPer100 ?? null, product.proteinPer100 ?? null,
+      product.carbsPer100 ?? null, product.fatPer100 ?? null, product.source, fetchedAt, existing.id],
+  );
+  return { ...existing, ...product, gtin: product.gtin ?? null, fetchedAt };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1834,12 +1918,70 @@ export async function lastServingsForDish(
   return row?.servings_mult ?? null;
 }
 
-/** The venue the user chose most recently, for defaulting the control. */
-export async function lastVenue(): Promise<MealVenue | null> {
+/** The user's latest correction for this normalised dish, if any. */
+export async function getDishVenueDefault(
+  mealName: string,
+): Promise<MealVenue | null> {
+  const dishNorm = normalise(mealName);
+  if (!dishNorm) return null;
   const row = await db().getFirstAsync<{ venue: string }>(
-    'SELECT venue FROM meals ORDER BY logged_at DESC LIMIT 1',
+    'SELECT venue FROM dish_venue_defaults WHERE dish_norm = ?',
+    [dishNorm],
   );
   return (row?.venue as MealVenue) ?? null;
+}
+
+/** Records only an explicit correction from an unknown-origin flow. A later
+ * correction replaces the earlier one for the same normalised dish. */
+export async function saveDishVenueDefault(
+  mealName: string,
+  venue: MealVenue,
+): Promise<void> {
+  const dishNorm = normalise(mealName);
+  if (!dishNorm) return;
+  await db().runAsync(
+    `INSERT INTO dish_venue_defaults (dish_norm, venue, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(dish_norm) DO UPDATE SET
+       venue = excluded.venue,
+       updated_at = excluded.updated_at`,
+    [dishNorm, venue, new Date().toISOString()],
+  );
+}
+
+/** Remaining portions from the most recent batch of this dish. The meal
+ * logged when the batch was cooked accounts for one portion; each later
+ * leftovers meal accounts for one more. */
+export async function outstandingPortionsForDish(
+  mealName: string,
+): Promise<number> {
+  const dishNorm = normalise(mealName);
+  if (!dishNorm) return 0;
+  const batches = await db().getAllAsync<{
+    name: string;
+    logged_at: string;
+    servings_mult: number;
+  }>(
+    `SELECT m.name, m.logged_at,
+            COALESCE(MAX(e.servings_mult), m.servings_mult) AS servings_mult
+     FROM meals m
+     LEFT JOIN consumption_events e ON e.meal_id = m.id
+     WHERE m.venue = 'home' AND m.servings_mult > 1
+     GROUP BY m.id
+     ORDER BY m.logged_at DESC`,
+  );
+  const batch = batches.find((row) => normalise(row.name) === dishNorm);
+  if (!batch) return 0;
+
+  const laterLeftovers = await db().getAllAsync<{ name: string }>(
+    `SELECT name FROM meals
+     WHERE venue = 'leftovers' AND logged_at > ?`,
+    [batch.logged_at],
+  );
+  const consumed = laterLeftovers.filter(
+    (row) => normalise(row.name) === dishNorm,
+  ).length;
+  return Math.max(0, batch.servings_mult - 1 - consumed);
 }
 
 interface ConsumptionEventRow {

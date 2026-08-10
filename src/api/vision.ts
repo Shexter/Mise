@@ -1,8 +1,12 @@
-import { estimateWithAnthropic, verifyAnthropicKey } from '@/api/anthropic';
+import {
+  completeVisionWithAnthropic,
+  estimateWithAnthropic,
+  verifyAnthropicKey,
+} from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
-import { estimateWithGemini, verifyGeminiKey } from '@/api/gemini';
-import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
-import { estimateWithOpenAI, verifyOpenAIKey } from '@/api/openai';
+import { completeVisionWithGemini, estimateWithGemini, verifyGeminiKey } from '@/api/gemini';
+import { getApiKey, getOpenAIEndpoint, PROVIDERS, providerForKey, type Provider } from '@/api/keyStore';
+import { completeVisionWithOpenAI, estimateWithOpenAI, verifyOpenAIKey } from '@/api/openai';
 import { parseEstimate } from '@/api/parse';
 import type { MealEstimate } from '@/types';
 
@@ -16,11 +20,87 @@ import type { MealEstimate } from '@/types';
 export { VisionError } from '@/api/errors';
 export type { VisionErrorKind } from '@/api/errors';
 
+export interface Transport {
+  estimate: (apiKey: string, base64Jpeg: string, signal?: AbortSignal) => Promise<string>;
+  completeVision: (
+    apiKey: string,
+    system: string,
+    user: string,
+    base64Jpeg: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
+  verify: (apiKey: string) => Promise<void>;
+}
+
+/** Exhaustive by design: a new provider cannot compile without a transport. */
+export const TRANSPORTS: Record<Provider, Transport> = {
+  anthropic: {
+    estimate: estimateWithAnthropic,
+    completeVision: completeVisionWithAnthropic,
+    verify: verifyAnthropicKey,
+  },
+  gemini: {
+    estimate: estimateWithGemini,
+    completeVision: completeVisionWithGemini,
+    verify: verifyGeminiKey,
+  },
+  openai: {
+    estimate: async (apiKey, base64Jpeg, signal) =>
+      estimateWithOpenAI(apiKey, base64Jpeg, signal, await getOpenAIEndpoint()),
+    completeVision: async (apiKey, system, user, base64Jpeg, signal) =>
+      completeVisionWithOpenAI(
+        apiKey,
+        system,
+        user,
+        base64Jpeg,
+        signal,
+        await getOpenAIEndpoint(),
+      ),
+    verify: async (apiKey) => verifyOpenAIKey(apiKey, await getOpenAIEndpoint()),
+  },
+};
+
+export const DEFAULT_RATE_LIMIT_RETRY_MS = 2_000;
+
+export async function waitForRetry(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) throw new VisionError('cancelled', 'Estimate cancelled.');
+  await new Promise<void>((resolve, reject) => {
+    const finish = () => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    };
+    const timeout = setTimeout(finish, delayMs);
+    const abort = () => {
+      clearTimeout(timeout);
+      signal?.removeEventListener('abort', abort);
+      reject(new VisionError('cancelled', 'Estimate cancelled.'));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
+export async function retryRateLimitedOnce<T>(
+  request: () => Promise<T>,
+  signal?: AbortSignal,
+  onRetryWait?: (delayMs: number) => void,
+  wait: (delayMs: number, signal?: AbortSignal) => Promise<void> = waitForRetry,
+): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
+    const delayMs = error.retryAfterMs ?? DEFAULT_RATE_LIMIT_RETRY_MS;
+    onRetryWait?.(delayMs);
+    await wait(delayMs, signal);
+    return request();
+  }
+}
+
 /**
  * Estimates a meal from a base64 JPEG.
  *
- * Retries once on malformed JSON, then gives up so the caller can fall back to
- * manual entry with the photo attached.
+ * Retries once on a provider-requested rate-limit delay. Malformed output is
+ * not retried because another paid request cannot make a bad response reliable.
  *
  * Preconditions:
  * base64Jpeg is the raw base64 payload, without a data URI prefix
@@ -28,6 +108,7 @@ export type { VisionErrorKind } from '@/api/errors';
 export async function estimateMeal(
   base64Jpeg: string,
   signal?: AbortSignal,
+  onRetryWait?: (delayMs: number) => void,
 ): Promise<MealEstimate> {
   const apiKey = await getApiKey();
   if (!apiKey) {
@@ -38,20 +119,34 @@ export async function estimateMeal(
   if (!provider) {
     throw new VisionError('no_key', 'The saved API key is not recognised.');
   }
-  const request = async () => {
-    if (provider === 'anthropic') return estimateWithAnthropic(apiKey, base64Jpeg, signal);
-    if (provider === 'openai') {
-      return estimateWithOpenAI(apiKey, base64Jpeg, signal, await getOpenAIEndpoint());
-    }
-    return estimateWithGemini(apiKey, base64Jpeg, signal);
-  };
+  const request = () => TRANSPORTS[provider].estimate(apiKey, base64Jpeg, signal);
 
   try {
-    return parseEstimate(await request());
+    return parseEstimate(await retryRateLimitedOnce(request, signal, onRetryWait));
   } catch (error) {
-    if (error instanceof VisionError && error.kind === 'malformed') {
-      return parseEstimate(await request());
-    }
+    if (error instanceof VisionError) error.provider = provider;
+    throw error;
+  }
+}
+
+/** Sends one image request with a caller-supplied prompt through the selected provider. */
+export async function completeVision(
+  base64Jpeg: string,
+  system: string,
+  user: string,
+  signal?: AbortSignal,
+  onRetryWait?: (delayMs: number) => void,
+): Promise<string> {
+  const apiKey = await getApiKey();
+  if (!apiKey) throw new VisionError('no_key', 'No API key is set.');
+  const provider = providerForKey(apiKey);
+  if (!provider) throw new VisionError('no_key', 'The saved API key is not recognised.');
+
+  const request = () => TRANSPORTS[provider].completeVision(apiKey, system, user, base64Jpeg, signal);
+  try {
+    return await retryRateLimitedOnce(request, signal, onRetryWait);
+  } catch (error) {
+    if (error instanceof VisionError) error.provider = provider;
     throw error;
   }
 }
@@ -63,9 +158,7 @@ export async function verifyApiKey(): Promise<void> {
     throw new VisionError('no_key', 'No API key is set.');
   }
   const provider = providerForKey(apiKey);
-  if (provider === 'anthropic') return verifyAnthropicKey(apiKey);
-  if (provider === 'openai') return verifyOpenAIKey(apiKey, await getOpenAIEndpoint());
-  if (provider === 'gemini') return verifyGeminiKey(apiKey);
+  if (provider) return TRANSPORTS[provider].verify(apiKey);
   throw new VisionError('no_key', 'The saved API key is not recognised.');
 }
 
@@ -81,8 +174,9 @@ export interface VisionErrorCopy {
 }
 
 /** Errors say what happened and what to do. They do not apologise. */
-export function copyForError(error: unknown): VisionErrorCopy {
+export function copyForError(error: unknown, provider?: Provider | null): VisionErrorCopy {
   const kind = error instanceof VisionError ? error.kind : 'malformed';
+  const resolvedProvider = provider ?? (error instanceof VisionError ? error.provider : null);
   switch (kind) {
     case 'no_key':
       return {
@@ -97,10 +191,17 @@ export function copyForError(error: unknown): VisionErrorCopy {
         action: 'settings',
       };
     case 'billing':
+      if (resolvedProvider) {
+        const meta = PROVIDERS[resolvedProvider];
+        return {
+          title: `Your ${meta.displayName} account is out of credits`,
+          detail: `The key works, but the account has no API credits. Add credits at ${meta.billingLocation}, then try again.`,
+          action: 'retry',
+        };
+      }
       return {
-        title: 'Your Anthropic account is out of credits',
-        detail:
-          'The key works, but the account has no API credits. Add credits at console.anthropic.com under Plans & Billing, then try again.',
+        title: 'Your account is out of credits',
+        detail: 'The key works, but the account has no API credits. Add credits, then try again.',
         action: 'retry',
       };
     case 'rate_limited':

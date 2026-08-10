@@ -92,6 +92,8 @@ export default function RootLayout() {
               name="capture"
               options={{ presentation: 'fullScreenModal', animation: 'fade' }}
             />
+            <Stack.Screen name="pantry-capture" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="pantry-capture-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
             <Stack.Screen name="meal/[id]" />

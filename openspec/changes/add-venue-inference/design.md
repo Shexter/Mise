@@ -3,11 +3,10 @@
 See `proposal.md` — Why, and its closing note on why the two mistakes are not
 equally costly.
 
-What ships today: `app/review.tsx:105` holds `venue` in state, defaulting to
-`'home'` and then to whatever was chosen last; `MEAL_VENUES` and `MealVenue` are
-in `src/types.ts`; `src/api/prompt.ts` says nothing about venue; and
-`consumption_events` records `servings_mult`, which is what makes outstanding
-portions computable.
+Baseline when this change was planned: `app/review.tsx` held `venue` in state,
+defaulting to `'home'` and then to whatever was chosen last; `MEAL_VENUES` and
+`MealVenue` already existed in `src/types.ts`; `src/api/prompt.ts` said nothing
+about venue; and `consumption_events` already recorded `servings_mult`.
 
 ## Goals / Non-Goals
 
@@ -63,15 +62,16 @@ decision 94 for capture routing.
 *Why optional in the parser:* the calorie path is the app's core. A model that
 omits the field, or an older cached response, must still produce a meal.
 
-### Three signals, combined in a pure function
+### Four peer signals, combined through a pure function
 
-`inferVenue(assessment, stockMatch, outstandingPortions): MealVenue` in
-`src/logic/venue.ts`.
+`inferVenue(assessment, stockMatch, outstandingPortions, learnedDefault)` in
+`src/logic/venue.ts`. The learned default is optional, so the original
+three-input call remains valid.
 
 *Why pure:* the combination rule is the interesting part and it is a decision
-table — model says out but everything matched stock, model silent but a batch is
-outstanding, nothing known at all. Testing that through a camera and a network
-call is absurd when it is a function from three values to one.
+table. The cases include model says out but everything matched stock, model
+silent but a batch is outstanding, and nothing known at all. Camera and network
+tests are the wrong level for a deterministic function.
 
 ### Stock match is a ratio, not a boolean
 
@@ -141,10 +141,30 @@ Nothing on `meals` changes; existing meals keep the venue they were saved with.
 
 Rollback is additive: the control returns to its sticky default.
 
+## Implementation Status
+
+Implemented locally on 9 August 2026. The change is not archived pending owner
+acceptance.
+
+- Migration 11 adds `dish_venue_defaults`; `DROP_ALL` removes it.
+- `venue_assessment` is optional and travels in the existing estimate request.
+- `STOCK_MATCH_THRESHOLD` is `0.75`. This value is provisional until the real
+  photograph corpus exists.
+- Local ingredient resolution is read-only during preselection. It makes no
+  provider request, writes no alias, and enqueues no unresolved match.
+- Any disagreement among active signals resolves to `home`.
+- Photo and manual flows infer. The cooked-suggestion flow remains known
+  `home` and teaches no default.
+- TypeScript, 526 tests, `git diff --check`, and strict OpenSpec validation pass.
+
+Progress is 26 of 38 tasks. The remaining tasks require real photographs, a
+configured provider, or owner testing in Expo Go or a standalone build.
+
 ## Open Questions
 
-- **The stock-match threshold.** A ratio needs a cut, and the honest figure comes
-  from real meals. It is a named constant and changes no interface.
+- **The stock-match threshold.** `0.75` is the implemented provisional value.
+  The honest figure must come from real meals. The named constant changes no
+  interface.
 - **How long an outstanding batch stays outstanding.** Portions unaccounted for
   after a fortnight were probably thrown away rather than eaten. A cleanup rule
   over one query, addable later.

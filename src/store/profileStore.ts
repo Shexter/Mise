@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
-import { getProfile, saveProfile } from '@/db/queries';
-import { energyTargets } from '@/logic/bmr';
+import { getBodyMeasurements, getProfile, saveProfile } from '@/db/queries';
+import { resolveTarget } from '@/logic/bodyComposition';
 import { DEFAULT_SPLIT } from '@/logic/macros';
-import type { Profile } from '@/types';
+import type { BodyMeasurement, Profile } from '@/types';
 
 type Status = 'idle' | 'loading' | 'ready';
 
@@ -18,6 +18,16 @@ interface ProfileState {
    * the target that was active at the time — see `ensureDailyTarget`.
    */
   update: (patch: Partial<Profile>) => Promise<void>;
+}
+
+/** The active source owns recalculation; stated targets are never inferred. */
+export function recalculatedTarget(
+  profile: Profile,
+  measurements: readonly BodyMeasurement[],
+): number {
+  return profile.targetSource === 'stated'
+    ? profile.targetCalories
+    : resolveTarget(profile, measurements) ?? profile.targetCalories;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -40,19 +50,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     if (!current) return;
 
     const merged: Profile = { ...current, ...patch };
-    const recalculated: Profile = {
-      ...merged,
-      targetCalories: energyTargets(
-        {
-          sex: merged.sex,
-          age: merged.age,
-          heightCm: merged.heightCm,
-          weightKg: merged.weightKg,
-        },
-        merged.activityLevel,
-        merged.goal,
-      ).target,
-    };
+    const targetCalories = recalculatedTarget(
+      merged,
+      await getBodyMeasurements(),
+    );
+    const recalculated: Profile = { ...merged, targetCalories };
 
     await saveProfile(recalculated);
     set({ profile: recalculated });
@@ -62,7 +64,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 /** A profile with the default split, ready to be filled in by onboarding. */
 export function draftProfile(): Omit<
   Profile,
-  'sex' | 'age' | 'heightCm' | 'weightKg' | 'activityLevel' | 'goal' | 'targetCalories'
+  'sex' | 'age' | 'heightCm' | 'weightKg' | 'activityLevel' | 'goal' | 'targetCalories' | 'targetSource' | 'statedCalories' | 'statedFigureKind'
 > {
   return {
     proteinPct: DEFAULT_SPLIT.proteinPct,

@@ -20,12 +20,47 @@ import * as SecureStore from 'expo-secure-store';
  *      never read again.
  */
 
-const STORAGE_KEY = 'anthropic_api_key';
+const STORAGE_KEY = 'provider_api_key';
+const LEGACY_STORAGE_KEY = 'anthropic_api_key';
 const SEEDED_FLAG = 'anthropic_api_key_seeded';
 const OPENAI_ENDPOINT_KEY = 'openai_endpoint';
 
 /** Base URL for OpenAI-compatible chat and model endpoints. */
 export const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1';
+
+export type Provider = 'anthropic' | 'gemini' | 'openai';
+
+export interface ProviderMeta {
+  displayName: string;
+  keyPattern: RegExp;
+  specificity: number;
+  keyFormat: string;
+  consoleUrl: string;
+  freeTier: boolean;
+  billingLocation: string;
+}
+
+/** One provider record drives detection, key-entry copy, and error copy. */
+export const PROVIDERS: Record<Provider, ProviderMeta> = {
+  anthropic: {
+    displayName: 'Anthropic', keyPattern: /^sk-ant-[A-Za-z0-9_-]{20,}$/,
+    specificity: 7, keyFormat: 'sk-ant-…',
+    consoleUrl: 'https://console.anthropic.com/settings/keys', freeTier: false,
+    billingLocation: 'console.anthropic.com under Plans & Billing',
+  },
+  openai: {
+    displayName: 'OpenAI', keyPattern: /^sk-[A-Za-z0-9_-]{20,}$/,
+    specificity: 3, keyFormat: 'sk-…',
+    consoleUrl: 'https://platform.openai.com/api-keys', freeTier: false,
+    billingLocation: 'platform.openai.com',
+  },
+  gemini: {
+    displayName: 'Google Gemini', keyPattern: /^(AIza|AQ\.)[A-Za-z0-9_.\-]{10,}$/,
+    specificity: 4, keyFormat: 'AIza… or AQ.…',
+    consoleUrl: 'https://aistudio.google.com/apikey', freeTier: true,
+    billingLocation: 'Google AI Studio',
+  },
+};
 
 function bundledDevKey(): string | null {
   const value = Constants.expoConfig?.extra?.['devApiKey'];
@@ -48,7 +83,7 @@ export async function seedFromEnvironment(): Promise<void> {
   const devKey = bundledDevKey();
   if (!devKey) return;
 
-  const existing = await SecureStore.getItemAsync(STORAGE_KEY);
+  const existing = await getApiKey();
   if (existing !== devKey) {
     await SecureStore.setItemAsync(STORAGE_KEY, devKey);
   }
@@ -56,7 +91,13 @@ export async function seedFromEnvironment(): Promise<void> {
 }
 
 export async function getApiKey(): Promise<string | null> {
-  return SecureStore.getItemAsync(STORAGE_KEY);
+  const key = await SecureStore.getItemAsync(STORAGE_KEY);
+  if (key) return key;
+  const legacy = await SecureStore.getItemAsync(LEGACY_STORAGE_KEY);
+  if (!legacy) return null;
+  await SecureStore.setItemAsync(STORAGE_KEY, legacy);
+  await SecureStore.deleteItemAsync(LEGACY_STORAGE_KEY);
+  return legacy;
 }
 
 export async function hasApiKey(): Promise<boolean> {
@@ -69,6 +110,7 @@ export async function setApiKey(value: string): Promise<void> {
 
 export async function clearApiKey(): Promise<void> {
   await SecureStore.deleteItemAsync(STORAGE_KEY);
+  await SecureStore.deleteItemAsync(LEGACY_STORAGE_KEY);
 }
 
 /** An optional OpenAI-compatible endpoint. It stays in secure storage with the
@@ -98,8 +140,6 @@ export async function maskedApiKey(): Promise<string | null> {
   return key ? maskKey(key) : null;
 }
 
-export type Provider = 'anthropic' | 'gemini' | 'openai';
-
 /**
  * Which service a key belongs to, inferred from its prefix. Anthropic keys
  * start with `sk-ant-`; OpenAI keys start with `sk-`; Google AI keys use
@@ -107,10 +147,9 @@ export type Provider = 'anthropic' | 'gemini' | 'openai';
  */
 export function providerForKey(value: string): Provider | null {
   const trimmed = value.trim();
-  if (trimmed.startsWith('sk-ant-')) return 'anthropic';
-  if (/^sk-[A-Za-z0-9_-]{20,}$/.test(trimmed)) return 'openai';
-  if (/^(AIza|AQ\.)[A-Za-z0-9_.\-]{10,}$/.test(trimmed)) return 'gemini';
-  return null;
+  return (Object.entries(PROVIDERS) as [Provider, ProviderMeta][])
+    .sort(([, left], [, right]) => right.specificity - left.specificity)
+    .find(([, meta]) => meta.keyPattern.test(trimmed))?.[0] ?? null;
 }
 
 /**
@@ -120,9 +159,5 @@ export function providerForKey(value: string): Provider | null {
  * beginning with `sk-`.
  */
 export function looksLikeApiKey(value: string): boolean {
-  const trimmed = value.trim();
-  return (
-    /^sk-(?:ant-)?[A-Za-z0-9_-]{20,}$/.test(trimmed) ||
-    /^(AIza|AQ\.)[A-Za-z0-9_.\-]{10,}$/.test(trimmed)
-  );
+  return providerForKey(value) !== null;
 }

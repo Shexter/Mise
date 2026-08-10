@@ -2469,3 +2469,29 @@ The reviewed row supplies 79 kcal, 3.0 g protein, and 17.9 g carbohydrate per
 100 g to Dark soy sauce. Its fat value is `Trace`, which remains unknown rather
 than being laundered into zero. Light soy sauce keeps its existing FoodData
 Central values; fill-empty and conflict rules still apply source by source.
+
+## Energy sources
+
+**186. Energy-source inputs are flagged, never altered.** `OPEN`
+The app flags body fat below 2% or above 70%, fat-free mass below 20 kg or above
+160 kg, and stated figures below 800 or above 6,000 kcal. These are prompts to
+check an entry, not limits. The app stores the entered value unchanged.
+
+A measurement becomes stale when current weight differs by 5% or more. The
+same threshold applies to DEXA and InBody until usage data supports separate
+thresholds. A stale measurement remains active. The app discloses the change
+and asks for a newer measurement instead of replacing it with an estimate.
+
+## Vision providers
+
+**187. API keys select one of three direct providers.** `SETTLED`
+Mise supports Anthropic, OpenAI, and Google Gemini API keys. The app detects a
+key from its most specific prefix first. An unrecognised key is not sent to a
+provider.
+
+The key stays in device secure storage. The app has no provider sign-in flow.
+Consumer subscriptions do not provide API access for a third-party app.
+
+When a provider rate-limits a photo estimate, Mise waits once for the stated
+delay, or a bounded default. The user can cancel while it waits. It does not
+retry rejected keys, billing failures, malformed responses, or cancellations.

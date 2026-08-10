@@ -83,8 +83,11 @@ corrections. No change to `meals`.
 - `src/api/prompt.ts` and `src/api/parse.ts` — one optional field.
 - `src/logic/venue.ts` — new, pure: combine the model's guess with the local
   signals into a preselection. Testable with no network.
+- `src/logic/venueService.ts` — read-only on-device signal orchestration. It
+  never makes a second provider request and never writes to the match queue.
 - `src/db/queries.ts` — outstanding leftover portions, and the learned default.
-- `app/review.tsx` — the control arrives preselected rather than sticky.
+- `app/review.tsx` and `app/manual.tsx` — unknown-origin meals arrive with an
+  inferred selection rather than a sticky selection.
 
 **Dependencies.** None added.
 
