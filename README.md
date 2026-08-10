@@ -6,9 +6,9 @@ with no account and no server.
 
 The name is from *mise en place*: everything in its place.
 
-> **Status: planning.** The calorie tracker described below is built and
-> working. The pantry, receipt, and suggestion features are specified but not
-> yet implemented. See `openspec/changes/` for what is queued.
+> **Status: active development.** Meal logging, pantry tracking, receipts,
+> photo capture, barcode lookup, and dinner suggestions are implemented.
+> OpenSpec tracks the remaining work and device checks in `openspec/changes/`.
 
 ---
 
@@ -95,18 +95,20 @@ do not share that build, because anyone holding it can read the key.
 
 ---
 
-## API key
+## API key and providers
 
-The app needs a vision API key. It supports two providers today and works out
-which from the key's shape.
+The app needs a vision API key for image-based features. It detects the provider
+from the key's shape.
 
 | Provider | Cost | Get a key |
 | --- | --- | --- |
 | **Google Gemini** | Free tier, no card | https://aistudio.google.com/apikey |
 | **Anthropic Claude** | Paid, needs API credits | https://console.anthropic.com/settings/keys |
+| **OpenAI-compatible** | Depends on provider | Your provider's API-key page |
 
-OpenAI support is specified in `openspec/changes/add-openai-provider/` and is
-not yet built.
+For OpenAI keys, use the standard endpoint or enter an OpenAI-compatible
+endpoint in **Settings → API key**. Mise stores the endpoint locally and sends
+requests to it without validating it first.
 
 Paste the key during onboarding or in **Settings → API key**, where there is a
 **Test key** button. It is stored in the device keychain through
@@ -140,9 +142,9 @@ npm run doctor
 
 ```
 app/          Screens (expo-router)
-src/api/      vision.ts facade, per-provider transports, prompt, parse, keyStore
+src/api/      vision facade, provider transports, prompts, parsing, key storage
 src/db/       schema.ts, index.ts, queries.ts — all SQL lives here
-src/logic/    bmr, macros, scaling, dates, units, export
+src/logic/    nutrition, energy, pantry, receipt, capture, barcode, and venue rules
 src/store/    Zustand stores
 src/components, src/constants/theme.ts
 docs/         Product decisions and design
@@ -156,12 +158,14 @@ appended to `MIGRATIONS` and never edited once shipped, the API key confined to
 
 ---
 
-## Privacy
+## Privacy and external requests
 
-No backend, nothing collected. Meals, photos, pantry, and profile stay in the
-app's own storage. The only outbound request is the image estimate, sent to your
-chosen provider under your key. Deleting the app, or **Settings → Delete all
-data**, removes everything.
+Mise has no app backend or account system. Meals, photos, pantry data, and
+profile data stay in the app's own storage.
+
+Image estimates and receipt extraction go directly to your chosen provider under
+your API key. Barcode lookups query Open Food Facts when needed. Deleting the
+app, or selecting **Settings → Delete all data**, removes locally stored data.
 
 ## License
 
