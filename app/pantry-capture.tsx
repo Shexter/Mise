@@ -37,6 +37,13 @@ export default function PantryCaptureScreen() {
   const setReview = usePantryCaptureStore((state) => state.set);
   const { session, addSessionProduct, clearSession, setPendingMatch } = useBarcodeCaptureStore();
 
+  const showManualOrRetry = (title: string, detail: string) => {
+    Alert.alert(title, detail, [
+      { text: 'Add item by hand', onPress: () => router.replace('/(tabs)/pantry') },
+      { text: 'Try another photo', style: 'cancel' },
+    ]);
+  };
+
   const proceed = async (source: SourceImage) => {
     setBusy(true);
     let photo: Awaited<ReturnType<typeof preparePhoto>> | null = null;
@@ -56,7 +63,10 @@ export default function PantryCaptureScreen() {
       }
       if (capture.kind === 'nothing') {
         deletePhoto(photo.uri);
-        toast.show({ message: 'No usable food or receipt was found.' });
+        showManualOrRetry(
+          'No usable food or receipt',
+          'Try another photo, or add the item by hand.',
+        );
         return;
       }
       deletePhoto(photo.uri);
@@ -69,12 +79,26 @@ export default function PantryCaptureScreen() {
       if (photo && error instanceof VisionError && ['no_key', 'network', 'timeout', 'server'].includes(error.kind)) {
         try {
           await insertPendingCapture(photo.uri);
-          toast.show({ message: error.kind === 'no_key' ? 'This capture needs an API key. It was saved for later.' : 'This capture was saved and will be retried when you are online.' });
+          toast.show({
+            kind: 'pending',
+            message: error.kind === 'no_key'
+              ? 'This capture needs an API key. It was saved for later.'
+              : 'This capture was saved and will be retried when you are online.',
+          });
         } catch (queueError) {
-          toast.show({ message: queueError instanceof PendingCaptureLimitError ? 'Saved captures are full. Add this item manually or discard a saved photo.' : 'Mise could not save that photo. Add an item by hand or try again.' });
+          showManualOrRetry(
+            queueError instanceof PendingCaptureLimitError ? 'Saved captures are full' : 'Photo not saved',
+            queueError instanceof PendingCaptureLimitError
+              ? 'Add this item by hand or discard a saved photo before trying again.'
+              : 'Mise could not save that photo. Add an item by hand or try again.',
+          );
         }
       } else {
-        toast.show({ message: 'Mise could not read that photo. Add an item by hand or try again.' });
+        if (photo) deletePhoto(photo.uri);
+        showManualOrRetry(
+          'Photo not read',
+          'Mise could not read that photo. Add an item by hand or try again.',
+        );
       }
     } finally {
       setBusy(false);
@@ -113,7 +137,7 @@ export default function PantryCaptureScreen() {
       } else if (result.kind === 'unresolved') {
         router.replace({ pathname: '/barcode-fallback', params: { gtin, barcodeMode: isBatch ? 'batch' : '', name: result.product.name, reason: 'unresolved' } });
       } else if (result.kind === 'unread') {
-        toast.show({ message: 'That barcode did not read clearly. Try again.' });
+        toast.show({ kind: 'recoverable-error', message: 'That barcode did not read clearly. Try again.' });
       }
     } catch {
       router.replace({ pathname: '/barcode-fallback', params: { gtin, barcodeMode: isBatch ? 'batch' : '', reason: 'offline' } });
@@ -147,14 +171,14 @@ export default function PantryCaptureScreen() {
     <View style={styles.root}>
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} onBarcodeScanned={scanBarcode} />
       <View style={[styles.top, { paddingTop: insets.top + space.sm }]}>
-        {isBatch ? <View style={styles.batchHeader}><Caption style={styles.light}>{session.length} scanned{lastRead ? ` · ${lastRead}` : ''}</Caption><Button label={`Review ${session.length}`} variant="secondary" block={false} disabled={session.length === 0} onPress={() => router.replace('/barcode-batch-review')} /></View> : <Button label="Scan several" variant="secondary" block={false} onPress={() => { clearSession(); router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } }); }} />}
-        <Button label="Cancel" variant="ghost" block={false} onPress={isBatch ? leaveBatch : () => router.back()} />
+        {isBatch ? <View style={styles.batchHeader}><Caption style={styles.light}>{session.length} scanned{lastRead ? ` · ${lastRead}` : ''}</Caption><Button label={`Review ${session.length}`} variant="secondary" block={false} disabled={busy || session.length === 0} onPress={() => router.replace('/barcode-batch-review')} /></View> : <Button label="Scan several" variant="secondary" block={false} disabled={busy} onPress={() => { clearSession(); router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } }); }} />}
+        <Button label="Cancel" variant="ghost" block={false} disabled={busy} onPress={isBatch ? leaveBatch : () => router.back()} />
       </View>
-      {busy ? <View style={styles.busy}><ActivityIndicator color={color.surface} size="large" /><Caption style={styles.light}>Reading your capture…</Caption></View> : null}
+      {busy ? <View style={styles.busy} accessibilityLiveRegion="polite"><ActivityIndicator color={color.surface} size="large" /><Caption style={styles.light} accessibilityRole="alert">Reading your capture…</Caption></View> : null}
       <View style={[styles.bottom, { paddingBottom: insets.bottom + space.lg }]}>
-        <Button label="Library" variant="secondary" block={false} onPress={() => void pick()} />
+        <Button label="Library" variant="secondary" block={false} onPress={() => void pick()} disabled={busy} />
         <Pressable onPress={() => void take()} disabled={busy} accessibilityRole="button" accessibilityLabel="Take pantry photo" style={({ pressed }) => [styles.shutter, pressed && { opacity: opacity.pressed }]}><View style={styles.inner} /></Pressable>
-        <Button label="Manual" variant="secondary" block={false} onPress={() => router.push('/(tabs)/pantry')} />
+        <Button label="Manual" variant="secondary" block={false} onPress={() => router.push('/(tabs)/pantry')} disabled={busy} />
       </View>
     </View>
   );

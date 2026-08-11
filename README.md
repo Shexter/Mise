@@ -51,6 +51,7 @@ the image estimate, sent to the provider under the user's own key.
 | [`docs/product-decisions.md`](docs/product-decisions.md) | The numbered decision ledger. Start here — it is the source of truth for what is settled and why. |
 | [`docs/identity-layer.md`](docs/identity-layer.md) | How food references from vision, barcode, receipt, and meal log resolve onto one row. Everything else sits on it. |
 | [`docs/dinner-decision.md`](docs/dinner-decision.md) | The suggestion engine. |
+| [`docs/premium-experience-playbook.md`](docs/premium-experience-playbook.md) | Product-quality rules for polished, truthful, accessible UI work. |
 
 Planned work lives in `openspec/changes/`, managed with
 [OpenSpec](https://github.com/Fission-AI/OpenSpec):

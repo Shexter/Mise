@@ -183,7 +183,10 @@ export default function ReceiptReviewScreen() {
       await removeReceiptPhoto(receipt.id, frame.id);
       await load();
     } catch (error) {
-      toast.show({ message: error instanceof Error ? error.message : 'Could not remove this photo.' });
+      toast.show({
+        kind: 'recoverable-error',
+        message: error instanceof Error ? error.message : 'Could not remove this photo.',
+      });
     }
   };
 
@@ -224,6 +227,7 @@ export default function ReceiptReviewScreen() {
       const summary = await acceptReceiptReview(receipt.id);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       toast.show({
+        kind: 'success',
         message:
           summary.names.length > 0
             ? `Added ${summary.names.slice(0, 3).join(', ')}${summary.names.length > 3 ? `, and ${summary.names.length - 3} more` : ''}.`

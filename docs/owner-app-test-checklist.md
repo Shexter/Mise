@@ -11,7 +11,44 @@ until you record the result in its change task file or `docs/product-decisions.m
 3. For provider tests, add a funded key in Settings and use **Test key** first.
 4. Record the device, OS, build commit, provider, and result for each failure.
 
+## Premium interaction pass
+
+Use this section for every UI-facing OpenSpec change. Record each failure or
+uncertain result using the evidence format below before accepting the change.
+
+- [ ] Save a photographed meal. Confirm the saved meal, refreshed Today totals,
+      and any named pantry effect agree.
+- [ ] Save a manual meal and a cooked suggestion. Confirm each success message
+      names only a pantry effect that actually occurred.
+- [ ] Confirm pantry-capture review and receipt review. Confirm the Pantry
+      screen includes the saved records after the confirmation.
+- [ ] Start a capture, cancel where cancellation is offered, and return to the
+      originating screen. Confirm no meal or pantry record was written.
+- [ ] Test an unusable photo, a missing key, no connection, a timeout, and a
+      provider failure where available. Confirm each message names the current
+      condition and offers only a working next step.
+- [ ] Turn on Reduce Motion. Repeat save, busy, pending, error, and return
+      paths. Confirm no motion delays the result or hides the completed state.
+- [ ] Turn on VoiceOver or TalkBack. Confirm save, busy, pending, and error
+      messages announce once and every offered action is reachable.
+- [ ] Test on supported iOS and Android devices. Record differences in motion,
+      announcement order, capture controls, or route return behavior.
+
 ## Unified capture
+
+Prepare the fixture set before testing. Use your own, consented, or redacted
+images and receipts. Do not commit source images, provider keys, or private
+purchase details.
+
+- [ ] Collect 20 fixtures. Include packaged goods with barcodes, receipts from
+      several stores, one grocery item, several groceries together, an angled
+      receipt, a fridge interior, and two non-food captures.
+- [ ] Include at least three receipts that contain a barcode. These confirm a
+      receipt barcode does not route to a product.
+- [ ] For each fixture, record its actual kind, expected route, final route,
+      provider and model, and a redacted provider response when one is used.
+- [ ] Record accuracy separately for product barcodes, receipts, grocery items,
+      unclear captures, and non-food captures in `docs/product-decisions.md`.
 
 - [ ] Scan a real packaged product. Confirm it resolves with no model call.
 - [ ] Photograph a receipt that contains a barcode. Confirm it opens receipt review.

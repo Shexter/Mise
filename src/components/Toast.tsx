@@ -15,15 +15,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Body, ButtonLabel } from '@/components/Type';
 import {
   color,
+  duration,
   elevation,
   layout,
   opacity,
   radius,
   space,
 } from '@/constants/theme';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+
+/** The intent of transient feedback. The message remains the source of truth. */
+export type ToastKind = 'success' | 'pending' | 'recoverable-error';
 
 export interface ToastRequest {
   message: string;
+  /** Defaults to success so existing confirmations retain their meaning. */
+  kind?: ToastKind;
   /** Optional single action, e.g. "Undo". */
   actionLabel?: string;
   onAction?: () => void;
@@ -44,6 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastRequest | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
 
   const clearTimer = () => {
     if (timer.current) {
@@ -85,13 +93,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {toast ? (
         <Animated.View
-          entering={Platform.OS === 'web' ? undefined : FadeInDown.duration(180)}
-          exiting={Platform.OS === 'web' ? undefined : FadeOut.duration(180)}
+          entering={Platform.OS === 'web' || reduceMotion ? undefined : FadeInDown.duration(duration.quick)}
+          exiting={Platform.OS === 'web' || reduceMotion ? undefined : FadeOut.duration(duration.quick)}
           pointerEvents="box-none"
           style={[styles.host, { bottom: insets.bottom + space.lg }]}
         >
-          <View style={styles.toast} accessibilityLiveRegion="polite">
-            <Body style={styles.message} numberOfLines={2}>
+          <View
+            style={[styles.toast, styles[toast.kind ?? 'success']]}
+            accessibilityLiveRegion="polite"
+          >
+            <Body
+              style={styles.message}
+              numberOfLines={2}
+              accessibilityRole="alert"
+            >
               {toast.message}
             </Body>
             {toast.actionLabel ? (
@@ -136,6 +151,7 @@ const styles = StyleSheet.create({
   toast: {
     minHeight: layout.minTouchTarget,
     backgroundColor: color.surface,
+    borderWidth: 1,
     borderRadius: radius.card,
     paddingLeft: layout.cardPadding,
     paddingRight: space.sm,
@@ -145,6 +161,9 @@ const styles = StyleSheet.create({
     gap: space.md,
     ...elevation,
   },
+  success: { borderColor: color.olive },
+  pending: { borderColor: color.wheat },
+  'recoverable-error': { borderColor: color.paprika },
   message: { flex: 1 },
   action: {
     minHeight: layout.minTouchTarget,

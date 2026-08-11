@@ -21,6 +21,7 @@ import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { MEASURE_UNITS, MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
+import { mealSavedMessage } from '@/logic/feedback';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
@@ -158,7 +159,11 @@ export default function ManualScreen() {
     }
     clear();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.show({ message: 'Meal saved.' });
+    const depleted = useDayStore.getState().lastDepletion;
+    toast.show({
+      kind: 'success',
+      message: mealSavedMessage(depleted?.names ?? []),
+    });
     router.dismissAll();
     router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
   };

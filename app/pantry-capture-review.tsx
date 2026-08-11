@@ -1,22 +1,26 @@
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { insertPantryItem } from '@/db/queries';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { useToast } from '@/components/Toast';
 import { ConfirmMatchSheet, type PendingConfirmation } from '@/components/match/ConfirmMatchSheet';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { space } from '@/constants/theme';
 import { resolveCapturedItems } from '@/logic/captureItems';
 import { captureReceipt } from '@/logic/receiptService';
+import { pantryItemsAddedMessage } from '@/logic/feedback';
 import { deletePhoto, photoBase64 } from '@/media/photos';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 
 /** Reviews groceries found in one camera frame before creating pantry rows. */
 export default function PantryCaptureReviewScreen() {
   const router = useRouter();
+  const toast = useToast();
   const { proposals, purchasedAt, clear } = usePantryCaptureStore();
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -83,6 +87,11 @@ export default function PantryCaptureReviewScreen() {
         qtySource: 'estimate',
         photoUri: proposal.captured ? usePantryCaptureStore.getState().photoUri : null,
       })));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      toast.show({
+        kind: 'success',
+        message: pantryItemsAddedMessage(accepted.length),
+      });
       finish();
     } finally {
       setSaving(false);

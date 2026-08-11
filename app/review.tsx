@@ -46,6 +46,7 @@ import {
 import { matchSuggestion } from '@/constants/hiddenIngredients';
 import { MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
+import { mealSavedMessage } from '@/logic/feedback';
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
@@ -281,7 +282,10 @@ export default function ReviewScreen() {
     // An automatic pantry change should be visible, not silent — the user
     // needs to know why their stock moved.
     const depleted = useDayStore.getState().lastDepletion;
-    toast.show({ message: savedMessage(depleted?.names ?? []) });
+    toast.show({
+      kind: 'success',
+      message: mealSavedMessage(depleted?.names ?? []),
+    });
     router.dismissAll();
     router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
   };
@@ -294,9 +298,9 @@ export default function ReviewScreen() {
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
-        <View style={styles.analyzing}>
+        <View style={styles.analyzing} accessibilityLiveRegion="polite">
           <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.analyzingText}>
+          <Caption style={styles.analyzingText} accessibilityRole="alert">
             {phase.retryDelayMs
               ? 'The provider asked Mise to wait a moment before retrying…'
               : 'Reading your plate…'}
@@ -328,7 +332,7 @@ export default function ReviewScreen() {
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.errorPhoto} />
           ) : null}
-          <ScreenTitle>{copy.title}</ScreenTitle>
+          <ScreenTitle accessibilityRole="alert">{copy.title}</ScreenTitle>
           <Body muted>{copy.detail}</Body>
           <View style={styles.errorActions}>
             {copy.action === 'retry' ? (
@@ -505,16 +509,6 @@ export default function ReviewScreen() {
       />
     </View>
   );
-}
-
-/** Names what moved, in words, and stays short enough for a toast. */
-function savedMessage(names: readonly string[]): string {
-  if (names.length === 0) return 'Meal saved.';
-  if (names.length === 1) return `Meal saved — ${names[0]} updated.`;
-  if (names.length === 2) {
-    return `Meal saved — ${names[0]} and ${names[1]} updated.`;
-  }
-  return `Meal saved — ${names.length} pantry items updated.`;
 }
 
 function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {

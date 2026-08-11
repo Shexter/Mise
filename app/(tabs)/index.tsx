@@ -25,6 +25,7 @@ import { Body, Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import {
   color,
+  duration,
   layout,
   opacity,
   radius,
@@ -90,7 +91,10 @@ export default function TodayScreen() {
   useEffect(() => {
     if (params.savedMealId) {
       setHighlightMealId(params.savedMealId);
-      const timer = setTimeout(() => setHighlightMealId(null), 800);
+      const timer = setTimeout(() => {
+        setHighlightMealId(null);
+        router.setParams({ savedMealId: undefined });
+      }, duration.count);
       return () => clearTimeout(timer);
     }
     return undefined;
@@ -103,6 +107,7 @@ export default function TodayScreen() {
   const onDelete = (mealId: string) => {
     void removeMeal(mealId);
     toast.show({
+      kind: 'success',
       message: 'Meal removed.',
       actionLabel: 'Undo',
       onAction: () => void undoRemove(),

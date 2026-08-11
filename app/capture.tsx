@@ -37,21 +37,29 @@ export default function CaptureScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState<FlashMode>('off');
   const [busy, setBusy] = useState(false);
+  const [preparationError, setPreparationError] = useState<string | null>(null);
 
   const setCapture = useCaptureStore((state) => state.set);
 
   const proceed = async (source: SourceImage) => {
     setBusy(true);
-    const prepared = await preparePhoto(source);
-    const hasKey = (await getApiKey()) !== null;
-    setCapture({
-      photoUri: prepared.uri,
-      base64: prepared.base64,
-      estimate: null,
-    });
-    // No key means straight to manual entry with the photo attached; the review
-    // screen has nothing to estimate.
-    router.replace(hasKey ? '/review' : '/manual');
+    setPreparationError(null);
+    try {
+      const prepared = await preparePhoto(source);
+      const hasKey = (await getApiKey()) !== null;
+      setCapture({
+        photoUri: prepared.uri,
+        base64: prepared.base64,
+        estimate: null,
+      });
+      // No key means straight to manual entry with the photo attached; the review
+      // screen has nothing to estimate.
+      router.replace(hasKey ? '/review' : '/manual');
+    } catch {
+      setPreparationError('Mise could not prepare that photo. Try another photo or enter the meal by hand.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const takePhoto = async () => {
@@ -107,35 +115,50 @@ export default function CaptureScreen() {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} flash={flash} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
-        <IconButton icon="x" label="Cancel" onPress={() => router.back()} />
+        <IconButton icon="x" label="Cancel" onPress={() => router.back()} disabled={busy} />
         <IconButton
           icon={flash === 'off' ? 'zap-off' : 'zap'}
           label="Toggle flash"
           onPress={() =>
             setFlash((current) => (current === 'off' ? 'auto' : current === 'auto' ? 'on' : 'off'))
           }
+          disabled={busy}
         />
       </View>
 
       {busy ? (
-        <View style={styles.busy}>
+        <View style={styles.busy} accessibilityLiveRegion="polite">
           <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.busyText}>Preparing your photo…</Caption>
+          <Caption style={styles.busyText} accessibilityRole="alert">Preparing your photo…</Caption>
         </View>
       ) : null}
 
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + space.lg }]}>
+      {preparationError ? (
+        <View style={styles.recovery}>
+          <ScreenTitle style={styles.permissionText}>Photo not ready</ScreenTitle>
+          <Body muted style={styles.permissionText} accessibilityRole="alert">
+            {preparationError}
+          </Body>
+          <Button label="Try another photo" onPress={() => setPreparationError(null)} />
+          <Button label="Enter by hand" variant="secondary" onPress={() => router.replace('/manual')} />
+          <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+        </View>
+      ) : null}
+
+      {!preparationError ? <View style={[styles.bottomBar, { paddingBottom: insets.bottom + space.lg }]}>
         <IconButton
           icon="image"
           label="Photo library"
           onPress={() => void pickFromLibrary()}
           large
+          disabled={busy}
         />
         <Pressable
           onPress={() => void takePhoto()}
           disabled={busy}
           accessibilityRole="button"
           accessibilityLabel="Take photo"
+          accessibilityState={{ disabled: busy, busy }}
           style={({ pressed }) => [
             styles.shutter,
             pressed && { opacity: opacity.pressed },
@@ -145,7 +168,7 @@ export default function CaptureScreen() {
         </Pressable>
         {/* Spacer keeps the shutter centred against the library button. */}
         <View style={styles.spacer} />
-      </View>
+      </View> : null}
     </View>
   );
 }
@@ -155,21 +178,27 @@ function IconButton({
   label,
   onPress,
   large = false,
+  disabled,
 }: {
   icon: keyof typeof Feather.glyphMap;
   label: string;
   onPress: () => void;
   large?: boolean;
+  disabled?: boolean;
 }) {
+  const inactive = disabled ?? false;
   return (
     <Pressable
       onPress={onPress}
+      disabled={inactive}
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: inactive }}
       style={({ pressed }) => [
         styles.iconButton,
         large && styles.iconButtonLarge,
-        pressed && { opacity: opacity.pressed },
+        pressed && !inactive && { opacity: opacity.pressed },
+        inactive && { opacity: opacity.disabled },
       ]}
     >
       <Feather name={icon} size={large ? 24 : 20} color={color.surface} />
@@ -239,4 +268,11 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   busyText: { color: color.surface },
+  recovery: {
+    ...fillParent,
+    justifyContent: 'center',
+    paddingHorizontal: layout.screenGutter,
+    backgroundColor: camera.overlayScrim,
+    gap: space.md,
+  },
 });

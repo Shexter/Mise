@@ -17,6 +17,7 @@ import { SuggestionPreferenceSheet } from '@/components/suggestions/PreferenceSh
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { clearSuggestionPreference, getAllCanonicals, saveSuggestionPreference } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
+import { mealSavedMessage } from '@/logic/feedback';
 import { SUGGESTION_INTENT_POLICIES } from '@/logic/suggestionTemplates';
 import { formatGrams, roundCalories } from '@/logic/scaling';
 import {
@@ -113,13 +114,18 @@ export default function DinnerScreen() {
       localDate: localDateString(),
       canonicals,
     });
-    await addMeal(meal);
+    const stored = await addMeal(meal);
     await refresh();
     setSaving(false);
     setCooking(null);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    toast.show({ message: 'Meal saved.' });
-    router.back();
+    const depleted = useDayStore.getState().lastDepletion;
+    toast.show({
+      kind: 'success',
+      message: mealSavedMessage(depleted?.names ?? []),
+    });
+    router.dismissAll();
+    router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
   };
 
   const suggestions: Suggestion[] =
@@ -191,8 +197,9 @@ export default function DinnerScreen() {
         showsVerticalScrollIndicator={false}
       >
         {outcome.status === 'loading' ? (
-          <View style={styles.centered}>
+          <View style={styles.centered} accessibilityLiveRegion="polite">
             <ActivityIndicator color={color.ink} />
+            <Caption muted accessibilityRole="alert">Finding ideas from your pantry…</Caption>
           </View>
         ) : outcome.status === 'no_key' ? (
           <Card>
