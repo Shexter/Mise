@@ -45,6 +45,17 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
 export const ONBOARDING_SPLIT = DEFAULT_SPLIT;
 
+/**
+ * The standard route remains the default way into onboarding. Energy-source
+ * routes are opt-in alternatives for someone who already has that input.
+ */
+export const ONBOARDING_ENTRY_ROUTES: Readonly<Record<TargetSource, string>> = {
+  estimated: '/onboarding/sex',
+  dexa: '/onboarding/energy',
+  inbody: '/onboarding/energy',
+  stated: '/onboarding/energy',
+};
+
 /** Ordered step routes, used by the progress indicator. */
 export const ONBOARDING_STEPS = [
   'welcome',
