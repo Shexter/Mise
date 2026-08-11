@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import { parseEstimate } from '@/api/parse';
-import { getMeal, insertMeal, loadSeedData } from '@/db/queries';
+import { exportEverything, getMeal, insertMeal, loadSeedData } from '@/db/queries';
+import { macroShortfall } from '@/logic/macroGap';
 import { macrosOfMeals } from '@/logic/scaling';
 import type { MealWithItems } from '@/types';
 import { openTestDatabase } from './stubs/db';
@@ -53,5 +54,34 @@ describe('fibre storage', () => {
       items: [{ name: 'Rice', quantity: 1, unit: 'serving', calories: 200, proteinG: 4, carbsG: 44, fatG: 1, isManualAddition: true }],
     });
     expect((await getMeal(stored.id))?.items[0]?.fibreG).toBeNull();
+  });
+
+  test('exports known and unknown fibre without converting unknown to zero', async () => {
+    await insertMeal({
+      loggedAt: '2026-08-10T12:00:00.000Z', localDate: '2026-08-10', mealType: 'lunch',
+      name: 'Known fibre', photoUri: null, source: 'manual', confidence: null,
+      items: [{ name: 'Oats', quantity: 1, unit: 'serving', calories: 200, proteinG: 8, carbsG: 33, fatG: 4, fibreG: 6, isManualAddition: true }],
+    });
+    await insertMeal({
+      loggedAt: '2026-08-10T18:00:00.000Z', localDate: '2026-08-10', mealType: 'dinner',
+      name: 'Unknown fibre', photoUri: null, source: 'manual', confidence: null,
+      items: [{ name: 'Rice', quantity: 1, unit: 'serving', calories: 200, proteinG: 4, carbsG: 44, fatG: 1, isManualAddition: true }],
+    });
+    expect((await exportEverything(1)).meals.flatMap((entry) => entry.items).map((item) => item.fibreG)).toEqual([6, null]);
+  });
+});
+
+describe('fibre shortfall', () => {
+  const target = { proteinG: 120, carbsG: 240, fatG: 80, fibreG: 30 };
+
+  test('withholds only fibre when it is incomplete, and preserves other macro gaps', () => {
+    const incomplete = { proteinG: 85, carbsG: 260, fatG: 70, fibreG: null };
+    expect(macroShortfall(target, incomplete, 'fibre')).toBeNull();
+    expect(macroShortfall(target, incomplete, 'protein')).toBe(35);
+  });
+
+  test('calculates a complete fibre gap, including no gap once met', () => {
+    expect(macroShortfall(target, { proteinG: 85, carbsG: 260, fatG: 70, fibreG: 18 }, 'fibre')).toBe(12);
+    expect(macroShortfall(target, { proteinG: 85, carbsG: 260, fatG: 70, fibreG: 31 }, 'fibre')).toBe(0);
   });
 });

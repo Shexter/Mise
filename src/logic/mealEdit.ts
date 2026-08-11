@@ -117,6 +117,7 @@ export function normaliseMealDraft(draft: MealEditDraft): MealWithItems {
     proteinG: finite(item.proteinG),
     carbsG: finite(item.carbsG),
     fatG: finite(item.fatG),
+    fibreG: draft.original.items.find((original) => original.id === item.id)?.fibreG ?? null,
     isManualAddition: item.isManualAddition,
     sortOrder,
     canonicalId: item.canonicalId,

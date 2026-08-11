@@ -549,6 +549,20 @@ CREATE INDEX idx_suggestion_cache_date
   ON suggestion_cache(local_date, mode, target_macro, template_id, prep_speed);
 `;
 
+/**
+ * Migration 20: frame rebuilds must never overwrite a correction the user
+ * made while reviewing a receipt. This is deliberately a receipt-level lock:
+ * a frame change rebuilds the entire merged line set, not one line.
+ */
+const RECEIPT_FRAME_EDIT_LOCK = `
+ALTER TABLE receipts ADD COLUMN frame_edits_locked INTEGER NOT NULL DEFAULT 0;
+`;
+
+/** Migration 21: an explicit multipack count is durable SKU metadata. */
+const PRODUCT_CONTAINER_COUNT = `
+ALTER TABLE products ADD COLUMN container_count INTEGER CHECK (container_count IS NULL OR container_count > 0);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -569,6 +583,8 @@ export const MIGRATIONS: readonly string[] = [
   MACRO_GAP_SUGGESTION_CACHE,
   NULLABLE_MEAL_NUTRITION,
   SUGGESTION_TEMPLATE_PREFERENCES,
+  RECEIPT_FRAME_EDIT_LOCK,
+  PRODUCT_CONTAINER_COUNT,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

@@ -2495,3 +2495,11 @@ Consumer subscriptions do not provide API access for a third-party app.
 When a provider rate-limits a photo estimate, Mise waits once for the stated
 delay, or a bounded default. The user can cancel while it waits. It does not
 retry rejected keys, billing failures, malformed responses, or cancellations.
+
+## Fibre tracking
+
+**188. Fibre defaults to 30 g, and the target remains the user's own.** `SETTLED`
+The default is a practical starting point for a new profile, stored independently
+of the calorie split and editable in Settings. It is not recalculated when a
+calorie target changes, and the app makes no health claim about it. Historical
+meal rows without a fibre estimate remain unknown rather than reading as zero.

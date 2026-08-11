@@ -10,7 +10,7 @@ beforeEach(() => {
   useDayStore.setState({
     selectedDate: '2026-04-20', following: false, loading: false,
     meals: [], target: null,
-    consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fibreG: 0 },
     loggedDates: [], loggedDateSet: new Set(), earliestLoggedDate: null,
     monthSummaries: {}, pendingUndo: null, lastDepletion: null,
   });

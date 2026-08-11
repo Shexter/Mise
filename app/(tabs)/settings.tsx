@@ -30,7 +30,7 @@ import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 import { useProfileStore } from '@/store/profileStore';
 import { TARGET_SOURCES, type BodyMeasurement, type Profile, type Units } from '@/types';
 
-type ProfileField = 'formula' | 'sex' | 'age' | 'height' | 'weight' | 'activity' | 'goal';
+type ProfileField = 'formula' | 'sex' | 'age' | 'height' | 'weight' | 'activity' | 'goal' | 'fibre';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -236,6 +236,11 @@ export default function SettingsScreen() {
             label="Daily target"
             value={`${profile.targetCalories} kcal`}
             showChevron={false}
+          />
+          <SettingsRow
+            label="Daily fibre target"
+            value={`${profile.fibreTargetG} g`}
+            onPress={() => setProfileField('fibre')}
           />
           {measurementIsStale ? (
             <>

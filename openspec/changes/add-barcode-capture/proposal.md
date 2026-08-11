@@ -70,10 +70,13 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 
 ## Impact
 
-**Schema.** One forward-only migration adds `barcode_misses` with a unique GTIN
-and lookup timestamp. `products` remains the cache for resolved products: its
-required canonical id makes it structurally unable to represent a miss. Scan
-sessions remain in memory and need no persistence.
+**Schema.** Forward-only migrations add `barcode_misses` with a unique GTIN and
+lookup timestamp, then nullable `products.container_count`. A positive count is
+durable SKU metadata only when the source explicitly states it; `null` means it
+is genuinely unknown and is never inferred from total package quantity.
+`products` remains the cache for resolved products: its required canonical id
+makes it structurally unable to represent a miss. Scan sessions remain in
+memory and need no persistence.
 
 **Code.**
 - `src/api/openFoodFacts.ts` — lookup by GTIN, with the same timeout, abort, and

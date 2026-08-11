@@ -95,7 +95,8 @@ export interface Profile {
   proteinPct: number;
   carbsPct: number;
   fatPct: number;
-  fibreTargetG?: number;
+  /** Absolute user-owned daily target; not derived from the calorie split. */
+  fibreTargetG: number;
   units: Units;
   onboardedAt: string;
 }
@@ -112,7 +113,7 @@ export interface MealItem {
   carbsG: number | null;
   fatG: number | null;
   /** Null when this item predates tracking or its estimate omitted it. */
-  fibreG?: number | null;
+  fibreG: number | null;
   isManualAddition: boolean;
   sortOrder: number;
   /**
@@ -149,7 +150,7 @@ export interface Macros {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
-  fibreG?: number | null;
+  fibreG: number | null;
 }
 
 export interface DailyTarget {
@@ -158,7 +159,7 @@ export interface DailyTarget {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  fibreG?: number;
+  fibreG: number;
 }
 
 /** One logged day's calendar summary. Missing days have no object at all. */
@@ -305,6 +306,8 @@ export interface Product {
   name: string;
   pkgQty: number | null;
   pkgUnit: MeasureUnit | null;
+  /** Explicit SKU container count; null means the source did not state one. */
+  containerCount: number | null;
   canonicalId: string;
   kcalPer100: number | null;
   proteinPer100: number | null;
@@ -761,6 +764,8 @@ export interface Receipt {
   totalCents: number | null;
   imageUri: string;
   status: ReceiptStatus;
+  /** A manual review edit makes a frame rebuild unsafe for this draft. */
+  frameEditsLocked: boolean;
   createdAt: string;
 }
 

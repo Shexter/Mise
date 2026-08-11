@@ -179,6 +179,7 @@ export default function TodayScreen() {
               targetProteinG={target.proteinG}
               targetCarbsG={target.carbsG}
               targetFatG={target.fatG}
+              targetFibreG={target.fibreG}
               onRequest={(macro) => router.push({ pathname: '/dinner', params: { macro } })}
             />
           </View>

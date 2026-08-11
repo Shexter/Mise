@@ -91,7 +91,7 @@ describe('catalogueNutrition', () => {
 
 describe('nutritionWithPhotoPrecedence', () => {
   test('keeps a photo estimate ahead of generic table figures', () => {
-    const photo = { calories: 400, proteinG: 20, carbsG: 30, fatG: 12 };
+    const photo = { calories: 400, proteinG: 20, carbsG: 30, fatG: 12, fibreG: null };
     expect(nutritionWithPhotoPrecedence(photo, chicken, 200, 'g')).toEqual({
       source: 'photo',
       values: photo,

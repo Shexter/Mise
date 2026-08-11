@@ -32,6 +32,7 @@ import {
   changeReceiptType,
   correctReceiptLine,
   reclassifyReceiptLine,
+  removeReceiptPhoto,
 } from '@/logic/receiptService';
 import { formatQuantity } from '@/logic/scaling';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
@@ -177,6 +178,19 @@ export default function ReceiptReviewScreen() {
     await load();
   };
 
+  const removeFrame = async (frame: ReceiptFrame) => {
+    try {
+      await removeReceiptPhoto(receipt.id, frame.id);
+      await load();
+    } catch (error) {
+      toast.show({ message: error instanceof Error ? error.message : 'Could not remove this photo.' });
+    }
+  };
+
+  const retakeFrame = (frame: ReceiptFrame) => {
+    router.push({ pathname: '/receipt-capture', params: { receiptId: receipt.id, replaceFrameId: frame.id } });
+  };
+
   const markOldFinished = async (pantryItemId: string) => {
     await markItemUsedUp(pantryItemId);
     setDismissedPrompts((prev) => new Set(prev).add(pantryItemId));
@@ -246,16 +260,35 @@ export default function ReceiptReviewScreen() {
       <View style={styles.frameSection}>
         <ScrollView horizontal contentContainerStyle={styles.frameStrip} showsHorizontalScrollIndicator={false}>
           {frames.map((frame) => (
-            <Image key={frame.id} source={{ uri: frame.imageUri }} style={styles.frameImage} />
+            <View key={frame.id} style={styles.frameCard}>
+              <Image source={{ uri: frame.imageUri }} style={styles.frameImage} />
+              {!receipt.frameEditsLocked ? (
+                <View style={styles.frameActions}>
+                  <Pressable onPress={() => retakeFrame(frame)} accessibilityRole="button" accessibilityLabel="Retake photo">
+                    <Caption>Retake</Caption>
+                  </Pressable>
+                  {frames.length > 1 ? (
+                    <Pressable onPress={() => void removeFrame(frame)} accessibilityRole="button" accessibilityLabel="Remove photo">
+                      <Caption muted>Remove</Caption>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
           ))}
           <Button
             label="Add another photo"
             variant="secondary"
             block={false}
             onPress={() => router.push({ pathname: '/receipt-capture', params: { receiptId: receipt.id } })}
-            disabled={saving}
+            disabled={saving || receipt.frameEditsLocked}
           />
         </ScrollView>
+        {receipt.frameEditsLocked ? (
+          <Caption muted style={styles.frameLockMessage}>
+            Finish or discard this receipt before changing its photos.
+          </Caption>
+        ) : null}
       </View>
 
       {captureItemsFromReceiptLines(receipt.lines).length > 0 ? (
@@ -510,7 +543,10 @@ const styles = StyleSheet.create({
   typeRow: { paddingHorizontal: layout.screenGutter, paddingTop: space.sm },
   frameSection: { paddingHorizontal: layout.screenGutter, paddingTop: space.sm },
   frameStrip: { alignItems: 'center', gap: space.sm },
+  frameCard: { gap: space.xs, alignItems: 'center' },
   frameImage: { width: 48, height: 64, borderRadius: radius.input, backgroundColor: color.line },
+  frameActions: { flexDirection: 'row', gap: space.sm },
+  frameLockMessage: { marginTop: space.xs },
   correction: {
     paddingHorizontal: layout.screenGutter,
     paddingBottom: space.sm,

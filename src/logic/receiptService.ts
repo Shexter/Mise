@@ -17,6 +17,8 @@ import {
   setReceiptType,
   recordReceiptFrameExtraction,
   recordReceiptFrameFailure,
+  removeReceiptFrame,
+  replaceReceiptFrame,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { deletePhoto, photoBase64 } from '@/media/photos';
@@ -84,6 +86,26 @@ export async function addReceiptPhoto(
   return (await tryExtractFrame(receiptId, frame.id, base64Jpeg, captureDate)) ?? getReceipt(receiptId);
 }
 
+/** Removes an unedited frame and its photo while retaining every other frame. */
+export async function removeReceiptPhoto(receiptId: string, frameId: string): Promise<ReceiptWithLines | null> {
+  const imageUri = await removeReceiptFrame(receiptId, frameId);
+  deletePhoto(imageUri);
+  return getReceipt(receiptId);
+}
+
+/** Retakes one unedited frame without disturbing the other captured sources. */
+export async function retakeReceiptPhoto(
+  receiptId: string,
+  frameId: string,
+  base64Jpeg: string,
+  imageUri: string,
+  captureDate: string = localDateString(),
+): Promise<ReceiptWithLines | null> {
+  const replacedImageUri = await replaceReceiptFrame(receiptId, frameId, imageUri);
+  deletePhoto(replacedImageUri);
+  return (await tryExtractFrame(receiptId, frameId, base64Jpeg, captureDate)) ?? getReceipt(receiptId);
+}
+
 /** Drops an unaccepted receipt and its image when review is abandoned. */
 export async function abandonReceiptReview(receiptId: string): Promise<void> {
   for (const imageUri of await deletePendingReceiptFrames(receiptId)) deletePhoto(imageUri);
@@ -98,6 +120,7 @@ export async function retryExtraction(
 ): Promise<ReceiptWithLines | null> {
   const receipt = await getReceipt(receiptId);
   if (!receipt) return null;
+  if (receipt.frameEditsLocked) return receipt;
   const frames = await getReceiptFrames(receiptId);
   const retryable = frames.filter((frame) => frame.status !== 'extracted');
   if (retryable.length === 0) return receipt;
@@ -231,7 +254,7 @@ export async function correctReceiptLine(
   canonicalId: string,
 ): Promise<void> {
   await confirmMatch(rawText, canonicalId);
-  await setReceiptLineCanonical(lineId, canonicalId);
+  await setReceiptLineCanonical(lineId, canonicalId, true);
 }
 
 /**

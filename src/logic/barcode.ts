@@ -1,8 +1,47 @@
+import { VisionError } from '@/api/errors';
+import { lookupOpenFoodFacts, type OpenFoodFactsProduct } from '@/api/openFoodFacts';
+import { getBarcodeMiss, getProductByBarcode, recordBarcodeMiss, upsertProduct, type NewPantryItem } from '@/db/queries';
+import type { MatchOutcome } from '@/logic/match';
+import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
+import type { Product } from '@/types';
+
 /** Validated barcode categories before any lookup or cache write. */
 export type BarcodeDisposition = 'product' | 'unread' | 'store_local';
 
 /** A remote catalogue miss may be retried after it has had time to change. */
 export const BARCODE_MISS_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
+
+/** Ignore repeated camera events for the same code only inside this window. */
+export const BARCODE_SCAN_DEBOUNCE_MS = 1_250;
+
+/**
+ * Turns one scanned SKU into the pantry containers it physically contains.
+ * A count is used only when the source or the person explicitly supplied it;
+ * an unknown count remains one pantry item rather than a derived estimate.
+ */
+export function barcodePantryItems(
+  product: Product,
+  locationId: string,
+  purchasedAt: string,
+): (NewPantryItem & { productId: string })[] {
+  const count = product.containerCount ?? 1;
+  return Array.from({ length: count }, () => ({
+    canonicalId: product.canonicalId,
+    productId: product.id,
+    locationId,
+    purchasedAt,
+    qtyRemaining: product.pkgQty,
+    qtyUnit: product.pkgQty === null ? null : product.pkgUnit,
+    qtySource: 'estimate',
+  }));
+}
+
+export function isBarcodeScanDebounced(
+  lastSeenAt: number | undefined,
+  now: number = Date.now(),
+): boolean {
+  return lastSeenAt !== undefined && now - lastSeenAt < BARCODE_SCAN_DEBOUNCE_MS;
+}
 
 export function isFreshBarcodeMiss(
   fetchedAt: string,
@@ -58,11 +97,17 @@ export type ResolvedBarcodeLookup =
 export async function resolveBarcode(
   raw: string,
   signal?: AbortSignal,
+  canLookupRemote: (() => Promise<boolean>) | undefined = undefined,
 ): Promise<ResolvedBarcodeLookup> {
   const result = await lookupBarcode(raw, {
     getProduct: getProductByBarcode,
     getMiss: getBarcodeMiss,
-    lookup: (gtin) => lookupOpenFoodFacts(gtin, signal),
+    lookup: async (gtin) => {
+      if (canLookupRemote && !await canLookupRemote()) {
+        throw new VisionError('network', 'No internet connection is available for barcode lookup.');
+      }
+      return lookupOpenFoodFacts(gtin, signal);
+    },
     recordMiss: recordBarcodeMiss,
   });
   if (result.kind !== 'remote') return result;
@@ -75,6 +120,37 @@ export async function resolveBarcode(
   return match.status === 'needs_confirmation'
     ? { kind: 'needs_confirmation', product: result.product, match }
     : { kind: 'unresolved', product: result.product, match };
+}
+
+/**
+ * Persists a human answer for a confirm-band product in both places that need
+ * it: the shared name resolver and the SKU-specific barcode cache.
+ */
+export async function confirmBarcodeMatch(
+  product: OpenFoodFactsProduct,
+  canonicalId: string,
+): Promise<Product> {
+  await confirmMatch(product.name, canonicalId);
+  return upsertProduct({ ...product, canonicalId, source: 'barcode' });
+}
+
+/** Binds a person-identified product to its GTIN for future offline scans. */
+export async function identifyBarcode(
+  gtin: string,
+  name: string,
+  canonicalId: string,
+  brand: string | null = null,
+): Promise<Product> {
+  return upsertProduct({
+    gtin,
+    name,
+    brand,
+    pkgQty: null,
+    pkgUnit: null,
+    containerCount: null,
+    canonicalId,
+    source: 'user',
+  });
 }
 
 /**
@@ -128,8 +204,3 @@ function expandUpcE(code: string): string | null {
         : `${numberSystem}${d1}${d2}${d3}${d4}${d5}0000${d6}`;
   return `${body}${check}`;
 }
-import { lookupOpenFoodFacts, type OpenFoodFactsProduct } from '@/api/openFoodFacts';
-import { getBarcodeMiss, getProductByBarcode, recordBarcodeMiss, upsertProduct } from '@/db/queries';
-import { resolveIngredientReferences } from '@/logic/resolution';
-import type { MatchOutcome } from '@/logic/match';
-import type { Product } from '@/types';

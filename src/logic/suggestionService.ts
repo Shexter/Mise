@@ -105,7 +105,7 @@ async function remainingCalories(localDate: string): Promise<{
 }> {
   const profile = await getProfile();
   if (!profile) {
-    return { remaining: 0, macroGap: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 } };
+    return { remaining: 0, macroGap: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fibreG: null } };
   }
   const target = await ensureDailyTarget(localDate, profile);
   const meals = await getMealsForDate(localDate);
@@ -117,6 +117,7 @@ async function remainingCalories(localDate: string): Promise<{
       proteinG: consumed.proteinG === null ? null : target.proteinG - consumed.proteinG,
       carbsG: consumed.carbsG === null ? null : target.carbsG - consumed.carbsG,
       fatG: consumed.fatG === null ? null : target.fatG - consumed.fatG,
+      fibreG: consumed.fibreG === null ? null : target.fibreG - consumed.fibreG,
     },
   };
 }
@@ -340,7 +341,7 @@ export function nutritionFromSuggestion(
   suggestion: Suggestion,
   canonicals: ReadonlyMap<string, CanonicalItem>,
 ): Macros {
-  const totals: Macros = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
+  const totals: Macros = { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fibreG: null };
   const unresolved = new Set<keyof Pick<Macros, 'calories' | 'proteinG' | 'carbsG' | 'fatG'>>();
 
   for (const use of suggestion.uses) {
@@ -378,6 +379,7 @@ export function nutritionFromSuggestion(
     fatG: unresolved.has('fatG')
       ? estimate?.fatG ?? null
       : (totals.fatG ?? 0) / servings,
+    fibreG: null,
   };
 }
 
@@ -411,6 +413,7 @@ export function mealFromSuggestion(input: CookSuggestionInput): NewMeal {
       proteinG: nutrition.proteinG,
       carbsG: nutrition.carbsG,
       fatG: nutrition.fatG,
+      fibreG: nutrition.fibreG,
       isManualAddition: false,
     },
     ...input.suggestion.uses.map((use) => ({
@@ -421,6 +424,7 @@ export function mealFromSuggestion(input: CookSuggestionInput): NewMeal {
       proteinG: 0,
       carbsG: 0,
       fatG: 0,
+      fibreG: null,
       isManualAddition: false,
       canonicalId: use.canonicalId,
     })),

@@ -528,6 +528,7 @@ function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {
     proteinG: estimated.proteinG,
     carbsG: estimated.carbsG,
     fatG: estimated.fatG,
+    fibreG: estimated.fibreG ?? null,
     isManualAddition: manual,
     sortOrder: 0,
     canonicalId: null,

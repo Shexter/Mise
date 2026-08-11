@@ -24,7 +24,7 @@ const meal: MealWithItems = {
   items: [
     {
       id: 'item-1', mealId: 'meal-1', name: 'Rice', quantity: 100, unit: 'g',
-      calories: 130, proteinG: 0, carbsG: 28, fatG: 0,
+      calories: 130, proteinG: 0, carbsG: 28, fatG: 0, fibreG: null,
       isManualAddition: false, sortOrder: 0, canonicalId: 'jasmine-rice',
     },
   ],

@@ -19,7 +19,7 @@ import {
   type DepletionSummary,
 } from '@/logic/depletionService';
 import { mealsHaveSameEditableValues } from '@/logic/mealEdit';
-import { macroTargets } from '@/logic/macros';
+import { DEFAULT_FIBRE_TARGET_G, macroTargets } from '@/logic/macros';
 import { macrosOfMeals } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import { useProfileStore } from '@/store/profileStore';
@@ -84,7 +84,7 @@ export const useDayStore = create<DayState>((set, get) => ({
   loading: true,
   meals: [],
   target: null,
-  consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+  consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fibreG: 0 },
   loggedDates: [],
   loggedDateSet: new Set(),
   earliestLoggedDate: null,
@@ -283,5 +283,6 @@ async function resolveTarget(
     proteinG: macros.proteinG,
     carbsG: macros.carbsG,
     fatG: macros.fatG,
+    fibreG: profile.fibreTargetG ?? DEFAULT_FIBRE_TARGET_G,
   };
 }

@@ -10,7 +10,8 @@ interface Props {
   targetProteinG: number;
   targetCarbsG: number;
   targetFatG: number;
-  onRequest?: (macro: SuggestionTargetMacro) => void;
+  targetFibreG: number;
+  onRequest?: (macro: SuggestionTargetMacro | undefined) => void;
 }
 
 export function MacroBars({
@@ -18,6 +19,7 @@ export function MacroBars({
   targetProteinG,
   targetCarbsG,
   targetFatG,
+  targetFibreG,
   onRequest,
 }: Props) {
   return (
@@ -29,6 +31,13 @@ export function MacroBars({
         fill={macroColor.protein}
         macro="protein"
         onRequest={onRequest}
+      />
+      <MacroBar
+        label="Fibre"
+        consumed={consumed.fibreG}
+        target={targetFibreG}
+        fill={macroColor.fibre}
+        unknownDetail="Fibre isn't fully known for today."
       />
       <MacroBar
         label="Carbs"
@@ -55,14 +64,15 @@ interface BarProps {
   consumed: number | null;
   target: number;
   fill: string;
-  macro: SuggestionTargetMacro;
-  onRequest?: (macro: SuggestionTargetMacro) => void;
+  macro?: SuggestionTargetMacro;
+  onRequest?: (macro: SuggestionTargetMacro | undefined) => void;
+  unknownDetail?: string;
 }
 
-function MacroBar({ label, consumed, target, fill, macro, onRequest }: BarProps) {
+function MacroBar({ label, consumed, target, fill, macro, onRequest, unknownDetail }: BarProps) {
   const ratio = consumed === null || target <= 0 ? 0 : Math.min(1, consumed / target);
   const shortfall = consumed === null ? null : Math.max(0, target - consumed);
-  const canRequest = onRequest && shortfall !== null && shortfall > 0;
+  const canRequest = macro !== undefined && onRequest && shortfall !== null && shortfall > 0;
 
   return (
     <Pressable
@@ -77,17 +87,10 @@ function MacroBar({ label, consumed, target, fill, macro, onRequest }: BarProps)
       <View style={styles.header}>
         <SectionLabel muted>{label}</SectionLabel>
         <Caption muted numeric>
-          {formatGrams(consumed)} / {formatGrams(target)} g
+          {consumed === null ? `Incomplete / ${formatGrams(target)} g` : `${formatGrams(consumed)} / ${formatGrams(target)} g`}
         </Caption>
       </View>
-      <View style={styles.track}>
-        <View
-          style={[
-            styles.fill,
-            { width: `${ratio * 100}%`, backgroundColor: fill },
-          ]}
-        />
-      </View>
+      {consumed === null ? <><View style={styles.incompleteTrack} />{unknownDetail ? <Caption muted style={styles.incompleteDetail}>{unknownDetail}</Caption> : null}</> : <View style={styles.track}><View style={[styles.fill, { width: `${ratio * 100}%`, backgroundColor: fill }]} /></View>}
     </Pressable>
   );
 }
@@ -109,4 +112,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: { height: '100%' },
+  incompleteTrack: { height: space.sm, borderRadius: radius.input, borderWidth: 1, borderColor: color.line, borderStyle: 'dashed' },
+  incompleteDetail: { marginTop: space.xs },
 });

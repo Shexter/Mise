@@ -22,18 +22,18 @@ const item = (id: string, canonicalId: string, qtyRemaining: number, expiresAt: 
 describe('macro-gap assessment', () => {
   test('uses the shipped daily target and consumed totals for a target macro', () => {
     expect(macroShortfall(
-      { proteinG: 120, carbsG: 240, fatG: 80 },
-      { proteinG: 85, carbsG: 260, fatG: 70 },
+      { proteinG: 120, carbsG: 240, fatG: 80, fibreG: 30 },
+      { proteinG: 85, carbsG: 260, fatG: 70, fibreG: null },
       'protein',
     )).toBe(35);
     expect(macroShortfall(
-      { proteinG: 120, carbsG: 240, fatG: 80 },
-      { proteinG: 85, carbsG: 260, fatG: 70 },
+      { proteinG: 120, carbsG: 240, fatG: 80, fibreG: 30 },
+      { proteinG: 85, carbsG: 260, fatG: 70, fibreG: null },
       'carbs',
     )).toBe(0);
     expect(macroShortfall(
-      { proteinG: 120, carbsG: 240, fatG: 80 },
-      { proteinG: null, carbsG: 260, fatG: 70 },
+      { proteinG: 120, carbsG: 240, fatG: 80, fibreG: 30 },
+      { proteinG: null, carbsG: 260, fatG: 70, fibreG: null },
       'protein',
     )).toBeNull();
   });

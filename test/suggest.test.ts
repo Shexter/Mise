@@ -123,7 +123,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
       stock,
       personalisation,
       remainingCalories: 800,
-      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0, fibreG: null },
       dietaryRules: [],
     });
     const parsed = JSON.parse(prompt) as { use_first: unknown[] };
@@ -135,12 +135,12 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
     const { stock, personalisation } = payloadFor(kitchen);
     const tonight = JSON.parse(buildSuggestUserPrompt({
       mode: 'tonight', stock, personalisation, remainingCalories: 800,
-      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 }, dietaryRules: [],
+      macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0, fibreG: null }, dietaryRules: [],
       tonightPreference: { baseIntent: 'protein_forward', prepSpeed: 'quick', source: 'saved' },
     }));
     const macro = JSON.parse(buildSuggestUserPrompt({
       mode: 'macro_gap', targetMacro: 'protein', stock, personalisation,
-      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0, fibreG: null },
       macroGapContext: { shortfallG: 30, bestAchievableG: 12, partialCoverage: true }, dietaryRules: [],
       tonightPreference: null,
     }));
@@ -155,7 +155,7 @@ describe('parseSuggestResponse, against every fixture kitchen', () => {
     const { stock, personalisation } = payloadFor(kitchen);
     const prompt = buildSuggestUserPrompt({
       mode: 'macro_gap', targetMacro: 'protein', stock, personalisation,
-      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0 },
+      remainingCalories: 800, macroGap: { calories: 0, proteinG: 30, carbsG: 0, fatG: 0, fibreG: null },
       macroGapContext: { shortfallG: 30, bestAchievableG: 12, partialCoverage: true }, dietaryRules: [],
     });
     expect(JSON.parse(prompt).macro_gap_request).toEqual({

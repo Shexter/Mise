@@ -43,11 +43,12 @@ export const camera = {
   analyzingScrim: 'rgba(28, 26, 23, 0.6)',
 } as const;
 
-/** The three macro colours are the entire chromatic system. */
+/** Macro colours reuse the app's intentionally small chromatic system. */
 export const macroColor = {
   protein: color.paprika,
   carbs: color.wheat,
   fat: color.olive,
+  fibre: color.ink,
 } as const;
 
 export const font = {

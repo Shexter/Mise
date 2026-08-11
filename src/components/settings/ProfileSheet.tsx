@@ -4,6 +4,7 @@ import { ChoiceList, Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { Sheet } from '@/components/Sheet';
 import { Button } from '@/components/Button';
+import { Caption } from '@/components/Type';
 import {
   ACTIVITY_LEVELS,
   AGE_RANGE,
@@ -26,7 +27,8 @@ type Editable =
   | 'height'
   | 'weight'
   | 'activity'
-  | 'goal';
+  | 'goal'
+  | 'fibre';
 
 interface Props {
   visible: boolean;
@@ -58,6 +60,8 @@ export function ProfileSheet({ visible, field, profile, onClose, onSave }: Props
         <WeightEditor profile={profile} onSave={onSave} onClose={onClose} />
       ) : field === 'activity' ? (
         <ActivityEditor profile={profile} onSave={onSave} onClose={onClose} />
+      ) : field === 'fibre' ? (
+        <FibreTargetEditor profile={profile} onSave={onSave} onClose={onClose} />
       ) : (
         <GoalEditor profile={profile} onSave={onSave} onClose={onClose} />
       )}
@@ -73,6 +77,7 @@ const TITLES: Record<Editable, string> = {
   weight: 'Weight',
   activity: 'Activity',
   goal: 'Goal',
+  fibre: 'Daily fibre target',
 };
 
 interface EditorProps {
@@ -299,6 +304,19 @@ function GoalEditor({ profile, onSave, onClose }: EditorProps) {
           onClose();
         }}
       />
+    </>
+  );
+}
+
+function FibreTargetEditor({ profile, onSave, onClose }: EditorProps) {
+  const [value, setValue] = useState(String(profile.fibreTargetG));
+  const target = Number.parseFloat(value);
+  const valid = Number.isFinite(target) && target > 0;
+  return (
+    <>
+      <Field label="Fibre target" value={value} onChangeText={setValue} keyboardType="decimal-pad" suffix="g" numeric autoFocus />
+      <Caption muted>This is your own daily target. It does not change your calorie target.</Caption>
+      <Button label="Save" disabled={!valid} onPress={() => { onSave({ fibreTargetG: target }); onClose(); }} />
     </>
   );
 }

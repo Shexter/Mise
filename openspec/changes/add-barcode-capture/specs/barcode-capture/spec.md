@@ -207,6 +207,10 @@ container's size.
 Where the count is not known, the system SHALL create a single item and SHALL
 NOT infer a count.
 
+The system SHALL retain an explicit container count as nullable product
+metadata. It MUST set that metadata only when the source or the user explicitly
+states a positive count; a total package quantity alone MUST NOT imply one.
+
 #### Scenario: A known multi-pack creates its containers
 
 - **GIVEN** a scanned product known to hold several containers
@@ -228,6 +232,20 @@ NOT infer a count.
 
 - **WHEN** a multi-pack's container count is shown during review
 - **THEN** the user can change it before the batch is applied
+
+#### Scenario: A known pack count survives a later scan
+
+- **GIVEN** a product whose explicit container count was stored
+- **WHEN** it is scanned again from the local product cache
+- **THEN** review shows that stored count
+- **AND** applying it creates that many independent pantry items
+
+#### Scenario: A total package quantity does not invent a count
+
+- **GIVEN** a product labelled only with a total quantity such as `2.4 l`
+- **WHEN** it is scanned
+- **THEN** its container count remains unknown
+- **AND** applying it creates one pantry item unless the user supplies a count
 
 ### Requirement: Remote data is attributed and its quality is not assumed
 

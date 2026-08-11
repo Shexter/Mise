@@ -95,6 +95,7 @@ export default function RootLayout() {
             <Stack.Screen name="pantry-capture" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
             <Stack.Screen name="pantry-capture-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-review" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="barcode-fallback" options={{ presentation: 'modal' }} />
             <Stack.Screen name="pending-captures" options={{ presentation: 'modal' }} />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />

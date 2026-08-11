@@ -7,7 +7,8 @@ import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { space } from '@/constants/theme';
-import { getCanonicalById, getLocations, getProductByBarcode, insertPantryItem } from '@/db/queries';
+import { applyBarcodeSession, getCanonicalById, getLocations, getProductByBarcode } from '@/db/queries';
+import { barcodePantryItems } from '@/logic/barcode';
 import { localDateString } from '@/logic/dates';
 import { predictExpiry } from '@/logic/expiry';
 import type { CanonicalItem, Location, Product } from '@/types';
@@ -46,15 +47,7 @@ export default function BarcodeReviewScreen() {
     if (!product || !canonical || !location || saving) return;
     setSaving(true);
     try {
-      await insertPantryItem({
-        canonicalId: canonical.id,
-        productId: product.id,
-        locationId: location.id,
-        purchasedAt: localDateString(),
-        qtyRemaining: product.pkgQty ?? undefined,
-        qtyUnit: product.pkgQty === null ? undefined : product.pkgUnit ?? undefined,
-        qtySource: 'estimate',
-      });
+      await applyBarcodeSession(barcodePantryItems(product, location.id, localDateString()));
       router.dismissAll();
       router.replace('/(tabs)/pantry');
     } finally { setSaving(false); }
@@ -65,7 +58,8 @@ export default function BarcodeReviewScreen() {
   }
 
   const expiry = predictExpiry(canonical, location.kind, localDateString(), null);
-  return <Screen scroll footer={<Button label="Add to pantry" onPress={() => void accept()} loading={saving} />}>
+  const itemCount = product.containerCount ?? 1;
+  return <Screen scroll footer={<Button label={`Add ${itemCount} to pantry`} onPress={() => void accept()} loading={saving} />}>
     <View style={styles.header}>
       <ScreenTitle>Review barcode item</ScreenTitle>
       <Caption muted>Nothing is added until you confirm.</Caption>
@@ -73,6 +67,7 @@ export default function BarcodeReviewScreen() {
     <Card>
       <RowTitle>{product.name}</RowTitle>
       {product.brand ? <Caption muted>{product.brand}</Caption> : null}
+      <Caption muted>{itemCount === 1 ? 'One pantry item' : `${itemCount} individual pantry items`}</Caption>
       <Caption muted>{location.name}</Caption>
       <Caption muted>{expiry ? `Expected quality through ${expiry} (estimate).` : 'No expiry estimate is available.'}</Caption>
     </Card>

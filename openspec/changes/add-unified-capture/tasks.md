@@ -107,10 +107,10 @@ wants — the big shop, which is also the one that fills a pantry.
       purchases under decision 111.
 - [x] 7a.5 Take header totals from the latest captured frame that reports them,
       so the tail supplies the printed arithmetic check under decision 113.
-- [ ] 7a.6 Allow an unedited frame to be retaken or removed without losing the
+- [x] 7a.6 Allow an unedited frame to be retaken or removed without losing the
       others. Once a line is manually edited, excluded, reclassified, or matched,
       block further frame changes rather than overwrite that correction.
-- [ ] 7a.7 Add two-frame and three-frame receipt fixtures, including deliberate
+- [x] 7a.7 Add two-frame and three-frame receipt fixtures, including deliberate
       overlap, identical legitimate purchases, a tail-only total, frame retry,
       removal, and retake cases.
 

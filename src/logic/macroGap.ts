@@ -1,7 +1,8 @@
 import { daysUntil } from '@/logic/stockStatus';
 import type { CanonicalItem, DailyTarget, Macros, PantryItem } from '@/types';
 
-export type MacroGapTarget = 'protein' | 'carbs' | 'fat';
+/** Fibre is calculable from meals, but is not a pantry-suggestion target yet. */
+export type MacroGapTarget = 'protein' | 'carbs' | 'fat' | 'fibre';
 
 export interface MacroContributor {
   item: PantryItem;
@@ -19,16 +20,17 @@ export interface MacroGapAssessment {
   hasUnmeasuredStock: boolean;
 }
 
-/** The displayed shortfall for the three currently measurable macro targets. */
+/** Returns null when the day's target macro is unknown, never a guessed gap. */
 export function macroShortfall(
-  target: Pick<DailyTarget, 'proteinG' | 'carbsG' | 'fatG'>,
-  consumed: Pick<Macros, 'proteinG' | 'carbsG' | 'fatG'>,
+  target: Pick<DailyTarget, 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>,
+  consumed: Pick<Macros, 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>,
   macro: MacroGapTarget,
 ): number | null {
   switch (macro) {
     case 'protein': return consumed.proteinG === null ? null : Math.max(0, target.proteinG - consumed.proteinG);
     case 'carbs': return consumed.carbsG === null ? null : Math.max(0, target.carbsG - consumed.carbsG);
     case 'fat': return consumed.fatG === null ? null : Math.max(0, target.fatG - consumed.fatG);
+    case 'fibre': return consumed.fibreG === null ? null : Math.max(0, target.fibreG - consumed.fibreG);
   }
 }
 
@@ -37,6 +39,7 @@ function per100(canonical: CanonicalItem, target: MacroGapTarget): number | null
     case 'protein': return canonical.proteinPer100;
     case 'carbs': return canonical.carbsPer100;
     case 'fat': return canonical.fatPer100;
+    case 'fibre': return null;
   }
 }
 

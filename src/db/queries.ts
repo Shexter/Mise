@@ -756,6 +756,7 @@ interface ProductRow {
   name: string;
   pkg_qty: number | null;
   pkg_unit: string | null;
+  container_count: number | null;
   canonical_id: string;
   kcal_per_100: number | null;
   protein_per_100: number | null;
@@ -821,6 +822,7 @@ function toProduct(row: ProductRow): Product {
     name: row.name,
     pkgQty: row.pkg_qty,
     pkgUnit: row.pkg_unit as MeasureUnit | null,
+    containerCount: row.container_count,
     canonicalId: row.canonical_id,
     kcalPer100: row.kcal_per_100,
     proteinPer100: row.protein_per_100,
@@ -1356,6 +1358,8 @@ export interface NewProduct {
   name: string;
   pkgQty?: number | null;
   pkgUnit?: MeasureUnit | null;
+  /** Explicit pack count only; omit when an update must preserve the current count. */
+  containerCount?: number | null;
   canonicalId: string;
   kcalPer100?: number | null;
   proteinPer100?: number | null;
@@ -1369,9 +1373,9 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
   const fetchedAt = new Date().toISOString();
   await db().runAsync(
     `INSERT INTO products
-       (id, gtin, brand, name, pkg_qty, pkg_unit, canonical_id,
+       (id, gtin, brand, name, pkg_qty, pkg_unit, container_count, canonical_id,
         kcal_per_100, protein_per_100, carbs_per_100, fat_per_100, source, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       product.gtin ?? null,
@@ -1379,6 +1383,7 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
       product.name,
       product.pkgQty ?? null,
       product.pkgUnit ?? null,
+      product.containerCount ?? null,
       product.canonicalId,
       product.kcalPer100 ?? null,
       product.proteinPer100 ?? null,
@@ -1395,6 +1400,7 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
     name: product.name,
     pkgQty: product.pkgQty ?? null,
     pkgUnit: product.pkgUnit ?? null,
+    containerCount: product.containerCount ?? null,
     canonicalId: product.canonicalId,
     kcalPer100: product.kcalPer100 ?? null,
     proteinPer100: product.proteinPer100 ?? null,
@@ -1410,15 +1416,16 @@ export async function upsertProduct(product: NewProduct): Promise<Product> {
   const existing = product.gtin ? await getProductByBarcode(product.gtin) : null;
   if (!existing) return insertProduct(product);
   const fetchedAt = new Date().toISOString();
+  const containerCount = product.containerCount === undefined ? existing.containerCount : product.containerCount;
   await db().runAsync(
-    `UPDATE products SET brand = ?, name = ?, pkg_qty = ?, pkg_unit = ?, canonical_id = ?,
+    `UPDATE products SET brand = ?, name = ?, pkg_qty = ?, pkg_unit = ?, container_count = ?, canonical_id = ?,
       kcal_per_100 = ?, protein_per_100 = ?, carbs_per_100 = ?, fat_per_100 = ?, source = ?, fetched_at = ?
      WHERE id = ?`,
-    [product.brand ?? null, product.name, product.pkgQty ?? null, product.pkgUnit ?? null,
+    [product.brand ?? null, product.name, product.pkgQty ?? null, product.pkgUnit ?? null, containerCount,
       product.canonicalId, product.kcalPer100 ?? null, product.proteinPer100 ?? null,
       product.carbsPer100 ?? null, product.fatPer100 ?? null, product.source, fetchedAt, existing.id],
   );
-  return { ...existing, ...product, gtin: product.gtin ?? null, fetchedAt };
+  return { ...existing, ...product, containerCount, gtin: product.gtin ?? null, fetchedAt };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1745,6 +1752,47 @@ export async function insertPantryItem(
   const stored = await getPantryItem(id);
   if (!stored) throw new Error('Pantry item vanished on insert.');
   return stored;
+}
+
+/** One accepted rapid-scan session becomes pantry stock atomically. */
+export async function applyBarcodeSession(
+  items: readonly (NewPantryItem & { productId: string })[],
+): Promise<string[]> {
+  const now = new Date().toISOString();
+  const ids: string[] = [];
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    for (const item of items) {
+      const canonical = await txn.getFirstAsync<CanonicalItemRow>(
+        'SELECT * FROM canonical_items WHERE id = ?',
+        [item.canonicalId],
+      );
+      const location = await txn.getFirstAsync<LocationRow>(
+        'SELECT * FROM locations WHERE id = ?',
+        [item.locationId],
+      );
+      if (!canonical || !location) throw new Error('A scanned item no longer has a valid ingredient or location.');
+      const id = randomUUID();
+      const purchasedAt = item.purchasedAt ?? localDateString();
+      const expiresAt = item.expiresAt ?? predictExpiry(toCanonicalItem(canonical), location.kind as LocationKind, purchasedAt, null);
+      const expirySource = item.expiresAt != null ? (item.expirySource ?? 'user') : (expiresAt != null ? 'predicted' : null);
+      await txn.runAsync(
+        `INSERT INTO pantry_items
+           (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
+            qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
+            expiry_source, price_cents, photo_uri, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, ?, 'in_stock', ?, ?)`,
+        [
+          id, item.canonicalId, item.productId, item.locationId,
+          item.qtyRemaining ?? null, item.qtyUnit ?? null,
+          item.qtyRemaining != null ? (item.qtySource ?? 'estimate') : null,
+          purchasedAt, expiresAt, expirySource, item.priceCents ?? null,
+          item.photoUri ?? null, now, now,
+        ],
+      );
+      ids.push(id);
+    }
+  });
+  return ids;
 }
 
 export async function getPantryItem(id: string): Promise<PantryItem | null> {
@@ -2512,6 +2560,7 @@ interface ReceiptRow {
   total_cents: number | null;
   image_uri: string;
   status: string;
+  frame_edits_locked: number;
   created_at: string;
 }
 
@@ -2576,6 +2625,13 @@ interface PendingCaptureRow {
 /** A small, explicit bound prevents retained camera files growing forever. */
 export const MAX_PENDING_CAPTURES = 20;
 
+export class ReceiptFrameEditsLockedError extends Error {
+  constructor() {
+    super('Finish or discard this receipt before changing its photos.');
+    this.name = 'ReceiptFrameEditsLockedError';
+  }
+}
+
 export class PendingCaptureLimitError extends Error {
   constructor() {
     super(`Only ${MAX_PENDING_CAPTURES} captures can wait at once.`);
@@ -2607,6 +2663,7 @@ function toReceipt(row: ReceiptRow): Receipt {
     totalCents: row.total_cents,
     imageUri: row.image_uri,
     status: row.status as Receipt['status'],
+    frameEditsLocked: row.frame_edits_locked === 1,
     createdAt: row.created_at,
   };
 }
@@ -2703,6 +2760,7 @@ export async function addReceiptFrame(
   receiptId: string,
   imageUri: string,
 ): Promise<ReceiptFrame> {
+  await assertReceiptFramesEditable(receiptId);
   const next = await db().getFirstAsync<{ next: number }>(
     'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM receipt_frames WHERE receipt_id = ?',
     [receiptId],
@@ -2718,6 +2776,17 @@ export async function addReceiptFrame(
   const stored = await db().getFirstAsync<ReceiptFrameRow>('SELECT * FROM receipt_frames WHERE id = ?', [id]);
   if (!stored) throw new Error('Receipt frame vanished on insert.');
   return toReceiptFrame(stored);
+}
+
+async function assertReceiptFramesEditable(receiptId: string): Promise<void> {
+  const receipt = await db().getFirstAsync<Pick<ReceiptRow, 'status' | 'frame_edits_locked'>>(
+    'SELECT status, frame_edits_locked FROM receipts WHERE id = ?',
+    [receiptId],
+  );
+  if (!receipt) throw new Error('Receipt not found.');
+  if (receipt.status !== 'pending' || receipt.frame_edits_locked === 1) {
+    throw new ReceiptFrameEditsLockedError();
+  }
 }
 
 export async function getReceiptFrames(receiptId: string): Promise<ReceiptFrame[]> {
@@ -2742,6 +2811,16 @@ export async function recordReceiptFrameExtraction(
 ): Promise<void> {
   const now = new Date().toISOString();
   await db().withExclusiveTransactionAsync(async (txn) => {
+    const frame = await txn.getFirstAsync<Pick<ReceiptFrameRow, 'receipt_id'>>(
+      'SELECT receipt_id FROM receipt_frames WHERE id = ?',
+      [frameId],
+    );
+    if (!frame) throw new Error('Receipt frame not found.');
+    const receipt = await txn.getFirstAsync<Pick<ReceiptRow, 'frame_edits_locked'>>(
+      'SELECT frame_edits_locked FROM receipts WHERE id = ?',
+      [frame.receipt_id],
+    );
+    if (receipt?.frame_edits_locked === 1) throw new ReceiptFrameEditsLockedError();
     await txn.runAsync('DELETE FROM receipt_frame_lines WHERE frame_id = ?', [frameId]);
     await txn.runAsync(
       `UPDATE receipt_frames
@@ -2772,26 +2851,27 @@ export async function recordReceiptFrameExtraction(
       );
     }
   });
-  await rebuildReceiptFromFrames(frameId);
+  const frame = await db().getFirstAsync<Pick<ReceiptFrameRow, 'receipt_id'>>(
+    'SELECT receipt_id FROM receipt_frames WHERE id = ?',
+    [frameId],
+  );
+  if (!frame) throw new Error('Receipt frame not found.');
+  await rebuildReceiptFromReceipt(frame.receipt_id);
 }
 
 /** Recreates unreviewed receipt lines from all extracted frames of one receipt. */
-export async function rebuildReceiptFromFrames(frameId: string): Promise<void> {
+async function rebuildReceiptFromReceipt(receiptId: string): Promise<void> {
   await db().withExclusiveTransactionAsync(async (txn) => {
-    const frame = await txn.getFirstAsync<ReceiptFrameRow>(
-      'SELECT * FROM receipt_frames WHERE id = ?', [frameId],
-    );
-    if (!frame) throw new Error('Receipt frame not found.');
     const frames = await txn.getAllAsync<ReceiptFrameRow>(
       "SELECT * FROM receipt_frames WHERE receipt_id = ? AND status = 'extracted' ORDER BY sort_order ASC",
-      [frame.receipt_id],
+      [receiptId],
     );
     const rawLines = await txn.getAllAsync<ReceiptFrameLineRow>(
       `SELECT receipt_frame_lines.* FROM receipt_frame_lines
        JOIN receipt_frames ON receipt_frames.id = receipt_frame_lines.frame_id
        WHERE receipt_frames.receipt_id = ? AND receipt_frames.status = 'extracted'
        ORDER BY receipt_frames.sort_order ASC, receipt_frame_lines.frame_position ASC`,
-      [frame.receipt_id],
+      [receiptId],
     );
     const linesByFrame = new Map<string, ReceiptFrameLineInput[]>();
     for (const line of rawLines) {
@@ -2808,19 +2888,26 @@ export async function rebuildReceiptFromFrames(frameId: string): Promise<void> {
       lines: linesByFrame.get(item.id) ?? [],
     })));
     const header = [...frames].reverse().find((item) => item.total_cents !== null) ?? frames.at(-1);
-    if (!header) return;
     const now = new Date().toISOString();
+    await txn.runAsync('DELETE FROM receipt_lines WHERE receipt_id = ?', [receiptId]);
+    if (!header) {
+      await txn.runAsync(
+        `UPDATE receipts SET store = NULL, type = 'grocery', subtotal_cents = NULL, tax_cents = NULL, total_cents = NULL
+         WHERE id = ?`,
+        [receiptId],
+      );
+      return;
+    }
     const ids = merged.map(() => randomUUID());
     const idByRawText = new Map<string, string>();
     merged.forEach((line, index) => {
       if (!idByRawText.has(line.rawText)) idByRawText.set(line.rawText, ids[index]!);
     });
-    await txn.runAsync('DELETE FROM receipt_lines WHERE receipt_id = ?', [frame.receipt_id]);
     await txn.runAsync(
       `UPDATE receipts SET store = ?, purchased_at = ?, type = ?, subtotal_cents = ?, tax_cents = ?, total_cents = ?
        WHERE id = ?`,
       [header.store, header.purchased_at, header.receipt_type, header.subtotal_cents,
-        header.tax_cents, header.total_cents, frame.receipt_id],
+        header.tax_cents, header.total_cents, receiptId],
     );
     for (const [index, line] of merged.entries()) {
       await txn.runAsync(
@@ -2828,12 +2915,64 @@ export async function rebuildReceiptFromFrames(frameId: string): Promise<void> {
            (id, receipt_id, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
             unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
-        [ids[index]!, frame.receipt_id, line.rawText, line.kind, line.qty, line.unit,
+        [ids[index]!, receiptId, line.rawText, line.kind, line.qty, line.unit,
           line.quantityKind, line.lineTotalCents, line.unitPriceCents,
           line.appliesToText ? (idByRawText.get(line.appliesToText) ?? null) : null, now],
       );
     }
   });
+}
+
+/** Removes one retained frame and rematerializes the draft from the survivors. */
+export async function removeReceiptFrame(receiptId: string, frameId: string): Promise<string> {
+  await assertReceiptFramesEditable(receiptId);
+  const frame = await db().getFirstAsync<ReceiptFrameRow>(
+    'SELECT * FROM receipt_frames WHERE id = ? AND receipt_id = ?',
+    [frameId, receiptId],
+  );
+  if (!frame) throw new Error('Receipt frame not found.');
+  const count = await db().getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM receipt_frames WHERE receipt_id = ?',
+    [receiptId],
+  );
+  if ((count?.count ?? 0) <= 1) throw new Error('A receipt needs at least one photo.');
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('DELETE FROM receipt_frames WHERE id = ?', [frameId]);
+    await txn.runAsync(
+      `UPDATE receipt_frames
+       SET sort_order = sort_order - 1
+       WHERE receipt_id = ? AND sort_order > ?`,
+      [receiptId, frame.sort_order],
+    );
+  });
+  await rebuildReceiptFromReceipt(receiptId);
+  return frame.image_uri;
+}
+
+/** Replaces one durable source image while retaining its place in the receipt. */
+export async function replaceReceiptFrame(
+  receiptId: string,
+  frameId: string,
+  imageUri: string,
+): Promise<string> {
+  await assertReceiptFramesEditable(receiptId);
+  const frame = await db().getFirstAsync<ReceiptFrameRow>(
+    'SELECT * FROM receipt_frames WHERE id = ? AND receipt_id = ?',
+    [frameId, receiptId],
+  );
+  if (!frame) throw new Error('Receipt frame not found.');
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('DELETE FROM receipt_frame_lines WHERE frame_id = ?', [frameId]);
+    await txn.runAsync(
+      `UPDATE receipt_frames
+       SET image_uri = ?, status = 'pending', last_error_kind = NULL, store = NULL, purchased_at = NULL,
+           receipt_type = NULL, subtotal_cents = NULL, tax_cents = NULL, total_cents = NULL, extracted_at = NULL
+       WHERE id = ?`,
+      [imageUri, frameId],
+    );
+  });
+  await rebuildReceiptFromReceipt(receiptId);
+  return frame.image_uri;
 }
 
 /** Retains an uninterpretable capture without storing a credential or result. */
@@ -2990,11 +3129,13 @@ export async function listReceipts(): Promise<Receipt[]> {
 export async function setReceiptLineCanonical(
   lineId: string,
   canonicalId: string | null,
+  manual = false,
 ): Promise<void> {
   await db().runAsync('UPDATE receipt_lines SET canonical_id = ? WHERE id = ?', [
     canonicalId,
     lineId,
   ]);
+  if (manual) await lockReceiptFrameEdits(lineId);
 }
 
 /** A quantity or price correction made during review. */
@@ -3006,6 +3147,7 @@ export async function setReceiptLineDetails(
     'UPDATE receipt_lines SET qty = ?, unit = ?, line_total_cents = ? WHERE id = ?',
     [details.qty, details.unit, details.lineTotalCents, lineId],
   );
+  await lockReceiptFrameEdits(lineId);
 }
 
 /** Excluding a line during review: it creates no pantry item and is not queued (spec). */
@@ -3017,6 +3159,7 @@ export async function setReceiptLineExcluded(
     excluded ? 1 : 0,
     lineId,
   ]);
+  await lockReceiptFrameEdits(lineId);
 }
 
 /**
@@ -3029,6 +3172,16 @@ export async function setReceiptLineKind(
   kind: ReceiptLineKind,
 ): Promise<void> {
   await db().runAsync('UPDATE receipt_lines SET kind = ? WHERE id = ?', [kind, lineId]);
+  await lockReceiptFrameEdits(lineId);
+}
+
+/** Any human line edit makes a whole-draft frame rebuild destructive. */
+async function lockReceiptFrameEdits(lineId: string): Promise<void> {
+  await db().runAsync(
+    `UPDATE receipts SET frame_edits_locked = 1
+     WHERE id = (SELECT receipt_id FROM receipt_lines WHERE id = ?)`,
+    [lineId],
+  );
 }
 
 export async function setReceiptType(

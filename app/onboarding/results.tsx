@@ -11,7 +11,7 @@ import { duration, macroColor, space } from '@/constants/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { goalLabel } from '@/constants/activityLevels';
 import { energyTargets } from '@/logic/bmr';
-import { macroTargets } from '@/logic/macros';
+import { DEFAULT_FIBRE_TARGET_G, macroTargets } from '@/logic/macros';
 import {
   ONBOARDING_SPLIT,
   useOnboardingStore,
@@ -95,6 +95,7 @@ export default function ResultsStep() {
       proteinPct: ONBOARDING_SPLIT.proteinPct,
       carbsPct: ONBOARDING_SPLIT.carbsPct,
       fatPct: ONBOARDING_SPLIT.fatPct,
+      fibreTargetG: DEFAULT_FIBRE_TARGET_G,
       units: draft.units,
       onboardedAt: new Date().toISOString(),
     };

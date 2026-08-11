@@ -6,7 +6,9 @@ The unusual thing about this change is how much of it already exists:
 
 - `products` in `src/db/schema.ts` has `gtin UNIQUE`, `brand`, `name`,
   `pkg_qty`, `pkg_unit`, `canonical_id`, per-100 nutrition, `source`, and
-  `fetched_at`, plus `idx_products_gtin`. Written for this and never populated.
+  `fetched_at`, plus `idx_products_gtin`. A later forward migration adds the
+  nullable `container_count` needed to distinguish one 2.4 L container from a
+  six-pack of 400 ml containers.
 - Step 1 of `resolve()` already takes `reference.barcode`, looks up
   `productCanonicalByBarcode`, and returns confidence 1 with method `barcode`.
   Tested. Nothing produces a barcode to feed it.
@@ -164,6 +166,23 @@ already produces three items. A three-pack scanned once produces the same three.
 The two paths agree, which is the point — a user should not get a different
 pantry depending on whether the shop shrink-wrapped their tins.
 
+### Container count is durable only when it is explicit
+
+`products.container_count` is nullable SKU metadata, not an estimate. The
+Open Food Facts parser sets it only when the source explicitly expresses a
+pack shape such as `6 x 400 ml`; a total quantity such as `2.4 l` leaves it
+null. The review shows the current count as one for a null value but keeps the
+underlying product value null until the user supplies a positive count.
+
+*Why persist it on the product:* pack count identifies how a particular SKU
+must become pantry containers. Keeping it only in a short scan session would
+make the same known six-pack turn into one container on a later offline scan.
+
+*Why never derive it:* dividing a total by a typical container size guesses a
+fact that affects expiry, open state, and stock count. A user may correct an
+explicit source value; that correction updates the cached product so later
+scans reuse it.
+
 ## Risks / Trade-offs
 
 **Remote data quality is uneven** → wrong weights and missing brands create
@@ -189,8 +208,10 @@ after.
 ## Migration Plan
 
 Append one migration creating `barcode_misses` with a unique GTIN and
-`fetched_at`. The miss table has no foreign key because a not-found GTIN has no
-product or canonical ingredient. `DROP_ALL` removes it.
+`fetched_at`, then a later forward-only migration adding nullable positive
+`container_count` to `products`. The miss table has no foreign key because a
+not-found GTIN has no product or canonical ingredient. Existing products retain
+an unknown count (`NULL`); `DROP_ALL` removes both tables as before.
 
 No migration is needed for scan sessions, which deliberately stay in memory.
 

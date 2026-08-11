@@ -72,61 +72,65 @@ not a miss.
 - [x] 4.2 Pass the product name to `resolve()` **without** the barcode set —
       step 1 would otherwise consult the product row being created, which
       resolves nothing useful.
-- [ ] 4.3 On a confirm-band outcome, ask the user once, then write the answer
+- [x] 4.3 On a confirm-band outcome, ask the user once, then write the answer
       both as an alias through the existing user-resolution path and as the
       product's `canonical_id`, so the GTIN never asks again.
-- [ ] 4.4 Unit-test the mapping path, including the confirm-band branch.
+- [x] 4.4 Unit-test the mapping path, including the confirm-band branch.
 
 ## 5. Scanning
 
-- [ ] 5.1 Build lookup, caching, and batch review — **not a scan screen**.
+- [x] 5.1 Build lookup, caching, and batch review — **not a scan screen**.
       Barcodes arrive from the shared Add to pantry surface in
       `add-unified-capture`, which detects them natively and routes here only
       when one resolves. Rapid multi-scan remains this change's, reached from
       that surface.
-- [ ] 5.2 Give immediate feedback on a successful read — haptic and visual,
+- [x] 5.2 Give immediate feedback on a successful read — haptic and visual,
       following the existing capture screen's conventions.
-- [ ] 5.3 Debounce a code held in frame so it is not read repeatedly, while
+- [x] 5.3 Debounce a code held in frame so it is not read repeatedly, while
       still allowing a deliberate rescan seconds later to count as a second
       item. These look similar and are opposite.
-- [ ] 5.4 Keep the camera active across scans, accumulating a session in a store
+- [x] 5.4 Keep the camera active across scans, accumulating a session in a store
       rather than in the database.
-- [ ] 5.5 Show a running count during the session.
+- [x] 5.5 Show a running count during the session.
 
 ## 6. Review and apply
 
-- [ ] 6.1 Build the batch review: every scanned item together, with what the
+- [x] 6.1 Build the batch review: every scanned item together, with what the
       lookup returned visible rather than hidden.
-- [ ] 6.2 Allow correcting name, brand, and package size, and keep the
+- [x] 6.2 Allow correcting name, brand, and package size, and keep the
       correction.
-- [ ] 6.3 Allow removing an item before applying.
-- [ ] 6.4 Apply as one transaction: create a pantry item per scan using package
+- [x] 6.3 Allow removing an item before applying.
+- [x] 6.4 Apply as one transaction: create a pantry item per scan using package
       size as quantity and the canonical's default location, with zero
       estimation drift.
-- [ ] 6.4a Expand a known multi-pack into one item per container, each holding a
+- [x] 6.4-prep Append a forward-only `products.container_count` migration;
+      widen product and Open Food Facts types; parse only explicit `N x quantity`
+      source shapes; preserve user corrections through upsert; and test that a
+      total quantity alone remains `null`.
+- [x] 6.4a Expand a known multi-pack into one item per container, each holding a
       single container's size. Decision 56 is the reason: six unopened cans have
       six independent expiries, and one item of quantity six has one wrong.
-- [ ] 6.4b Create a single item when the container count is unknown. Inferring a
+- [x] 6.4b Create a single item when the container count is unknown. Inferring a
       count from a package size is guessing.
-- [ ] 6.4c Show the pack count in review and let the user change it — lookup data
+- [x] 6.4c Show the pack count in review and let the user change it — lookup data
       is the least reliable field the remote source returns and this one
       multiplies.
-- [ ] 6.5 Confirm an abandoned session creates nothing.
-- [ ] 6.6 Attribute the remote data source wherever its data is shown, per 1.1.
-- [ ] 6.7 Components from `src/components`, tokens from
+- [x] 6.5 Confirm an abandoned session creates nothing.
+- [x] 6.6 Attribute the remote data source wherever its data is shown, per 1.1.
+- [x] 6.7 Components from `src/components`, tokens from
       `src/constants/theme.ts`. No colour, font, or spacing literals.
 
 ## 7. Fallback
 
 The path that carries the differentiator audience, not an edge case.
 
-- [ ] 7.1 When a lookup finds nothing, offer photograph or manual entry inline
+- [x] 7.1 When a lookup finds nothing, offer photograph or manual entry inline
       rather than reporting a failed scan.
-- [ ] 7.2 When there is no connection and the barcode is uncached, offer the
+- [x] 7.2 When there is no connection and the barcode is uncached, offer the
       same fallback immediately rather than after a timeout.
-- [ ] 7.3 Bind a user-supplied identification to the barcode so a later scan
+- [x] 7.3 Bind a user-supplied identification to the barcode so a later scan
       resolves without asking.
-- [ ] 7.4 Test the fallback with the two deliberately-absent fixture barcodes.
+- [x] 7.4 Test the fallback with the two deliberately-absent fixture barcodes.
 
 ## 8. Verification
 

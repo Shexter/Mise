@@ -18,6 +18,8 @@ import {
   loadSeedData,
   markItemUsedUp,
   recordReceiptFrameExtraction,
+  removeReceiptFrame,
+  replaceReceiptFrame,
   setReceiptLineExcluded,
 } from '../src/db/queries';
 import { RECEIPTS } from '../src/logic/__fixtures__/receipts';
@@ -131,6 +133,74 @@ describe('multi-frame receipt capture', () => {
     expect(rebuilt?.lines.map((line) => line.rawText)).toEqual(['Milk', 'Apples', 'Bread']);
     expect(rebuilt?.store).toBe('Bottom Store');
     expect(rebuilt?.totalCents).toBe(898);
+  });
+
+  test('rebuilds a three-frame draft after one frame is removed without losing survivors', async () => {
+    const receipt = await insertCapturedReceipt('file://top.jpg', '2026-06-01');
+    const [top] = await getReceiptFrames(receipt.id);
+    const middle = await addReceiptFrame(receipt.id, 'file://middle.jpg');
+    const tail = await addReceiptFrame(receipt.id, 'file://tail.jpg');
+
+    await recordReceiptFrameExtraction(top!.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: null, taxCents: null, totalCents: null,
+      lines: [
+        { rawText: 'Milk', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 499, unitPriceCents: 499, appliesToText: null },
+        { rawText: 'Apples', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 399, unitPriceCents: 399, appliesToText: null },
+      ],
+    });
+    await recordReceiptFrameExtraction(middle.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: null, taxCents: null, totalCents: null,
+      lines: [
+        { rawText: 'Apples', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 399, unitPriceCents: 399, appliesToText: null },
+        { rawText: 'Bread', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 299, unitPriceCents: 299, appliesToText: null },
+      ],
+    });
+    await recordReceiptFrameExtraction(tail.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: 1297, taxCents: 0, totalCents: 1297,
+      lines: [
+        { rawText: 'Bread', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 299, unitPriceCents: 299, appliesToText: null },
+        { rawText: 'Yogurt', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 100, unitPriceCents: 100, appliesToText: null },
+      ],
+    });
+
+    await expect(removeReceiptFrame(receipt.id, top!.id)).resolves.toBe('file://top.jpg');
+    const rebuilt = await getReceipt(receipt.id);
+    expect(rebuilt?.lines.map((line) => line.rawText)).toEqual(['Apples', 'Bread', 'Yogurt']);
+    expect(rebuilt?.totalCents).toBe(1297);
+  });
+
+  test('retaking a frame clears only that frame before its replacement is extracted', async () => {
+    const receipt = await insertCapturedReceipt('file://top.jpg', '2026-06-01');
+    const [top] = await getReceiptFrames(receipt.id);
+    const bottom = await addReceiptFrame(receipt.id, 'file://bottom.jpg');
+    await recordReceiptFrameExtraction(top!.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: null, taxCents: null, totalCents: null,
+      lines: [{ rawText: 'Milk', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 499, unitPriceCents: 499, appliesToText: null }],
+    });
+    await recordReceiptFrameExtraction(bottom.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: 299, taxCents: 0, totalCents: 299,
+      lines: [{ rawText: 'Bread', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 299, unitPriceCents: 299, appliesToText: null }],
+    });
+
+    await expect(replaceReceiptFrame(receipt.id, top!.id, 'file://retake.jpg')).resolves.toBe('file://top.jpg');
+    const afterRetake = await getReceipt(receipt.id);
+    expect(afterRetake?.lines.map((line) => line.rawText)).toEqual(['Bread']);
+    expect((await getReceiptFrames(receipt.id))[0]?.imageUri).toBe('file://retake.jpg');
+  });
+
+  test('a manual review edit blocks later frame changes', async () => {
+    const receipt = await insertCapturedReceipt('file://top.jpg', '2026-06-01');
+    const [top] = await getReceiptFrames(receipt.id);
+    await recordReceiptFrameExtraction(top!.id, {
+      store: 'Store', purchasedAt: '2026-06-01', receiptType: 'grocery', subtotalCents: 499, taxCents: 0, totalCents: 499,
+      lines: [{ rawText: 'Milk', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count', lineTotalCents: 499, unitPriceCents: 499, appliesToText: null }],
+    });
+    const line = (await getReceipt(receipt.id))!.lines[0]!;
+    await setReceiptLineExcluded(line.id, true);
+
+    await expect(addReceiptFrame(receipt.id, 'file://blocked.jpg')).rejects.toThrow(
+      'Finish or discard this receipt before changing its photos.',
+    );
   });
 });
 

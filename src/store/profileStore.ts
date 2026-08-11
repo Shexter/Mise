@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { getBodyMeasurements, getProfile, saveProfile } from '@/db/queries';
 import { resolveTarget } from '@/logic/bodyComposition';
-import { DEFAULT_SPLIT } from '@/logic/macros';
+import { DEFAULT_FIBRE_TARGET_G, DEFAULT_SPLIT } from '@/logic/macros';
 import type { BodyMeasurement, Profile } from '@/types';
 
 type Status = 'idle' | 'loading' | 'ready';
@@ -70,6 +70,7 @@ export function draftProfile(): Omit<
     proteinPct: DEFAULT_SPLIT.proteinPct,
     carbsPct: DEFAULT_SPLIT.carbsPct,
     fatPct: DEFAULT_SPLIT.fatPct,
+    fibreTargetG: DEFAULT_FIBRE_TARGET_G,
     units: 'metric',
     onboardedAt: new Date().toISOString(),
   };

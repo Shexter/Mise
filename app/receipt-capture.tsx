@@ -20,8 +20,8 @@ import {
   space,
 } from '@/constants/theme';
 import { localDateString } from '@/logic/dates';
-import { preparePhoto, type SourceImage } from '@/media/photos';
-import { addReceiptPhoto, captureReceipt, needsExtraction } from '@/logic/receiptService';
+import { deletePhoto, preparePhoto, type SourceImage } from '@/media/photos';
+import { addReceiptPhoto, captureReceipt, needsExtraction, retakeReceiptPhoto } from '@/logic/receiptService';
 
 type FlashMode = 'off' | 'on' | 'auto';
 
@@ -34,7 +34,7 @@ type FlashMode = 'off' | 'on' | 'auto';
  */
 export default function ReceiptCaptureScreen() {
   const router = useRouter();
-  const { receiptId } = useLocalSearchParams<{ receiptId?: string }>();
+  const { receiptId, replaceFrameId } = useLocalSearchParams<{ receiptId?: string; replaceFrameId?: string }>();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null);
   const toast = useToast();
@@ -45,23 +45,32 @@ export default function ReceiptCaptureScreen() {
 
   const proceed = async (source: SourceImage) => {
     setBusy(true);
-    const prepared = await preparePhoto(source, 'receipts');
-    const receipt = receiptId
-      ? await addReceiptPhoto(receiptId, prepared.base64, prepared.uri, localDateString())
-      : await captureReceipt(prepared.base64, prepared.uri, localDateString());
-    setBusy(false);
-    if (!receipt) return;
+    let prepared: Awaited<ReturnType<typeof preparePhoto>> | null = null;
+    try {
+      prepared = await preparePhoto(source, 'receipts');
+      const receipt = replaceFrameId && receiptId
+        ? await retakeReceiptPhoto(receiptId, replaceFrameId, prepared.base64, prepared.uri, localDateString())
+        : receiptId
+          ? await addReceiptPhoto(receiptId, prepared.base64, prepared.uri, localDateString())
+          : await captureReceipt(prepared.base64, prepared.uri, localDateString());
+      if (!receipt) return;
 
-    if (!receiptId && needsExtraction(receipt)) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      toast.show({
-        message: "Receipt saved. It'll finish importing once you're online with a key set.",
-      });
-      router.back();
-      return;
+      if (!receiptId && needsExtraction(receipt)) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        toast.show({
+          message: "Receipt saved. It'll finish importing once you're online with a key set.",
+        });
+        router.back();
+        return;
+      }
+
+      router.replace({ pathname: '/receipt-review', params: { receiptId: receipt.id } });
+    } catch (error) {
+      if (prepared && receiptId) deletePhoto(prepared.uri);
+      toast.show({ message: error instanceof Error ? error.message : 'Could not save this receipt photo.' });
+    } finally {
+      setBusy(false);
     }
-
-    router.replace({ pathname: '/receipt-review', params: { receiptId: receipt.id } });
   };
 
   const takePhoto = async () => {

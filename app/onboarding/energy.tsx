@@ -7,6 +7,7 @@ import { StepShell } from '@/components/StepShell';
 import { Caption } from '@/components/Type';
 import { dexaFatFreeMass, energyInputWarnings, resolveTarget } from '@/logic/bodyComposition';
 import { saveBodyMeasurement } from '@/db/queries';
+import { DEFAULT_FIBRE_TARGET_G } from '@/logic/macros';
 import { ACTIVITY_LEVELS, GOALS } from '@/constants/activityLevels';
 import { ONBOARDING_SPLIT, useOnboardingStore } from '@/store/onboardingStore';
 import { useProfileStore } from '@/store/profileStore';
@@ -62,6 +63,7 @@ export default function EnergySourceStep() {
     proteinPct: existingProfile?.proteinPct ?? ONBOARDING_SPLIT.proteinPct,
     carbsPct: existingProfile?.carbsPct ?? ONBOARDING_SPLIT.carbsPct,
     fatPct: existingProfile?.fatPct ?? ONBOARDING_SPLIT.fatPct,
+    fibreTargetG: existingProfile?.fibreTargetG ?? DEFAULT_FIBRE_TARGET_G,
     units: existingProfile?.units ?? 'metric',
     onboardedAt: existingProfile?.onboardedAt ?? new Date().toISOString(),
   };

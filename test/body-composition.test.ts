@@ -9,7 +9,7 @@ const profile: Profile = {
   sex: 'female', age: 30, heightCm: 170, weightKg: 70,
   activityLevel: 'moderate', goal: 'maintain', targetCalories: 2000,
   targetSource: 'estimated', statedCalories: null, statedFigureKind: null,
-  proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3, units: 'metric',
+  proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3, fibreTargetG: 30, units: 'metric',
   onboardedAt: '2026-08-09T00:00:00.000Z',
 };
 

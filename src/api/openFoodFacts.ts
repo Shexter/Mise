@@ -11,6 +11,7 @@ export interface OpenFoodFactsProduct {
   brand: string | null;
   pkgQty: number | null;
   pkgUnit: MeasureUnit | null;
+  containerCount: number | null;
   kcalPer100: number | null;
   proteinPer100: number | null;
   carbsPer100: number | null;
@@ -43,10 +44,23 @@ export function parseOpenFoodFactsResponse(raw: unknown, gtin: string): OpenFood
   if (!name) return null;
   const nutrition = isRecord(product.nutriments) ? product.nutriments : {};
   const quantity = parseQuantity(string(product.quantity));
-  return { gtin, name, brand: string(product.brands), pkgQty: quantity?.qty ?? null, pkgUnit: quantity?.unit ?? null,
+  return { gtin, name, brand: string(product.brands), pkgQty: quantity?.qty ?? null, pkgUnit: quantity?.unit ?? null, containerCount: quantity?.containerCount ?? null,
     kcalPer100: number(nutrition['energy-kcal_100g']) ?? number(nutrition['energy-kcal']), proteinPer100: number(nutrition.proteins_100g), carbsPer100: number(nutrition.carbohydrates_100g), fatPer100: number(nutrition.fat_100g) };
 }
-function parseQuantity(value: string | null): { qty: number; unit: MeasureUnit } | null { const match = value?.match(/^\s*(\d+(?:\.\d+)?)\s*(g|ml)\b/i); if (!match) return null; return { qty: Number(match[1]), unit: match[2]!.toLowerCase() as MeasureUnit }; }
+function parseQuantity(value: string | null): { qty: number; unit: MeasureUnit; containerCount: number | null } | null {
+  const multi = value?.match(/^\s*(\d+)\s*(?:x|×)\s*(\d+(?:\.\d+)?)\s*(g|ml|l)\b/i);
+  if (multi) {
+    const containerCount = Number(multi[1]);
+    const unit = multi[3]!.toLowerCase();
+    return Number.isSafeInteger(containerCount) && containerCount > 0
+      ? { qty: Number(multi[2]) * (unit === 'l' ? 1_000 : 1), unit: unit === 'l' ? 'ml' : unit as MeasureUnit, containerCount }
+      : null;
+  }
+  const single = value?.match(/^\s*(\d+(?:\.\d+)?)\s*(g|ml|l)\b/i);
+  if (!single) return null;
+  const unit = single[2]!.toLowerCase();
+  return { qty: Number(single[1]) * (unit === 'l' ? 1_000 : 1), unit: unit === 'l' ? 'ml' : unit as MeasureUnit, containerCount: null };
+}
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null; }
 function string(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function number(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
