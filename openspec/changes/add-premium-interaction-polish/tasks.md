@@ -68,6 +68,78 @@
       no-unsupported-quantity, and reduced-motion boundaries of the changed
       capture and save routes.
 
+## 4a. Cronometer-informed daily clarity
+
+- [x] 4a.1 Define one shared daily target-summary model for energy, protein,
+      carbohydrate, fat, and fibre. Preserve recorded per-day targets and
+      nullable logged nutrition; expose completeness separately from value.
+- [x] 4a.2 Add the compact summary to Today with one dominant energy figure and
+      colour-independent consumed-versus-target treatments for supported
+      metrics. Keep it usable at large text and narrow widths.
+- [x] 4a.3 Make each supported metric open a local contributor view ordered by
+      known contribution from the day's existing meals or items on the
+      dedicated Analytics page. Explain that unknown values are excluded; make
+      no provider or network request.
+- [x] 4a.4 Keep factual per-meal energy subtotals visible and put known
+      macro/fibre detail behind meal detail or Analytics. Do not add charts,
+      report tables, configuration controls, nutrition scores, grades, streaks,
+      or nutrient-ratio gauges to Today.
+- [x] 4a.5 Add tests for partial nutrition coverage, historical recorded targets,
+      contributor ordering, no-score language, large-text structure, and the
+      rule that an unknown value never becomes zero.
+- [x] 4a.6 Add the revised Today summary, Analytics handoff, and meal-detail
+      disclosure to the real-device premium acceptance matrix on supported iOS
+      and Android.
+
+## 4b. Configurable trends and personal nutrition report
+
+- [x] 4b.1 Define pure range and bucket types for energy, protein, carbohydrate,
+      fat, and fibre across 7-day, 30-day, 90-day, and custom periods. Represent
+      known value, completeness, meal presence, and recorded target separately.
+- [x] 4b.2 Add grouped range queries in `src/db/queries.ts` for daily and weekly
+      nutrition values, coverage, and per-date recorded targets. Keep missing
+      values nullable and make no network request or schema migration.
+- [x] 4b.3 Build one accessible shared chart primitive supporting bar and line
+      forms, broken/marked unknown intervals, semantic theme roles, touch and
+      screen-reader summaries, large text, and reduced motion. Document any
+      dependency decision before adding a chart package.
+- [x] 4b.4 Add `app/analytics.tsx`, titled Nutrition Analytics, with metric,
+      range, aggregation, and chart-form controls. Persist only the local
+      display configuration and never mutate meals, daily targets, or nutrition
+      values.
+- [x] 4b.5 Add the structured personal-report section: period and units, known
+      average, recorded-target context, coverage, defensible min/max, and an
+      accessible value table. Include logged-data limitation copy and no
+      diagnosis, clinical ranges, risk flags, or treatment recommendation.
+- [x] 4b.6 Link Today to Nutrition Analytics without increasing the Today
+      overview beyond energy, macros, and fibre or displacing meal actions.
+      Preserve the selected day and metric across the handoff and return.
+- [x] 4b.7 Add unit and integration tests for all range configurations, weekly
+      aggregation, mixed historical targets, complete/partial/unknown/absent
+      buckets, chart accessibility, theme compatibility, preference restore,
+      no-network behavior, and no-medical-claim language.
+- [x] 4b.8 Add chart and report checks to the real-device acceptance matrix:
+      7/30/90/custom periods, bar/line views, daily/weekly grouping, mixed
+      targets, sparse history, large text, reduced motion, screen readers, and
+      all three themes on supported iOS and Android devices.
+
+## 4c. Pantry information architecture
+
+- [x] 4c.1 Add an accessible Stock / Recipes subsection control to
+      `app/(tabs)/pantry.tsx`, with Stock selected by default and selection
+      retained only as harmless local presentation state.
+- [x] 4c.2 Keep pending receipt/capture banners, locations, camera capture,
+      manual add, stock groups, and stock empty state inside Stock only.
+- [x] 4c.3 Reuse the existing saved-recipes list and add action inside Recipes;
+      keep existing recipe intake, detail, attribution, coverage, and local
+      query behavior rather than creating another recipe store or data model.
+- [x] 4c.4 Add tests proving subsection switching is non-destructive, each
+      subsection owns its actions and empty state, recipes never appear as
+      stock, and navigation to recipe intake/detail remains intact.
+- [x] 4c.5 Add Pantry subsection checks to the real-device acceptance matrix for
+      populated and empty collections, pending stock work, large text, screen
+      readers, and all three themes on supported iOS and Android devices.
+
 ## 5. Acceptance evidence and verification
 
 - [x] 5.1 Add a reusable premium-interaction acceptance section to

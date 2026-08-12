@@ -4,12 +4,13 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Network from 'expo-network';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { extractCapture } from '@/api/capture';
 import { VisionError } from '@/api/errors';
 import { Button } from '@/components/Button';
+import { ProcessingIndicator } from '@/components/ProcessingIndicator';
 import { Body, Caption, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { camera, color, fillParent, layout, opacity, radius, space } from '@/constants/theme';
@@ -17,7 +18,7 @@ import { insertPendingCapture, PendingCaptureLimitError } from '@/db/queries';
 import { resolveCapturedItems } from '@/logic/captureItems';
 import { isBarcodeScanDebounced, resolveBarcode } from '@/logic/barcode';
 import { localDateString } from '@/logic/dates';
-import { captureExtractedReceipt } from '@/logic/receiptService';
+import { captureExtractedReceipt, captureReceipt, needsExtraction } from '@/logic/receiptService';
 import { deletePhoto, preparePhoto, type SourceImage } from '@/media/photos';
 import { useBarcodeCaptureStore } from '@/store/barcodeCaptureStore';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
@@ -42,6 +43,36 @@ export default function PantryCaptureScreen() {
       { text: 'Add item by hand', onPress: () => router.replace('/(tabs)/pantry') },
       { text: 'Try another photo', style: 'cancel' },
     ]);
+  };
+
+  const reviewUnclearAsReceipt = async (
+    photo: Awaited<ReturnType<typeof preparePhoto>>,
+  ) => {
+    setBusy(true);
+    try {
+      const receipt = await captureReceipt(
+        photo.base64,
+        photo.uri,
+        localDateString(),
+      );
+      if (needsExtraction(receipt)) {
+        toast.show({
+          kind: ('pending' as const),
+          message: "Receipt saved. It'll finish importing once you're online with a key set.",
+        });
+        router.back();
+        return;
+      }
+      router.replace({ pathname: '/receipt-review', params: { receiptId: receipt.id } });
+    } catch (error) {
+      deletePhoto(photo.uri);
+      toast.show({
+        kind: 'recoverable-error',
+        message: error instanceof Error ? error.message : 'Could not save this receipt photo.',
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const proceed = async (source: SourceImage) => {
@@ -69,11 +100,16 @@ export default function PantryCaptureScreen() {
         );
         return;
       }
-      deletePhoto(photo.uri);
       Alert.alert('What did you photograph?', 'Mise could not tell from this photo.', [
-        { text: 'Groceries', onPress: () => router.replace('/(tabs)/pantry') },
-        { text: 'Receipt', onPress: () => router.replace('/receipt-capture') },
-        { text: 'Try another photo', style: 'cancel' },
+        {
+          text: 'Groceries',
+          onPress: () => {
+            deletePhoto(photo!.uri);
+            router.replace('/(tabs)/pantry');
+          },
+        },
+        { text: 'Receipt', onPress: () => void reviewUnclearAsReceipt(photo!) },
+        { text: 'Try another photo', style: 'cancel', onPress: () => deletePhoto(photo!.uri) },
       ]);
     } catch (error) {
       if (photo && error instanceof VisionError && ['no_key', 'network', 'timeout', 'server'].includes(error.kind)) {
@@ -119,10 +155,10 @@ export default function PantryCaptureScreen() {
       if (result.kind === 'product' && result.product.gtin) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         if (isBatch) {
-          addSessionProduct(result.product);
+          addSessionProduct(result.product, result.cached ? 'local' : 'open-food-facts');
           setLastRead(result.product.name);
         } else {
-          router.replace({ pathname: '/barcode-review', params: { gtin: result.product.gtin } });
+          router.replace({ pathname: '/barcode-review', params: { gtin: result.product.gtin, origin: result.cached ? 'local' : 'open-food-facts' } });
         }
       } else if (result.kind === 'needs_confirmation' && result.match.status === 'needs_confirmation') {
         setPendingMatch({
@@ -171,10 +207,10 @@ export default function PantryCaptureScreen() {
     <View style={styles.root}>
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} onBarcodeScanned={scanBarcode} />
       <View style={[styles.top, { paddingTop: insets.top + space.sm }]}>
-        {isBatch ? <View style={styles.batchHeader}><Caption style={styles.light}>{session.length} scanned{lastRead ? ` · ${lastRead}` : ''}</Caption><Button label={`Review ${session.length}`} variant="secondary" block={false} disabled={busy || session.length === 0} onPress={() => router.replace('/barcode-batch-review')} /></View> : <Button label="Scan several" variant="secondary" block={false} disabled={busy} onPress={() => { clearSession(); router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } }); }} />}
+        {isBatch ? <View style={styles.batchHeader}><Caption style={styles.light}>{session.length} scanned{lastRead ? ` · ${lastRead}` : ''}</Caption><Button label={`Review ${session.length}`} variant="secondary" block={false} disabled={busy || session.length === 0} onPress={() => router.replace('/barcode-batch-review')} /></View> : <View style={styles.captureLinks}><Button label="Recent" variant="secondary" block={false} disabled={busy} onPress={() => router.push('/barcode-history')} /><Button label="Scan several" variant="secondary" block={false} disabled={busy} onPress={() => { clearSession(); router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } }); }} /></View>}
         <Button label="Cancel" variant="ghost" block={false} disabled={busy} onPress={isBatch ? leaveBatch : () => router.back()} />
       </View>
-      {busy ? <View style={styles.busy} accessibilityLiveRegion="polite"><ActivityIndicator color={color.surface} size="large" /><Caption style={styles.light} accessibilityRole="alert">Reading your capture…</Caption></View> : null}
+      {busy ? <View style={styles.busy}><ProcessingIndicator label="Reading your capture…" onDark /></View> : null}
       <View style={[styles.bottom, { paddingBottom: insets.bottom + space.lg }]}>
         <Button label="Library" variant="secondary" block={false} onPress={() => void pick()} disabled={busy} />
         <Pressable onPress={() => void take()} disabled={busy} accessibilityRole="button" accessibilityLabel="Take pantry photo" style={({ pressed }) => [styles.shutter, pressed && { opacity: opacity.pressed }]}><View style={styles.inner} /></Pressable>
@@ -191,6 +227,7 @@ const styles = StyleSheet.create({
   light: { color: color.surface, textAlign: 'center' },
   top: { position: 'absolute', left: layout.screenGutter, right: layout.screenGutter, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   batchHeader: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  captureLinks: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   bottom: { position: 'absolute', bottom: 0, left: layout.screenGutter, right: layout.screenGutter, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   shutter: { width: 76, height: 76, borderRadius: radius.full, borderWidth: 4, borderColor: color.surface, alignItems: 'center', justifyContent: 'center' },
   inner: { width: 60, height: 60, borderRadius: radius.full, backgroundColor: color.surface },

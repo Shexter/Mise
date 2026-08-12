@@ -263,3 +263,115 @@ returned wrongly.
 - **WHEN** a lookup returns an incorrect package size
 - **THEN** the user can correct it before the item is created
 - **AND** the correction is kept
+
+### Requirement: A scan result explains facts before asking for action
+
+The system SHALL present a recognised product as a factual result before it can
+create pantry stock. The result MUST show the product identity, source, package
+and container information, available nutrition, and which expected fields are
+unknown. It MUST NOT replace those facts with a health score or use colour as a
+good/bad food verdict.
+
+#### Scenario: A complete remote result is shown
+
+- **WHEN** a barcode resolves from a remote product source
+- **THEN** the result identifies that source
+- **AND** shows the returned identity, package, container, and nutrition fields
+- **AND** keeps the add-to-pantry action behind review
+
+#### Scenario: A cached result is shown
+
+- **WHEN** a barcode resolves from the local product cache
+- **THEN** the result is available without a network request
+- **AND** indicates that Mise recognised it locally
+
+#### Scenario: Product data is incomplete
+
+- **WHEN** one or more expected fields are absent from the product record
+- **THEN** each absent field is presented as unknown or not provided
+- **AND** the system does not derive, zero-fill, or visually imply the value
+
+#### Scenario: A result is not a health verdict
+
+- **WHEN** any barcode result is displayed
+- **THEN** the system does not assign a good/bad colour, health grade, or
+  proprietary numeric score to the product
+
+### Requirement: Every displayed product fact remains correctable
+
+The system SHALL allow a user to correct a looked-up product's name, brand,
+package quantity, package unit, and explicit container count before creating
+pantry stock. A correction MUST update the locally cached product used by later
+offline scans.
+
+#### Scenario: A package fact is corrected
+
+- **WHEN** the displayed package quantity, unit, or container count is wrong
+- **THEN** the user can correct it during review
+- **AND** the pantry preview updates before confirmation
+
+#### Scenario: A correction is reused offline
+
+- **GIVEN** a user corrected a product fact and completed review
+- **WHEN** that GTIN is scanned later without a connection
+- **THEN** the corrected local product fact is shown
+
+### Requirement: Guided fallback retains barcode identity
+
+The system SHALL retain a globally meaningful GTIN while an unknown,
+unresolved, or incomplete product is identified by package photographs or
+manual entry. It MUST offer distinct capture prompts for the package front,
+declared quantity, and nutrition label when photograph identification is used.
+No submitted photograph or extracted field may create stock before review.
+
+#### Scenario: An unknown product is photographed
+
+- **WHEN** a global GTIN is absent from the remote source and the user chooses
+  photograph identification
+- **THEN** the GTIN remains attached to the recovery draft
+- **AND** the app asks only for the package evidence needed to identify and
+  review the product
+
+#### Scenario: A photographed fallback is confirmed
+
+- **WHEN** the user confirms the recovered product identity
+- **THEN** the local product is bound to the retained GTIN
+- **AND** a later scan can resolve it offline
+
+#### Scenario: Provider analysis is unavailable
+
+- **WHEN** package photographs cannot be analysed because no configured
+  provider is available or the request fails
+- **THEN** the retained GTIN and manual identification path remain available
+- **AND** the photographs are not described as having stayed on-device if they
+  were submitted to a configured provider
+
+### Requirement: Scan history is local and non-mutating
+
+The system SHALL provide a local history of recently recognised product scans.
+Opening a history entry MUST show its current cached facts and MUST NOT create
+or change pantry stock.
+
+#### Scenario: A recent result is reopened
+
+- **WHEN** a user opens a product from recent scans
+- **THEN** its locally cached result is shown without a remote request
+- **AND** no pantry item is created until the normal review is confirmed
+
+#### Scenario: Scan history is cleared
+
+- **WHEN** the user clears recent scan history
+- **THEN** the history entries are removed locally
+- **AND** existing pantry items and product corrections are not deleted
+
+### Requirement: Shelf images cannot directly create stock
+
+The system MUST NOT infer purchased products or quantities from a whole-shelf
+image and write them to the pantry.
+
+#### Scenario: A shelf contains several visible products
+
+- **WHEN** a user photographs or presents a shelf containing several products
+- **THEN** the system does not treat every visible product as purchased stock
+- **AND** requires individual product selection and review before any pantry
+  record can be created

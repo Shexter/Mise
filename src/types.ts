@@ -15,7 +15,7 @@ export type Units = 'metric' | 'imperial';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export type MealSource = 'photo' | 'manual' | 'suggestion';
+export type MealSource = 'photo' | 'manual' | 'suggestion' | 'recipe';
 
 /**
  * Where a meal came from, and therefore whether it debits the pantry.
@@ -143,6 +143,42 @@ export interface Meal {
 
 export interface MealWithItems extends Meal {
   items: MealItem[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Saved recipes                                                               */
+/* -------------------------------------------------------------------------- */
+
+/** A locally saved recipe the user brought into Mise. */
+export interface Recipe {
+  id: string;
+  title: string;
+  /** Original post or page, if the recipe arrived with one. Never fetched. */
+  sourceLink: string | null;
+  /** Kept only for the user's own reference; never published or shared. */
+  steps: readonly string[];
+  /** A locally stored screenshot, if this recipe arrived from an image. */
+  imageUri: string | null;
+  /** A bare shared link remains useful while its content is still missing. */
+  status: 'awaiting_content' | 'ready';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One ingredient as the recipe stated it. Missing quantity is intentional. */
+export interface RecipeIngredient {
+  id: string;
+  recipeId: string;
+  name: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  /** Null means the ingredient could not be safely resolved yet. */
+  canonicalId: string | null;
+  sortOrder: number;
+}
+
+export interface RecipeWithIngredients extends Recipe {
+  ingredients: readonly RecipeIngredient[];
 }
 
 export interface Macros {
@@ -315,6 +351,8 @@ export interface Product {
   fatPer100: number | null;
   source: ReferenceSource;
   fetchedAt: string | null;
+  /** Updated only by a successful barcode recognition, never by opening review. */
+  lastScannedAt: string | null;
 }
 
 /** A valid GTIN that the remote product catalogue did not recognise. */

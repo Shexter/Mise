@@ -13,8 +13,8 @@ export default function Welcome() {
     <StepShell
       step="welcome"
       showBack={false}
-      title="Photograph a meal, get a calorie estimate."
-      detail="Set up your target from your age, height, weight, usual activity, and goal. Everything stays on this phone."
+      title="Cook from what you have, tracked as you go."
+      detail="Your diary is stored on this phone, with no Mise account or server. Photo analysis sends only the photo you choose to the provider for your API key."
       primaryLabel="Set up with my details"
       onPrimary={() => {
         set({ targetSource: 'estimated' });

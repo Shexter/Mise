@@ -19,11 +19,15 @@ const config: ExpoConfig = {
   scheme: 'mise',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/brand/icon-concepts/dark-glass/mise-icon-dark-glass-navy-sage.png',
   userInterfaceStyle: 'light',
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.mise.app',
+    icon: {
+      light: './assets/brand/icon-concepts/dark-glass/mise-icon-dark-glass-navy-sage.png',
+      dark: './assets/brand/icon-concepts/dark-glass/mise-icon-dark-glass-monochrome.png',
+    },
     infoPlist: {
       NSCameraUsageDescription:
         'Mise uses the camera to photograph your meals so it can estimate their calories.',
@@ -33,11 +37,11 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.mise.app',
+    icon: './assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png',
     softwareKeyboardLayoutMode: 'resize',
     adaptiveIcon: {
       backgroundColor: '#EDEAE4',
-      foregroundImage: './assets/android-icon-foreground.png',
-      monochromeImage: './assets/android-icon-monochrome.png',
+      foregroundImage: './assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png',
     },
     permissions: ['android.permission.CAMERA'],
   },
@@ -49,7 +53,7 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
+        image: './assets/brand/icon-concepts/dark-glass/mise-icon-dark-glass-navy-sage.png',
         resizeMode: 'contain',
         backgroundColor: '#EDEAE4',
       },

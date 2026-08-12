@@ -215,24 +215,27 @@ export default function MealEditorScreen() {
                 onChangeText={(name) => patchItem(item.id, { name })}
                 error={itemErrors?.name}
               />
-              <View style={styles.twoColumns}>
-                <Field
-                  style={styles.flex} label="Quantity" value={item.quantity}
-                  onChangeText={(quantity) => patchItem(item.id, { quantity })}
-                  keyboardType="decimal-pad" numeric error={itemErrors?.quantity}
+              <Field
+                label="Quantity" value={item.quantity}
+                onChangeText={(quantity) => patchItem(item.id, { quantity })}
+                keyboardType="decimal-pad" numeric error={itemErrors?.quantity}
+              />
+              <View>
+                <SectionLabel muted style={styles.unitLabel}>Unit</SectionLabel>
+                <Segmented
+                  options={UNIT_OPTIONS.slice(0, 3)} value={item.unit}
+                  onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
                 />
-                <View style={styles.flex}>
-                  <SectionLabel muted style={styles.unitLabel}>Unit</SectionLabel>
-                  <Segmented
-                    options={UNIT_OPTIONS.slice(0, 4)} value={item.unit}
-                    onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
-                  />
-                  <Segmented
-                    options={UNIT_OPTIONS.slice(4)} value={item.unit}
-                    onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
-                    style={styles.unitRow}
-                  />
-                </View>
+                <Segmented
+                  options={UNIT_OPTIONS.slice(3, 6)} value={item.unit}
+                  onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
+                  style={styles.unitRow}
+                />
+                <Segmented
+                  options={UNIT_OPTIONS.slice(6)} value={item.unit}
+                  onChange={(unit: MeasureUnit) => patchItem(item.id, { unit })}
+                  style={styles.unitRow}
+                />
               </View>
               <Field
                 label="Calories" value={item.calories}
@@ -319,7 +322,6 @@ const styles = StyleSheet.create({
   itemsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   itemCard: { gap: space.base },
   itemFields: { gap: space.base },
-  twoColumns: { flexDirection: 'row', gap: space.sm, alignItems: 'flex-start' },
   threeColumns: { flexDirection: 'row', gap: space.sm },
   flex: { flex: 1 },
   unitLabel: { marginBottom: space.sm, marginLeft: space.xs },

@@ -73,9 +73,14 @@ export function openTestDatabase(): TestDatabase {
 /** Mirrors `resetDatabase`: drops everything and re-runs the migrations. */
 export function resetTestDatabase(): TestDatabase {
   if (!handle) return openTestDatabase();
-  handle.exec(DROP_ALL);
-  for (const migration of MIGRATIONS) {
-    handle.exec(migration);
+  handle.exec('PRAGMA foreign_keys = OFF;');
+  try {
+    handle.exec(DROP_ALL);
+    for (const migration of MIGRATIONS) {
+      handle.exec(migration);
+    }
+  } finally {
+    handle.exec('PRAGMA foreign_keys = ON;');
   }
   return wrap(handle);
 }

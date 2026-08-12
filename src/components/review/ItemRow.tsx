@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { Caption, MealCalories, RowTitle } from '@/components/Type';
-import { color, layout, opacity, space } from '@/constants/theme';
+import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { formatGrams, formatQuantity, roundCalories } from '@/logic/scaling';
 import type { MealItem } from '@/types';
 
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: color.ground,
   },
   remove: {

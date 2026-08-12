@@ -30,6 +30,8 @@ So this is a lookup, an upsert, and a screen.
   proposal's non-goals.
 - Guaranteeing coverage. The remote database is uneven and the design assumes
   misses are ordinary.
+- Reproducing Yuka's nutrition/additive/organic score, Scout's editorial score,
+  affiliate shopping, or a whole-shelf-to-stock inference path.
 
 ## Decisions
 
@@ -183,12 +185,108 @@ fact that affects expiry, open state, and stock count. A user may correct an
 explicit source value; that correction updates the cached product so later
 scans reuse it.
 
+### The product direction is a Mise hybrid, not a competitor clone
+
+Yuka's useful interaction is barcode-first immediacy: one scan opens a compact
+result and progressively reveals the source facts. Its operational advantage is
+a large, quality-controlled catalogue and explicit missing-product workflow.
+Scout's useful interaction is multimodal recovery: barcode, front photograph,
+or broader visual search can reach a product explanation. References reviewed
+for this decision are Yuka's official application, methodology, limitations,
+and 2026 press kit, plus Scout's official product, methodology, privacy, and
+terms pages.
+
+Mise combines the interaction strengths without adopting their verdict model.
+The result answers five factual questions in order: what product was read,
+where its data came from, what package/container shape will enter the pantry,
+which nutrition fields are actually known, and what the person can correct.
+There is no health score, red/green food judgement, affiliate placement, or
+manufacturer-sponsored ranking.
+
+*Why:* Mise cannot defend an overall score from partial Open Food Facts fields,
+and a food judgement conflicts with the product's uncertainty and body-neutral
+rules. Source and completeness are both testable and useful to the actual pantry
+decision.
+
+### Single-scan results use one progressive product sheet
+
+`app/barcode-review.tsx` becomes the single-scan result and review surface. Its
+summary is immediately scannable: product and brand, local/remote/user source,
+package and container count, pantry destination, and estimated expiry. Available
+nutrition is a secondary disclosure; missing values say "Not provided" and
+never render as zero.
+
+Every lookup-owned field is editable in place or through a sheet before the
+existing add action. A correction upserts the product first, then refreshes the
+preview. The batch review uses the same product-row contract so single and rapid
+scan do not disagree about correction or attribution.
+
+*Alternative rejected:* a Yuka-style full-screen score is fast to read but
+hides the facts that determine pantry correctness. A toast-only success state
+is also insufficient because it gives no correction boundary.
+
+### Photograph recovery is a GTIN-bearing draft
+
+`app/barcode-fallback.tsx` must not send "Photograph it instead" to a generic
+capture that forgets the barcode. It creates an in-memory recovery draft holding
+the validated GTIN and optional remote name. The guided route collects a package
+front first, then declared quantity and nutrition-label evidence only as needed.
+It reuses the configured provider boundary and existing photo lifecycle; it does
+not upload to a Mise service.
+
+Extracted fields return to the same product review. The user confirms the
+canonical ingredient and corrects product facts before `upsertProduct` binds the
+GTIN. If provider analysis is unavailable, the manual form uses the same draft
+and retains the GTIN. Store-local codes remain excluded because they are not
+globally stable identities.
+
+*Why:* Scout's front-photo recovery is valuable, but its backend and optional
+account model do not fit Mise. Carrying the GTIN locally makes recovery teach the
+device once without creating central product infrastructure.
+
+### Recent scans are a presentation index over local products
+
+Recent scan history uses a nullable `products.last_scanned_at` column added by a
+new forward-only migration appended to `MIGRATIONS`. A successful local-cache or
+remote recognition writes the current time after code validation; merely opening
+a result does not. The column does not duplicate nutrition or pantry state and
+does not trigger a remote refresh. The history query orders non-null timestamps
+descending. Clearing history sets the timestamps to `NULL`, leaving corrected
+product facts and pantry records intact.
+
+The existing `products.fetched_at` was rejected because it means remote fetch or
+cache update, not scan. Reusing it would reorder history after a correction and
+exclude later offline rescans.
+
+*Alternative rejected:* treating Pantry as scan history conflates "I examined
+this product" with "I own this product." A server-backed history would add an
+account and synchronization boundary for no required benefit.
+
+### Whole-shelf capture is discovery-only until identity and quantity are explicit
+
+The shared camera may visually contain several products, but a shelf image is
+not purchase evidence. This change does not implement whole-shelf recognition.
+Any later discovery experiment must return selectable candidates and route each
+chosen product through individual identity and review; it can never add every
+visible package to stock.
+
 ## Risks / Trade-offs
 
 **Remote data quality is uneven** → wrong weights and missing brands create
 wrong pantry items silently. Mitigation: the spec requires looked-up fields be
 correctable before the item is created, and the review screen shows what was
 fetched rather than hiding it.
+
+**A simple score would appear more decisive than the source data** → Do not
+compute one. Show source, known facts, unknown facts, and the pantry consequence
+that review will apply.
+
+**Guided photo recovery can look local while calling a configured provider** →
+Use the existing provider disclosure, retain a manual path, and never claim that
+submitted evidence remained on-device.
+
+**Recent scans can be mistaken for owned stock** → Keep history visually and
+semantically separate from Pantry; reopening a scan is read-only until review.
 
 **Coverage is thinnest where decision 4 aims** → Asian packaged goods are less
 completely catalogued than Western ones, so the differentiator audience hits the
@@ -209,9 +307,11 @@ after.
 
 Append one migration creating `barcode_misses` with a unique GTIN and
 `fetched_at`, then a later forward-only migration adding nullable positive
-`container_count` to `products`. The miss table has no foreign key because a
+`container_count` to `products`, then append another forward-only migration
+adding nullable `last_scanned_at`. The miss table has no foreign key because a
 not-found GTIN has no product or canonical ingredient. Existing products retain
-an unknown count (`NULL`); `DROP_ALL` removes both tables as before.
+an unknown count and no scan-history entry (`NULL`); `DROP_ALL` removes the
+tables and added columns through its normal product-table reset.
 
 No migration is needed for scan sessions, which deliberately stay in memory.
 

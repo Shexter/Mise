@@ -1,3 +1,6 @@
+import { readThemePreference } from '@/constants/themePreference';
+import { themePalettes } from '@/constants/themePalettes';
+
 /**
  * The single source of truth for colour, type, space, shape and motion.
  *
@@ -6,24 +9,9 @@
  * so the rule is enforced by review — see README, "Design system".
  */
 
-export const color = {
-  /** App background. A putty/greige — not white, not cream. */
-  ground: '#EDEAE4',
-  /** Cards, sheets, list rows. */
-  surface: '#FFFFFF',
-  /** Primary type and primary buttons. Warm near-black, never pure black. */
-  ink: '#1C1A17',
-  /** Secondary type, captions, units, timestamps. */
-  muted: '#8A857C',
-  /** Hairlines at 1px. Used sparingly. */
-  line: '#DCD8D0',
-  /** Protein. */
-  paprika: '#8C3F2B',
-  /** Carbs. */
-  wheat: '#C8992F',
-  /** Fat, and the app accent. */
-  olive: '#5C6B33',
-} as const;
+/** Resolved before module-level StyleSheets are created. */
+export const themeId = readThemePreference();
+export const color = themePalettes[themeId];
 
 export type ColorToken = keyof typeof color;
 
@@ -151,6 +139,8 @@ export const layout = {
   minRowHeight: 64,
   minTouchTarget: 44,
   dayRailHeight: 72,
+  nutritionChartHeight: 192,
+  nutritionChartPoint: 12,
 } as const;
 
 export const radius = {

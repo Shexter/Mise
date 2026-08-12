@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="stylesheet" href="_ds/organic-61ad0245-57e4-448b-a13b-2751e3a8296d/styles.css">
+  <script src="_ds/organic-61ad0245-57e4-448b-a13b-2751e3a8296d/_ds_bundle.js"></script>
+  <style>
+    a { color: var(--color-accent); }
+    a:hover { color: var(--color-accent-700); }
+    input.input:focus-visible { outline: none; }
+    .mise-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  </style>
+</helmet>
+
+<div style="min-height:100vh;background:var(--color-neutral-300);display:flex;justify-content:center;padding:48px 20px;font-family:var(--font-body);color:var(--color-text)">
+<div style="width:402px;min-height:850px;background:var(--color-bg);border-radius:32px;box-shadow:var(--shadow-lg);overflow:hidden;position:relative;display:flex;flex-direction:column">
+
+<!-- ============ ONBOARDING ============ -->
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;height:850px">
+  <div style="padding:28px 24px 0;display:flex;align-items:center;gap:12px">
+    <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ goBack }}" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showBackHidden }}" hint-placeholder-val="{{ true }}"><div style="width:40px;height:40px;flex:none"></div></sc-if>
+    <div style="flex:1;display:flex;gap:6px">
+      <sc-for list="{{ onboardTicks }}" as="tick" hint-placeholder-count="9">
+        <div style="flex:1;height:4px;border-radius:999px;background:{{ tick.color }}"></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="mise-scroll" style="flex:1;overflow-y:auto;padding:32px 24px 12px">
+    <sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding-top:8px">
+        <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--color-accent-700);font-weight:700;margin-bottom:10px">Your daily target</div>
+        <div style="font-family:var(--font-heading);font-size:72px;line-height:1;color:var(--color-text)">{{ targetCalories }}</div>
+        <div style="color:var(--color-neutral-700);margin-top:8px;font-size:16px">calories a day to {{ goalLowerLabel }}</div>
+        <div style="color:var(--color-neutral-600);font-size:13px;margin-top:14px">Maintenance is {{ maintenanceCalories }} kcal. Your goal adjusts it to {{ targetCalories }}.</div>
+      </div>
+      <div class="card elev-sm" style="margin-top:28px;padding:18px">
+        <div class="card-kicker">Macro split</div>
+        <sc-for list="{{ resultMacros }}" as="m" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px;padding:8px 0">
+            <div style="width:11px;height:11px;border-radius:50%;background:{{ m.color }};flex:none"></div>
+            <div style="flex:1">
+              <div style="font-weight:700">{{ m.label }}</div>
+              <div style="font-size:12px;color:var(--color-neutral-600)">{{ m.pct }}%</div>
+            </div>
+            <div style="font-family:var(--font-heading);font-size:19px">{{ m.grams }} g</div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="color:var(--color-neutral-600);font-size:13px;margin-top:20px;line-height:1.5">You can change any of this in Settings. Past days keep the target that was active at the time.</p>
+    </sc-if>
+
+    <sc-if value="{{ isNotResults }}" hint-placeholder-val="{{ true }}">
+      <h2 style="font-family:var(--font-heading);font-size:28px;line-height:1.15;margin:0 0 10px">{{ stepTitle }}</h2>
+      <sc-if value="{{ hasStepDetail }}" hint-placeholder-val="{{ false }}">
+        <p style="color:var(--color-neutral-700);font-size:15px;line-height:1.55;margin:0 0 22px">{{ stepDetail }}</p>
+      </sc-if>
+
+      <sc-if value="{{ isChoiceStep }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:6px">
+          <sc-for list="{{ currentChoiceOptions }}" as="opt" hint-placeholder-count="3">
+            <div onClick="{{ opt.onPress }}" style="min-height:60px;background:var(--color-surface);border-radius:var(--radius-md);border:1.5px solid {{ opt.borderColor }};padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:10px">
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:16px">{{ opt.label }}</div>
+                <sc-if value="{{ opt.hasDetail }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:13px;color:var(--color-neutral-600);margin-top:2px">{{ opt.detail }}</div>
+                </sc-if>
+              </div>
+              <div style="width:20px;height:20px;border-radius:50%;border:1.5px solid {{ opt.borderColor }};background:{{ opt.dotBg }};flex:none;margin-left:14px"></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAge }}" hint-placeholder-val="{{ false }}">
+        <div class="field">
+          <label>Age</label>
+          <input class="input" type="text" inputmode="numeric" placeholder="30" value="{{ ageInput }}" onChange="{{ setAgeInput }}" autoFocus="{{ true }}" />
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isHeight }}" hint-placeholder-val="{{ false }}">
+        <div class="seg" style="margin-bottom:16px">
+          <sc-for list="{{ heightUnitOptions }}" as="u" hint-placeholder-count="2">
+            <label class="seg-opt" style="background:{{ u.bg }};color:{{ u.color }}" onClick="{{ u.onPress }}"><span>{{ u.label }}</span></label>
+          </sc-for>
+        </div>
+        <sc-if value="{{ heightIsMetric }}" hint-placeholder-val="{{ true }}">
+          <div class="field"><label>Height</label><input class="input" type="text" inputmode="numeric" placeholder="175" value="{{ heightInput }}" onChange="{{ setHeightInput }}" /></div>
+        </sc-if>
+        <sc-if value="{{ heightIsImperial }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label>Feet</label><input class="input" type="text" inputmode="numeric" placeholder="5" value="{{ heightFeet }}" onChange="{{ setHeightFeet }}" /></div>
+            <div class="field" style="flex:1"><label>Inches</label><input class="input" type="text" inputmode="numeric" placeholder="9" value="{{ heightInches }}" onChange="{{ setHeightInches }}" /></div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <sc-if value="{{ isWeight }}" hint-placeholder-val="{{ false }}">
+        <div class="seg" style="margin-bottom:16px">
+          <sc-for list="{{ weightUnitOptions }}" as="u" hint-placeholder-count="2">
+            <label class="seg-opt" style="background:{{ u.bg }};color:{{ u.color }}" onClick="{{ u.onPress }}"><span>{{ u.label }}</span></label>
+          </sc-for>
+        </div>
+        <div class="field"><label>Weight</label><input class="input" type="text" inputmode="decimal" placeholder="{{ weightPlaceholder }}" value="{{ weightInput }}" onChange="{{ setWeightInput }}" /></div>
+      </sc-if>
+
+      <sc-if value="{{ isApiKey }}" hint-placeholder-val="{{ false }}">
+        <div class="field"><label>Anthropic API key</label><input class="input" type="text" placeholder="sk-ant-..." value="{{ apiKeyInput }}" onChange="{{ setApiKeyInput }}" /></div>
+        <p style="color:var(--color-neutral-600);font-size:13px;line-height:1.5;margin-top:14px;text-align:center">Without a key, Mise works as a manual food diary. Add one in Settings whenever you want photo estimates.</p>
+      </sc-if>
+    </sc-if>
+  </div>
+
+  <div style="padding:16px 24px 26px;border-top:1px solid var(--color-divider)">
+    <button class="btn btn-primary btn-block" style="min-height:52px;font-size:16px;margin-top:0" onClick="{{ onPrimary }}" disabled="{{ primaryDisabled }}">{{ primaryLabel }}</button>
+    <sc-if value="{{ showSkip }}" hint-placeholder-val="{{ false }}">
+      <button class="btn btn-ghost btn-block" style="min-height:44px" onClick="{{ skipApiKey }}">Skip for now</button>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ MAIN APP ============ -->
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;height:850px;position:relative">
+
+  <div class="mise-scroll" style="flex:1;overflow-y:auto;padding:26px 20px 100px">
+
+    <!-- TODAY -->
+    <sc-if value="{{ isTodayTab }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <h1 style="font-family:var(--font-heading);font-size:26px;margin:0">{{ friendlyDateStr }}</h1>
+      </div>
+
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:22px">
+        <sc-for list="{{ dateStripDays }}" as="d" hint-placeholder-count="7">
+          <div style="width:44px;min-height:64px;border-radius:var(--radius-md);background:{{ d.bg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:none">
+            <span style="font-size:11px;color:{{ d.textColor }};opacity:0.7">{{ d.label }}</span>
+            <span style="font-family:var(--font-heading);font-size:16px;color:{{ d.textColor }}">{{ d.num }}</span>
+            <div style="width:4px;height:4px;border-radius:50%;background:{{ d.dotColor }}"></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="text-align:center;margin-bottom:22px">
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:700;margin-bottom:6px">{{ remainingLabel }}</div>
+        <div style="font-family:var(--font-heading);font-size:64px;line-height:1;color:{{ remainingColor }}">{{ remainingValue }}</div>
+        <div style="font-size:13px;color:var(--color-neutral-600);margin-top:6px">{{ remainingCaption }}</div>
+      </div>
+
+      <div style="height:64px;border-radius:var(--radius-md);background:var(--color-surface);overflow:hidden;display:flex;margin-bottom:22px">
+        <sc-for list="{{ railSegments }}" as="seg" hint-placeholder-count="2">
+          <div style="width:{{ seg.widthPct }}%;height:100%;background:{{ seg.color }};margin-right:2px"></div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
+        <sc-for list="{{ macroRows }}" as="mr" hint-placeholder-count="3">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+              <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:var(--color-neutral-600)">{{ mr.label }}</span>
+              <span style="font-size:12px;color:var(--color-neutral-600)">{{ mr.consumedLabel }} / {{ mr.targetLabel }} g</span>
+            </div>
+            <div style="height:8px;border-radius:999px;background:var(--color-surface);overflow:hidden">
+              <div style="height:100%;width:{{ mr.pct }}%;background:{{ mr.color }}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div onClick="{{ openDinner }}" style="background:var(--color-surface);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;cursor:pointer">
+        <div style="font-weight:700;font-size:15px">What's for dinner?</div>
+        <div style="font-size:13px;color:var(--color-neutral-600);margin-top:2px">Ideas from what's already in your pantry.</div>
+      </div>
+
+      <sc-if value="{{ showKeyMissingBanner }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--color-accent-100);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:22px">
+          <div style="font-weight:700;font-size:15px;color:var(--color-accent-800)">No API key set. You're logging by hand.</div>
+          <div style="font-size:13px;color:var(--color-accent-700);margin-top:2px">Add one in Settings for photo estimates.</div>
+        </div>
+      </sc-if>
+
+      <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:700;color:var(--color-neutral-600);margin-bottom:10px">{{ mealsLabel }}</div>
+      <sc-if value="{{ hasMeals }}" hint-placeholder-val="{{ true }}">
+        <div class="card elev-sm" style="padding:0;overflow:hidden">
+          <sc-for list="{{ meals }}" as="meal" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--color-divider)">
+              <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:var(--color-neutral-200);flex:none"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ meal.name }}</div>
+                <div style="font-size:12px;color:var(--color-neutral-600)">{{ meal.mealTypeLabel }} · {{ meal.timeLabel }}</div>
+              </div>
+              <div style="font-family:var(--font-heading);font-size:19px;flex:none">{{ meal.calories }}</div>
+              <div onClick="{{ meal.onDelete }}" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-neutral-500)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasNoMeals }}" hint-placeholder-val="{{ false }}">
+        <div class="card elev-sm" style="text-align:center;padding:34px 20px">
+          <div style="font-weight:700;font-size:16px;margin-bottom:6px">Nothing logged yet</div>
+          <div style="font-size:13px;color:var(--color-neutral-600);margin-bottom:16px">Photograph your first meal to start the day.</div>
+          <button class="btn btn-primary" onClick="{{ openCapture }}">Take a photo</button>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <!-- PANTRY -->
+    <sc-if value="{{ isPantryTab }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h1 style="font-family:var(--font-heading);font-size:26px;margin:0">Pantry</h1>
+        <div style="display:flex;gap:6px">
+          <div onClick="{{ openLocations }}" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg>
+          </div>
+          <div onClick="{{ openReceipt }}" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.2l1-1.6A2 2 0 0 1 9.9 3.5h4.2a2 2 0 0 1 1.7.9L16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.4"/></svg>
+          </div>
+          <div onClick="{{ openAddPantry }}" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ retryPending }}" style="background:var(--color-surface);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:20px;cursor:pointer">
+          <div style="font-weight:700;font-size:15px">{{ pendingLabel }}</div>
+          <div style="font-size:13px;color:var(--color-neutral-600);margin-top:2px">No key or connection yet — tap to try again.</div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ pantryGroups }}" as="group" hint-placeholder-count="4">
+          <div class="card elev-sm" style="padding:0;overflow:hidden">
+            <div style="padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:baseline">
+              <div style="font-weight:700;font-size:15px">{{ group.name }}</div>
+              <sc-if value="{{ group.hasMultiple }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:var(--color-neutral-600)">×{{ group.count }}</div></sc-if>
+            </div>
+            <sc-for list="{{ group.entries }}" as="entry" hint-placeholder-count="1">
+              <div onClick="{{ entry.onPress }}" style="padding:12px 16px;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12px;color:var(--color-neutral-600)">{{ entry.meta }}</div>
+                  <div style="font-size:14px;font-weight:600;color:{{ entry.expiryColor }};margin-top:2px">{{ entry.expiry }}</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M9 6l6 6-6 6"/></svg>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <!-- SETTINGS -->
+    <sc-if value="{{ isSettingsTab }}" hint-placeholder-val="{{ false }}">
+      <h1 style="font-family:var(--font-heading);font-size:26px;margin:0 0 22px">Settings</h1>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div class="card-kicker" style="margin-left:4px;margin-bottom:8px">Profile</div>
+          <div class="card elev-sm" style="padding:0;overflow:hidden">
+            <sc-for list="{{ profileRows }}" as="row" hint-placeholder-count="6">
+              <div onClick="{{ row.onPress }}" style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--color-divider);cursor:pointer">
+                <span style="font-weight:600;font-size:15px">{{ row.label }}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:14px;color:var(--color-neutral-600)">{{ row.value }}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-kicker" style="margin-left:4px;margin-bottom:8px">Targets</div>
+          <div class="card elev-sm" style="padding:0;overflow:hidden">
+            <sc-for list="{{ targetRows }}" as="row" hint-placeholder-count="3">
+              <div onClick="{{ row.onPress }}" style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--color-divider);cursor:pointer">
+                <span style="font-weight:600;font-size:15px">{{ row.label }}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:14px;color:var(--color-neutral-600)">{{ row.value }}</span>
+                  <sc-if value="{{ row.hasChevron }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-kicker" style="margin-left:4px;margin-bottom:8px">API key</div>
+          <div class="card elev-sm" style="padding:0;overflow:hidden">
+            <div style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider)">
+              <span style="font-weight:600;font-size:15px">Key</span>
+              <span style="font-size:14px;color:var(--color-neutral-600)">{{ apiKeyMaskedLabel }}</span>
+            </div>
+            <div onClick="{{ openApiKeySettings }}" style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider);cursor:pointer">
+              <span style="font-weight:600;font-size:15px">{{ apiKeyRowLabel }}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card-kicker" style="margin-left:4px;margin-bottom:8px">Your data</div>
+          <div class="card elev-sm" style="padding:0;overflow:hidden">
+            <div onClick="{{ exportData }}" style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider);cursor:pointer">
+              <span style="font-weight:600;font-size:15px">Export as JSON</span>
+            </div>
+            <div onClick="{{ deleteAllData }}" style="min-height:52px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-divider);cursor:pointer">
+              <span style="font-weight:600;font-size:15px;color:var(--color-accent-800)">Delete all data</span>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:12px;color:var(--color-neutral-600);padding:0 4px;line-height:1.5">Mise 1.0.0. Everything is stored only on this device. There is no account and no server.</p>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- FAB -->
+  <sc-if value="{{ isTodayTab }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;right:20px;bottom:96px;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div onClick="{{ openManual }}" style="width:44px;height:44px;border-radius:50%;background:var(--color-surface);border:1px solid var(--color-divider);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-sm)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5 17.5 7.5 7 18 3 19 4 15 14.5 4.5Z"/></svg>
+      </div>
+      <div onClick="{{ openCapture }}" style="width:64px;height:64px;border-radius:50%;background:var(--color-accent);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow-md)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.2l1-1.6A2 2 0 0 1 9.9 3.5h4.2a2 2 0 0 1 1.7.9L16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.4"/></svg>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- TAB BAR -->
+  <div style="height:76px;background:var(--color-surface);border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-around;flex:none">
+    <div onClick="{{ setTabToday }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ todayTabColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      <span style="font-size:11px;font-weight:600">Today</span>
+    </div>
+    <div onClick="{{ setTabPantry }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ pantryTabColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 7l1.5-3h15L21 7"/><path d="M9.5 12h5"/></svg>
+      <span style="font-size:11px;font-weight:600">Pantry</span>
+    </div>
+    <div onClick="{{ setTabSettings }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;color:{{ settingsTabColor }}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="8" x2="20" y2="8"/><circle cx="9" cy="8" r="2.2" fill="currentColor" stroke="none"/><line x1="4" y1="16" x2="20" y2="16"/><circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/></svg>
+      <span style="font-size:11px;font-weight:600">Settings</span>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ============ MODALS ============ -->
+<sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:color-mix(in srgb, var(--color-neutral-900) 50%, transparent);display:flex;align-items:flex-end;z-index:20" onClick="{{ closeModalBg }}">
+
+    <sc-if value="{{ isModalCapture }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:#141210;display:flex;flex-direction:column">
+        <div style="display:flex;justify-content:space-between;padding:24px 20px">
+          <div onClick="{{ closeModal }}" style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5ead8" stroke-width="2.75" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+          </div>
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5ead8" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div style="width:280px;height:280px;border-radius:24px;background:#26221d;display:flex;align-items:center;justify-content:center;color:rgba(245,234,216,0.4);font-size:13px">Camera preview</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 30px 44px">
+          <div onClick="{{ pickFromLibrary }}" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f5ead8" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6" fill="#f5ead8" stroke="none"/><path d="M21 16l-5.5-5.5a2 2 0 0 0-2.8 0L4 19"/></svg>
+          </div>
+          <div onClick="{{ triggerCapture }}" style="width:76px;height:76px;border-radius:50%;border:4px solid #f5ead8;display:flex;align-items:center;justify-content:center;cursor:pointer">
+            <div style="width:60px;height:60px;border-radius:50%;background:#f5ead8"></div>
+          </div>
+          <div style="width:56px"></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalAnalyzing }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:color-mix(in srgb, #141210 78%, transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+        <div style="width:34px;height:34px;border-radius:50%;border:3px solid rgba(245,234,216,0.3);border-top-color:#f5ead8;animation:mise-spin 0.8s linear infinite"></div>
+        <div style="color:#f5ead8;font-size:14px">Reading your plate…</div>
+        <button class="btn btn-ghost" style="color:#f5ead8" onClick="{{ closeModal }}">Cancel</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalReview }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;max-height:86%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column" onClick="{{ stopClick }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px">
+          <h3 style="margin:0;font-size:20px">Review meal</h3>
+          <button class="btn btn-ghost" onClick="{{ discardReview }}">Discard</button>
+        </div>
+        <div class="mise-scroll" style="overflow-y:auto;padding:8px 20px 12px">
+          <div class="field"><label>Meal</label><input class="input" type="text" value="{{ reviewName }}" onChange="{{ setReviewName }}" /></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin:16px 0">
+            <div>
+              <div class="card-kicker">Total</div>
+              <div style="font-family:var(--font-heading);font-size:26px">{{ reviewTotalCalories }}</div>
+            </div>
+            <div style="font-size:12px;color:var(--color-neutral-600)">P {{ reviewTotalProtein }} · C {{ reviewTotalCarbs }} · F {{ reviewTotalFat }}</div>
+          </div>
+          <div class="card elev-sm" style="padding:0;overflow:hidden;margin-bottom:16px">
+            <sc-for list="{{ reviewItems }}" as="item" hint-placeholder-count="3">
+              <div style="padding:12px 16px;border-top:1px solid var(--color-divider);display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:600;font-size:14px">{{ item.name }}</div>
+                  <div style="font-size:12px;color:var(--color-neutral-600)">{{ item.qty }}</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:16px">{{ item.calories }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div class="card-kicker" style="margin-bottom:8px">Meal</div>
+          <div class="seg" style="margin-bottom:16px;width:100%">
+            <sc-for list="{{ mealTypeOptions }}" as="o" hint-placeholder-count="4">
+              <label class="seg-opt" style="flex:1;justify-content:center;background:{{ o.bg }};color:{{ o.color }}" onClick="{{ o.onPress }}"><span>{{ o.label }}</span></label>
+            </sc-for>
+          </div>
+          <div class="card-kicker" style="margin-bottom:8px">Where from</div>
+          <div class="seg" style="width:100%">
+            <sc-for list="{{ venueOptions }}" as="o" hint-placeholder-count="3">
+              <label class="seg-opt" style="flex:1;justify-content:center;background:{{ o.bg }};color:{{ o.color }}" onClick="{{ o.onPress }}"><span>{{ o.label }}</span></label>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:12px 20px 26px;border-top:1px solid var(--color-divider)">
+          <button class="btn btn-primary btn-block" style="min-height:50px" onClick="{{ saveReview }}">Save meal</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalManual }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;max-height:86%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column" onClick="{{ stopClick }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px">
+          <h3 style="margin:0;font-size:20px">Enter a meal</h3>
+          <button class="btn btn-ghost" onClick="{{ closeModal }}">Cancel</button>
+        </div>
+        <div class="mise-scroll" style="overflow-y:auto;padding:8px 20px 12px;display:flex;flex-direction:column;gap:14px">
+          <div class="field"><label>Name</label><input class="input" type="text" placeholder="Chicken salad" value="{{ manualName }}" onChange="{{ setManualName }}" /></div>
+          <div class="field"><label>Calories</label><input class="input" type="text" inputmode="numeric" placeholder="kcal" value="{{ manualCalories }}" onChange="{{ setManualCalories }}" /></div>
+          <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label>Protein g</label><input class="input" type="text" inputmode="decimal" value="{{ manualProtein }}" onChange="{{ setManualProtein }}" /></div>
+            <div class="field" style="flex:1"><label>Carbs g</label><input class="input" type="text" inputmode="decimal" value="{{ manualCarbs }}" onChange="{{ setManualCarbs }}" /></div>
+            <div class="field" style="flex:1"><label>Fat g</label><input class="input" type="text" inputmode="decimal" value="{{ manualFat }}" onChange="{{ setManualFat }}" /></div>
+          </div>
+          <div>
+            <div class="card-kicker" style="margin-bottom:8px">Meal</div>
+            <div class="seg" style="width:100%">
+              <sc-for list="{{ mealTypeOptions }}" as="o" hint-placeholder-count="4">
+                <label class="seg-opt" style="flex:1;justify-content:center;background:{{ o.bg }};color:{{ o.color }}" onClick="{{ o.onPress }}"><span>{{ o.label }}</span></label>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 20px 26px;border-top:1px solid var(--color-divider)">
+          <button class="btn btn-primary btn-block" style="min-height:50px" onClick="{{ saveManual }}" disabled="{{ manualDisabled }}">Save meal</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalDinner }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;max-height:86%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column" onClick="{{ stopClick }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px">
+          <h3 style="margin:0;font-size:20px">What's for dinner?</h3>
+          <button class="btn btn-ghost" onClick="{{ closeModal }}">Close</button>
+        </div>
+        <div class="mise-scroll" style="overflow-y:auto;padding:8px 20px 26px;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ dinnerSuggestions }}" as="d" hint-placeholder-count="3">
+            <div class="card elev-sm">
+              <div class="card-kicker">{{ d.tag }}</div>
+              <div class="card-title">{{ d.title }}</div>
+              <p class="card-body">{{ d.detail }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalPantryDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;max-height:86%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column" onClick="{{ stopClick }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px">
+          <h3 style="margin:0;font-size:20px">{{ detailName }}</h3>
+          <button class="btn btn-ghost" onClick="{{ closeModal }}">Close</button>
+        </div>
+        <div class="mise-scroll" style="overflow-y:auto;padding:8px 20px 26px">
+          <div style="font-size:13px;color:var(--color-neutral-600)">{{ detailMeta }}</div>
+          <div style="font-family:var(--font-heading);font-size:24px;margin-top:6px">{{ detailStatus }}</div>
+          <div style="font-size:13px;color:var(--color-neutral-600);margin-top:4px">{{ detailExpiry }}</div>
+
+          <sc-if value="{{ detailFullnessTracked }}" hint-placeholder-val="{{ false }}">
+            <div class="card-kicker" style="margin:20px 0 8px">How full is it?</div>
+            <div class="seg" style="width:100%">
+              <sc-for list="{{ fullnessOptions }}" as="o" hint-placeholder-count="4">
+                <label class="seg-opt" style="flex:1;justify-content:center;background:{{ o.bg }};color:{{ o.color }}" onClick="{{ o.onPress }}"><span>{{ o.label }}</span></label>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+            <sc-if value="{{ detailShowOpen }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary btn-block" onClick="{{ markOpened }}">Mark opened</button></sc-if>
+            <sc-if value="{{ detailFreezable }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary btn-block" onClick="{{ freezeIt }}">Freeze it</button></sc-if>
+            <button class="btn btn-secondary btn-block" onClick="{{ markRunningLow }}">Running low</button>
+            <button class="btn btn-primary btn-block" onClick="{{ markUsedUp }}">Used it up</button>
+            <button class="btn btn-block" style="border:1px solid var(--color-divider);color:var(--color-accent-800)" onClick="{{ discardEntry }}">Discard — it went off</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalAddPantry }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;max-height:86%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column" onClick="{{ stopClick }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 8px">
+          <h3 style="margin:0;font-size:20px">Add to pantry</h3>
+          <button class="btn btn-ghost" onClick="{{ closeModal }}">Cancel</button>
+        </div>
+        <div class="mise-scroll" style="overflow-y:auto;padding:8px 20px 12px;display:flex;flex-direction:column;gap:16px">
+          <div class="field"><label>Ingredient</label><input class="input" type="text" placeholder="e.g. Sesame oil" value="{{ addPantryName }}" onChange="{{ setAddPantryName }}" /></div>
+          <div>
+            <div class="card-kicker" style="margin-bottom:8px">Where it lives</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ locationChips }}" as="loc" hint-placeholder-count="3">
+                <div onClick="{{ loc.onPress }}" style="min-height:36px;padding:0 14px;display:flex;align-items:center;border-radius:999px;border:1.5px solid {{ loc.borderColor }};background:{{ loc.bg }};font-size:13px;cursor:pointer">{{ loc.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div class="card-kicker" style="margin-bottom:8px">Acquired</div>
+            <div class="seg" style="width:100%">
+              <sc-for list="{{ acquiredOptions }}" as="o" hint-placeholder-count="4">
+                <label class="seg-opt" style="flex:1;justify-content:center;background:{{ o.bg }};color:{{ o.color }}" onClick="{{ o.onPress }}"><span>{{ o.label }}</span></label>
+              </sc-for>
+            </div>
+          </div>
+          <div class="field"><label>How much (optional)</label><input class="input" type="text" inputmode="numeric" placeholder="e.g. 500 g" value="{{ addPantryQty }}" onChange="{{ setAddPantryQty }}" /></div>
+        </div>
+        <div style="padding:12px 20px 26px;border-top:1px solid var(--color-divider)">
+          <button class="btn btn-primary btn-block" style="min-height:50px" onClick="{{ saveAddPantry }}" disabled="{{ addPantryDisabled }}">Add item</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalApiKeySettings }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);padding:20px" onClick="{{ stopClick }}">
+        <h3 style="margin:0 0 14px;font-size:20px">API key</h3>
+        <div class="field"><label>Anthropic API key</label><input class="input" type="text" placeholder="sk-ant-..." value="{{ settingsApiKeyInput }}" onChange="{{ setSettingsApiKeyInput }}" /></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-secondary" style="flex:1" onClick="{{ closeModal }}">Cancel</button>
+          <button class="btn btn-primary" style="flex:1" onClick="{{ saveSettingsApiKey }}">Save</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalMacroSplit }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);padding:20px" onClick="{{ stopClick }}">
+        <h3 style="margin:0 0 14px;font-size:20px">Macro split</h3>
+        <div style="display:flex;gap:10px">
+          <div class="field" style="flex:1"><label>Protein %</label><input class="input" type="text" inputmode="numeric" value="{{ splitProtein }}" onChange="{{ setSplitProtein }}" /></div>
+          <div class="field" style="flex:1"><label>Carbs %</label><input class="input" type="text" inputmode="numeric" value="{{ splitCarbs }}" onChange="{{ setSplitCarbs }}" /></div>
+          <div class="field" style="flex:1"><label>Fat %</label><input class="input" type="text" inputmode="numeric" value="{{ splitFat }}" onChange="{{ setSplitFat }}" /></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-secondary" style="flex:1" onClick="{{ closeModal }}">Cancel</button>
+          <button class="btn btn-primary" style="flex:1" onClick="{{ saveMacroSplit }}">Save</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalEditProfile }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);padding:20px" onClick="{{ stopClick }}">
+        <h3 style="margin:0 0 14px;font-size:20px">{{ editFieldLabel }}</h3>
+        <div class="field"><input class="input" type="text" value="{{ editFieldValue }}" onChange="{{ setEditFieldValue }}" /></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-secondary" style="flex:1" onClick="{{ closeModal }}">Cancel</button>
+          <button class="btn btn-primary" style="flex:1" onClick="{{ saveEditField }}">Save</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isModalLocations }}" hint-placeholder-val="{{ false }}">
+      <div style="position:relative;width:100%;background:var(--color-bg);border-radius:28px 28px 0 0;box-shadow:var(--shadow-lg);padding:20px" onClick="{{ stopClick }}">
+        <h3 style="margin:0 0 14px;font-size:20px">Storage locations</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ storageLocations }}" as="loc" hint-placeholder-count="4">
+            <div style="padding:12px 14px;background:var(--color-surface);border-radius:var(--radius-md);font-size:14px;font-weight:600">{{ loc }}</div>
+          </sc-for>
+        </div>
+        <button class="btn btn-secondary btn-block" style="margin-top:16px" onClick="{{ closeModal }}">Close</button>
+      </div>
+    </sc-if>
+
+  </div>
+</sc-if>
+
+<!-- TOAST -->
+<sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:20px;right:20px;bottom:100px;background:var(--color-neutral-900);color:var(--color-neutral-100);border-radius:var(--radius-md);padding:14px 18px;font-size:14px;box-shadow:var(--shadow-md);z-index:30">{{ toastMessage }}</div>
+</sc-if>
+
+<helmet><style>@keyframes mise-spin{to{transform:rotate(360deg)}}</style></helmet>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ACTIVITY = [
+  { value: 'sedentary', label: 'Sedentary', detail: 'Desk job, little dedicated exercise.', mult: 1.2 },
+  { value: 'light', label: 'Lightly active', detail: 'Exercise 1–3 days a week.', mult: 1.375 },
+  { value: 'moderate', label: 'Moderately active', detail: 'Exercise 3–5 days a week.', mult: 1.55 },
+  { value: 'active', label: 'Active', detail: 'Exercise 6–7 days a week.', mult: 1.725 },
+  { value: 'very_active', label: 'Very active', detail: 'Physical job, or training twice a day.', mult: 1.9 },
+];
+const GOALS = [
+  { value: 'lose', label: 'Lose weight', detail: 'A steady deficit, nothing drastic.', delta: -500 },
+  { value: 'maintain', label: 'Maintain weight', detail: 'Eat what you burn.', delta: 0 },
+  { value: 'gain', label: 'Gain weight', detail: 'A modest surplus.', delta: 300 },
+];
+const STEPS = ['welcome', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'apikey', 'results'];
+const ACCENT = 'var(--color-accent)';
+const DIVIDER = 'var(--color-divider)';
+const PROTEIN_C = 'var(--color-accent-600)';
+const CARBS_C = 'var(--color-neutral-700)';
+const FAT_C = 'var(--color-accent-2-600)';
+
+class Component extends DCLogic {
+  state = {
+    screen: 'onboarding',
+    onboardStep: 0,
+    profile: { sex: null, ageInput: '', units: 'metric', heightInput: '', heightFeet: '', heightInches: '', weightInput: '', activityLevel: null, goal: null },
+    apiKeyInput: '',
+    hasApiKey: false,
+    tab: 'today',
+    modal: null,
+    meals: [
+      { id: 'm1', name: 'Greek yogurt with berries', mealType: 'breakfast', time: '8:12 AM', calories: 320, proteinG: 18, carbsG: 40, fatG: 6 },
+      { id: 'm2', name: 'Chicken rice bowl', mealType: 'lunch', time: '12:45 PM', calories: 610, proteinG: 36, carbsG: 56, fatG: 22 },
+    ],
+    targetCalories: 2100, proteinPct: 30, carbsPct: 40, fatPct: 30,
+    reviewName: 'Grain bowl',
+    reviewMealType: 'dinner', reviewVenue: 'home',
+    reviewItems: [
+      { id: 'r1', name: 'Grilled chicken', qty: '150 g', calories: 248, proteinG: 38, carbsG: 0, fatG: 9 },
+      { id: 'r2', name: 'Brown rice', qty: '1 cup', calories: 216, proteinG: 5, carbsG: 45, fatG: 2 },
+      { id: 'r3', name: 'Avocado', qty: '1/2', calories: 120, proteinG: 1, carbsG: 6, fatG: 11 },
+    ],
+    manualName: '', manualCalories: '', manualProtein: '', manualCarbs: '', manualFat: '', manualMealType: 'lunch',
+    pantryGroups: [
+      { id: 'g1', name: 'Soy sauce', entries: [{ id: 'e1', location: 'Pantry shelf', opened: true, status: 'running_low', confident: true, daysLeft: null, estimated: false, fullnessTracked: true, fullness: 'low', freezable: false }] },
+      { id: 'g2', name: 'Chicken breast', entries: [{ id: 'e2', location: 'Fridge', opened: false, status: 'in_stock', confident: true, daysLeft: 2, estimated: true, fullnessTracked: false, fullness: null, freezable: true }] },
+      { id: 'g3', name: 'Rice', entries: [{ id: 'e3', location: 'Pantry shelf', opened: true, status: 'in_stock', confident: true, daysLeft: null, estimated: false, fullnessTracked: false, fullness: null, freezable: false }] },
+      { id: 'g4', name: 'Gochujang', entries: [{ id: 'e4', location: 'Fridge door', opened: true, status: 'in_stock', confident: false, daysLeft: 180, estimated: true, fullnessTracked: true, fullness: 'half', freezable: false }] },
+    ],
+    pendingReceipts: 2,
+    selectedEntryId: null,
+    addPantryName: '', addPantryLocation: 'Pantry shelf', addPantryAcquired: '0', addPantryQty: '',
+    settingsApiKeyInput: '',
+    editField: null, editFieldValue: '', editFieldLabel: '',
+    profileVals: { sex: 'Male', age: 29, height: '175 cm', weight: '72 kg', activityLabel: 'Moderately active', goal: 'maintain' },
+    toast: null,
+  };
+
+  componentDidMount() { this._toastTimer = null; }
+
+  bindText(setter) { return (e) => setter.call(this, e.target.value); }
+
+  // ---------- onboarding nav ----------
+  goBack = () => this.setState((s) => ({ onboardStep: Math.max(0, s.onboardStep - 1) }));
+  advance = () => this.setState((s) => ({ onboardStep: Math.min(STEPS.length - 1, s.onboardStep + 1) }));
+  setSex = (v) => { this.setState((s) => ({ profile: { ...s.profile, sex: v } })); };
+  setAgeInput = (e) => { const v = e.target.value; this.setState((s) => ({ profile: { ...s.profile, ageInput: v } })); };
+  setUnits = (units) => this.setState((s) => ({ profile: { ...s.profile, units } }));
+  setHeightInput = (e) => { const v = e.target.value; this.setState((s) => ({ profile: { ...s.profile, heightInput: v } })); };
+  setHeightFeet = (e) => { const v = e.target.value; this.setState((s) => ({ profile: { ...s.profile, heightFeet: v } })); };
+  setHeightInches = (e) => { const v = e.target.value; this.setState((s) => ({ profile: { ...s.profile, heightInches: v } })); };
+  setWeightInput = (e) => { const v = e.target.value; this.setState((s) => ({ profile: { ...s.profile, weightInput: v } })); };
+  setActivity = (v) => this.setState((s) => ({ profile: { ...s.profile, activityLevel: v } }));
+  setGoal = (v) => this.setState((s) => ({ profile: { ...s.profile, goal: v } }));
+  setApiKeyInput = (e) => this.setState({ apiKeyInput: e.target.value });
+  skipApiKey = () => this.setState((s) => ({ onboardStep: STEPS.length - 1, hasApiKey: false }));
+  saveApiKeyOnboard = () => this.setState((s) => ({ onboardStep: STEPS.length - 1, hasApiKey: s.apiKeyInput.trim().length > 0 }));
+
+  computeTargets(p) {
+    const age = parseInt(p.ageInput, 10) || 25;
+    let heightCm = 170;
+    if (p.units === 'metric') heightCm = parseFloat(p.heightInput) || 170;
+    else { const ft = parseFloat(p.heightFeet) || 5; const inch = parseFloat(p.heightInches) || 9; heightCm = ft * 30.48 + inch * 2.54; }
+    let weightKg = 70;
+    if (p.units === 'metric') weightKg = parseFloat(p.weightInput) || 70;
+    else weightKg = (parseFloat(p.weightInput) || 154) * 0.4536;
+    const sex = p.sex || 'male';
+    const bmr = sex === 'male' ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5 : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+    const activity = ACTIVITY.find((a) => a.value === p.activityLevel) || ACTIVITY[2];
+    const maintenance = Math.round(bmr * activity.mult);
+    const goalDef = GOALS.find((g) => g.value === p.goal) || GOALS[1];
+    const target = Math.max(1200, maintenance + goalDef.delta);
+    return { target, maintenance, proteinG: Math.round((target * 0.3) / 4), carbsG: Math.round((target * 0.4) / 4), fatG: Math.round((target * 0.3) / 9), goalDef };
+  }
+
+  startTracking = () => {
+    const p = this.state.profile;
+    const t = this.computeTargets(p);
+    this.setState({ screen: 'app', targetCalories: t.target });
+  };
+
+  // ---------- app shell ----------
+  setTabToday = () => this.setState({ tab: 'today' });
+  setTabPantry = () => this.setState({ tab: 'pantry' });
+  setTabSettings = () => this.setState({ tab: 'settings' });
+
+  openModal = (name) => this.setState({ modal: name });
+  closeModal = () => this.setState({ modal: null, selectedEntryId: null, editField: null });
+  closeModalBg = (e) => { if (e && e.target === e.currentTarget) this.closeModal(); };
+  stopClick = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+
+  openCapture = () => this.setState({ modal: 'capture' });
+  openManual = () => this.setState({ modal: 'manual', manualName: '', manualCalories: '', manualProtein: '', manualCarbs: '', manualFat: '' });
+  openDinner = () => this.setState({ modal: 'dinner' });
+  pickFromLibrary = () => this.triggerCapture();
+  triggerCapture = () => {
+    this.setState({ modal: 'analyzing' });
+    setTimeout(() => { if (this.state.modal === 'analyzing') this.setState({ modal: 'review' }); }, 1100);
+  };
+  setReviewName = (e) => this.setState({ reviewName: e.target.value });
+  discardReview = () => this.closeModal();
+  saveReview = () => {
+    const items = this.state.reviewItems;
+    const totals = items.reduce((a, i) => ({ cal: a.cal + i.calories, p: a.p + i.proteinG, c: a.c + i.carbsG, f: a.f + i.fatG }), { cal: 0, p: 0, c: 0, f: 0 });
+    const meal = { id: 'm' + Date.now(), name: this.state.reviewName || 'Meal', mealType: this.state.reviewMealType, time: 'Just now', calories: totals.cal, proteinG: totals.p, carbsG: totals.c, fatG: totals.f };
+    this.setState((s) => ({ meals: [...s.meals, meal], modal: null }));
+    this.showToast('Meal saved.');
+  };
+  setManualName = (e) => this.setState({ manualName: e.target.value });
+  setManualCalories = (e) => this.setState({ manualCalories: e.target.value });
+  setManualProtein = (e) => this.setState({ manualProtein: e.target.value });
+  setManualCarbs = (e) => this.setState({ manualCarbs: e.target.value });
+  setManualFat = (e) => this.setState({ manualFat: e.target.value });
+  saveManual = () => {
+    const s = this.state;
+    if (!s.manualName.trim() || !s.manualCalories) return;
+    const meal = { id: 'm' + Date.now(), name: s.manualName.trim(), mealType: s.manualMealType, time: 'Just now', calories: Math.round(parseFloat(s.manualCalories) || 0), proteinG: parseFloat(s.manualProtein) || 0, carbsG: parseFloat(s.manualCarbs) || 0, fatG: parseFloat(s.manualFat) || 0 };
+    this.setState((st) => ({ meals: [...st.meals, meal], modal: null }));
+    this.showToast('Meal saved.');
+  };
+  deleteMeal = (id) => { this.setState((s) => ({ meals: s.meals.filter((m) => m.id !== id) })); this.showToast('Meal removed.'); };
+
+  openLocations = () => this.setState({ modal: 'locations' });
+  openReceipt = () => this.showToast('Point the camera at a receipt.');
+  openAddPantry = () => this.setState({ modal: 'addPantry', addPantryName: '', addPantryQty: '' });
+  retryPending = () => { this.setState({ pendingReceipts: 0 }); this.showToast('Retrying import…'); };
+  setAddPantryName = (e) => this.setState({ addPantryName: e.target.value });
+  setAddPantryQty = (e) => this.setState({ addPantryQty: e.target.value });
+  saveAddPantry = () => {
+    const s = this.state;
+    if (!s.addPantryName.trim()) return;
+    const group = { id: 'g' + Date.now(), name: s.addPantryName.trim(), entries: [{ id: 'e' + Date.now(), location: s.addPantryLocation, opened: false, status: 'in_stock', confident: false, daysLeft: null, estimated: false, fullnessTracked: false, fullness: null, freezable: false }] };
+    this.setState((st) => ({ pantryGroups: [group, ...st.pantryGroups], modal: null }));
+    this.showToast('Added to pantry.');
+  };
+
+  findEntry(id) { for (const g of this.state.pantryGroups) { const e = g.entries.find((x) => x.id === id); if (e) return e; } return null; }
+  mutateEntry(id, patch) {
+    this.setState((s) => ({ pantryGroups: s.pantryGroups.map((g) => ({ ...g, entries: g.entries.map((e) => (e.id === id ? { ...e, ...patch } : e)) })) }));
+  }
+  openPantryDetail = (id) => this.setState({ modal: 'pantryDetail', selectedEntryId: id });
+  markOpened = () => { this.mutateEntry(this.state.selectedEntryId, { opened: true }); this.showToast('Marked opened.'); this.closeModal(); };
+  freezeIt = () => { this.mutateEntry(this.state.selectedEntryId, { location: 'Freezer' }); this.showToast('Moved to the freezer.'); this.closeModal(); };
+  markRunningLow = () => { this.mutateEntry(this.state.selectedEntryId, { status: 'running_low', confident: true }); this.showToast('Marked running low.'); this.closeModal(); };
+  markUsedUp = () => { this.mutateEntry(this.state.selectedEntryId, { status: 'out', confident: true }); this.showToast('Marked used up.'); this.closeModal(); };
+  discardEntry = () => { this.mutateEntry(this.state.selectedEntryId, { status: 'discarded', confident: true }); this.showToast('Discarded.'); this.closeModal(); };
+  setFullness = (v) => this.mutateEntry(this.state.selectedEntryId, { fullness: v });
+
+  openApiKeySettings = () => this.setState({ modal: 'apiKeySettings', settingsApiKeyInput: '' });
+  setSettingsApiKeyInput = (e) => this.setState({ settingsApiKeyInput: e.target.value });
+  saveSettingsApiKey = () => { this.setState((s) => ({ hasApiKey: s.settingsApiKeyInput.trim().length > 0, modal: null })); this.showToast('Key saved.'); };
+
+  openMacroSplit = () => this.setState({ modal: 'macroSplit', splitProteinDraft: this.state.proteinPct, splitCarbsDraft: this.state.carbsPct, splitFatDraft: this.state.fatPct });
+  setSplitProtein = (e) => this.setState({ splitProteinDraft: e.target.value });
+  setSplitCarbs = (e) => this.setState({ splitCarbsDraft: e.target.value });
+  setSplitFat = (e) => this.setState({ splitFatDraft: e.target.value });
+  saveMacroSplit = () => {
+    const s = this.state;
+    this.setState({ proteinPct: parseInt(s.splitProteinDraft, 10) || s.proteinPct, carbsPct: parseInt(s.splitCarbsDraft, 10) || s.carbsPct, fatPct: parseInt(s.splitFatDraft, 10) || s.fatPct, modal: null });
+    this.showToast('Macro split updated.');
+  };
+
+  openEditProfile = (field, label, value) => this.setState({ modal: 'editProfile', editField: field, editFieldLabel: label, editFieldValue: String(value) });
+  setEditFieldValue = (e) => this.setState({ editFieldValue: e.target.value });
+  saveEditField = () => {
+    const f = this.state.editField; const v = this.state.editFieldValue;
+    this.setState((s) => ({ profileVals: { ...s.profileVals, [f]: v }, modal: null }));
+    this.showToast('Saved.');
+  };
+
+  exportData = () => this.showToast('Exporting your data as JSON…');
+  deleteAllData = () => this.showToast('This would delete everything on this device.');
+
+  showToast(message) {
+    this.setState({ toast: message });
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.setState({ toast: null }), 2600);
+  }
+
+  mkChoice(defs, value, onChange) {
+    return defs.map((o) => ({
+      label: o.label, detail: o.detail || null, hasDetail: !!o.detail,
+      borderColor: o.value === value ? ACCENT : DIVIDER,
+      dotBg: o.value === value ? ACCENT : 'transparent',
+      onPress: () => onChange(o.value),
+    }));
+  }
+  mkSeg(defs, value, onChange) {
+    return defs.map((o) => ({
+      label: o.label,
+      bg: o.value === value ? ACCENT : 'transparent',
+      color: o.value === value ? 'var(--color-bg)' : 'var(--color-text)',
+      onPress: () => onChange(o.value),
+    }));
+  }
+
+  statusLabel(status, confident) {
+    switch (status) {
+      case 'in_stock': return confident ? 'In stock' : 'Probably still have some';
+      case 'running_low': return confident ? 'Running low' : 'Probably low';
+      case 'out': return confident ? 'Out' : 'Probably out';
+      case 'discarded': return 'Discarded';
+      default: return status;
+    }
+  }
+  expiryLabel(entry) {
+    const d = entry.daysLeft; const suffix = entry.estimated ? ' (est.)' : '';
+    if (d === null || d === undefined) return 'No date';
+    if (d < 0) return 'Past its date' + suffix;
+    if (d === 0) return 'Use today' + suffix;
+    if (d === 1) return 'Use by tomorrow' + suffix;
+    return d + ' days left' + suffix;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const p = s.profile;
+    const stepName = STEPS[s.onboardStep];
+
+    const onboardTicks = STEPS.map((_, i) => ({ color: i <= s.onboardStep ? 'var(--color-text)' : DIVIDER }));
+
+    let stepTitle = '', stepDetail = null, isChoiceStep = false, currentChoiceOptions = [];
+    let primaryLabel = 'Continue', primaryDisabled = false, onPrimary = this.advance, showSkip = false;
+
+    if (stepName === 'welcome') {
+      stepTitle = 'Photograph a meal, get a calorie estimate.';
+      stepDetail = 'Everything stays on this phone. No account, no server, no sync — deleting the app deletes your data.';
+      primaryLabel = 'Set up';
+    } else if (stepName === 'sex') {
+      stepTitle = 'Which formula should we use?';
+      stepDetail = 'Mifflin-St Jeor uses a different constant for each. This is a calculation input, nothing more.';
+      isChoiceStep = true;
+      currentChoiceOptions = this.mkChoice([{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }], p.sex, this.setSex);
+      primaryDisabled = p.sex === null;
+    } else if (stepName === 'age') {
+      stepTitle = 'How old are you?';
+      const age = parseInt(p.ageInput, 10);
+      primaryDisabled = !(Number.isFinite(age) && age >= 13 && age <= 100);
+    } else if (stepName === 'height') {
+      stepTitle = 'How tall are you?';
+      if (p.units === 'metric') primaryDisabled = !(parseFloat(p.heightInput) >= 100 && parseFloat(p.heightInput) <= 230);
+      else primaryDisabled = !(parseFloat(p.heightFeet) >= 3 && parseFloat(p.heightFeet) <= 8);
+    } else if (stepName === 'weight') {
+      stepTitle = 'What do you weigh?';
+      stepDetail = 'A rough figure is fine. You can change it in Settings whenever it moves.';
+      const w = parseFloat(p.weightInput);
+      primaryDisabled = p.units === 'metric' ? !(w >= 30 && w <= 300) : !(w >= 60 && w <= 660);
+    } else if (stepName === 'activity') {
+      stepTitle = 'How much do you move?';
+      stepDetail = 'Count deliberate exercise, not steps around the house.';
+      isChoiceStep = true;
+      currentChoiceOptions = this.mkChoice(ACTIVITY, p.activityLevel, this.setActivity);
+      primaryDisabled = p.activityLevel === null;
+    } else if (stepName === 'goal') {
+      stepTitle = 'What are you aiming for?';
+      isChoiceStep = true;
+      currentChoiceOptions = this.mkChoice(GOALS, p.goal, this.setGoal);
+      primaryDisabled = p.goal === null;
+    } else if (stepName === 'apikey') {
+      stepTitle = 'Add your Anthropic key.';
+      stepDetail = "Mise has no server of its own. Photo estimates go straight from this phone to Anthropic, billed to your key.";
+      onPrimary = this.saveApiKeyOnboard;
+      primaryLabel = 'Save and continue';
+      primaryDisabled = s.apiKeyInput.trim().length === 0;
+      showSkip = true;
+    } else if (stepName === 'results') {
+      onPrimary = this.startTracking;
+      primaryLabel = 'Start tracking';
+    }
+
+    const targets = this.computeTargets(p);
+    const goalDef = targets.goalDef;
+    const resultMacros = [
+      { label: 'Protein', pct: 30, grams: targets.proteinG, color: PROTEIN_C },
+      { label: 'Carbs', pct: 40, grams: targets.carbsG, color: CARBS_C },
+      { label: 'Fat', pct: 30, grams: targets.fatG, color: FAT_C },
+    ];
+
+    const heightUnitOptions = this.mkSeg([{ value: 'metric', label: 'cm' }, { value: 'imperial', label: 'ft / in' }], p.units, this.setUnits);
+    const weightUnitOptions = this.mkSeg([{ value: 'metric', label: 'kg' }, { value: 'imperial', label: 'lb' }], p.units, this.setUnits);
+
+    // ---------- app / today ----------
+    const consumed = s.meals.reduce((a, m) => ({ cal: a.cal + m.calories, p: a.p + m.proteinG, c: a.c + m.carbsG, f: a.f + m.fatG }), { cal: 0, p: 0, c: 0, f: 0 });
+    const remaining = s.targetCalories - consumed.cal;
+    const isOver = remaining < 0;
+    const targetProteinG = Math.round((s.targetCalories * s.proteinPct) / 100 / 4);
+    const targetCarbsG = Math.round((s.targetCalories * s.carbsPct) / 100 / 4);
+    const targetFatG = Math.round((s.targetCalories * s.fatPct) / 100 / 9);
+
+    const now = new Date();
+    const friendlyDateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const dateStripDays = [-3, -2, -1, 0, 1, 2, 3].map((offset, i) => {
+      const selected = offset === 0;
+      const logged = [-3, -2, -1, 0].includes(offset);
+      const d = new Date(now); d.setDate(now.getDate() + offset);
+      return {
+        label: d.toLocaleDateString(undefined, { weekday: 'short' })[0],
+        num: d.getDate(),
+        bg: selected ? 'var(--color-text)' : 'transparent',
+        textColor: selected ? 'var(--color-bg)' : 'var(--color-text)',
+        dotColor: logged ? (selected ? 'var(--color-bg)' : 'var(--color-accent-2-600)') : 'transparent',
+      };
+    });
+
+    const macroColors = [PROTEIN_C, CARBS_C, FAT_C];
+    const scaleBasis = isOver ? consumed.cal : s.targetCalories;
+    const railSegments = s.meals.map((m, i) => ({ widthPct: Math.max(2, Math.round((m.calories / Math.max(1, scaleBasis)) * 100)), color: macroColors[i % 3] }));
+
+    const meals = s.meals.map((m) => ({
+      id: m.id, name: m.name, mealTypeLabel: m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1), timeLabel: m.time, calories: m.calories,
+      onDelete: () => this.deleteMeal(m.id),
+    }));
+
+    const macroRows = [
+      { label: 'Protein', consumedLabel: Math.round(consumed.p), targetLabel: targetProteinG, pct: Math.min(100, (consumed.p / Math.max(1, targetProteinG)) * 100), color: PROTEIN_C },
+      { label: 'Carbs', consumedLabel: Math.round(consumed.c), targetLabel: targetCarbsG, pct: Math.min(100, (consumed.c / Math.max(1, targetCarbsG)) * 100), color: CARBS_C },
+      { label: 'Fat', consumedLabel: Math.round(consumed.f), targetLabel: targetFatG, pct: Math.min(100, (consumed.f / Math.max(1, targetFatG)) * 100), color: FAT_C },
+    ];
+
+    // review + manual segmented shared
+    const mealTypeOptions = this.mkSeg([{ value: 'breakfast', label: 'Breakfast' }, { value: 'lunch', label: 'Lunch' }, { value: 'dinner', label: 'Dinner' }, { value: 'snack', label: 'Snack' }], s.modal === 'review' ? s.reviewMealType : s.manualMealType, (v) => this.setState(s.modal === 'review' ? { reviewMealType: v } : { manualMealType: v }));
+    const venueOptions = this.mkSeg([{ value: 'home', label: 'Cooked in' }, { value: 'out', label: 'Ate out' }, { value: 'leftovers', label: 'Leftovers' }], s.reviewVenue, (v) => this.setState({ reviewVenue: v }));
+
+    const reviewTotals = s.reviewItems.reduce((a, i) => ({ cal: a.cal + i.calories, p: a.p + i.proteinG, c: a.c + i.carbsG, f: a.f + i.fatG }), { cal: 0, p: 0, c: 0, f: 0 });
+
+    // ---------- pantry ----------
+    const pantryGroups = s.pantryGroups.map((g) => ({
+      id: g.id, name: g.name, count: g.entries.length, hasMultiple: g.entries.length > 1,
+      entries: g.entries.map((e) => {
+        const urgent = e.daysLeft !== null && e.daysLeft <= 3;
+        return {
+          id: e.id,
+          meta: e.location + (e.opened ? ' · opened' : '') + ' · ' + this.statusLabel(e.status, e.confident),
+          expiry: this.expiryLabel(e),
+          expiryColor: urgent ? 'var(--color-accent-800)' : 'var(--color-text)',
+          onPress: () => this.openPantryDetail(e.id),
+        };
+      }),
+    }));
+
+    const selectedEntry = s.selectedEntryId ? this.findEntry(s.selectedEntryId) : null;
+    const selectedGroup = selectedEntry ? s.pantryGroups.find((g) => g.entries.some((e) => e.id === selectedEntry.id)) : null;
+    const fullnessOptions = selectedEntry ? this.mkSeg([{ value: 'full', label: 'Full' }, { value: 'half', label: 'Half' }, { value: 'low', label: 'Low' }, { value: 'out', label: 'Out' }], selectedEntry.fullness || 'full', this.setFullness) : [];
+    const locationChips = ['Pantry shelf', 'Fridge', 'Fridge door', 'Freezer'].map((loc) => ({ label: loc, borderColor: loc === s.addPantryLocation ? ACCENT : DIVIDER, bg: loc === s.addPantryLocation ? 'var(--color-accent-100)' : 'transparent', onPress: () => this.setState({ addPantryLocation: loc }) }));
+    const acquiredOptions = this.mkSeg([{ value: '0', label: 'Today' }, { value: '1', label: 'Yesterday' }, { value: '3', label: '3 days ago' }, { value: '7', label: 'A week ago' }], s.addPantryAcquired, (v) => this.setState({ addPantryAcquired: v }));
+
+    // ---------- settings ----------
+    const pv = s.profileVals;
+    const profileRows = [
+      { label: 'Formula', value: pv.sex, onPress: () => this.openEditProfile('sex', 'Formula', pv.sex) },
+      { label: 'Age', value: String(pv.age), onPress: () => this.openEditProfile('age', 'Age', pv.age) },
+      { label: 'Height', value: pv.height, onPress: () => this.openEditProfile('height', 'Height', pv.height) },
+      { label: 'Weight', value: pv.weight, onPress: () => this.openEditProfile('weight', 'Weight', pv.weight) },
+      { label: 'Activity', value: pv.activityLabel, onPress: () => this.openEditProfile('activityLabel', 'Activity', pv.activityLabel) },
+      { label: 'Goal', value: (GOALS.find((g) => g.value === pv.goal) || GOALS[1]).label, onPress: () => this.openEditProfile('goal', 'Goal', pv.goal) },
+    ];
+    const targetRows = [
+      { label: 'Daily target', value: s.targetCalories + ' kcal', hasChevron: false },
+      { label: 'Macro split', value: s.proteinPct + ' / ' + s.carbsPct + ' / ' + s.fatPct, hasChevron: true, onPress: this.openMacroSplit },
+      { label: 'Units', value: p.units === 'metric' ? 'Metric' : 'Imperial', hasChevron: true, onPress: () => this.setUnits(p.units === 'metric' ? 'imperial' : 'metric') },
+    ];
+
+    return {
+      isOnboarding: s.screen === 'onboarding', isApp: s.screen === 'app',
+      showBack: stepName !== 'welcome', showBackHidden: stepName === 'welcome',
+      onboardTicks, goBack: this.goBack,
+      isResults: stepName === 'results', isNotResults: stepName !== 'results',
+      stepTitle, hasStepDetail: !!stepDetail, stepDetail,
+      isChoiceStep, currentChoiceOptions,
+      isAge: stepName === 'age', ageInput: p.ageInput, setAgeInput: this.setAgeInput,
+      isHeight: stepName === 'height', heightUnitOptions, heightIsMetric: p.units === 'metric', heightIsImperial: p.units === 'imperial',
+      heightInput: p.heightInput, setHeightInput: this.setHeightInput, heightFeet: p.heightFeet, setHeightFeet: this.setHeightFeet, heightInches: p.heightInches, setHeightInches: this.setHeightInches,
+      isWeight: stepName === 'weight', weightUnitOptions, weightInput: p.weightInput, setWeightInput: this.setWeightInput, weightPlaceholder: p.units === 'metric' ? '72' : '160',
+      isApiKey: stepName === 'apikey', apiKeyInput: s.apiKeyInput, setApiKeyInput: this.setApiKeyInput, showSkip, skipApiKey: this.skipApiKey,
+      targetCalories: targets.target, maintenanceCalories: targets.maintenance, goalLowerLabel: goalDef.label.toLowerCase(), resultMacros,
+      primaryLabel, primaryDisabled, onPrimary,
+
+      tab: s.tab, isTodayTab: s.tab === 'today', isPantryTab: s.tab === 'pantry', isSettingsTab: s.tab === 'settings',
+      setTabToday: this.setTabToday, setTabPantry: this.setTabPantry, setTabSettings: this.setTabSettings,
+      todayTabColor: s.tab === 'today' ? ACCENT : 'var(--color-neutral-500)',
+      pantryTabColor: s.tab === 'pantry' ? ACCENT : 'var(--color-neutral-500)',
+      settingsTabColor: s.tab === 'settings' ? ACCENT : 'var(--color-neutral-500)',
+
+      friendlyDateStr, dateStripDays,
+      remainingLabel: isOver ? 'Over target' : 'Remaining today', remainingValue: Math.abs(remaining), remainingColor: isOver ? 'var(--color-accent-700)' : 'var(--color-text)',
+      remainingCaption: isOver ? Math.abs(remaining) + ' over — a fact, not a verdict.' : 'of ' + s.targetCalories + ' target',
+      railSegments, macroRows,
+      showKeyMissingBanner: !s.hasApiKey,
+      mealsLabel: "Today's meals", hasMeals: s.meals.length > 0, hasNoMeals: s.meals.length === 0, meals,
+      openCapture: this.openCapture, openManual: this.openManual, openDinner: this.openDinner,
+
+      hasPending: s.pendingReceipts > 0, pendingLabel: s.pendingReceipts + (s.pendingReceipts === 1 ? ' receipt waiting to import' : ' receipts waiting to import'), retryPending: this.retryPending,
+      pantryGroups, openLocations: this.openLocations, openReceipt: this.openReceipt, openAddPantry: this.openAddPantry,
+
+      profileRows, targetRows,
+      apiKeyMaskedLabel: s.hasApiKey ? 'sk-ant-••••4f2a' : 'Not set', apiKeyRowLabel: s.hasApiKey ? 'Replace key' : 'Add key', openApiKeySettings: this.openApiKeySettings,
+      exportData: this.exportData, deleteAllData: this.deleteAllData,
+
+      modalOpen: !!s.modal, closeModal: this.closeModal, closeModalBg: this.closeModalBg, stopClick: this.stopClick,
+      isModalCapture: s.modal === 'capture', isModalAnalyzing: s.modal === 'analyzing', isModalReview: s.modal === 'review', isModalManual: s.modal === 'manual', isModalDinner: s.modal === 'dinner',
+      isModalPantryDetail: s.modal === 'pantryDetail', isModalAddPantry: s.modal === 'addPantry', isModalApiKeySettings: s.modal === 'apiKeySettings', isModalMacroSplit: s.modal === 'macroSplit', isModalEditProfile: s.modal === 'editProfile', isModalLocations: s.modal === 'locations',
+      triggerCapture: this.triggerCapture, pickFromLibrary: this.pickFromLibrary,
+
+      reviewName: s.reviewName, setReviewName: this.setReviewName, reviewItems: s.reviewItems,
+      reviewTotalCalories: reviewTotals.cal, reviewTotalProtein: reviewTotals.p, reviewTotalCarbs: reviewTotals.c, reviewTotalFat: reviewTotals.f,
+      mealTypeOptions, venueOptions, saveReview: this.saveReview, discardReview: this.discardReview,
+
+      manualName: s.manualName, setManualName: this.setManualName, manualCalories: s.manualCalories, setManualCalories: this.setManualCalories,
+      manualProtein: s.manualProtein, setManualProtein: this.setManualProtein, manualCarbs: s.manualCarbs, setManualCarbs: this.setManualCarbs, manualFat: s.manualFat, setManualFat: this.setManualFat,
+      manualDisabled: !(s.manualName.trim() && s.manualCalories), saveManual: this.saveManual,
+
+      dinnerSuggestions: [
+        { tag: 'Clears soon', title: 'Chicken & gochujang rice bowl', detail: 'Uses the chicken breast before it turns, and a spoon of gochujang that has sat opened a while.' },
+        { tag: 'Fits your day', title: 'Soy-glazed tofu with rice', detail: 'Light enough to stay under target with room for a snack later.' },
+        { tag: 'Pantry-only', title: 'Fried rice, egg, scallion', detail: 'Nothing new to buy — rice, egg, and whatever vegetable is closest to its date.' },
+      ],
+
+      detailName: selectedGroup ? selectedGroup.name : '', detailMeta: selectedEntry ? selectedEntry.location + (selectedEntry.opened ? ' · opened' : '') : '',
+      detailStatus: selectedEntry ? this.statusLabel(selectedEntry.status, selectedEntry.confident) : '', detailExpiry: selectedEntry ? this.expiryLabel(selectedEntry) : '',
+      detailFullnessTracked: !!(selectedEntry && selectedEntry.fullnessTracked), fullnessOptions,
+      detailShowOpen: !!(selectedEntry && !selectedEntry.opened), detailFreezable: !!(selectedEntry && selectedEntry.freezable),
+      markOpened: this.markOpened, freezeIt: this.freezeIt, markRunningLow: this.markRunningLow, markUsedUp: this.markUsedUp, discardEntry: this.discardEntry,
+
+      addPantryName: s.addPantryName, setAddPantryName: this.setAddPantryName, addPantryQty: s.addPantryQty, setAddPantryQty: this.setAddPantryQty,
+      locationChips, acquiredOptions, addPantryDisabled: !s.addPantryName.trim(), saveAddPantry: this.saveAddPantry,
+
+      settingsApiKeyInput: s.settingsApiKeyInput, setSettingsApiKeyInput: this.setSettingsApiKeyInput, saveSettingsApiKey: this.saveSettingsApiKey,
+      splitProtein: s.splitProteinDraft !== undefined ? s.splitProteinDraft : s.proteinPct, setSplitProtein: this.setSplitProtein,
+      splitCarbs: s.splitCarbsDraft !== undefined ? s.splitCarbsDraft : s.carbsPct, setSplitCarbs: this.setSplitCarbs,
+      splitFat: s.splitFatDraft !== undefined ? s.splitFatDraft : s.fatPct, setSplitFat: this.setSplitFat, saveMacroSplit: this.saveMacroSplit,
+
+      editFieldLabel: s.editFieldLabel, editFieldValue: s.editFieldValue, setEditFieldValue: this.setEditFieldValue, saveEditField: this.saveEditField,
+      storageLocations: ['Pantry shelf', 'Fridge', 'Fridge door', 'Freezer'],
+
+      toastVisible: !!s.toast, toastMessage: s.toast,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

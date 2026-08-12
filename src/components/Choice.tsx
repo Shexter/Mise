@@ -63,7 +63,8 @@ export function ChoiceList<T extends string>({
 
 interface SegmentedProps<T extends string> {
   options: readonly ChoiceOption<T>[];
-  value: T;
+  /** Null allows split option rows without inventing a selected value. */
+  value: T | null;
   onChange: (value: T) => void;
   style?: ViewStyle;
 }
@@ -95,7 +96,11 @@ export function Segmented<T extends string>({
               pressed && { opacity: opacity.pressed },
             ]}
           >
-            <Caption style={selected ? styles.segmentTextOn : undefined} muted={!selected}>
+            <Caption
+              numberOfLines={1}
+              style={selected ? styles.segmentTextOn : undefined}
+              muted={!selected}
+            >
               {option.label}
             </Caption>
           </Pressable>
@@ -118,7 +123,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  rowSelected: { borderColor: color.ink },
+  rowSelected: { borderColor: color.action },
   rowText: { flex: 1 },
   detail: { marginTop: space.xs },
   mark: {
@@ -130,8 +135,8 @@ const styles = StyleSheet.create({
     marginLeft: space.base,
   },
   markSelected: {
-    backgroundColor: color.ink,
-    borderColor: color.ink,
+    backgroundColor: color.action,
+    borderColor: color.action,
   },
   segmented: {
     flexDirection: 'row',
@@ -150,6 +155,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space.sm,
   },
-  segmentSelected: { backgroundColor: color.ground },
-  segmentTextOn: { color: color.ink },
+  segmentSelected: { backgroundColor: color.action },
+  segmentTextOn: { color: color.onAction },
 });

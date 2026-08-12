@@ -25,6 +25,8 @@ interface Props {
   onClose: () => void;
   /** Called once every match has been confirmed, corrected, or sent away. */
   onDone?: () => void;
+  /** Persists the user's answer in the surface that owns the raw reference. */
+  onResolved?: (raw: string, canonicalId: string | null) => Promise<void> | void;
 }
 
 /**
@@ -32,7 +34,7 @@ interface Props {
  * resolutions. Shows the canonical ingredient's display name as the match;
  * the raw observed text appears only as provenance, never as the name.
  */
-export function ConfirmMatchSheet({ visible, matches, onClose, onDone }: Props) {
+export function ConfirmMatchSheet({ visible, matches, onClose, onDone, onResolved }: Props) {
   const [index, setIndex] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -52,10 +54,11 @@ export function ConfirmMatchSheet({ visible, matches, onClose, onDone }: Props) 
     }
   };
 
-  const run = (work: () => Promise<void>) => {
+  const run = (work: () => Promise<void>, canonicalId: string | null) => {
     if (busy) return;
     setBusy(true);
     void work()
+      .then(() => current && onResolved?.(current.raw, canonicalId))
       .catch(() => {})
       .finally(() => {
         setBusy(false);
@@ -65,18 +68,18 @@ export function ConfirmMatchSheet({ visible, matches, onClose, onDone }: Props) 
 
   const onConfirm = () => {
     if (!current) return;
-    run(() => confirmMatch(current.raw, current.canonicalId));
+    run(() => confirmMatch(current.raw, current.canonicalId), current.canonicalId);
   };
 
   const onReject = () => {
     if (!current) return;
-    run(() => rejectMatch(current.raw, current.canonicalId, current.source));
+    run(() => rejectMatch(current.raw, current.canonicalId, current.source), null);
   };
 
   const onPick = (item: CanonicalItem) => {
     setPickerOpen(false);
     if (!current) return;
-    run(() => confirmMatch(current.raw, item.id));
+    run(() => confirmMatch(current.raw, item.id), item.id);
   };
 
   return (

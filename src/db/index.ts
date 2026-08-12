@@ -70,9 +70,18 @@ async function migrate(handle: SQLite.SQLiteDatabase): Promise<void> {
 /** Drops every table and rebuilds the schema. Irreversible. */
 export async function resetDatabase(): Promise<void> {
   const handle = await openDatabase();
-  await handle.execAsync(DROP_ALL);
-  await handle.execAsync('PRAGMA user_version = 0');
-  await migrate(handle);
-  // A wiped install starts from the shipped seed set, nothing more.
-  await loadSeedData();
+  // Receipt lines and receipt-created pantry items reference each other. A
+  // populated database therefore cannot drop either side first while foreign
+  // keys are enforced. Disable enforcement only for this controlled rebuild,
+  // then restore it even if a migration or seed load fails.
+  await handle.execAsync('PRAGMA foreign_keys = OFF;');
+  try {
+    await handle.execAsync(DROP_ALL);
+    await handle.execAsync('PRAGMA user_version = 0;');
+    await migrate(handle);
+    // A wiped install starts from the shipped seed set, nothing more.
+    await loadSeedData();
+  } finally {
+    await handle.execAsync('PRAGMA foreign_keys = ON;');
+  }
 }

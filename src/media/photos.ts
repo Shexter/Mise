@@ -12,10 +12,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 const MEALS_DIRECTORY = 'meals';
 const RECEIPTS_DIRECTORY = 'receipts';
 const PANTRY_CAPTURES_DIRECTORY = 'pantry-captures';
+const RECIPES_DIRECTORY = 'recipes';
 const MAX_EDGE = 1024;
 const JPEG_QUALITY = 0.7;
 
-export type PhotoKind = 'meals' | 'receipts' | 'pantry-captures';
+export type PhotoKind = 'meals' | 'receipts' | 'pantry-captures' | 'recipes';
 
 export interface SourceImage {
   uri: string;
@@ -38,6 +39,8 @@ function directoryName(kind: PhotoKind): string {
       return PANTRY_CAPTURES_DIRECTORY;
     case 'meals':
       return MEALS_DIRECTORY;
+    case 'recipes':
+      return RECIPES_DIRECTORY;
   }
 }
 

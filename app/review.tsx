@@ -3,7 +3,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +22,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
+import { ProcessingIndicator } from '@/components/ProcessingIndicator';
 import { HiddenIngredientSheet } from '@/components/review/HiddenIngredientSheet';
 import { ItemRow } from '@/components/review/ItemRow';
 import { QuantitySheet } from '@/components/review/QuantitySheet';
@@ -298,13 +298,13 @@ export default function ReviewScreen() {
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
-        <View style={styles.analyzing} accessibilityLiveRegion="polite">
-          <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.analyzingText} accessibilityRole="alert">
-            {phase.retryDelayMs
+        <View style={styles.analyzing}>
+          <ProcessingIndicator
+            label={phase.retryDelayMs
               ? 'The provider asked Mise to wait a moment before retrying…'
               : 'Reading your plate…'}
-          </Caption>
+            onDark
+          />
           <Button
             label="Cancel"
             variant="ghost"
@@ -356,7 +356,7 @@ export default function ReviewScreen() {
     <View style={[styles.reviewRoot, { paddingTop: insets.top }]}>
       <KeyboardAvoidingView
         style={styles.keyboardArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={insets.top}
       >
         <ScrollView
@@ -538,7 +538,6 @@ const styles = StyleSheet.create({
     backgroundColor: camera.analyzingScrim,
     gap: space.base,
   },
-  analyzingText: { color: color.surface },
 
   errorRoot: { backgroundColor: color.ground },
   errorContent: {

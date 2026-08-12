@@ -26,8 +26,10 @@ intact:
 - `app/(tabs)/pantry.tsx` refreshes its local catalogue on focus and exposes
   pending receipt and capture work.
 
-This is a presentation and interaction change only. It adds no tables,
-migrations, network requests, provider configuration, or collected data.
+This is a local presentation and read-model change. It adds no nutrition-data
+tables, migrations, network requests, provider configuration, or collected
+health data. It may persist only display preferences such as metric, period,
+aggregation, and chart form through the existing local key-value boundary.
 
 ## Goals / Non-Goals
 
@@ -40,6 +42,11 @@ migrations, network requests, provider configuration, or collected data.
 - Make busy and recovery states explicit without changing the camera, media,
   review, or persistence architecture.
 - Make reduced-motion handling deliberate in every new or changed transition.
+- Add configurable, long-term nutrition charts and a structured report-style
+  view on a dedicated Analytics page without converting missing data into zero
+  or implying medical judgment.
+- Keep Today focused on today's decision and meal log, and group saved recipes
+  with stock as an explicit subsection of Pantry.
 - Leave a repeatable owner acceptance record for this change and future
   UI-facing OpenSpec changes.
 
@@ -53,6 +60,8 @@ migrations, network requests, provider configuration, or collected data.
   adding decorative art to fill empty states.
 - Treating a toast, haptic, or animated rail as proof that an underlying write
   succeeded.
+- Diagnosing a condition, prescribing a target, inventing clinical reference
+  ranges, or presenting Mise as a substitute for a clinician.
 
 ## Decisions
 
@@ -162,6 +171,87 @@ it would not be discoverable when the next visual change is planned. Making
 the checklist mandatory before any coding would be impractical for non-UI
 changes, so the gate is scoped to UI-facing OpenSpec work.
 
+### 7. Borrow Cronometer's progressive disclosure without importing scores
+
+Current Cronometer documentation and user feedback consistently value three
+connected ideas: energy and nutrient targets visible at a glance, meal-level
+totals in the diary, and a tap from a highlighted nutrient to its top
+contributors. Mise already stores enough local data for energy, protein,
+carbohydrate, fat, and fibre, so these patterns can improve clarity without a
+new provider, schema, or nutrition calculation.
+
+Today will keep one dominant energy figure and a compact target strip. Each
+supported metric shows consumed and target using plain values and a
+colour-independent progress treatment. Fibre joins only where the fibre change
+has supplied a defensible daily target and nullable logged values. Missing
+nutrition is displayed as incomplete or not provided, never coerced to zero.
+
+Selecting a metric opens the dedicated Analytics page at that metric and day,
+where a contributor view uses the day's existing meals and meal items ordered
+by their known contribution. It explains that items with unknown values are
+excluded from that metric's subtotal. Meal rows retain a factual energy
+subtotal; macro/fibre detail and historical evidence live in Analytics rather
+than expanding the Today screen. Today does not gain charts, report tables,
+configuration controls, or a second nutrition dashboard.
+
+This change rejects Cronometer nutrition scores, good/bad grading, and streak
+pressure. The transferable principle is progressive disclosure: overview
+first, evidence on tap, unknowns visible. Longer-range analysis belongs on the
+separate Nutrition Analytics page rather than increasing Today density.
+
+### 8. Add configurable trends and clinical clarity without clinical claims
+
+`app/analytics.tsx` will provide the dedicated longer-range surface, titled
+Nutrition Analytics so it cannot be confused with usage tracking. Its shared
+read model is derived locally from recorded daily targets and meal-item values
+through range queries in `src/db/queries.ts`. It supports energy, protein,
+carbohydrate, fat, and fibre; 7-day, 30-day, 90-day, and custom periods; daily
+or weekly aggregation; and bar or line presentation. The selected display
+configuration may be remembered locally, but it does not alter targets or meal
+records.
+
+The chart model carries a value and coverage state separately for every bucket.
+A missing or partially known nutrient is a gap or partial bucket, never a zero
+point. Weekly values aggregate only defensible known contributions and expose
+coverage for the period. Historical target comparisons use each day's recorded
+target; they do not repaint old history with the current profile. A date with no
+meal is visually distinct from a logged date whose nutrient is unknown.
+
+Below the chart, a report-style summary uses restrained clinical information
+architecture: report period, metric and units, average known intake, recorded
+target context, data-coverage statement, min/max where defensible, and a compact
+table of period values. This is an on-screen personal record, designed so a
+future export could preserve its hierarchy; this change does not create a PDF,
+clinician workflow, diagnosis, risk flag, or medical recommendation. Copy states
+that the report reflects logged data and may be incomplete.
+
+The chart itself should be a small accessible in-repo SVG or React Native
+primitive if the installed stack can support it without a new chart framework.
+It must expose a non-visual table/summary equivalent, use theme semantic roles,
+remain readable under every theme, and avoid red/green judgment. Adding a broad
+chart library is acceptable only if the implementation review proves the local
+primitive cannot meet accessibility, interaction, and performance needs.
+
+### 9. Put saved recipes inside Pantry without mixing their data models
+
+`app/(tabs)/pantry.tsx` will expose two clear subsections, Stock and Recipes,
+with Stock selected by default. This is navigation and composition, not a data
+merge: Stock continues to use `usePantryStore`, while Recipes continues to use
+the existing local recipe queries and routes. The Recipes subsection reuses the
+saved-recipe list and its add action; selecting or adding a recipe continues to
+open the existing recipe detail and intake routes.
+
+Pending receipts, saved captures, storage locations, camera capture, and manual
+stock addition belong only to Stock. Recipe attribution, coverage, intake, and
+empty-state actions belong only to Recipes. Switching subsections must not
+reload, rewrite, or discard either collection, and it must remain usable with a
+screen reader, large text, and all themes.
+
+Adding Recipes as another bottom tab was rejected because it would make a
+primary navigation slot for a collection that is conceptually part of the
+kitchen. Mixing recipes into the stock list was rejected because a saved recipe
+is not inventory and has different actions, states, and persistence rules.
+
 ## Risks / Trade-offs
 
 - [A route can unmount before a toast is perceived] → Trigger the success
@@ -181,6 +271,22 @@ changes, so the gate is scoped to UI-facing OpenSpec work.
 - [A broad shared refactor can regress barcode and receipt handling] → Adopt
   the shared feedback contract incrementally by route and retain route-level
   tests for each existing outcome.
+- [A denser Today view becomes Cronometer-like instrumentation] → Cap the
+  overview at energy, macros, and fibre; route contributors and every historical
+  control to Analytics, then test large text before adding any additional metric.
+- [Incomplete nutrition looks like poor performance] → Show coverage or an
+  explicit unknown state and exclude unknown items from factual subtotals; do
+  not render scores, grades, red/green verdicts, or implied adherence.
+- [A trend line connects missing data and implies certainty] → Model complete,
+  partial, unknown, and absent buckets separately; break lines and label chart
+  coverage rather than interpolating.
+- [A changed target rewrites the meaning of history] → Read the target recorded
+  for each date and disclose mixed-target periods in the report summary.
+- [Report styling is mistaken for medical interpretation] → Use clinical
+  clarity and units, but include a logged-data limitation and prohibit diagnosis,
+  risk flags, clinical ranges, and treatment recommendations.
+- [Pantry becomes a mixed, crowded feed] → Use separate Stock and Recipes
+  subsections with independent empty states, actions, data sources, and tests.
 
 ## Migration Plan
 
@@ -190,7 +296,13 @@ changes, so the gate is scoped to UI-facing OpenSpec work.
    flows, validating each write and destination refresh independently.
 3. Migrate capture busy and recovery presentation without modifying analysis,
    provider, or persistence code paths.
-4. Run automated checks and complete the premium device acceptance record
+4. Add only the compact Today target summary and meal subtotals after
+   nullable-fibre contracts are available; route detail to Analytics.
+5. Add the Analytics range model, contributors, accessible charts,
+   configuration controls, and report summary from the same local records.
+6. Compose the existing saved-recipe list as a Recipes subsection in Pantry,
+   keeping stock and recipe actions and data models separate.
+7. Run automated checks and complete the premium device acceptance record
    before accepting the change.
 
 There is no data migration. Rollback is a normal application release rollback:

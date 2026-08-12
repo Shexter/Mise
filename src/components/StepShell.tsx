@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: color.line,
   },
-  tickOn: { backgroundColor: color.ink },
+  tickOn: { backgroundColor: color.action },
   body: { gap: space.sm },
   detail: { marginTop: space.xs },
   content: { marginTop: space.lg, gap: space.base },

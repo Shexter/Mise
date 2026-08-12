@@ -1,5 +1,42 @@
 # Current implementation handoff
 
+## Live continuation update — 11 August 2026
+
+The repository has advanced substantially beyond the older snapshot below.
+Treat `openspec list --json` and the worktree as authoritative.
+
+- `add-premium-interaction-polish` is **39/41**. Analytics, reports, chart
+  preferences, the uncrowded Today surface, and Pantry Recipes are implemented.
+  The owner checklist now contains concrete Today/detail, Analytics chart/report,
+  and Pantry Stock/Recipes matrices across platforms, themes, large text,
+  reduced motion, and screen readers. Its two remaining tasks execute those
+  checks on supported devices and record evidence.
+- `add-recipe-links` is **28/47**. Saved recipes now confirm uncertain local
+  matches through the shared learning path, persist corrections, edit ingredient
+  names and stated quantities, and cook/deplete through the suggestion path.
+- Recipe tasks 1.1–1.4 must come next: gather real iOS/Android share-sheet
+  outcomes and the 20-caption corpus. Tasks 3.1–3.5 and 4.6 are intentionally
+  gated on that evidence; tasks 9.1–9.9 are acceptance checks.
+- `add-receipt-import` is now **79/79**. Every first receipt photo enters through
+  the shared Add to pantry capture, including unclear-photo recovery. The
+  receipt-specific camera remains only for adding or retaking frames from an
+  existing receipt review. Do not archive until the owner approves it.
+- Automated verification after this continuation: **89 test files / 707 tests**,
+  `npm run typecheck`, strict `add-recipe-links` validation, and
+  `git diff --check` all pass.
+- The worktree contains a large, coherent set of uncommitted changes across
+  brand themes, barcode capture, demo data, analytics, and recipes. Preserve it.
+- No emulator or device work was performed in this continuation, per owner
+  direction.
+- Two owner-reported Android UI defects now have code remediation pending device
+  confirmation: shared sheets retain a keyboard-resized scroll viewport for the
+  custom hidden-ingredient form, and meal-editor units use three/three/two rows
+  instead of compressing four labels. The long-name horizontal-offset report
+  remains reproduction-gated; no speculative cursor-selection behavior was
+  added to the shared field.
+- Automated verification after these remediations: **90 test files / 710 tests**,
+  TypeScript, and `git diff --check` pass.
+
 Updated 9 August 2026 in `/Users/timothylauw/Documents/Github Repos/Mise`.
 
 Use this document when a new conversation continues implementation. Verify the

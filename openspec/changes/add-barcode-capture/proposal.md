@@ -39,6 +39,16 @@ Implements decisions 8, 22, and 60.
   would dominate.
 - **A barcode not in the database falls back gracefully** to photograph or
   manual entry rather than dead-ending.
+- **A recognised product becomes an immediate factual result card.** It shows
+  identity, package/container information, available nutrition, source, and
+  missing fields before the existing review action. It does not collapse those
+  facts into a red/green health verdict.
+- **Photograph fallback retains the barcode.** An unknown or incomplete product
+  can be identified from its front, quantity, and nutrition label without
+  losing the GTIN that makes the next scan work offline.
+- **Recent scans remain useful locally.** The app keeps a local, non-judgmental
+  history of recognised products so a person can reopen a result without
+  rescanning or creating pantry stock.
 
 ## Capabilities
 
@@ -67,16 +77,29 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
   the remote database is unreachable or the barcode is absent from it.
 - **Weighing or scanning loose produce.** Barcodes are for packaged goods;
   produce goes through photo or manual entry.
+- **A proprietary health score.** Mise will not copy Yuka's colour verdict or
+  Scout's editorial 1–100 rating. It has neither the scientific governance nor
+  the complete ingredient data required to defend one, and the product avoids
+  judging food as good or bad.
+- **Whole-shelf stock creation.** A shelf image may help discovery in a later
+  change, but it does not prove which items or quantities were purchased and
+  cannot create pantry records.
+- **A central product-contribution service, affiliate marketplace, account, or
+  scan analytics.** Missing-product recovery remains within Mise's existing
+  local and configured-provider boundaries.
 
 ## Impact
 
 **Schema.** Forward-only migrations add `barcode_misses` with a unique GTIN and
-lookup timestamp, then nullable `products.container_count`. A positive count is
+lookup timestamp, nullable `products.container_count`, then nullable
+`products.last_scanned_at` for local recent-scan history. A positive count is
 durable SKU metadata only when the source explicitly states it; `null` means it
-is genuinely unknown and is never inferred from total package quantity.
-`products` remains the cache for resolved products: its required canonical id
-makes it structurally unable to represent a miss. Scan sessions remain in
-memory and need no persistence.
+is genuinely unknown and is never inferred from total package quantity. The
+scan timestamp records a successful recognition, not a remote fetch or pantry
+write, and can be cleared without deleting the product. `products` remains the
+cache for resolved products: its required canonical id makes it structurally
+unable to represent a miss. Scan sessions remain in memory and need no further
+persistence.
 
 **Code.**
 - `src/api/openFoodFacts.ts` — lookup by GTIN, with the same timeout, abort, and
@@ -86,7 +109,10 @@ memory and need no persistence.
 - `src/logic/barcode.ts` — pure: turning a lookup result into a product record
   and a reference for the matcher.
 - `src/db/queries.ts` — product upsert by GTIN, and reads for the cache path.
-- `app/` — a scan screen and the deferred review for rapid mode.
+- `app/` — the shared capture surface and the deferred review for rapid mode.
+- `app/barcode-review.tsx`, `app/barcode-fallback.tsx`, and the shared capture
+  surface — factual result presentation, correction, GTIN-preserving recovery,
+  and local recent-scan access.
 
 **Dependencies.** None added. `expo-camera` is already at ~17.0.10 and scans
 natively.
@@ -97,6 +123,12 @@ progress — scanning creates pantry items).
 **Cost.** No model calls on the common path. A lookup is a small HTTP request,
 and a cached barcode costs nothing at all. This is the cheapest input channel in
 the product by a wide margin.
+
+**Product direction.** The interface combines Yuka's barcode-first immediacy
+and explicit product sheet with Scout's barcode-or-package-photo recovery. Mise
+keeps its own trust model: source and completeness instead of a health score,
+review before stock creation, and local caching instead of an account-backed
+scan profile.
 
 **Risk.** Open Food Facts is community-maintained, so entry quality varies —
 wrong weights, missing brands, occasional nonsense. A scan that silently creates

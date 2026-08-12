@@ -19,14 +19,14 @@ knowable from documentation.
 
 ## 2. Schema
 
-- [ ] 2.1 Append the migration creating `recipes` and `recipe_ingredients`, with
+- [x] 2.1 Append the migration creating `recipes` and `recipe_ingredients`, with
       the source link on the recipe and a nullable `canonical_id` and nullable
       quantity on the ingredient.
-- [ ] 2.2 Add `Recipe` and `RecipeIngredient` to `src/types.ts` with their
+- [x] 2.2 Add `Recipe` and `RecipeIngredient` to `src/types.ts` with their
       `readonly` value arrays.
-- [ ] 2.3 Extend `DROP_ALL`, and extend the delete-all path to remove stored
+- [x] 2.3 Extend `DROP_ALL`, and extend the delete-all path to remove stored
       recipe images alongside meal photos and receipt images.
-- [ ] 2.4 Verify the migration runs from the current head and `npm run typecheck`
+- [x] 2.4 Verify the migration runs from the current head and `npm run typecheck`
       passes.
 
 ## 3. Intake
@@ -46,16 +46,16 @@ knowable from documentation.
 
 ## 4. Extraction
 
-- [ ] 4.1 Write `src/api/recipePrompt.ts` following `src/api/receiptPrompt.ts`:
+- [x] 4.1 Write `src/api/recipePrompt.ts` following `src/api/receiptPrompt.ts`:
       raw JSON only, explicit schema, title, ingredients with quantity and unit,
       steps.
-- [ ] 4.2 Implement `src/api/recipe.ts` through the existing provider facade and
+- [x] 4.2 Implement `src/api/recipe.ts` through the existing provider facade and
       `src/api/errors.ts`. One call. Do not touch `keyStore.ts`.
-- [ ] 4.3 **Record no quantity where none is stated.** "A splash of sesame oil"
+- [x] 4.3 **Record no quantity where none is stated.** "A splash of sesame oil"
       has no number, and inventing one is decision 15's mistake at the point of
       storage.
-- [ ] 4.4 Report content containing no recipe rather than inventing one from it.
-- [ ] 4.5 Parse defensively; a malformed response is an error, not a crash.
+- [x] 4.4 Report content containing no recipe rather than inventing one from it.
+- [x] 4.5 Parse defensively; a malformed response is an error, not a crash.
 - [ ] 4.6 Unit-test against the 1.4 fixtures, including a caption that is mostly
       hashtags and one in CJK.
 
@@ -63,50 +63,50 @@ knowable from documentation.
 
 Pure logic. No network.
 
-- [ ] 5.1 Resolve ingredients through the existing `resolve()`. Do not add a
+- [x] 5.1 Resolve ingredients through the existing `resolve()`. Do not add a
       recipe-specific matching path.
-- [ ] 5.2 Surface uncertain matches for confirmation and learn the answer through
+- [x] 5.2 Surface uncertain matches for confirmation and learn the answer through
       the existing user-resolution path.
-- [ ] 5.3 Retain an unresolvable ingredient as text and keep the recipe usable —
+- [x] 5.3 Retain an unresolvable ingredient as text and keep the recipe usable —
       the same discipline `add-dietary-profile` applies to an unresolvable rule.
-- [ ] 5.4 Implement coverage in `src/logic/recipe.ts`: which resolved ingredients
+- [x] 5.4 Implement coverage in `src/logic/recipe.ts`: which resolved ingredients
       are in stock and which are not, computed against current stock at view
       time rather than stored.
-- [ ] 5.5 **Never report an unresolved ingredient as held.** Not knowing what it
+- [x] 5.5 **Never report an unresolved ingredient as held.** Not knowing what it
       is means not knowing whether you have it.
-- [ ] 5.6 Unit-test coverage including the unresolved case and an empty pantry.
+- [x] 5.6 Unit-test coverage including the unresolved case and an empty pantry.
 
 ## 6. Cooking it
 
-- [ ] 6.1 Reuse `suggestionService`'s meal construction rather than writing a
+- [x] 6.1 Reuse `suggestionService`'s meal construction rather than writing a
       second one. Same shape, same `MealItem.canonicalId`, same depletion against
       stated quantities.
-- [ ] 6.2 Hardcode `venue: 'home'` and run no inference — decision 148. Record no
+- [x] 6.2 Hardcode `venue: 'home'` and run no inference — decision 148. Record no
       learned per-dish default from it.
-- [ ] 6.3 Skip ingredients with no stated quantity when depleting rather than
+- [x] 6.3 Skip ingredients with no stated quantity when depleting rather than
       guessing one, and say so.
-- [ ] 6.4 Test that cooking a saved recipe decrements the same way cooking a
+- [x] 6.4 Test that cooking a saved recipe decrements the same way cooking a
       suggestion does.
 
 ## 7. Attribution
 
-- [ ] 7.1 Store the source link with every recipe and display it wherever the
+- [x] 7.1 Store the source link with every recipe and display it wherever the
       recipe appears.
-- [ ] 7.2 Retain it through edits.
-- [ ] 7.3 Distinguish a recipe with no source from one that has one.
-- [ ] 7.4 **The app is never the place someone would go instead of the video.**
+- [x] 7.2 Retain it through edits.
+- [x] 7.3 Distinguish a recipe with no source from one that has one.
+- [x] 7.4 **The app is never the place someone would go instead of the video.**
       Review the recipe screen against that sentence — the link is a primary
       action, not a footnote.
 
 ## 8. Surfaces
 
-- [ ] 8.1 Build the saved-recipes list and the recipe detail screen.
-- [ ] 8.2 Allow editing ingredients and quantities, and learn corrections.
-- [ ] 8.3 Show coverage prominently — what you have and what you are missing is
+- [x] 8.1 Build the saved-recipes list and the recipe detail screen.
+- [x] 8.2 Allow editing ingredients and quantities, and learn corrections.
+- [x] 8.3 Show coverage prominently — what you have and what you are missing is
       the question the user actually has.
-- [ ] 8.4 Do not build search, tags, folders, or sharing. Each is reasonable and
+- [x] 8.4 Do not build search, tags, folders, or sharing. Each is reasonable and
       none is this change.
-- [ ] 8.5 Components from `src/components`, tokens from
+- [x] 8.5 Components from `src/components`, tokens from
       `src/constants/theme.ts`. No colour, font, or spacing literals.
 
 ## 9. Verification

@@ -31,17 +31,18 @@ export default function BarcodeFallbackScreen() {
   const [saving, setSaving] = useState(false);
   const addSessionProduct = useBarcodeCaptureStore((state) => state.addSessionProduct);
   const isBatch = barcodeMode === 'batch';
+  const isStoreLocal = reason === 'store_local';
 
   const save = async () => {
-    if (!gtin || !canonical || !name.trim() || saving) return;
+    if (!gtin || !canonical || !name.trim() || saving || isStoreLocal) return;
     setSaving(true);
     try {
       const product = await identifyBarcode(gtin, name.trim(), canonical.id, brand.trim() || null);
       if (isBatch) {
-        addSessionProduct(product);
+        addSessionProduct(product, 'user');
         router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } });
       } else {
-        router.replace({ pathname: '/barcode-review', params: { gtin: product.gtin ?? gtin } });
+        router.replace({ pathname: '/barcode-review', params: { gtin: product.gtin ?? gtin, origin: 'user' } });
       }
     } catch (error) {
       toast.show({ message: error instanceof Error ? error.message : 'Could not save this barcode identification.' });
@@ -53,7 +54,7 @@ export default function BarcodeFallbackScreen() {
   return (
     <Screen
       scroll
-      footer={<View style={styles.footer}><Button label="Use this identification" onPress={() => void save()} disabled={!canonical || !name.trim()} loading={saving} /><Button label="Photograph it instead" variant="secondary" onPress={() => router.replace('/pantry-capture')} disabled={saving} /><Button label="Cancel" variant="ghost" onPress={() => router.back()} disabled={saving} /></View>}
+      footer={<View style={styles.footer}>{!isStoreLocal ? <Button label="Use this identification" onPress={() => void save()} disabled={!canonical || !name.trim()} loading={saving} /> : null}<Button label="Photograph it instead" variant="secondary" onPress={() => isStoreLocal ? router.replace('/pantry-capture') : router.replace({ pathname: '/barcode-recovery', params: { gtin, barcodeMode: isBatch ? 'batch' : '' } })} disabled={saving} /><Button label="Add item by hand" variant={isStoreLocal ? 'primary' : 'ghost'} onPress={() => router.replace('/(tabs)/pantry')} disabled={saving} /><Button label="Cancel" variant="ghost" onPress={() => router.back()} disabled={saving} /></View>}
     >
       <View style={styles.header}>
         <ScreenTitle>{titleFor(reason)}</ScreenTitle>
@@ -62,9 +63,9 @@ export default function BarcodeFallbackScreen() {
       <Card>
         <Caption muted>Barcode</Caption>
         <RowTitle>{gtin || 'Not available'}</RowTitle>
-        <Caption muted>Your identification stays on this device and makes the next scan work without a lookup.</Caption>
+        <Caption muted>{isStoreLocal ? 'Store-specific codes are never saved as global product identities.' : 'Your identification stays on this device and makes the next scan work without a lookup.'}</Caption>
       </Card>
-      <View style={styles.form}>
+      {!isStoreLocal ? <View style={styles.form}>
         <Field label="Product name" value={name} onChangeText={setName} placeholder="e.g. Coconut milk" autoFocus />
         <Field label="Brand (optional)" value={brand} onChangeText={setBrand} placeholder="e.g. Aroy-D" />
         <View style={styles.section}>
@@ -73,7 +74,7 @@ export default function BarcodeFallbackScreen() {
             {canonical ? <RowTitle>{canonical.displayName}</RowTitle> : <Body muted>Pick the ingredient this product contains</Body>}
           </Pressable>
         </View>
-      </View>
+      </View> : <Body muted>Use a package photo or add the item manually. Mise will keep the store label separate from globally meaningful barcodes.</Body>}
       <CanonicalPickerSheet visible={picking} title="What ingredient is this?" onPick={(item) => { setCanonical(item); setPicking(false); }} onClose={() => setPicking(false)} />
     </Screen>
   );

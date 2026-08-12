@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/organic-61ad0245-57e4-448b-a13b-2751e3a8296d/styles.css">
+  <script src="_ds/organic-61ad0245-57e4-448b-a13b-2751e3a8296d/_ds_bundle.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:var(--color-neutral-300);font-family:var(--font-body);color:var(--color-text)}
+    .mise-fraunces{font-family:'Fraunces',serif}
+    .mise-archivo{font-family:'Archivo',sans-serif}
+    .dv-turn{padding:40px 44px 32px}
+    .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+    .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-text);color:var(--color-bg);border-radius:4px;text-decoration:none}
+    .dv-tname{font:600 14px/1.2 var(--font-body);color:var(--color-text)}
+    .dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+    .dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;width:300px}
+    .dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-accent-100);color:var(--color-accent-800);border-radius:5px;text-decoration:none}
+    .dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 12px/1.3 var(--font-body);color:var(--color-neutral-700)}
+    .dv-card{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);overflow:hidden;padding:26px 22px;display:flex;flex-direction:column;align-items:center;gap:16px}
+    .dv-next{margin:22px 0 0;font:13px/1.5 var(--font-body);color:var(--color-neutral-600)}
+    .icon-row{display:flex;gap:12px}
+  </style>
+</helmet>
+
+<section class="dv-turn" id="t9">
+  <div class="dv-thd"><a class="dv-tid" href="#t9">9</a><span class="dv-tname">Putting the lockup and trust claim into real screens</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="9a">
+      <div class="dv-olabel"><a class="dv-oid" href="#9a">9a</a>Onboarding welcome screen</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:10px;border:1px solid #DCD8D0;padding:24px;width:280px">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:44px;height:44px;border-radius:12px;object-fit:cover;margin-bottom:6px" />
+        <div class="mise-fraunces" style="font-weight:600;font-size:26px;color:#1C1A17;line-height:1.15">Cook from what you have, tracked as you go.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#8A857C;line-height:1.5;margin-top:2px">No account, no server, no sync. Deleting the app deletes your data.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Swaps the current welcome copy ("Photograph a meal, get a calorie estimate") for the tagline itself as the headline — the trust line becomes the supporting sentence instead of living only in a footer.</div>
+    </div>
+
+    <div class="dv-opt" id="9b">
+      <div class="dv-olabel"><a class="dv-oid" href="#9b">9b</a>App Store screenshot captions</div>
+      <div class="dv-card" style="background:#FFFFFF;align-items:stretch;gap:0;border:1px solid #DCD8D0;padding:0;overflow:hidden">
+        <div class="mise-fraunces" style="font-weight:600;font-size:16px;color:#1C1A17;padding:14px 16px;border-bottom:1px solid #DCD8D0">Point, and it's logged.</div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:16px;color:#1C1A17;padding:14px 16px;border-bottom:1px solid #DCD8D0">Knows what's in the kitchen.</div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:16px;color:#1C1A17;padding:14px 16px;border-bottom:1px solid #DCD8D0">Suggests dinner from that.</div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:16px;color:#1C1A17;padding:14px 16px">Never leaves your phone.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">One caption per screenshot, each three-to-five words, walking capture → pantry → dinner → privacy — the same order as 8b's description line, so the store listing tells one consistent story top to bottom.</div>
+    </div>
+
+    <div class="dv-opt" id="9c">
+      <div class="dv-olabel"><a class="dv-oid" href="#9c">9c</a>Empty-pantry illustration, briefed not drawn</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:center;gap:14px;border:1px solid #DCD8D0;padding:24px">
+        <div style="width:120px;height:96px;border-radius:12px;background:repeating-linear-gradient(45deg, #DCD8D0 0 8px, transparent 8px 16px);display:flex;align-items:center;justify-content:center;text-align:center">
+          <span class="mise-archivo" style="font:11px ui-monospace,monospace;color:#8A857C;padding:0 10px">empty pantry illustration — single shelf, ink outline, one olive accent</span>
+        </div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:17px;color:#1C1A17">Nothing tracked yet</div>
+        <div class="mise-archivo" style="font-size:12px;color:#8A857C;text-align:center">Add what's already in your kitchen, or let a receipt do it.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Per brand-system.md's illustration language (kitchen object, ink outline, one semantic accent, no mascots): a single half-empty shelf, not a sad box or a mascot — and the copy names the two real ways to fill it instead of a generic "get started."</div>
+    </div>
+
+    <div class="dv-opt" id="9d">
+      <div class="dv-olabel"><a class="dv-oid" href="#9d">9d</a>Trust chips for Settings / About</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;flex-wrap:wrap;gap:8px;border:1px solid #DCD8D0;padding:18px;justify-content:flex-start">
+        <div class="mise-archivo" style="font-size:12px;font-weight:600;color:#1C1A17;background:#EDEAE4;border-radius:999px;padding:7px 14px">No account</div>
+        <div class="mise-archivo" style="font-size:12px;font-weight:600;color:#1C1A17;background:#EDEAE4;border-radius:999px;padding:7px 14px">On-device</div>
+        <div class="mise-archivo" style="font-size:12px;font-weight:600;color:#1C1A17;background:#EDEAE4;border-radius:999px;padding:7px 14px">Delete anytime</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">The trust claim currently only lives in one paragraph of Settings copy — three short chips above it make the same claim scannable at a glance, and they're reusable on a marketing page.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "write the rest of the onboarding steps in <a class="dv-oid" href="#9a">9a</a>'s voice" · "design the other three illustration briefs from <a class="dv-oid" href="#9c">9c</a>" · "put the trust chips from <a class="dv-oid" href="#9d">9d</a> on the store listing too"</p>
+</section>
+
+<section class="dv-turn" id="t8">
+  <div class="dv-thd"><a class="dv-tid" href="#t8">8</a><span class="dv-tname">Combining 7a + 7c into a working hierarchy, and putting it to use</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="8a">
+      <div class="dv-olabel"><a class="dv-oid" href="#8a">8a</a>Two-line lockup — trust, then function</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:8px;border:1px solid #DCD8D0;padding:24px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:34px;color:#1C1A17">Mise</div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8A857C">On your phone. Nowhere else.</div>
+        <div class="mise-fraunces" style="font-style:italic;font-weight:500;font-size:17px;color:#1C1A17;margin-top:4px">Cook from what you have, tracked as you go.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Small uppercase trust line first (earns the click), italic function line second (explains the app). Trust lines read best short and flat — saved the longer "everything about your kitchen…" phrasing for Settings/About, not the lockup.</div>
+    </div>
+
+    <div class="dv-opt" id="8b">
+      <div class="dv-olabel"><a class="dv-oid" href="#8b">8b</a>Store listing, updated</div>
+      <div class="dv-card" style="background:#FFFFFF;align-items:flex-start;gap:14px;border:1px solid #DCD8D0;padding:18px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:56px;height:56px;border-radius:14px;flex:none;object-fit:cover" />
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="mise-archivo" style="font-weight:700;font-size:15px;color:#1C1A17">Mise: Private Meal Prep &amp; Calories</div>
+            <div class="mise-archivo" style="font-size:11.5px;color:#8A857C">Cook from what you have, tracked as you go</div>
+          </div>
+        </div>
+        <div class="mise-archivo" style="font-size:12px;color:#1C1A17;line-height:1.5;border-top:1px solid #DCD8D0;padding-top:12px">"Mise photographs your meals, watches your pantry, and suggests dinner from what's already in it — no account, nothing leaves your phone."</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Opening description line does the work a tagline can't: names the three real actions (photograph, watch pantry, suggest dinner) in the order a user experiences them, then closes on the trust claim.</div>
+    </div>
+
+    <div class="dv-opt" id="8c">
+      <div class="dv-olabel"><a class="dv-oid" href="#8c">8c</a>Macro dots as motion, not decoration</div>
+      <div class="dv-card" style="background:#14120F;align-items:center;gap:14px;padding:28px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="width:11px;height:11px;border-radius:50%;background:#8C3F2B;opacity:0.4"></div>
+          <div style="width:11px;height:11px;border-radius:50%;background:#C8992F"></div>
+          <div style="width:11px;height:11px;border-radius:50%;background:#5C6B33;opacity:0.4"></div>
+        </div>
+        <div class="mise-archivo" style="font-size:12px;color:#8A857C">Reading your plate…</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Swap the generic spinner on the "analyzing" screen for the three macro dots pulsing in sequence — same wait, but it's visibly counting something instead of just loading. Reuse it wherever the app is computing (capture, receipt import).</div>
+    </div>
+
+    <div class="dv-opt" id="8d">
+      <div class="dv-olabel"><a class="dv-oid" href="#8d">8d</a>Home screen widget</div>
+      <div class="dv-card" style="background:#FFFFFF;align-items:flex-start;gap:10px;border:1px solid #DCD8D0;padding:18px;width:170px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:22px;height:22px;border-radius:6px;flex:none;object-fit:cover" />
+          <div class="mise-archivo" style="font-size:11px;font-weight:600;color:#8A857C">MISE</div>
+        </div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:36px;color:#1C1A17;line-height:1;letter-spacing:-0.02em">640</div>
+        <div class="mise-archivo" style="font-size:11px;color:#8A857C">remaining today</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">The wordmark doesn't need to dominate a widget — a small caps "MISE" plus icon is enough identity; the Fraunces numeral is what should be huge, same hero-number treatment as the in-app remaining-calories screen.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "make <a class="dv-oid" href="#8a">8a</a> the real lockup everywhere" · "animate the dots in <a class="dv-oid" href="#8c">8c</a>" · "design the rest of the widget family (weekly, pantry alerts)"</p>
+</section>
+
+<section class="dv-turn" id="t7">
+  <div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">Open direction — the app's real hook, not just a word swap</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="7a">
+      <div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a>The synthesis — one phrase, all three ideas</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:10px;border:1px solid #DCD8D0;padding:22px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#1C1A17">Mise</div>
+        <div class="mise-fraunces" style="font-style:italic;font-weight:500;font-size:17px;color:#1C1A17">Cook from what you have, tracked as you go.</div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#8A857C;margin-top:6px">Mise: Meal Prep, Pantry &amp; Calories</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">"What you have" is pantry, "cook" is meal prep, "tracked" is calories — one sentence, no feature list, and it's actually true of what the app does step by step.</div>
+    </div>
+
+    <div class="dv-opt" id="7b">
+      <div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a>Lead with the feature nobody else has</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:10px;border:1px solid #DCD8D0;padding:22px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#1C1A17">Mise</div>
+        <div class="mise-fraunces" style="font-style:italic;font-weight:500;font-size:17px;color:#1C1A17">Never wonder what's for dinner.</div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#8A857C;margin-top:6px">Mise: Dinner Ideas &amp; Calorie Tracker</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Calorie trackers are commodity; "knows your pantry well enough to suggest tonight's dinner" is the one screen a competitor can't fake. Worth leading with the outcome (decision fatigue, solved) over the mechanism.</div>
+    </div>
+
+    <div class="dv-opt" id="7c">
+      <div class="dv-olabel"><a class="dv-oid" href="#7c">7c</a>Lead with trust — the untold differentiator</div>
+      <div class="dv-card" style="background:#14120F;align-items:flex-start;gap:10px;padding:22px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#EDEAE4">Mise</div>
+        <div class="mise-fraunces" style="font-style:italic;font-weight:500;font-size:17px;color:#EDEAE4">Everything about your kitchen stays on your phone.</div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#8A857C;margin-top:6px">Mise: Private Meal Prep &amp; Calorie Tracker</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">You already ship no-account, on-device, delete-the-app-deletes-your-data — most calorie apps push you into a account+subscription+cloud diary. "Private" is a real, rare claim in this category and it's free marketing you're not using yet.</div>
+    </div>
+
+    <div class="dv-opt" id="7d">
+      <div class="dv-olabel"><a class="dv-oid" href="#7d">7d</a>A mark that hints at tracking, not just food</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:14px;border:1px solid #DCD8D0">
+        <div style="display:flex;align-items:baseline;gap:16px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:56px;height:56px;border-radius:14px;flex:none;object-fit:cover" />
+            <div class="mise-fraunces" style="font-weight:600;font-size:42px;color:#1C1A17;line-height:1">Mise</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;padding-left:72px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#8C3F2B"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#C8992F"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#5C6B33"></div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Same lockup as 3a, plus your own macro dots (paprika/wheat/olive from theme.ts) as a tiny signature under the name — reads as "this app counts things" at a glance, reusable as a loading indicator or section divider, not just decoration.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "combine <a class="dv-oid" href="#7a">7a</a>'s line with <a class="dv-oid" href="#7c">7c</a>'s privacy angle" · "put the macro dots from <a class="dv-oid" href="#7d">7d</a> on the app icon too" · "write the App Store description around <a class="dv-oid" href="#7b">7b</a>"</p>
+</section>
+
+<section class="dv-turn" id="t6">
+  <div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">"Meal prep" as the umbrella — bulk buy, stock, batch cook, track</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="6a">
+      <div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a>Tagline candidates</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:0;border:1px solid #DCD8D0;padding:22px 22px 18px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#1C1A17;margin-bottom:14px">Mise</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Buy in bulk. Cook once. Know what you ate.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Meal prep, actually tracked.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">What you stocked. What you cooked. What you ate.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Prep smarter, spend less, eat on target.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">"Meal prep" is one word that already implies bulk grocery buying, fridge/pantry storage, and batch cooking — it's a real, recognized category (huge in fitness culture) rather than three separate features you have to explain. My pick: <em>"Meal prep, actually tracked."</em> — short, and "actually" quietly promises the calorie-accuracy your competitors fumble.</div>
+    </div>
+
+    <div class="dv-opt" id="6b">
+      <div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a>App Store listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:16px;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise: Meal Prep &amp; Calorie Tracker</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Stock, cook, and log from one place</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Leads with the category people search for on the App Store, calories confirms it's a tracker, and the subtitle folds pantry + cooking into "stock, cook, log" without naming either.</div>
+    </div>
+
+    <div class="dv-opt" id="6c">
+      <div class="dv-olabel"><a class="dv-oid" href="#6c">6c</a>Google Play listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:50%;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise - Meal Prep &amp; Calories</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Health &amp; Fitness · On-device</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Also worth moving the category to Health &amp; Fitness here (was Food &amp; Drink in <a class="dv-oid" href="#5c">5c</a>) — "meal prep" searches skew fitness-minded, not recipe-browsing.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "use <a class="dv-oid" href="#6a">6a</a>'s pick everywhere" · "combine meal prep with the dinner-planning phrasing from turn 5" · "show onboarding copy that opens with meal prep"</p>
+</section>
+
+<section class="dv-turn" id="t5">
+  <div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Reframing "pantry" toward meal planning / grocery</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="5a">
+      <div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Tagline candidates</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:0;border:1px solid #DCD8D0;padding:22px 22px 18px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#1C1A17;margin-bottom:14px">Mise</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Know what's for dinner. Know what you ate.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">From grocery bag to plate, quietly counted.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">What's for dinner, and what it costs you.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Shop less, guess less, eat well.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">"Pantry" names the storage chore; "dinner" and "grocery" name the outcome people actually want — and the app already ships a "What's for dinner?" feature, so this isn't a stretch, it's the honest framing. My pick: <em>"Know what's for dinner. Know what you ate."</em> — same parallel structure as before, swaps the chore word for the payoff.</div>
+    </div>
+
+    <div class="dv-opt" id="5b">
+      <div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>App Store listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:16px;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise: Calorie &amp; Meal Tracker</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Photo meals, plan dinner, track groceries</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Drops "pantry" from the title entirely — "meal" covers logging and the dinner-planning feature in one word, and the subtitle line still says groceries for search.</div>
+    </div>
+
+    <div class="dv-opt" id="5c">
+      <div class="dv-olabel"><a class="dv-oid" href="#5c">5c</a>Google Play listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:50%;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise - Calories &amp; Meal Planner</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Food &amp; Drink · On-device</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">"Planner" is a stronger Play Store search term than "tracker" alone — worth the same swap on iOS if search data agrees.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "use <a class="dv-oid" href="#5a">5a</a>'s pick everywhere" · "keep pantry in the subtitle only" · "try a version that leads with grocery, not meal"</p>
+</section>
+
+<section class="dv-turn" id="t4">
+  <div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Tagline that hints at calories + pantry, and a store-listing title</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="4a">
+      <div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>In-app tagline candidates</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:0;border:1px solid #DCD8D0;padding:22px 22px 18px">
+        <div class="mise-fraunces" style="font-weight:600;font-size:30px;color:#1C1A17;margin-bottom:14px">Mise</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">What's in the kitchen, what's on the plate.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Know what you have. Know what you ate.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Pantry to plate, quietly counted.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">The kitchen, accounted for.</div>
+        <div class="mise-archivo" style="font-size:13px;color:#1C1A17;padding:8px 0;border-top:1px solid #DCD8D0">Everything in its place — and its numbers.</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Each keeps the "mise en place" idea but pairs it with a second clause that's plainly about stock and intake, without naming calories or pantry outright. My pick: <em>"Know what you have. Know what you ate."</em> — two parallel facts, matches the brand voice's plain, uncertainty-stating tone.</div>
+    </div>
+
+    <div class="dv-opt" id="4b">
+      <div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>App Store listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:16px;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise: Calories &amp; Pantry Tracker</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Photo meals, track what's in stock</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Store titles are search inventory, not brand voice — say the category plainly there. Format: "Mise: Calories &amp; Pantry Tracker" (Apple's 30-char subtitle field can carry a second line like the one shown).</div>
+    </div>
+
+    <div class="dv-opt" id="4c">
+      <div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>Google Play listing</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:14px;padding:18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:64px;height:64px;border-radius:50%;flex:none;object-fit:cover" />
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div class="mise-archivo" style="font-weight:700;font-size:16px;color:#1C1A17">Mise - Calorie &amp; Pantry Tracker</div>
+          <div class="mise-archivo" style="font-size:12px;color:#8A857C">Kitchen &amp; Dining · On-device</div>
+        </div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Play truncates titles harder and masks the icon circular — the "circular" bowls actually help here since the render already reads round.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "use the pick from <a class="dv-oid" href="#4a">4a</a> everywhere" · "shorten the Play title in <a class="dv-oid" href="#4c">4c</a>" · "try a tagline that mentions receipts too"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Wordmark to pair with the approved glass-bowl icon (real brand tokens: Fraunces + Archivo, putty/ink palette)</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Primary lockup — light</div>
+      <div class="dv-card" style="background:#EDEAE4;align-items:flex-start;gap:16px;border:1px solid #DCD8D0">
+        <div style="display:flex;align-items:center;gap:16px">
+          <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon" style="width:56px;height:56px;border-radius:14px;flex:none;object-fit:cover" />
+          <div class="mise-fraunces" style="font-weight:600;font-size:42px;color:#1C1A17;line-height:1;letter-spacing:-0.01em">Mise</div>
+        </div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#8A857C;padding-left:2px">Everything in its place</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Fraunces SemiBold roman, tight tracking. Calm next to the icon's own detail — the type doesn't compete with the glass.</div>
+    </div>
+
+    <div class="dv-opt" id="3b">
+      <div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Primary lockup — dark</div>
+      <div class="dv-card" style="background:#14120F;align-items:flex-start;gap:16px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <img src="../../../assets/brand/icon-concepts/dark-glass/mise-icon-dark-glass-navy-sage.png" alt="Mise icon dark" style="width:56px;height:56px;border-radius:14px;flex:none;object-fit:cover" />
+          <div class="mise-fraunces" style="font-weight:600;font-size:42px;color:#EDEAE4;line-height:1;letter-spacing:-0.01em">Mise</div>
+        </div>
+        <div class="mise-archivo" style="font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:#8A857C;padding-left:2px">Everything in its place</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Same lockup on the dark-glass icon's own near-black — for launch screens, dark mode headers, deck covers.</div>
+    </div>
+
+    <div class="dv-opt" id="3c">
+      <div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Type voice — pick one</div>
+      <div class="dv-card" style="background:#EDEAE4;gap:14px;align-items:flex-start;border:1px solid #DCD8D0">
+        <div class="mise-fraunces" style="font-weight:600;font-size:34px;color:#1C1A17">Mise</div>
+        <div class="mise-archivo" style="font-size:11px;color:#8A857C">Roman SemiBold — confident, matches app headings</div>
+        <div style="width:100%;height:1px;background:#DCD8D0"></div>
+        <div class="mise-fraunces" style="font-weight:500;font-style:italic;font-size:34px;color:#1C1A17">Mise</div>
+        <div class="mise-archivo" style="font-size:11px;color:#8A857C">Italic Medium — the serif's swash echoes the bowls' curve</div>
+        <div style="width:100%;height:1px;background:#DCD8D0"></div>
+        <div class="mise-fraunces" style="font-weight:600;font-size:34px;color:#1C1A17">mise</div>
+        <div class="mise-archivo" style="font-size:11px;color:#8A857C">Lowercase — quieter, more kitchen-notebook than brand mark</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Recommend roman: it's what "Mise 1.0.0" and screen titles already set in-app — the italic is a nice accent for the tagline only, not the name.</div>
+    </div>
+
+    <div class="dv-opt" id="3d">
+      <div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a>Compact — nav bar / tab header</div>
+      <div class="dv-card" style="background:#FFFFFF;flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;padding:16px 18px;border:1px solid #DCD8D0">
+        <img src="../../../assets/brand/icon-concepts/light-organic/mise-icon-light-organic-sage-orange.png" alt="Mise icon small" style="width:28px;height:28px;border-radius:8px;flex:none;object-fit:cover" />
+        <div class="mise-fraunces" style="font-weight:600;font-size:20px;color:#1C1A17">Mise</div>
+      </div>
+      <div class="mise-archivo" style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">At 20px the serif still reads. Below this, drop the wordmark — use the icon alone (see feedback on the icon's small-size legibility).</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#3a">3a</a>" · "make the tagline italic like <a class="dv-oid" href="#3c">3c</a>'s middle option" · "show the wordmark over the umber-orange dark variant"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">1b + the steam lines from 1a, applied across touchpoints</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Primary lockup — landing page / header</div>
+      <div class="dv-card" style="align-items:flex-start;gap:14px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:56px;height:56px;border-radius:16px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none;position:relative">
+            <svg width="42" height="50" viewBox="0 0 40 48">
+              <g transform="translate(11,-1) scale(0.42)" fill="none" stroke-linecap="round">
+                <path d="M9 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.6"/>
+                <path d="M17 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-100)" stroke-width="2.6"/>
+                <path d="M25 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.6"/>
+              </g>
+              <g transform="translate(0,10) rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+            </svg>
+          </div>
+          <div style="font-family:var(--font-heading);font-size:38px;color:var(--color-accent-800);line-height:1">Mise</div>
+        </div>
+        <div style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--color-neutral-600);padding-left:2px">Everything in its place</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-neutral-900);align-items:flex-start;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--color-accent-2);display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="36" height="43" viewBox="0 0 40 48">
+              <g transform="translate(11,-1) scale(0.42)" fill="none" stroke-linecap="round">
+                <path d="M9 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-neutral-900)" stroke-width="2.6" opacity="0.55"/>
+                <path d="M17 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-neutral-900)" stroke-width="2.6" opacity="0.75"/>
+                <path d="M25 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-neutral-900)" stroke-width="2.6" opacity="0.55"/>
+              </g>
+              <g transform="translate(0,10) rotate(12 20 20)" fill="var(--color-neutral-900)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+            </svg>
+          </div>
+          <div style="font-family:var(--font-heading);font-size:32px;color:var(--color-bg);line-height:1">Mise</div>
+        </div>
+        <div style="font-size:10.5px;letter-spacing:0.22em;text-transform:uppercase;color:var(--color-neutral-400);padding-left:2px">Everything in its place</div>
+      </div>
+      <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">Header, footer, email signature — anywhere the mark needs to introduce the brand with room to breathe.</div>
+    </div>
+
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>App icon — no steam, bold at any size</div>
+      <div class="dv-card">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:96px;height:96px;border-radius:22px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="46" height="46" viewBox="0 0 40 40">
+              <g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+            </svg>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:4px">
+          <div style="width:40px;height:40px;border-radius:11px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="19" height="19" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+          <div style="width:29px;height:29px;border-radius:8px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="14" height="14" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+          <div style="width:20px;height:20px;border-radius:6px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="10" height="10" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-neutral-600);text-align:center">iOS / Android — 1024px master down to a 20px favicon</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-neutral-900)">
+        <div style="width:72px;height:72px;border-radius:18px;background:var(--color-accent-2);display:flex;align-items:center;justify-content:center">
+          <svg width="34" height="34" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-neutral-900)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+        </div>
+        <div style="font-size:12px;color:var(--color-neutral-400)">Sage variant — settings, widgets, alt icon</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2c">
+      <div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Marketing — social, print, merch</div>
+      <div class="dv-card" style="background:var(--color-accent-800);gap:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <svg width="30" height="36" viewBox="0 0 40 48">
+            <g transform="translate(11,-1) scale(0.42)" fill="none" stroke-linecap="round">
+              <path d="M9 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.8"/>
+              <path d="M17 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-100)" stroke-width="2.8"/>
+              <path d="M25 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.8"/>
+            </g>
+            <g transform="translate(0,10) rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+          </svg>
+          <div style="font-family:var(--font-heading);font-size:36px;color:var(--color-bg);line-height:1">Mise</div>
+        </div>
+        <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--color-accent-200)">A knockout for banners, ads, packaging</div>
+      </div>
+      <div class="dv-card" style="gap:10px">
+        <div style="width:88px;height:88px;border-radius:50%;background:var(--color-accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <svg width="26" height="31" viewBox="0 0 40 48">
+            <g transform="translate(11,-1) scale(0.42)" fill="none" stroke-linecap="round">
+              <path d="M9 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.8"/>
+              <path d="M17 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-100)" stroke-width="2.8"/>
+              <path d="M25 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" stroke="var(--color-accent-2-200)" stroke-width="2.8"/>
+            </g>
+            <g transform="translate(0,10) rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+          </svg>
+        </div>
+        <div style="font-size:12px;color:var(--color-neutral-600)">Stacked, circular — social avatar / profile</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2d">
+      <div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Favicon &amp; tiny badges — legibility check</div>
+      <div class="dv-card" style="flex-direction:row;justify-content:center;align-items:center;gap:18px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="width:16px;height:16px;border-radius:4px;background:var(--color-accent);display:flex;align-items:center;justify-content:center">
+            <svg width="8" height="8" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-600)">16px tab</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--color-accent);display:flex;align-items:center;justify-content:center">
+            <svg width="15" height="15" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-600)">32px favicon</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+          <div style="width:60px;height:60px;border-radius:15px;background:var(--color-accent);display:flex;align-items:center;justify-content:center">
+            <svg width="28" height="28" viewBox="0 0 40 40"><g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g></svg>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-600)">180px touch icon</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--color-neutral-600);line-height:1.5">The spoon alone holds up down to a 16px tab — this is why the icon-only mark stays steam-free: fine linework disappears first at small sizes.</div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "widen the gap in <a class="dv-oid" href="#2a">2a</a>" · "put the steam on the app icon in <a class="dv-oid" href="#2b">2b</a> too" · "show a horizontal lockup for a print ad like <a class="dv-oid" href="#2c">2c</a>"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Logo directions for Mise</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Wordmark only</div>
+      <div class="dv-card">
+        <div style="position:relative;text-align:center;padding-top:22px">
+          <svg width="34" height="24" viewBox="0 0 34 24" style="position:absolute;left:50%;top:0;transform:translateX(-17px)">
+            <path d="M9 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" fill="none" stroke="var(--color-accent-2-500)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M17 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" fill="none" stroke="var(--color-accent-2-600)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M25 20c-2.5-2.5-2.5-6.5 0-9-2.5-2.5-2.5-6.5 0-9" fill="none" stroke="var(--color-accent-2-500)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div style="font-family:var(--font-heading);font-size:52px;color:var(--color-accent-800)">Mise</div>
+        </div>
+        <div style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--color-neutral-600)">Everything in its place</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-accent-800);padding:22px">
+        <div style="font-family:var(--font-heading);font-size:34px;color:var(--color-bg)">Mise</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Wordmark + icon</div>
+      <div class="dv-card" style="flex-direction:row;justify-content:center">
+        <div style="width:52px;height:52px;border-radius:16px;background:var(--color-accent);display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="24" height="24" viewBox="0 0 40 40">
+            <g transform="rotate(12 20 20)" fill="var(--color-bg)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+          </svg>
+        </div>
+        <div style="font-family:var(--font-heading);font-size:34px;color:var(--color-text)">Mise</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-neutral-900);flex-direction:row;justify-content:center;padding:22px">
+        <div style="width:44px;height:44px;border-radius:13px;background:var(--color-accent-2);display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="20" height="20" viewBox="0 0 40 40">
+            <g transform="rotate(12 20 20)" fill="var(--color-neutral-900)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+          </svg>
+        </div>
+        <div style="font-family:var(--font-heading);font-size:28px;color:var(--color-bg)">Mise</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Icon-first (app icon)</div>
+      <div class="dv-card">
+        <div class="icon-row">
+          <div style="width:96px;height:96px;border-radius:22px;background:var(--color-accent-100);display:flex;align-items:center;justify-content:center">
+            <svg width="42" height="42" viewBox="0 0 40 40">
+              <g transform="rotate(12 20 20)" fill="var(--color-accent-800)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+            </svg>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--color-neutral-600)">Reads at 40px, holds up on the home screen</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-neutral-900)">
+        <div style="width:64px;height:64px;border-radius:16px;background:var(--color-accent-100);display:flex;align-items:center;justify-content:center">
+          <svg width="30" height="30" viewBox="0 0 40 40">
+            <g transform="rotate(12 20 20)" fill="var(--color-accent-800)"><ellipse cx="20" cy="11" rx="6.5" ry="9"/><rect x="17.3" y="18" width="5.4" height="19" rx="2.7"/></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Monogram badge</div>
+      <div class="dv-card">
+        <div style="width:80px;height:80px;border-radius:50%;border:3px solid var(--color-accent);display:flex;align-items:center;justify-content:center;background:var(--color-bg);position:relative">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="var(--color-accent-800)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 27V7l13 15L30 7v20"/>
+          </svg>
+          <div style="position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--color-accent-2-500)"></div>
+        </div>
+        <div style="font-family:var(--font-heading);font-size:22px;margin-top:4px">Mise</div>
+      </div>
+      <div class="dv-card" style="background:var(--color-accent-2-800)">
+        <div style="width:56px;height:56px;border-radius:50%;border:2.5px solid var(--color-accent-2-200);display:flex;align-items:center;justify-content:center;position:relative">
+          <svg width="24" height="24" viewBox="0 0 34 34" fill="none" stroke="var(--color-accent-2-100)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 27V7l13 15L30 7v20"/>
+          </svg>
+          <div style="position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--color-accent-300)"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1b">1b</a> but drop the tagline" · "make <a class="dv-oid" href="#1c">1c</a> the app icon and pair it with <a class="dv-oid" href="#1a">1a</a>'s wordmark" · "more monogram variations like <a class="dv-oid" href="#1d">1d</a>"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

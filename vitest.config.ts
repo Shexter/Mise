@@ -26,6 +26,7 @@ export default defineConfig({
       { find: 'expo-constants', replacement: join(root, 'test/stubs/expo-constants.ts') },
       { find: 'expo-file-system', replacement: join(root, 'test/stubs/expo-file-system.ts') },
       { find: 'expo-image-manipulator', replacement: join(root, 'test/stubs/expo-image-manipulator.ts') },
+      { find: 'expo-sqlite/kv-store', replacement: join(root, 'test/stubs/expo-sqlite-kv-store.ts') },
       { find: /^@\/db$/, replacement: join(root, 'test/stubs/db.ts') },
       { find: /^@\//, replacement: `${root}/src/` },
     ],

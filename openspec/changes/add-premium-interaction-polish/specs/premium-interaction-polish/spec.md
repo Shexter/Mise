@@ -110,3 +110,140 @@ review where applicable.
 - **WHEN** implementation tasks for a UI-facing OpenSpec change are complete
 - **THEN** its task file or owner app-test checklist records the premium
   acceptance checks and their results
+
+### Requirement: Today reveals useful nutrition detail progressively
+The system SHALL present the current day's known energy, protein, carbohydrate,
+fat, and fibre against their applicable daily targets in a glanceable summary.
+It MUST preserve nullable nutrition and MUST NOT display an unknown contribution
+as zero, a nutrition score, a food grade, or a good/bad colour verdict.
+
+#### Scenario: A supported daily target is visible
+- **WHEN** Today has logged nutrition and a recorded target
+- **THEN** the summary shows the known consumed value and that target
+- **AND** progress remains understandable without relying on colour
+
+#### Scenario: daily nutrition is incomplete
+- **WHEN** one or more logged items have no value for a displayed nutrient
+- **THEN** the summary identifies the nutrient total as incomplete
+- **AND** does not treat the missing values as zero
+
+#### Scenario: a person asks what contributed
+- **WHEN** the person selects a supported nutrient from the summary
+- **THEN** the app opens Nutrition Analytics for that nutrient and day
+- **AND** shows the day's meals or items with known contributions to that nutrient
+- **AND** explains that unknown contributors are excluded
+
+### Requirement: Meal summaries stay factual and compact
+The system SHALL show a factual known subtotal for each logged meal while
+keeping detailed nutrients behind progressive disclosure. It MUST NOT invent a
+subtotal where required values are unknown.
+
+#### Scenario: a meal has known energy
+- **WHEN** a logged meal is listed on Today
+- **THEN** its known energy subtotal is visible without opening the meal
+
+#### Scenario: a person asks for more nutrition detail
+- **WHEN** the person activates a meal or metric's nutrition-detail action
+- **THEN** the app opens the applicable meal detail or Nutrition Analytics view
+- **AND** unknown fields are labelled as unknown rather than zero
+
+#### Scenario: overview density is constrained
+- **WHEN** Today is shown at large text or on a narrow device
+- **THEN** the energy summary, target strip, and meal list remain readable
+- **AND** charts, report tables, and configuration controls remain off Today
+- **AND** additional nutrient evidence remains available through Nutrition Analytics
+
+### Requirement: Nutrition analysis has a dedicated destination
+The system SHALL place nutrition contributors, historical charts, chart
+configuration, and report-style summaries on a dedicated Nutrition Analytics
+page. Today MUST remain focused on the current day's glanceable summary, meal
+list, and primary meal actions.
+
+#### Scenario: a person opens Nutrition Analytics
+- **WHEN** the person follows a nutrition-detail or analytics action from Today
+- **THEN** a dedicated page provides contributor, trend, and report content
+- **AND** returning restores the person's Today context
+
+#### Scenario: Today is kept glanceable
+- **WHEN** nutrition analytics features are available
+- **THEN** Today does not embed a historical chart, report table, range selector, aggregation selector, or chart-form selector
+- **AND** existing meal actions are not displaced by the analytics entry point
+
+### Requirement: Historical nutrition charts are configurable and truthful
+The system SHALL let a person chart known energy, protein, carbohydrate, fat,
+or fibre across a selected historical period. It SHALL support 7-day, 30-day,
+90-day, and custom ranges; daily or weekly aggregation; and bar or line form.
+Changing chart configuration MUST NOT change meal records or nutrition targets.
+
+#### Scenario: a person configures a trend
+- **WHEN** the person selects a supported metric, period, aggregation, and chart form
+- **THEN** the chart updates from existing on-device meal and target records
+- **AND** makes no provider or network request
+
+#### Scenario: a chart period contains missing nutrition
+- **WHEN** a bucket is incomplete, unknown, or has no logged meal
+- **THEN** the chart distinguishes those states from a known zero
+- **AND** does not interpolate a continuous trend through unknown data
+
+#### Scenario: historical targets changed during the period
+- **WHEN** the selected period includes more than one recorded daily target
+- **THEN** comparisons use the targets recorded for their respective dates
+- **AND** the chart or supporting summary discloses that the target changed
+
+#### Scenario: a chart is used without sight or colour
+- **WHEN** the chart is read with a screen reader or without distinguishing its colours
+- **THEN** an equivalent ordered summary or data table exposes values, units, dates, targets, and coverage
+
+### Requirement: Nutrition history has a structured personal report view
+The system SHALL provide a report-style summary for the selected period and
+metric. It SHALL identify the report period, units, known average, applicable
+recorded-target context, data coverage, and defensible period values. It MUST
+describe itself as a summary of logged data and MUST NOT present a diagnosis,
+risk classification, treatment recommendation, invented clinical reference
+range, or claim that it replaces professional medical advice.
+
+#### Scenario: a report has complete coverage
+- **WHEN** every logged contribution for the selected metric and period is known
+- **THEN** the report shows the known average and period values with their units
+- **AND** identifies the applicable recorded-target context separately from measured intake
+
+#### Scenario: a report has partial coverage
+- **WHEN** one or more logged contributions are unknown
+- **THEN** the report labels its coverage as incomplete
+- **AND** does not present the known subtotal as the complete intake
+
+#### Scenario: report styling remains factual
+- **WHEN** the report is displayed under any Mise theme
+- **THEN** it uses structured headings, restrained tables, semantic chart roles, and plain limitation copy
+- **AND** does not use red/green judgment, diagnostic labels, or medical authority cues
+
+### Requirement: Insight preferences remain local and non-destructive
+The system SHALL keep chart display preferences on the device and SHALL derive
+all report content from existing local meal and target records. Clearing or
+changing a display preference MUST NOT delete or rewrite nutrition history.
+
+#### Scenario: a chart preference is remembered
+- **WHEN** the person returns to Nutrition Analytics after selecting a metric and view
+- **THEN** the app may restore that local display configuration
+- **AND** the underlying meals and targets remain unchanged
+
+### Requirement: Pantry contains distinct Stock and Recipes subsections
+The system SHALL present saved recipes as a Recipes subsection within Pantry,
+alongside a distinct Stock subsection. It MUST preserve the existing recipe
+intake, detail, attribution, coverage, and local-storage behavior, and MUST NOT
+treat a recipe as pantry inventory.
+
+#### Scenario: a person switches Pantry subsections
+- **WHEN** the person switches between Stock and Recipes
+- **THEN** the selected subsection shows only its applicable collection, empty state, and actions
+- **AND** switching does not add, delete, or rewrite stock or recipes
+
+#### Scenario: the Recipes subsection is used
+- **WHEN** the person opens, adds, or reviews a saved recipe from Pantry
+- **THEN** the existing recipe detail or intake route handles the action
+- **AND** recipe source attribution and pantry-coverage information remain available
+
+#### Scenario: Stock actions stay scoped to Stock
+- **WHEN** the Recipes subsection is selected
+- **THEN** pending receipt and capture banners, storage-location controls, and stock-add controls are not presented as recipe actions
+- **AND** those controls remain available from Stock

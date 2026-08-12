@@ -97,7 +97,8 @@ not a miss.
 
 - [x] 6.1 Build the batch review: every scanned item together, with what the
       lookup returned visible rather than hidden.
-- [x] 6.2 Allow correcting name, brand, and package size, and keep the
+- [x] 6.2 Allow correcting name, brand, package quantity/unit, and explicit
+      container count in single and batch review, and keep the
       correction.
 - [x] 6.3 Allow removing an item before applying.
 - [x] 6.4 Apply as one transaction: create a pantry item per scan using package
@@ -116,7 +117,8 @@ not a miss.
       is the least reliable field the remote source returns and this one
       multiplies.
 - [x] 6.5 Confirm an abandoned session creates nothing.
-- [x] 6.6 Attribute the remote data source wherever its data is shown, per 1.1.
+- [x] 6.6 Attribute the remote data source wherever its data is shown, including
+      both single-item and batch review, per 1.1.
 - [x] 6.7 Components from `src/components`, tokens from
       `src/constants/theme.ts`. No colour, font, or spacing literals.
 
@@ -131,6 +133,49 @@ The path that carries the differentiator audience, not an edge case.
 - [x] 7.3 Bind a user-supplied identification to the barcode so a later scan
       resolves without asking.
 - [x] 7.4 Test the fallback with the two deliberately-absent fixture barcodes.
+
+## 7a. Factual scan result
+
+- [x] 7a.1 Replace the single-item barcode review summary with one progressive
+      factual result card: identity, source, package/container shape, pantry
+      destination, expiry estimate, available nutrition, and explicit unknown
+      fields. Do not add a health score or good/bad colour verdict.
+- [x] 7a.2 Distinguish "Recognised locally", remote-source, and user-identified
+      results without implying that cached or contributed data is verified.
+- [x] 7a.3 Reuse the same editable product-row contract in single and batch
+      review so correction, attribution, unknown values, and multi-pack preview
+      cannot diverge between modes.
+- [x] 7a.4 Add focused UI and source-boundary tests proving missing nutrition is
+      shown as unknown rather than zero and no score/grade language is present.
+
+## 7b. GTIN-preserving guided recovery
+
+- [x] 7b.1 Replace the generic "Photograph it instead" handoff with an
+      in-memory recovery draft that retains a validated global GTIN through
+      package-front, declared-quantity, nutrition-label, or manual recovery.
+- [x] 7b.2 Reuse the existing configured-provider and photo-lifecycle boundary
+      for guided package evidence; disclose provider submission accurately and
+      keep manual identification available when analysis is unavailable.
+- [x] 7b.3 Return extracted or manually entered product facts to the normal
+      barcode review, require canonical confirmation, and bind the GTIN only
+      after the person confirms the recovered identity.
+- [x] 7b.4 Prove with no-network tests that manual recovery retains the GTIN,
+      creates no pantry row before review, and makes a later scan resolve from
+      the corrected local product cache.
+- [x] 7b.5 Keep store-local codes outside GTIN learning and prove that guided
+      recovery never binds one retailer's variable code globally.
+
+## 7c. Local scan history and shelf boundary
+
+- [x] 7c.1 Append a forward-only `products.last_scanned_at` migration, update it
+      only after a validated barcode resolves locally or remotely, and add a
+      descending local recent-scan query. Opening an entry is read-only and
+      makes no remote request.
+- [x] 7c.2 Add a clear-history action that removes recent-scan entries without
+      deleting cached product corrections or pantry records.
+- [x] 7c.3 Add regression tests proving that a whole-shelf image cannot create
+      pantry stock and that every visually discovered candidate would still
+      require individual identity and review.
 
 ## 8. Verification
 
@@ -151,3 +196,8 @@ The path that carries the differentiator audience, not an edge case.
       evidence for how load-bearing the fallback is.
 - [ ] 8.6 Run `npm run typecheck` and `npm test`, then record the measured
       lookup hit rate in `docs/product-decisions.md`.
+- [ ] 8.7 On supported iOS and Android devices, compare the revised single,
+      batch, incomplete-result, photograph-recovery, manual-recovery, offline,
+      and recent-history flows. Record scan-to-result time, screen-reader
+      announcements, reduced-motion behavior, expected versus actual, and
+      screenshots without barcodes tied to private purchases.

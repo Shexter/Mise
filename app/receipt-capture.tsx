@@ -3,13 +3,14 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { ProcessingIndicator } from '@/components/ProcessingIndicator';
 import { useToast } from '@/components/Toast';
-import { Body, Caption, ScreenTitle } from '@/components/Type';
+import { Body, ScreenTitle } from '@/components/Type';
 import {
   camera,
   color,
@@ -21,16 +22,15 @@ import {
 } from '@/constants/theme';
 import { localDateString } from '@/logic/dates';
 import { deletePhoto, preparePhoto, type SourceImage } from '@/media/photos';
-import { addReceiptPhoto, captureReceipt, needsExtraction, retakeReceiptPhoto } from '@/logic/receiptService';
+import { addReceiptPhoto, retakeReceiptPhoto } from '@/logic/receiptService';
 
 type FlashMode = 'off' | 'on' | 'auto';
 
 /**
- * Photographs a receipt. Follows `capture.tsx`'s conventions exactly, with
- * one difference: there is no manual fallback, because a receipt with
- * thirty lines cannot be typed. Capture always succeeds — extraction is
- * attempted inline, and a receipt it cannot reach yet (no key, no
- * connection) is retained rather than lost (task 7.3).
+ * Adds or retakes a photo for a receipt that is already in review. First
+ * receipt photos always enter through the shared Add to pantry capture; this
+ * focused handler exists because multi-frame receipts need a way back from
+ * review without starting a new capture classification.
  */
 export default function ReceiptCaptureScreen() {
   const router = useRouter();
@@ -43,35 +43,31 @@ export default function ReceiptCaptureScreen() {
   const [flash, setFlash] = useState<FlashMode>('off');
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (!receiptId) router.replace('/pantry-capture');
+  }, [receiptId, router]);
+
   const proceed = async (source: SourceImage) => {
     setBusy(true);
     let prepared: Awaited<ReturnType<typeof preparePhoto>> | null = null;
     try {
       prepared = await preparePhoto(source, 'receipts');
-      const receipt = replaceFrameId && receiptId
+      if (!receiptId) return;
+      const receipt = replaceFrameId
         ? await retakeReceiptPhoto(receiptId, replaceFrameId, prepared.base64, prepared.uri, localDateString())
-        : receiptId
-          ? await addReceiptPhoto(receiptId, prepared.base64, prepared.uri, localDateString())
-          : await captureReceipt(prepared.base64, prepared.uri, localDateString());
+        : await addReceiptPhoto(receiptId, prepared.base64, prepared.uri, localDateString());
       if (!receipt) return;
-
-      if (!receiptId && needsExtraction(receipt)) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        toast.show({
-          message: "Receipt saved. It'll finish importing once you're online with a key set.",
-        });
-        router.back();
-        return;
-      }
 
       router.replace({ pathname: '/receipt-review', params: { receiptId: receipt.id } });
     } catch (error) {
-      if (prepared && receiptId) deletePhoto(prepared.uri);
+      if (prepared) deletePhoto(prepared.uri);
       toast.show({ message: error instanceof Error ? error.message : 'Could not save this receipt photo.' });
     } finally {
       setBusy(false);
     }
   };
+
+  if (!receiptId) return <View style={styles.blank} />;
 
   const takePhoto = async () => {
     if (!cameraRef.current || busy) return;
@@ -138,8 +134,7 @@ export default function ReceiptCaptureScreen() {
 
       {busy ? (
         <View style={styles.busy}>
-          <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.busyText}>Reading your receipt…</Caption>
+          <ProcessingIndicator label="Reading your receipt…" onDark />
         </View>
       ) : null}
 
@@ -256,5 +251,4 @@ const styles = StyleSheet.create({
     backgroundColor: camera.overlayScrim,
     gap: space.md,
   },
-  busyText: { color: color.surface },
 });

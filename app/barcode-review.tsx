@@ -4,19 +4,21 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { BarcodeProductEditor, type ProductCorrection } from '@/components/barcode/BarcodeProductEditor';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { space } from '@/constants/theme';
-import { applyBarcodeSession, getCanonicalById, getLocations, getProductByBarcode } from '@/db/queries';
+import { applyBarcodeSession, getCanonicalById, getLocations, getProductByBarcode, upsertProduct } from '@/db/queries';
 import { barcodePantryItems } from '@/logic/barcode';
 import { localDateString } from '@/logic/dates';
 import { predictExpiry } from '@/logic/expiry';
 import type { CanonicalItem, Location, Product } from '@/types';
+import type { BarcodeResultOrigin } from '@/store/barcodeCaptureStore';
 
 /** Confirms a resolved barcode before it can create a pantry row. */
 export default function BarcodeReviewScreen() {
   const router = useRouter();
-  const { gtin } = useLocalSearchParams<{ gtin: string }>();
+  const { gtin, origin } = useLocalSearchParams<{ gtin: string; origin?: BarcodeResultOrigin }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [canonical, setCanonical] = useState<CanonicalItem | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -47,7 +49,13 @@ export default function BarcodeReviewScreen() {
     if (!product || !canonical || !location || saving) return;
     setSaving(true);
     try {
-      await applyBarcodeSession(barcodePantryItems(product, location.id, localDateString()));
+      const saved = await upsertProduct({
+        gtin: product.gtin, name: product.name, brand: product.brand, pkgQty: product.pkgQty,
+        pkgUnit: product.pkgUnit, containerCount: product.containerCount, canonicalId: product.canonicalId,
+        kcalPer100: product.kcalPer100, proteinPer100: product.proteinPer100,
+        carbsPer100: product.carbsPer100, fatPer100: product.fatPer100, source: product.source,
+      });
+      await applyBarcodeSession(barcodePantryItems(saved, location.id, localDateString()));
       router.dismissAll();
       router.replace('/(tabs)/pantry');
     } finally { setSaving(false); }
@@ -59,14 +67,13 @@ export default function BarcodeReviewScreen() {
 
   const expiry = predictExpiry(canonical, location.kind, localDateString(), null);
   const itemCount = product.containerCount ?? 1;
-  return <Screen scroll footer={<Button label={`Add ${itemCount} to pantry`} onPress={() => void accept()} loading={saving} />}>
+  return <Screen scroll footer={<Button label={`Add ${itemCount} to pantry`} onPress={() => void accept()} loading={saving} disabled={!product.name.trim()} />}>
     <View style={styles.header}>
       <ScreenTitle>Review barcode item</ScreenTitle>
       <Caption muted>Nothing is added until you confirm.</Caption>
     </View>
+    <BarcodeProductEditor product={product} origin={origin ?? (product.source === 'user' ? 'user' : 'local')} onChange={(correction: Partial<ProductCorrection>) => setProduct((current) => current ? { ...current, ...correction } : current)} />
     <Card>
-      <RowTitle>{product.name}</RowTitle>
-      {product.brand ? <Caption muted>{product.brand}</Caption> : null}
       <Caption muted>{itemCount === 1 ? 'One pantry item' : `${itemCount} individual pantry items`}</Caption>
       <Caption muted>{location.name}</Caption>
       <Caption muted>{expiry ? `Expected quality through ${expiry} (estimate).` : 'No expiry estimate is available.'}</Caption>

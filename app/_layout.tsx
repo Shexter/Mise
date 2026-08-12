@@ -96,13 +96,19 @@ export default function RootLayout() {
             <Stack.Screen name="pantry-capture-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-fallback" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="barcode-history" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="barcode-recovery" options={{ presentation: 'modal' }} />
             <Stack.Screen name="pending-captures" options={{ presentation: 'modal' }} />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />
             <Stack.Screen name="meal/[id]" />
+            <Stack.Screen name="analytics" />
             <Stack.Screen name="match-queue" options={{ presentation: 'modal' }} />
             <Stack.Screen name="locations" options={{ presentation: 'modal' }} />
             <Stack.Screen name="merge-canonicals" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="recipes" />
+            <Stack.Screen name="recipe-intake" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="recipe/[id]" />
             <Stack.Screen name="debug/tokens" options={{ presentation: 'modal' }} />
           </Stack>
         </ToastProvider>

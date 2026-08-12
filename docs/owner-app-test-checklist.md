@@ -11,6 +11,59 @@ until you record the result in its change task file or `docs/product-decisions.m
 3. For provider tests, add a funded key in Settings and use **Test key** first.
 4. Record the device, OS, build commit, provider, and result for each failure.
 
+## App icon PNG variants
+
+- [ ] Install an iOS build using original `2.png` as `ios.icon.light`. Confirm
+      it is recognisable at normal home-screen size and in Settings and search.
+- [ ] Switch the iPhone to dark appearance. Confirm original `7.png`, the
+      pure-dark variant, is selected and remains recognisable.
+- [ ] Enable iOS tinted icons. Confirm the fallback remains legible; this
+      release intentionally has no bespoke tinted asset.
+- [ ] Install the Android build. Confirm original `1.png` is not clipped in
+      both circular and squircle launchers, then test themed icons. Do not ship
+      a monochrome override unless the rendered result remains a recognisable
+      Mise bowl.
+
+Apple acceptance could not run on this workstation on 2026-08-11: `simctl`
+reported no available simulator devices, and no owner iPhone was connected.
+The iOS Expo export succeeds, but that does not replace launcher and Settings
+inspection on a simulator and physical device.
+
+### Android emulator evidence — 2026-08-11
+
+- Build: release APK from the working tree based on `25c8991`.
+- Device: Pixel 10a emulator, Android 37.1.
+- Default circular launcher: pass. Original `1.png` remains recognisable and
+  the bowl is not visibly clipped.
+- Minimal rounded-square launcher: pass after rebuilding without the legacy
+  monochrome override. The full-colour bowl remains recognisable and unclipped.
+- Android App Info: pass. The large Settings icon remains recognisable and
+  preserves the selected artwork.
+- Share sheet and notifications: not available in this build. Mise does not
+  expose a share target and did not have an active notification icon surface.
+- Minimal themed-icon style with the legacy monochrome override: fail. Android
+  rendered an unrelated chevron-like glyph. The override was removed so Mise
+  uses its full-colour fallback until a purpose-built monochrome icon is
+  approved.
+- Still required: repeat on an owner Android device and at least one additional
+  OEM launcher because mask treatment varies by launcher.
+
+## Observed Android UI defects — 2026-08-11
+
+- [ ] **Keyboard-obscured input:** In Expo Go, opening the keyboard while adding
+      a custom hidden ingredient can leave the active field behind the keyboard.
+      The person cannot see or verify what they are typing. Code remediation now
+      gives the shared sheet keyboard container full height and a safe-area
+      offset; repeat this check before closing the defect.
+- [ ] **Manual unit control wraps labels:** In the meal item editor, narrow
+      unit buttons break labels such as `piece`, `cup`, `tbsp`, and `serving`
+      into stacked letters rather than presenting a readable choice. Code
+      remediation now uses three, three, and two options per row; repeat this
+      check at normal and large text before closing the defect.
+- [ ] **Long item-name position:** After editing a long photographed-meal item
+      name, verify that the visible input text starts at the beginning of the
+      value and does not remain horizontally offset or clipped.
+
 ## Premium interaction pass
 
 Use this section for every UI-facing OpenSpec change. Record each failure or
@@ -33,6 +86,101 @@ uncertain result using the evidence format below before accepting the change.
       messages announce once and every offered action is reachable.
 - [ ] Test on supported iOS and Android devices. Record differences in motion,
       announcement order, capture controls, or route return behavior.
+
+### Today and nutrition-detail matrix
+
+Run every row on a supported iOS device and a supported Android device. Repeat
+the layout rows at the largest practical system text size. Use a day containing
+both known and unknown nutrition so the incomplete state is exercised.
+
+- [ ] Open Today. Confirm energy is the dominant value and protein,
+      carbohydrate, fat, and fibre remain a compact summary rather than a
+      dashboard. Charts, report tables, and chart controls must not appear here.
+- [ ] Confirm each supported metric shows consumed and recorded target values,
+      with progress understandable without colour. An incomplete metric must say
+      it is incomplete and must not display the unknown contribution as zero.
+- [ ] Activate each metric. Confirm Nutrition Analytics opens with the selected
+      date and metric, known contributors are ordered by contribution, and the
+      page explains that unknown contributors are excluded.
+- [ ] Return from Nutrition Analytics. Confirm the previously selected Today
+      date remains selected and primary meal actions have not moved or vanished.
+- [ ] Inspect meals with complete and incomplete nutrition. Confirm Today shows
+      only a defensible energy subtotal and meal detail labels unknown nutrient
+      fields as unknown rather than zero.
+- [ ] At large text and on the narrowest supported device, confirm the dominant
+      energy figure, target summary, meal rows, and Analytics action remain
+      readable without clipped values, horizontal scrolling, or unreachable
+      controls.
+- [ ] With VoiceOver or TalkBack, traverse the summary and one meal. Confirm
+      metric names, known values, targets, completeness, and actions announce
+      once in a useful order without relying on visual colour or motion.
+
+### Nutrition Analytics chart and report matrix
+
+Prepare history containing complete days, partially known days, a logged day
+whose selected nutrient is unknown, days with no meals, and a target change
+inside the period. Run the matrix in Organic, Utility, and Cool-Organic on both
+supported platforms.
+
+- [ ] Select energy, protein, carbohydrate, fat, and fibre in turn. Confirm the
+      chart, report units, table, and contributor labels change together without
+      making a provider or network request.
+- [ ] Select 7-day, 30-day, 90-day, and custom ranges. Confirm endpoints and
+      report periods are correct, custom dates remain editable, and changing a
+      range does not modify meals or targets.
+- [ ] Switch between daily and weekly grouping for each range where available.
+      Confirm weekly buckets preserve incomplete coverage and do not turn absent
+      or unknown days into known zeroes.
+- [ ] Switch between bar and line forms. Confirm incomplete, unknown, and absent
+      buckets remain distinguishable; a line must break rather than interpolate
+      through unknown data.
+- [ ] Use a period spanning changed daily targets. Confirm each date uses its
+      recorded target and the report discloses mixed target context instead of
+      repainting history with the current target.
+- [ ] Use sparse history. Confirm the report labels data coverage, includes only
+      defensible average/minimum/maximum values, and never presents a known
+      subtotal as complete intake.
+- [ ] Confirm the report states that it summarizes logged data and contains no
+      nutrition score, good/bad grade, diagnosis, risk flag, clinical reference
+      range, treatment recommendation, or clinician-authority claim.
+- [ ] At large text in all three themes, confirm controls wrap or scroll without
+      clipping, chart semantics remain legible without red/green judgment, and
+      the ordered value table remains usable.
+- [ ] With Reduce Motion enabled, repeat range, grouping, and chart-form changes.
+      Confirm results update without a large transition or delayed usable state.
+- [ ] With VoiceOver or TalkBack, read the chart equivalent and report table.
+      Confirm dates, values, units, targets, and coverage are available in order
+      and every configuration control exposes its selected state.
+
+### Pantry Stock and Recipes matrix
+
+Prepare one run with populated stock and saved recipes, one with each collection
+empty, and one with a pending receipt or saved capture. Run in Organic, Utility,
+and Cool-Organic on supported iOS and Android devices.
+
+- [ ] Open Pantry. Confirm Stock is selected by default and only Stock contains
+      pending-work banners, locations, camera capture, manual add, stock groups,
+      and its stock empty state.
+- [ ] Switch to Recipes. Confirm only saved recipes, recipe attribution/coverage,
+      the recipe empty state, and the recipe add action appear. No recipe may be
+      presented as stock and no stock control may be labelled as a recipe action.
+- [ ] Switch Stock → Recipes → Stock with both collections populated. Confirm
+      neither collection is reloaded destructively, rewritten, added to, or
+      removed merely by switching.
+- [ ] With pending receipt or capture work, switch to Recipes and back. Confirm
+      pending work stays scoped to Stock and remains present when Stock returns.
+- [ ] Open an existing recipe and add a recipe from the Recipes subsection.
+      Confirm the existing detail/intake routes open and source attribution plus
+      current pantry coverage remain available.
+- [ ] Test empty Stock with populated Recipes, populated Stock with empty
+      Recipes, and both empty. Confirm each subsection owns a truthful empty
+      state and an action relevant only to that collection.
+- [ ] At large text in all three themes, confirm the Stock / Recipes control,
+      headings, rows, empty states, and actions remain readable and reachable
+      without overlap or clipped labels.
+- [ ] With VoiceOver or TalkBack, confirm Stock and Recipes expose selected state,
+      switching moves to the correct collection, and hidden subsection actions
+      are not reachable in the accessibility tree.
 
 ## Unified capture
 
@@ -123,6 +271,33 @@ They do not establish provider response quality or device interaction.
 - [ ] Confirm unlogged days are not shown as zero calories or target misses.
 - [ ] Confirm the calendar cannot select before the first meal or after today.
 - [ ] Cross midnight while returning from a past day. Confirm Today advances correctly.
+
+## Saved recipes
+
+Use your own, consented, or redacted cooking posts and screenshots. Do not
+commit captions, source images, or provider responses that identify a creator.
+
+- [ ] Share a cooking post from YouTube, Instagram, and TikTok on both iOS and
+      Android. Record whether Mise receives a URL, title, caption, image, or
+      another payload for each case.
+- [ ] Share a link with no useful caption. Confirm Mise saves the link and gives
+      a clear path to add text or a screenshot later.
+- [ ] Paste a caption with stated quantities. Confirm the saved ingredients keep
+      the stated quantity and unit.
+- [ ] Paste a caption containing "to taste" or "a splash." Confirm the saved
+      ingredient has no quantity.
+- [ ] Paste a caption that is mostly emoji or hashtags. Confirm Mise says no
+      recipe was found and does not save invented ingredients.
+- [ ] Add a screenshot containing ingredients. Confirm it uses the unified
+      capture flow and does not create a second image pipeline.
+- [ ] View a saved recipe against a real pantry. Add a missing ingredient, then
+      reopen the recipe. Confirm coverage updates and unresolved ingredients
+      never appear under "You have."
+- [ ] Open the original source from the recipe detail screen. Confirm it opens
+      only after you tap it.
+- [ ] Cook a saved recipe containing one stated and one unstated amount. Confirm
+      the meal is logged at home and only the stated amount changes pantry stock.
+- [ ] Delete all data. Confirm recipes and locally stored recipe screenshots are removed.
 
 ## Other accepted changes
 

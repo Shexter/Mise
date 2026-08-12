@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  boxFocused: { borderColor: color.ink },
+  boxFocused: { borderColor: color.action },
   boxError: { borderColor: color.paprika },
   boxMultiline: { minHeight: 96, alignItems: 'flex-start', paddingVertical: space.md },
   input: {

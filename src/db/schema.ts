@@ -563,6 +563,41 @@ const PRODUCT_CONTAINER_COUNT = `
 ALTER TABLE products ADD COLUMN container_count INTEGER CHECK (container_count IS NULL OR container_count > 0);
 `;
 
+/** Migration 22: user-saved recipes. A recipe is local data brought in by the
+ * user; source links are retained for attribution but are never fetched. */
+const SAVED_RECIPES = `
+CREATE TABLE recipes (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  source_link TEXT,
+  steps_json  TEXT NOT NULL DEFAULT '[]',
+  image_uri   TEXT,
+  status      TEXT NOT NULL DEFAULT 'ready',
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+
+CREATE TABLE recipe_ingredients (
+  id           TEXT PRIMARY KEY,
+  recipe_id    TEXT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  quantity     REAL,
+  unit         TEXT,
+  canonical_id TEXT REFERENCES canonical_items(id),
+  sort_order   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id, sort_order);
+CREATE INDEX idx_recipe_ingredients_canonical ON recipe_ingredients(canonical_id);
+`;
+
+/** Migration 23: a local, clearable barcode recents list. Product facts and
+ * pantry stock remain untouched when this timestamp is cleared. */
+const PRODUCT_SCAN_HISTORY = `
+ALTER TABLE products ADD COLUMN last_scanned_at TEXT;
+CREATE INDEX idx_products_last_scanned ON products(last_scanned_at DESC);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -585,6 +620,8 @@ export const MIGRATIONS: readonly string[] = [
   SUGGESTION_TEMPLATE_PREFERENCES,
   RECEIPT_FRAME_EDIT_LOCK,
   PRODUCT_CONTAINER_COUNT,
+  SAVED_RECIPES,
+  PRODUCT_SCAN_HISTORY,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
@@ -592,6 +629,8 @@ export const LATEST_VERSION = MIGRATIONS.length;
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
 DROP TABLE IF EXISTS suggestion_preferences;
+DROP TABLE IF EXISTS recipe_ingredients;
+DROP TABLE IF EXISTS recipes;
 DROP TABLE IF EXISTS dish_venue_defaults;
 DROP TABLE IF EXISTS body_measurements;
 DROP TABLE IF EXISTS pending_captures;

@@ -64,7 +64,7 @@ export function Button({
 }
 
 const labelColor: Record<ButtonVariant, string> = {
-  primary: color.surface,
+  primary: color.onAction,
   secondary: color.ink,
   ghost: color.ink,
   destructive: color.paprika,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
 });
 
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
-  primary: { backgroundColor: color.ink },
+  primary: { backgroundColor: color.action },
   secondary: {
     backgroundColor: color.surface,
     borderWidth: 1,

@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import {
+  applyReceiptChanges,
   attachExtractedLines,
   enqueueMatch,
   getAllCanonicals,
   getBestAliasByNorm,
   getMatchQueue,
   getProductByBarcode,
+  getReceipt,
   insertCanonicalItem,
   insertCapturedReceipt,
   insertProduct,
+  insertRecipe,
+  listRecipes,
+  listPantryItems,
   listReceipts,
   loadSeedData,
   recordUserResolution,
@@ -87,6 +92,48 @@ describe('delete all data', () => {
     resetTestDatabase();
     await loadSeedData();
 
+    expect(await listReceipts()).toEqual([]);
+  });
+
+  test('clears saved recipes (recipe-links task 9.8)', async () => {
+    await insertRecipe({ title: 'To delete', sourceLink: 'https://example.com/post' });
+    expect((await listRecipes()).length).toBe(1);
+    resetTestDatabase();
+    await loadSeedData();
+    expect(await listRecipes()).toEqual([]);
+  });
+
+  test('rebuilds a populated database with circular receipt and pantry links', async () => {
+    const receipt = await insertCapturedReceipt('file://linked-receipt.jpg', '2026-08-11');
+    await attachExtractedLines(receipt.id, {
+      store: 'Test Market',
+      purchasedAt: '2026-08-11',
+      receiptType: 'grocery',
+      subtotalCents: 500,
+      taxCents: 0,
+      totalCents: 500,
+      lines: [{
+        rawText: 'MISO', kind: 'food', qty: 1, unit: 'piece', quantityKind: 'count',
+        lineTotalCents: 500, unitPriceCents: 500, appliesToText: null,
+      }],
+    });
+    const stored = await getReceipt(receipt.id);
+    const lineId = stored?.lines[0]?.id;
+    expect(lineId).toBeTruthy();
+
+    await applyReceiptChanges(receipt.id, [{
+      kind: 'create',
+      lineId: lineId!,
+      item: {
+        canonicalId: 'miso', locationId: 'fridge', qtyRemaining: 500,
+        qtyUnit: 'g', priceCents: 500, purchasedAt: '2026-08-11',
+      },
+    }]);
+    expect(await listPantryItems()).toHaveLength(1);
+
+    resetTestDatabase();
+    await loadSeedData();
+    expect(await listPantryItems()).toEqual([]);
     expect(await listReceipts()).toEqual([]);
   });
 });

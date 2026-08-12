@@ -7,7 +7,15 @@ import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
 import { localDateString } from '@/logic/dates';
+import type { DailyNutritionMetric, NutritionCoverage } from '@/logic/dailyNutritionSummary';
 import { mergeReceiptFrameLines, type ReceiptFrameLineInput } from '@/logic/receiptFrames';
+import {
+  bucketNutritionValues,
+  type NutritionAggregation,
+  type NutritionBucket,
+  type NutritionDayValue,
+  type NutritionPeriod,
+} from '@/logic/nutritionRange';
 import {
   canRecomputeExpiry,
   freezeExpiry,
@@ -65,6 +73,9 @@ import type {
   ReceiptType,
   QuantityKind,
   ReceiptWithLines,
+  Recipe,
+  RecipeIngredient,
+  RecipeWithIngredients,
   ReceiptFrame,
   ReferenceSource,
   SourceId,
@@ -157,6 +168,27 @@ interface DailyTargetRow {
   fibre_g: number;
 }
 
+interface RecipeRow {
+  id: string;
+  title: string;
+  source_link: string | null;
+  steps_json: string;
+  image_uri: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RecipeIngredientRow {
+  id: string;
+  recipe_id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  canonical_id: string | null;
+  sort_order: number;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Mappers                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -233,6 +265,41 @@ function toDailyTarget(row: DailyTargetRow): DailyTarget {
     carbsG: row.carbs_g,
     fatG: row.fat_g,
     fibreG: row.fibre_g,
+  };
+}
+
+function toRecipe(row: RecipeRow): Recipe {
+  let steps: string[] = [];
+  try {
+    const parsed: unknown = JSON.parse(row.steps_json);
+    if (Array.isArray(parsed)) {
+      steps = parsed.filter((step): step is string => typeof step === 'string');
+    }
+  } catch {
+    // An older or manually damaged row must remain viewable; the recipe data
+    // is still useful even if its optional method cannot be read.
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    sourceLink: row.source_link,
+    steps,
+    imageUri: row.image_uri,
+    status: row.status === 'awaiting_content' ? 'awaiting_content' : 'ready',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toRecipeIngredient(row: RecipeIngredientRow): RecipeIngredient {
+  return {
+    id: row.id,
+    recipeId: row.recipe_id,
+    name: row.name,
+    quantity: row.quantity,
+    unit: row.unit as MeasureUnit | null,
+    canonicalId: row.canonical_id,
+    sortOrder: row.sort_order,
   };
 }
 
@@ -531,6 +598,131 @@ export async function getMeal(id: string): Promise<MealWithItems | null> {
   return { ...toMeal(mealRow), items: itemRows.map(toMealItem) };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Saved recipes                                                               */
+/* -------------------------------------------------------------------------- */
+
+export interface NewRecipeIngredient {
+  name: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  canonicalId: string | null;
+}
+
+export interface NewRecipe {
+  title: string;
+  sourceLink: string | null;
+  steps?: readonly string[];
+  imageUri?: string | null;
+  status?: Recipe['status'];
+  ingredients?: readonly NewRecipeIngredient[];
+}
+
+/** Creates the recipe and its stated ingredients as one local transaction. */
+export async function insertRecipe(input: NewRecipe): Promise<RecipeWithIngredients> {
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const recipe: Recipe = {
+    id,
+    title: input.title.trim() || 'Untitled recipe',
+    sourceLink: input.sourceLink?.trim() || null,
+    steps: input.steps?.filter((step) => step.trim().length > 0) ?? [],
+    imageUri: input.imageUri ?? null,
+    status: input.status ?? 'ready',
+    createdAt: now,
+    updatedAt: now,
+  };
+  const ingredients = (input.ingredients ?? []).map((ingredient, sortOrder) => ({
+    id: randomUUID(),
+    recipeId: id,
+    name: ingredient.name.trim(),
+    quantity: ingredient.quantity,
+    unit: ingredient.unit,
+    canonicalId: ingredient.canonicalId,
+    sortOrder,
+  }));
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(
+      `INSERT INTO recipes
+         (id, title, source_link, steps_json, image_uri, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        recipe.id, recipe.title, recipe.sourceLink, JSON.stringify(recipe.steps),
+        recipe.imageUri, recipe.status, recipe.createdAt, recipe.updatedAt,
+      ],
+    );
+    for (const ingredient of ingredients) {
+      await txn.runAsync(
+        `INSERT INTO recipe_ingredients
+           (id, recipe_id, name, quantity, unit, canonical_id, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          ingredient.id, ingredient.recipeId, ingredient.name, ingredient.quantity,
+          ingredient.unit, ingredient.canonicalId, ingredient.sortOrder,
+        ],
+      );
+    }
+  });
+  return { ...recipe, ingredients };
+}
+
+export async function getRecipe(id: string): Promise<RecipeWithIngredients | null> {
+  const row = await db().getFirstAsync<RecipeRow>('SELECT * FROM recipes WHERE id = ?', [id]);
+  if (!row) return null;
+  const ingredients = await db().getAllAsync<RecipeIngredientRow>(
+    'SELECT * FROM recipe_ingredients WHERE recipe_id = ? ORDER BY sort_order ASC',
+    [id],
+  );
+  return { ...toRecipe(row), ingredients: ingredients.map(toRecipeIngredient) };
+}
+
+/** Lists saved recipes without loading their ingredients. */
+export async function listRecipes(): Promise<Recipe[]> {
+  const rows = await db().getAllAsync<RecipeRow>(
+    'SELECT * FROM recipes ORDER BY updated_at DESC, created_at DESC',
+  );
+  return rows.map(toRecipe);
+}
+
+/** Replaces editable recipe content while preserving provenance and source link. */
+export async function updateRecipe(
+  recipe: RecipeWithIngredients,
+): Promise<RecipeWithIngredients> {
+  const now = new Date().toISOString();
+  const ingredients = recipe.ingredients.map((ingredient, sortOrder) => ({
+    ...ingredient,
+    id: ingredient.id || randomUUID(),
+    recipeId: recipe.id,
+    sortOrder,
+  }));
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync(
+      `UPDATE recipes SET title = ?, steps_json = ?, image_uri = ?, status = ?, updated_at = ?
+       WHERE id = ?`,
+      [recipe.title, JSON.stringify(recipe.steps), recipe.imageUri, recipe.status, now, recipe.id],
+    );
+    await txn.runAsync('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [recipe.id]);
+    for (const ingredient of ingredients) {
+      await txn.runAsync(
+        `INSERT INTO recipe_ingredients
+           (id, recipe_id, name, quantity, unit, canonical_id, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [ingredient.id, ingredient.recipeId, ingredient.name, ingredient.quantity,
+          ingredient.unit, ingredient.canonicalId, ingredient.sortOrder],
+      );
+    }
+  });
+  return { ...recipe, ingredients, updatedAt: now };
+}
+
+export async function deleteRecipe(id: string): Promise<string | null> {
+  const recipe = await getRecipe(id);
+  if (!recipe) return null;
+  await db().runAsync('DELETE FROM recipes WHERE id = ?', [id]);
+  return recipe.imageUri;
+}
+
 export async function deleteMeal(id: string): Promise<void> {
   await db().runAsync('DELETE FROM meals WHERE id = ?', [id]);
 }
@@ -711,6 +903,90 @@ export async function getDaySummaries(
   }));
 }
 
+interface NutritionDayRow {
+  local_date: string;
+  meal_count: number;
+  item_count: number;
+  known_count: number;
+  known_value: number | null;
+  recorded_target: number | null;
+}
+
+const NUTRITION_RANGE_COLUMNS = {
+  energy: { value: 'calories', target: 'target_calories' },
+  protein: { value: 'protein_g', target: 'protein_g' },
+  carbohydrate: { value: 'carbs_g', target: 'carbs_g' },
+  fat: { value: 'fat_g', target: 'fat_g' },
+  fibre: { value: 'fibre_g', target: 'fibre_g' },
+} as const satisfies Record<DailyNutritionMetric, { value: string; target: string }>;
+
+/**
+ * One bounded local read for nutrition history. The selected columns come
+ * from the closed metric map above; dates remain parameterized. Target-only
+ * dates are retained, while dates with neither a meal nor a recorded target
+ * are filled by `bucketNutritionValues` as absent rather than known zero.
+ */
+export async function getNutritionDayValues(
+  metric: DailyNutritionMetric,
+  from: string,
+  to: string,
+): Promise<NutritionDayValue[]> {
+  if (from > to) throw new Error('Nutrition range start must not be after its end.');
+  const columns = NUTRITION_RANGE_COLUMNS[metric];
+  const rows = await db().getAllAsync<NutritionDayRow>(
+    `WITH range_dates AS (
+       SELECT local_date FROM meals WHERE local_date BETWEEN ? AND ?
+       UNION
+       SELECT local_date FROM daily_targets WHERE local_date BETWEEN ? AND ?
+     ), item_totals AS (
+       SELECT m.local_date,
+              COUNT(DISTINCT m.id) AS meal_count,
+              COUNT(mi.id) AS item_count,
+              COUNT(mi.${columns.value}) AS known_count,
+              SUM(mi.${columns.value}) AS known_value
+         FROM meals m
+         LEFT JOIN meal_items mi ON mi.meal_id = m.id
+        WHERE m.local_date BETWEEN ? AND ?
+        GROUP BY m.local_date
+     )
+     SELECT d.local_date,
+            COALESCE(i.meal_count, 0) AS meal_count,
+            COALESCE(i.item_count, 0) AS item_count,
+            COALESCE(i.known_count, 0) AS known_count,
+            CASE WHEN COALESCE(i.known_count, 0) = 0 THEN NULL ELSE i.known_value END AS known_value,
+            t.${columns.target} AS recorded_target
+       FROM range_dates d
+       LEFT JOIN item_totals i ON i.local_date = d.local_date
+       LEFT JOIN daily_targets t ON t.local_date = d.local_date
+      ORDER BY d.local_date ASC`,
+    [from, to, from, to, from, to],
+  );
+
+  return rows.map((row) => ({
+    localDate: row.local_date,
+    knownValue: row.known_value,
+    coverage: nutritionRowCoverage(row),
+    hasMeals: row.meal_count > 0,
+    recordedTarget: row.recorded_target,
+  }));
+}
+
+/** Daily or Monday-first weekly buckets from existing local meal and target records. */
+export async function getNutritionRangeBuckets(
+  metric: DailyNutritionMetric,
+  period: NutritionPeriod,
+  aggregation: NutritionAggregation,
+): Promise<NutritionBucket[]> {
+  const values = await getNutritionDayValues(metric, period.startDate, period.endDate);
+  return bucketNutritionValues(values, period, aggregation);
+}
+
+function nutritionRowCoverage(row: NutritionDayRow): NutritionCoverage {
+  if (row.meal_count === 0) return 'no-meals';
+  if (row.known_count === 0) return 'unknown';
+  return row.known_count === row.item_count ? 'complete' : 'partial';
+}
+
 /* -------------------------------------------------------------------------- */
 /* Ingredient identity: row shapes and mappers                                 */
 /* -------------------------------------------------------------------------- */
@@ -764,6 +1040,7 @@ interface ProductRow {
   fat_per_100: number | null;
   source: string;
   fetched_at: string | null;
+  last_scanned_at: string | null;
 }
 
 interface QueuedMatchRow {
@@ -830,6 +1107,7 @@ function toProduct(row: ProductRow): Product {
     fatPer100: row.fat_per_100,
     source: row.source as ReferenceSource,
     fetchedAt: row.fetched_at,
+    lastScannedAt: row.last_scanned_at,
   };
 }
 
@@ -1045,6 +1323,26 @@ export async function getProductByBarcode(
     [gtin],
   );
   return row ? toProduct(row) : null;
+}
+
+/** Records a successful recognition without changing product facts. */
+export async function markProductScanned(id: string, scannedAt: string = new Date().toISOString()): Promise<Product> {
+  await db().runAsync('UPDATE products SET last_scanned_at = ? WHERE id = ?', [scannedAt, id]);
+  const row = await db().getFirstAsync<ProductRow>('SELECT * FROM products WHERE id = ?', [id]);
+  if (!row) throw new Error('Scanned product no longer exists.');
+  return toProduct(row);
+}
+
+export async function listRecentScannedProducts(): Promise<Product[]> {
+  const rows = await db().getAllAsync<ProductRow>(
+    'SELECT * FROM products WHERE last_scanned_at IS NOT NULL ORDER BY last_scanned_at DESC',
+  );
+  return rows.map(toProduct);
+}
+
+/** Clears only recency metadata; cached products and pantry stock remain. */
+export async function clearRecentBarcodeHistory(): Promise<void> {
+  await db().runAsync('UPDATE products SET last_scanned_at = NULL WHERE last_scanned_at IS NOT NULL');
 }
 
 export async function getBarcodeMiss(gtin: string): Promise<BarcodeMiss | null> {
@@ -1408,6 +1706,7 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
     fatPer100: product.fatPer100 ?? null,
     source: product.source,
     fetchedAt,
+    lastScannedAt: null,
   };
 }
 

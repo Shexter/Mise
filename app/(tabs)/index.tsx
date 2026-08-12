@@ -14,12 +14,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasApiKey } from '@/api/keyStore';
 import { Card } from '@/components/Card';
 import { CountingNumber } from '@/components/CountingNumber';
+import { DailyTargetSummary } from '@/components/DailyTargetSummary';
 import { DateStrip } from '@/components/DateStrip';
 import { DayRail } from '@/components/DayRail';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
-import { MacroBars } from '@/components/MacroBars';
 import { MealRow } from '@/components/MealRow';
 import { Body, Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
@@ -32,8 +32,10 @@ import {
   space,
 } from '@/constants/theme';
 import { friendlyDate, isToday } from '@/logic/dates';
+import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
 import { roundCalories } from '@/logic/scaling';
 import { useDayStore } from '@/store/dayStore';
+import type { SuggestionTargetMacro } from '@/types';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -100,8 +102,12 @@ export default function TodayScreen() {
     return undefined;
   }, [params.savedMealId]);
 
-  const targetCalories = target?.targetCalories ?? 0;
-  const remaining = consumed.calories === null ? null : targetCalories - roundCalories(consumed.calories);
+  const nutritionSummary = dailyNutritionSummary(selectedDate, meals, target);
+  const energy = nutritionSummary.metrics.energy;
+  const targetCalories = energy.target ?? 0;
+  const remaining = energy.knownValue === null || energy.target === null
+    ? null
+    : energy.target - roundCalories(energy.knownValue);
   const isOver = remaining !== null && remaining < 0;
 
   const onDelete = (mealId: string) => {
@@ -114,6 +120,9 @@ export default function TodayScreen() {
       durationMs: 5_000,
     });
   };
+
+  const onMacroRequest = (macro: SuggestionTargetMacro) =>
+    router.push({ pathname: '/dinner', params: { macro } });
 
   return (
     <View style={styles.root}>
@@ -146,7 +155,12 @@ export default function TodayScreen() {
           onSelect={(date) => void selectDate(date)}
         />
 
-        <View style={styles.hero}>
+        <Pressable
+          style={styles.hero}
+          accessibilityRole="button"
+          accessibilityHint="Shows which meals contributed to today's energy."
+          onPress={() => router.push({ pathname: '/analytics', params: { metric: 'energy', date: selectedDate } })}
+        >
           <SectionLabel muted>
             {remaining === null ? 'Calories unavailable' : isOver ? 'Over target' : 'Remaining today'}
           </SectionLabel>
@@ -168,7 +182,7 @@ export default function TodayScreen() {
               of {targetCalories} target
             </Caption>
           )}
-        </View>
+        </Pressable>
 
         <DayRail
           meals={meals}
@@ -179,13 +193,10 @@ export default function TodayScreen() {
 
         {target ? (
           <View style={styles.macros}>
-            <MacroBars
-              consumed={consumed}
-              targetProteinG={target.proteinG}
-              targetCarbsG={target.carbsG}
-              targetFatG={target.fatG}
-              targetFibreG={target.fibreG}
-              onRequest={(macro) => router.push({ pathname: '/dinner', params: { macro } })}
+            <DailyTargetSummary
+              summary={nutritionSummary}
+              onSelect={(metric) => router.push({ pathname: '/analytics', params: { metric, date: selectedDate } })}
+              onRequest={onMacroRequest}
             />
           </View>
         ) : null}

@@ -155,12 +155,12 @@ Pure logic. No database, no network.
       existing capture screen's conventions. Built as `app/receipt-capture.tsx`,
       a standalone screen, per the spec as it stood when this was implemented.
       **Superseded by later planning** (see below) — not yet reconciled.
-- [ ] 7.2a Later planning revises 7.2: receipts should arrive from the shared
+- [x] 7.2a Later planning revises 7.2: receipts should arrive from the shared
       Add to pantry surface in `add-unified-capture` rather than through their
       own capture screen, with `receipt-capture.tsx` becoming just the review
-      handler a library pick still routes to. `add-unified-capture` does not
-      exist yet, so this cannot be done without first implementing it — left
-      open rather than reworked speculatively.
+      handler a library pick still routes to. Unified capture now owns every
+      first receipt photo, including unclear-photo recovery; this handler is
+      retained only for adding or retaking frames from an existing review.
 - [x] 7.3 Retain a receipt captured with no connection and complete extraction
       when one returns, without asking the user to re-photograph.
 - [x] 7.4 Tell the user a receipt is pending rather than failing silently.

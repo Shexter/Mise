@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mise themes — Organic, Utility, Cool Organic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&amp;family=Caprasimo&amp;family=Figtree:wght@400;500;600;700&amp;family=Fraunces:opsz,wght@9..144,500;9..144,600&amp;display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --board: #f6f5f2;
+      --board-ink: #202321;
+      --board-muted: #6c706c;
+      --board-line: #d9d9d4;
+      --shadow: 0 24px 70px rgba(34, 38, 35, .12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: #191b1a;
+      color: var(--board-ink);
+      font-family: Figtree, system-ui, sans-serif;
+    }
+    button { font: inherit; }
+
+    .board {
+      min-height: 100vh;
+      margin: 6px;
+      padding: clamp(24px, 5vw, 72px);
+      background: var(--board);
+    }
+    .masthead {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 38px;
+    }
+    h1 {
+      max-width: 720px;
+      margin: 0;
+      font-size: clamp(32px, 5vw, 64px);
+      line-height: .98;
+      letter-spacing: -.045em;
+      font-weight: 500;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--board-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .brief {
+      max-width: 510px;
+      margin: 0;
+      color: var(--board-muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 28px;
+      padding: 0;
+      list-style: none;
+    }
+    .legend li {
+      padding: 9px 14px;
+      border: 1px solid var(--board-line);
+      border-radius: 999px;
+      color: var(--board-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .legend .selected {
+      border-color: #a95a35;
+      background: #ebe3d8;
+      color: #713c27;
+    }
+
+    .directions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(320px, 1fr));
+      gap: clamp(20px, 3vw, 42px);
+      align-items: start;
+    }
+    .direction-head {
+      min-height: 95px;
+      margin-bottom: 16px;
+    }
+    .direction-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 9px;
+    }
+    .direction-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .badge {
+      flex: none;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #e4e1db;
+      color: #5f5d58;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .badge.default { background: #ebe3d8; color: #713c27; }
+    .badge.planned { background: #dce7e1; color: #31574e; }
+    .direction-copy {
+      margin: 0;
+      color: var(--board-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .phone {
+      --ground: #edeae4;
+      --surface: #fff;
+      --surface-2: #f5f3ef;
+      --ink: #201f1d;
+      --muted: #74716c;
+      --line: #d9d5cf;
+      --primary: #201f1d;
+      --primary-ink: #fff;
+      --protein: #93442f;
+      --carbs: #c79225;
+      --fat: #5d7132;
+      --fibre: #64756b;
+      --heading: Fraunces, Georgia, serif;
+      --body: Archivo, system-ui, sans-serif;
+      min-height: 800px;
+      overflow: hidden;
+      border: 1px solid rgba(54, 57, 54, .18);
+      border-radius: 50px;
+      background: var(--ground);
+      box-shadow: var(--shadow);
+      color: var(--ink);
+      font-family: var(--body);
+    }
+    .phone.organic {
+      --ground: #f3ede4;
+      --surface: #ebe3d8;
+      --surface-2: #eee7de;
+      --ink: #211f1d;
+      --muted: #756f68;
+      --line: #d8cec3;
+      --primary: #a95a35;
+      --protein: #a45239;
+      --carbs: #b68a43;
+      --fat: #74825f;
+      --fibre: #211f1d;
+      --heading: Fraunces, Georgia, serif;
+      --body: Archivo, system-ui, sans-serif;
+    }
+    .phone.planned {
+      --ground: #f2f1ec;
+      --surface: #fafaf7;
+      --surface-2: #e5e9e1;
+      --ink: #202522;
+      --muted: #68716b;
+      --line: #d3d8d1;
+      --primary: #4f7067;
+      --protein: #a15e48;
+      --carbs: #a98236;
+      --fat: #6c7b52;
+      --fibre: #52736f;
+      --heading: Fraunces, Georgia, serif;
+      --body: Archivo, system-ui, sans-serif;
+    }
+    .phone-inner {
+      display: flex;
+      min-height: 800px;
+      flex-direction: column;
+      padding: 23px 22px 18px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 46px;
+      padding: 0 2px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .status-dots { letter-spacing: 3px; }
+    .today-kicker {
+      margin-bottom: 11px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .energy {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .energy-number {
+      font-family: var(--heading);
+      font-size: clamp(62px, 6vw, 78px);
+      line-height: .9;
+      letter-spacing: -.035em;
+    }
+    .energy-caption {
+      padding-bottom: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      text-align: right;
+    }
+    .target-note {
+      display: block;
+      font-size: 11px;
+      opacity: .8;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      margin-bottom: 24px;
+    }
+    .metric {
+      min-width: 0;
+      padding: 13px 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+    }
+    .organic .metric { border-color: transparent; }
+    .planned .metric:nth-child(4) { background: var(--surface-2); }
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .metric-value { font-size: 15px; font-weight: 700; }
+    .metric-target { color: var(--muted); font-size: 11px; font-weight: 500; }
+    .track { height: 5px; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+    .planned .track { background: #d7ddd7; }
+    .fill { height: 100%; border-radius: inherit; background: currentColor; }
+    .protein { color: var(--protein); }
+    .carbs { color: var(--carbs); }
+    .fat { color: var(--fat); }
+    .fibre { color: var(--fibre); }
+    .metric-link {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-family: var(--heading);
+      font-size: 26px;
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+    .meals { display: grid; gap: 10px; }
+    .meal {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface);
+    }
+    .organic .meal { border-color: transparent; border-radius: 28px; }
+    .planned .meal { border-color: transparent; }
+    .meal-icon {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--surface-2);
+    }
+    .planned .meal-icon { background: #dbe2da; }
+    .bowl {
+      width: 25px;
+      height: 12px;
+      border: 2px solid var(--fat);
+      border-radius: 50%;
+      box-shadow: inset 0 -4px 0 rgba(108, 123, 82, .12);
+    }
+    .meal-name { font-size: 15px; font-weight: 650; }
+    .meal-meta { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .meal-total { text-align: right; }
+    .meal-kcal { font-size: 18px; font-weight: 650; }
+    .meal-detail { margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+    .cta {
+      display: flex;
+      min-height: 58px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+      padding: 0 19px;
+      border: 0;
+      border-radius: 22px;
+      background: var(--primary);
+      color: var(--primary-ink);
+      font-weight: 600;
+      text-align: left;
+    }
+    .organic .cta { border-radius: 999px; }
+    .planned .cta { border-radius: 24px; }
+    .cta span:last-child { font-size: 20px; }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      margin-top: auto;
+      padding-top: 21px;
+      color: var(--muted);
+      font-size: 9px;
+      text-align: center;
+    }
+    .tab { padding-top: 10px; border-top: 3px solid transparent; }
+    .tab.active { border-color: var(--primary); color: var(--ink); font-weight: 650; }
+
+    .swatches {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 18px;
+      color: var(--board-muted);
+      font-size: 11px;
+    }
+    .swatches strong { margin-right: auto; color: var(--board-ink); font-weight: 600; }
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border: 1px solid rgba(25, 27, 26, .13);
+      border-radius: 50%;
+    }
+
+    .decision {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: clamp(24px, 5vw, 70px);
+      margin-top: 70px;
+      padding-top: 34px;
+      border-top: 1px solid var(--board-line);
+    }
+    .decision h2 { margin: 0 0 12px; font-size: clamp(27px, 4vw, 42px); letter-spacing: -.035em; }
+    .decision p { max-width: 720px; margin: 0; color: var(--board-muted); line-height: 1.6; }
+    .principles { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .principles li { padding: 13px 15px; border-radius: 14px; background: #e5e9e1; color: #31574e; font-size: 13px; }
+
+    @media (max-width: 1120px) {
+      .masthead { align-items: start; flex-direction: column; }
+      .directions {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(320px, 84vw);
+        grid-template-columns: none;
+        overflow-x: auto;
+        padding: 4px 8vw 36px 0;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: thin;
+      }
+      .direction { scroll-snap-align: start; }
+      .direction-head { min-height: 112px; }
+      .phone { min-height: 780px; }
+      .phone-inner { min-height: 780px; }
+    }
+    @media (max-width: 680px) {
+      .board { margin: 0; padding: 24px 16px 44px; }
+      h1 { font-size: 38px; }
+      .brief { font-size: 14px; }
+      .directions { grid-auto-columns: minmax(300px, 91vw); padding-right: 5vw; }
+      .phone { border-radius: 38px; }
+      .phone-inner { padding: 20px 18px 16px; }
+      .direction-head { min-height: 132px; }
+      .decision { grid-template-columns: 1fr; margin-top: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">Mise theme system · August 2026</p>
+        <h1>One interface. Three colour temperatures.</h1>
+      </div>
+      <p class="brief">Same Today content and semantic roles in every theme. Organic remains cream, sand, terracotta, wheat, and olive—only with less yellow warmth. On a phone, swipe horizontally.</p>
+    </header>
+
+    <ul class="legend" aria-label="Review status">
+      <li>Utility · selectable</li>
+      <li class="selected">Organic · default</li>
+      <li>Cool Organic · selectable</li>
+    </ul>
+
+    <section class="directions" aria-label="Three UI direction comparisons">
+      <article class="direction">
+        <div class="direction-head">
+          <div class="direction-line"><h2 class="direction-title">Utility</h2><span class="badge">Option</span></div>
+          <p class="direction-copy">The existing production palette: quiet putty, white surfaces, near-black actions, and maximum visual restraint.</p>
+        </div>
+        <div class="phone production">
+          <div class="phone-inner">
+            <div class="status"><span>9:41</span><span class="status-dots">●●●</span></div>
+            <div class="today-kicker">Tuesday · Today</div>
+            <div class="energy"><div class="energy-number">742</div><div class="energy-caption">calories left<br>of 2,050<span class="target-note">1,308 consumed</span></div></div>
+            <div class="metrics">
+              <div class="metric protein"><div class="metric-top"><span>Protein</span><span class="metric-value">78 g</span></div><div class="track"><div class="fill" style="width:65%"></div></div><div class="metric-link">of 120 g</div></div>
+              <div class="metric carbs"><div class="metric-top"><span>Carbs</span><span class="metric-value">142 g</span></div><div class="track"><div class="fill" style="width:57%"></div></div><div class="metric-link">of 250 g</div></div>
+              <div class="metric fat"><div class="metric-top"><span>Fat</span><span class="metric-value">51 g</span></div><div class="track"><div class="fill" style="width:64%"></div></div><div class="metric-link">of 80 g</div></div>
+              <div class="metric fibre"><div class="metric-top"><span>Fibre</span><span class="metric-value">18 g</span></div><div class="track"><div class="fill" style="width:60%"></div></div><div class="metric-link">of 30 g</div></div>
+            </div>
+            <h3 class="section-title">Meals</h3>
+            <div class="meals">
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Eggs and sourdough</div><div class="meal-meta">Breakfast · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">486</div><div class="meal-detail">kcal</div></div></div>
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Roast vegetable bowl</div><div class="meal-meta">Lunch · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">612</div><div class="meal-detail">kcal</div></div></div>
+            </div>
+            <button class="cta"><span>What can I make tonight?</span><span>→</span></button>
+            <nav class="tabs"><div class="tab active">Today</div><div class="tab">Pantry</div><div class="tab">Capture</div><div class="tab">Recipes</div><div class="tab">Settings</div></nav>
+          </div>
+        </div>
+        <div class="swatches"><strong>Fraunces + Archivo</strong><span class="swatch" style="background:#edeae4"></span><span class="swatch" style="background:#fff"></span><span class="swatch" style="background:#201f1d"></span><span class="swatch" style="background:#5d7132"></span></div>
+      </article>
+
+      <article class="direction">
+        <div class="direction-head">
+          <div class="direction-line"><h2 class="direction-title">Organic</h2><span class="badge default">Default</span></div>
+          <p class="direction-copy">The same cream, sand, terracotta, wheat, and olive identity with cooler neutrals and a quieter yellow cast.</p>
+        </div>
+        <div class="phone organic">
+          <div class="phone-inner">
+            <div class="status"><span>9:41</span><span class="status-dots">●●●</span></div>
+            <div class="today-kicker">Tuesday · Today</div>
+            <div class="energy"><div class="energy-number">742</div><div class="energy-caption">calories left<br>of 2,050<span class="target-note">1,308 consumed</span></div></div>
+            <div class="metrics">
+              <div class="metric protein"><div class="metric-top"><span>Protein</span><span class="metric-value">78 g</span></div><div class="track"><div class="fill" style="width:65%"></div></div><div class="metric-link">of 120 g · contributors ›</div></div>
+              <div class="metric carbs"><div class="metric-top"><span>Carbs</span><span class="metric-value">142 g</span></div><div class="track"><div class="fill" style="width:57%"></div></div><div class="metric-link">of 250 g · contributors ›</div></div>
+              <div class="metric fat"><div class="metric-top"><span>Fat</span><span class="metric-value">51 g</span></div><div class="track"><div class="fill" style="width:64%"></div></div><div class="metric-link">of 80 g · contributors ›</div></div>
+              <div class="metric fibre"><div class="metric-top"><span>Fibre</span><span class="metric-value">18 g</span></div><div class="track"><div class="fill" style="width:60%"></div></div><div class="metric-link">of 30 g · contributors ›</div></div>
+            </div>
+            <h3 class="section-title">Meals</h3>
+            <div class="meals">
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Eggs and sourdough</div><div class="meal-meta">Breakfast · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">486</div><div class="meal-detail">P 31 · C 42 ›</div></div></div>
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Roast vegetable bowl</div><div class="meal-meta">Lunch · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">612</div><div class="meal-detail">P 24 · Fi 12 ›</div></div></div>
+            </div>
+            <button class="cta"><span>What can I make tonight?</span><span>→</span></button>
+            <nav class="tabs"><div class="tab active">Today</div><div class="tab">Pantry</div><div class="tab">Capture</div><div class="tab">Recipes</div><div class="tab">Settings</div></nav>
+          </div>
+        </div>
+        <div class="swatches"><strong>Fraunces + Archivo</strong><span class="swatch" style="background:#f3ede4"></span><span class="swatch" style="background:#ebe3d8"></span><span class="swatch" style="background:#a95a35"></span><span class="swatch" style="background:#74825f"></span></div>
+      </article>
+
+      <article class="direction">
+        <div class="direction-head">
+          <div class="direction-line"><h2 class="direction-title">Cool Organic</h2><span class="badge planned">Option</span></div>
+          <p class="direction-copy">The cooler stone-and-juniper alternative. It keeps the shared structure and factual nutrition hierarchy without changing app behavior.</p>
+        </div>
+        <div class="phone planned">
+          <div class="phone-inner">
+            <div class="status"><span>9:41</span><span class="status-dots">●●●</span></div>
+            <div class="today-kicker">Tuesday · Today</div>
+            <div class="energy"><div class="energy-number">742</div><div class="energy-caption">calories left<br>of 2,050<span class="target-note">1,308 consumed</span></div></div>
+            <div class="metrics">
+              <div class="metric protein"><div class="metric-top"><span>Protein</span><span class="metric-value">78 g</span></div><div class="track"><div class="fill" style="width:65%"></div></div><div class="metric-link">of 120 g · contributors ›</div></div>
+              <div class="metric carbs"><div class="metric-top"><span>Carbs</span><span class="metric-value">142 g</span></div><div class="track"><div class="fill" style="width:57%"></div></div><div class="metric-link">of 250 g · contributors ›</div></div>
+              <div class="metric fat"><div class="metric-top"><span>Fat</span><span class="metric-value">51 g</span></div><div class="track"><div class="fill" style="width:64%"></div></div><div class="metric-link">of 80 g · contributors ›</div></div>
+              <div class="metric fibre"><div class="metric-top"><span>Fibre</span><span class="metric-value">18 g</span></div><div class="track"><div class="fill" style="width:60%"></div></div><div class="metric-link">of 30 g · contributors ›</div></div>
+            </div>
+            <h3 class="section-title">Meals</h3>
+            <div class="meals">
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Eggs and sourdough</div><div class="meal-meta">Breakfast · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">486</div><div class="meal-detail">P 31 · C 42 ›</div></div></div>
+              <div class="meal"><div class="meal-icon"><div class="bowl"></div></div><div><div class="meal-name">Roast vegetable bowl</div><div class="meal-meta">Lunch · Cooked in</div></div><div class="meal-total"><div class="meal-kcal">612</div><div class="meal-detail">P 24 · Fi 12 ›</div></div></div>
+            </div>
+            <button class="cta"><span>What can I make tonight?</span><span>→</span></button>
+            <nav class="tabs"><div class="tab active">Today</div><div class="tab">Pantry</div><div class="tab">Capture</div><div class="tab">Recipes</div><div class="tab">Settings</div></nav>
+          </div>
+        </div>
+        <div class="swatches"><strong>Fraunces + Archivo</strong><span class="swatch" style="background:#f2f1ec"></span><span class="swatch" style="background:#fafaf7"></span><span class="swatch" style="background:#4f7067"></span><span class="swatch" style="background:#6c7b52"></span></div>
+      </article>
+    </section>
+
+    <section class="decision">
+      <div>
+        <p class="eyebrow">Implementation decision</p>
+        <h2>Reduced-warmth Organic by default. Two honest alternatives.</h2>
+        <p>Settings offers Organic, Utility, and Cool Organic. The selection changes one shared semantic palette and reloads the interface coherently. Nutrition stays overview-first, with evidence on tap and no score layered over incomplete data.</p>
+      </div>
+      <ul class="principles">
+        <li>Organic retains its colour family, with less yellow in the field.</li>
+        <li>Utility and Cool Organic remain complete selectable palettes.</li>
+        <li>Layout and behavior never fork by theme.</li>
+        <li>Unknown nutrition remains explicitly unknown.</li>
+        <li>Overview first; contributors and detail on tap.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

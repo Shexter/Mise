@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   View,
@@ -14,7 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getApiKey } from '@/api/keyStore';
 import { Button } from '@/components/Button';
-import { Body, Caption, ScreenTitle } from '@/components/Type';
+import { ProcessingIndicator } from '@/components/ProcessingIndicator';
+import { Body, ScreenTitle } from '@/components/Type';
 import {
   camera,
   color,
@@ -128,8 +128,7 @@ export default function CaptureScreen() {
 
       {busy ? (
         <View style={styles.busy} accessibilityLiveRegion="polite">
-          <ActivityIndicator color={color.surface} size="large" />
-          <Caption style={styles.busyText} accessibilityRole="alert">Preparing your photo…</Caption>
+          <ProcessingIndicator label="Preparing your photo…" onDark />
         </View>
       ) : null}
 
@@ -267,7 +266,6 @@ const styles = StyleSheet.create({
     backgroundColor: camera.overlayScrim,
     gap: space.md,
   },
-  busyText: { color: color.surface },
   recovery: {
     ...fillParent,
     justifyContent: 'center',

@@ -1,6 +1,6 @@
 import { VisionError } from '@/api/errors';
 import { lookupOpenFoodFacts, type OpenFoodFactsProduct } from '@/api/openFoodFacts';
-import { getBarcodeMiss, getProductByBarcode, recordBarcodeMiss, upsertProduct, type NewPantryItem } from '@/db/queries';
+import { getBarcodeMiss, getProductByBarcode, markProductScanned, recordBarcodeMiss, upsertProduct, type NewPantryItem } from '@/db/queries';
 import type { MatchOutcome } from '@/logic/match';
 import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
 import type { Product } from '@/types';
@@ -110,12 +110,15 @@ export async function resolveBarcode(
     },
     recordMiss: recordBarcodeMiss,
   });
+  if (result.kind === 'product') {
+    return { ...result, product: await markProductScanned(result.product.id) };
+  }
   if (result.kind !== 'remote') return result;
   const [match] = await resolveIngredientReferences([{ raw: result.product.name }], 'barcode', signal);
   if (!match) return { kind: 'unresolved', product: result.product, match: { status: 'unresolved', raw: result.product.name, norm: result.product.name, queued: false } };
   if (match.status === 'resolved') {
     const product = await upsertProduct({ ...result.product, canonicalId: match.canonicalId, source: 'barcode' });
-    return { kind: 'product', product, cached: false };
+    return { kind: 'product', product: await markProductScanned(product.id), cached: false };
   }
   return match.status === 'needs_confirmation'
     ? { kind: 'needs_confirmation', product: result.product, match }
@@ -131,7 +134,7 @@ export async function confirmBarcodeMatch(
   canonicalId: string,
 ): Promise<Product> {
   await confirmMatch(product.name, canonicalId);
-  return upsertProduct({ ...product, canonicalId, source: 'barcode' });
+  return markProductScanned((await upsertProduct({ ...product, canonicalId, source: 'barcode' })).id);
 }
 
 /** Binds a person-identified product to its GTIN for future offline scans. */
@@ -141,7 +144,7 @@ export async function identifyBarcode(
   canonicalId: string,
   brand: string | null = null,
 ): Promise<Product> {
-  return upsertProduct({
+  return markProductScanned((await upsertProduct({
     gtin,
     name,
     brand,
@@ -150,7 +153,12 @@ export async function identifyBarcode(
     containerCount: null,
     canonicalId,
     source: 'user',
-  });
+  })).id);
+}
+
+/** Binds a completed recovery draft only at the person's confirmation step. */
+export async function confirmRecoveredBarcode(input: Omit<import('@/db/queries').NewProduct, 'source'> & { gtin: string }): Promise<Product> {
+  return markProductScanned((await upsertProduct({ ...input, source: 'user' })).id);
 }
 
 /**

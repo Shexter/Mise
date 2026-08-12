@@ -6,16 +6,23 @@ import { useFocusEffect } from 'expo-router';
 
 import { Card, Divider } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
+import { Segmented } from '@/components/Choice';
 import { AddPantryItemSheet } from '@/components/pantry/AddPantryItemSheet';
 import { PantryItemSheet } from '@/components/pantry/PantryItemSheet';
+import { SavedRecipesSection } from '@/components/recipes/SavedRecipesSection';
 import { expiryLabel, statusLabel } from '@/components/pantry/labels';
 import { Screen } from '@/components/Screen';
+import { EmptyPantryIllustration } from '@/components/StateIllustration';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { pendingReceipts, retryAllPending } from '@/logic/receiptService';
-import { listPendingCaptures } from '@/db/queries';
+import { listPendingCaptures, listRecipes } from '@/db/queries';
 import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
+import type { Recipe } from '@/types';
+
+type PantrySubsection = 'stock' | 'recipes';
+const SUBSECTIONS = [{ value: 'stock', label: 'Stock' }, { value: 'recipes', label: 'Recipes' }] as const;
 
 /**
  * The catalogue: what is in the kitchen, soonest expiry first. Statuses are
@@ -31,6 +38,8 @@ export default function PantryScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingCaptureCount, setPendingCaptureCount] = useState(0);
+  const [subsection, setSubsection] = useState<PantrySubsection>('stock');
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   // Derived from the store so the sheet reflects taps live; null once the
   // entry leaves the catalogue (e.g. discarded).
   const selected =
@@ -48,6 +57,7 @@ export default function PantryScreen() {
   useFocusEffect(
     useCallback(() => {
       void refresh();
+      void listRecipes().then(setRecipes);
       void (async () => {
         await retryAllPending();
         await checkPending();
@@ -64,7 +74,7 @@ export default function PantryScreen() {
     <Screen scroll>
       <View style={styles.header}>
         <ScreenTitle>Pantry</ScreenTitle>
-        <View style={styles.headerActions}>
+        {subsection === 'stock' ? <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/locations')}
             accessibilityRole="button"
@@ -101,10 +111,21 @@ export default function PantryScreen() {
           >
             <Feather name="plus" size={22} color={color.ink} />
           </Pressable>
-        </View>
+        </View> : (
+          <Pressable
+            onPress={() => router.push('/recipe-intake')}
+            accessibilityRole="button"
+            accessibilityLabel="Save a recipe"
+            style={styles.headerButton}
+          >
+            <Feather name="plus" size={22} color={color.ink} />
+          </Pressable>
+        )}
       </View>
 
-      {pendingCount > 0 ? (
+      <Segmented options={SUBSECTIONS} value={subsection} onChange={setSubsection} style={styles.subsections} />
+
+      {subsection === 'stock' && pendingCount > 0 ? (
         <Pressable
           onPress={() => void retryNow()}
           accessibilityRole="button"
@@ -118,7 +139,7 @@ export default function PantryScreen() {
         </Pressable>
       ) : null}
 
-      {pendingCaptureCount > 0 ? (
+      {subsection === 'stock' && pendingCaptureCount > 0 ? (
         <Pressable
           onPress={() => router.push('/pending-captures')}
           accessibilityRole="button"
@@ -130,10 +151,15 @@ export default function PantryScreen() {
         </Pressable>
       ) : null}
 
-      {groups.length === 0 ? (
+      {subsection === 'recipes' ? (
+        <SavedRecipesSection recipes={recipes} showHeaderAction={false} />
+      ) : groups.length === 0 ? (
         <EmptyState
           title="Nothing catalogued yet"
-          detail="Add what's in your kitchen and Mise will keep an eye on it."
+          detail="Add what's already in your kitchen, or let a receipt do it."
+          illustration={
+            <EmptyPantryIllustration accessibilityLabel="A half-empty kitchen shelf, ready for pantry items" />
+          }
           actionLabel="Add an item"
           onAction={() => setAdding(true)}
         />
@@ -210,6 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerActions: { flexDirection: 'row', gap: space.sm },
+  subsections: { marginBottom: space.lg },
   banner: {
     backgroundColor: color.surface,
     borderRadius: radius.card,

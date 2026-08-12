@@ -44,7 +44,7 @@ export function Fab({ onPress, onSecondary }: Props) {
           pressed && { opacity: opacity.pressed },
         ]}
       >
-        <Feather name="camera" size={26} color={color.surface} />
+        <Feather name="camera" size={26} color={color.onAction} />
       </Pressable>
     </View>
   );
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     width: SIZE,
     height: SIZE,
     borderRadius: radius.full,
-    backgroundColor: color.ink,
+    backgroundColor: color.action,
     alignItems: 'center',
     justifyContent: 'center',
     ...elevation,

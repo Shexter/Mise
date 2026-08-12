@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 
-import { applyBarcodeSession, getBestAliasByNorm, getProductByBarcode, insertProduct, listPantryItems, loadSeedData, upsertProduct } from '../src/db/queries';
+import { applyBarcodeSession, clearRecentBarcodeHistory, getBestAliasByNorm, getProductByBarcode, insertProduct, listPantryItems, listRecentScannedProducts, loadSeedData, upsertProduct } from '../src/db/queries';
 import { barcodePantryItems, confirmBarcodeMatch, identifyBarcode, BARCODE_MISS_TTL_MS, classifyBarcode, hasValidCheckDigit, isBarcodeScanDebounced, isFreshBarcodeMiss, lookupBarcode, resolveBarcode } from '../src/logic/barcode';
 import { normalise } from '../src/logic/normalise';
 import { useBarcodeCaptureStore } from '../src/store/barcodeCaptureStore';
@@ -116,6 +116,17 @@ describe('barcode validation', () => {
         kind: 'product', cached: true, product: { id: product.id, canonicalId: product.canonicalId },
       });
     }
+  });
+
+  test('keeps successful scan recency local and clears it without deleting products', async () => {
+    await identifyBarcode('4006381333931', 'Market coconut milk', 'olive-oil');
+    const recent = await listRecentScannedProducts();
+    expect(recent).toHaveLength(1);
+    expect(recent[0]?.lastScannedAt).not.toBeNull();
+
+    await clearRecentBarcodeHistory();
+    expect(await listRecentScannedProducts()).toEqual([]);
+    expect(await getProductByBarcode('4006381333931')).toMatchObject({ name: 'Market coconut milk' });
   });
 
   test('keeps a rapid scan session in memory until one atomic apply', async () => {

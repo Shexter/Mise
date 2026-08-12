@@ -43,7 +43,9 @@ export function Sheet({ visible, onClose, title, children, footer }: Props) {
           accessibilityLabel="Close"
         />
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardArea}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={insets.top}
         >
           <View
             style={[
@@ -79,6 +81,7 @@ export function Sheet({ visible, onClose, title, children, footer }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...fillParent, backgroundColor: color.ink, opacity: 0.35 },
+  keyboardArea: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: color.ground,
     borderTopLeftRadius: radius.card,

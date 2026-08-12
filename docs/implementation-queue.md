@@ -1,5 +1,27 @@
 # Implementation queue
 
+## Live queue snapshot — 11 August 2026
+
+The older dependency narrative below is retained for history, but its task
+counts are stale. Current code work has reached these boundaries:
+
+1. `add-receipt-import` — **79/79**. Implementation complete; owner approval is
+   required before archival.
+2. `add-recipe-links` — **28/47**. Next is evidence collection (share-sheet
+   payloads and real caption fixtures), then the gated intake work.
+3. `add-premium-interaction-polish` — **39/41**. Code and concrete acceptance
+   matrices are complete; two owner/device evidence tasks remain.
+4. `add-brand-identity-system` — **30/32**. Owner acceptance remains.
+5. `add-barcode-capture` — **52/65**. Remaining work is external licensing and
+   device acceptance.
+6. `add-openai-provider` — **35/41**, `add-energy-sources` — **66/75**,
+   `add-unified-capture` — **46/58**, and `add-fibre-tracking` — **27/31**.
+   Their remaining tasks require real keys, fixtures, research, or device
+   acceptance; do not mark them complete from code-only verification.
+
+Do not archive any of these before owner app testing. Use `openspec list --json`
+for the live counts before selecting the next task.
+
 The order changes as things land. The **principle** behind it is decision 162
 and does not: fix what is live and wrong before adding what is new, and treat a
 shipped mechanism's *inputs* as urgent once that mechanism starts enforcing.

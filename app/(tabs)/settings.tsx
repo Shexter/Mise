@@ -10,17 +10,21 @@ import { ApiKeySheet } from '@/components/settings/ApiKeySheet';
 import { MacroSplitSheet } from '@/components/settings/MacroSplitSheet';
 import { ProfileSheet } from '@/components/settings/ProfileSheet';
 import { SettingsRow } from '@/components/settings/Row';
+import { ThemeSheet } from '@/components/settings/ThemeSheet';
 import { useToast } from '@/components/Toast';
 import { Caption, ScreenTitle } from '@/components/Type';
-import { space } from '@/constants/theme';
+import { space, themeId } from '@/constants/theme';
+import { themeOptions } from '@/constants/themePalettes';
 import {
   activityLabel,
   goalLabel,
 } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
+import { populateDemoData } from '@/db/demoData';
 import { getBodyMeasurements, listPendingCaptures, removePendingCapture, saveBodyMeasurement } from '@/db/queries';
 import { exportData } from '@/logic/export';
 import { isMeasurementStale, resolveTarget } from '@/logic/bodyComposition';
+import { localDateString } from '@/logic/dates';
 import { retryPendingCapture } from '@/logic/pendingCaptureService';
 import { formatHeight, formatWeight } from '@/logic/units';
 import { deleteAllPhotos } from '@/media/photos';
@@ -44,6 +48,8 @@ export default function SettingsScreen() {
   const [profileField, setProfileField] = useState<ProfileField | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
 
   const loadKey = useCallback(() => {
@@ -177,6 +183,7 @@ export default function SettingsScreen() {
             deleteAllPhotos('meals');
             deleteAllPhotos('receipts');
             deleteAllPhotos('pantry-captures');
+            deleteAllPhotos('recipes');
             await resetDatabase();
             useProfileStore.setState({ profile: null });
             router.replace('/onboarding/welcome');
@@ -186,6 +193,50 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const onLoadDemoData = () => {
+    Alert.alert(
+      'Replace with demo data?',
+      'This removes the current local profile, meals, pantry, recipes, and photos. It then loads a testing profile with 14 meals, 18 pantry items, two recipes, and four recent barcode scans.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace data',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDemoLoading(true);
+              try {
+                deleteAllPhotos('meals');
+                deleteAllPhotos('receipts');
+                deleteAllPhotos('pantry-captures');
+                deleteAllPhotos('recipes');
+                await resetDatabase();
+                const summary = await populateDemoData();
+                await useProfileStore.getState().load();
+                useDayStore.setState({
+                  selectedDate: localDateString(),
+                  following: true,
+                  monthSummaries: {},
+                  pendingUndo: null,
+                  lastDepletion: null,
+                });
+                await useDayStore.getState().refresh();
+                router.replace('/(tabs)');
+                toast.show({ message: `Demo loaded: ${summary.meals} meals, ${summary.pantryItems} pantry items, and ${summary.barcodeScans} barcode scans.` });
+              } catch (error) {
+                console.warn('Demo data load failed.', error);
+                const detail = error instanceof Error ? error.message : String(error);
+                toast.show({ kind: 'recoverable-error', message: `Demo data could not be loaded: ${detail}` });
+              } finally {
+                setDemoLoading(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
@@ -193,6 +244,14 @@ export default function SettingsScreen() {
       <ScreenTitle style={styles.title}>Settings</ScreenTitle>
 
       <View style={styles.groups}>
+        <Card title="Appearance" padded={false}>
+          <SettingsRow
+            label="Theme"
+            value={themeOptions.find((option) => option.id === themeId)?.label ?? 'Organic'}
+            onPress={() => setThemeOpen(true)}
+          />
+        </Card>
+
         <Card title="Profile" padded={false}>
           <SettingsRow
             label="Formula"
@@ -290,6 +349,10 @@ export default function SettingsScreen() {
 
         <Card title="Ingredients" padded={false}>
           <SettingsRow
+            label="Saved recipes"
+            onPress={() => router.push('/recipes')}
+          />
+          <SettingsRow
             label="Needs a look"
             onPress={() => router.push('/match-queue')}
           />
@@ -311,10 +374,22 @@ export default function SettingsScreen() {
           <SettingsRow label="Delete all data" destructive onPress={onDeleteAll} />
         </Card>
 
+        {__DEV__ ? (
+          <Card title="Developer" padded={false}>
+            <SettingsRow
+              label={demoLoading ? 'Loading demo data…' : 'Replace with demo data'}
+              value="14 meals · 18 pantry · 4 scans"
+              onPress={demoLoading ? undefined : onLoadDemoData}
+              showChevron={!demoLoading}
+            />
+          </Card>
+        ) : null}
+
         <View style={styles.about}>
           <Caption muted>
-            Mise {version}. Everything is stored only on this device. There is no
-            account and no server.
+            Mise {version}. Your diary is stored on this device. There is no Mise
+            account or server. Photo analysis sends the selected photo to your
+            configured provider.
           </Caption>
         </View>
       </View>
@@ -342,6 +417,13 @@ export default function SettingsScreen() {
         visible={keyOpen}
         onClose={() => setKeyOpen(false)}
         onSaved={releasePendingCaptures}
+      />
+
+      <ThemeSheet
+        visible={themeOpen}
+        activeTheme={themeId}
+        onClose={() => setThemeOpen(false)}
+        onError={() => toast.show({ kind: 'recoverable-error', message: 'Theme could not be changed. Your current appearance was kept.' })}
       />
     </Screen>
   );

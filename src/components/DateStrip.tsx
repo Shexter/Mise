@@ -174,9 +174,9 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingVertical: space.sm,
   },
-  daySelected: { backgroundColor: color.ink },
-  selectedText: { color: color.surface },
+  daySelected: { backgroundColor: color.action },
+  selectedText: { color: color.onAction },
   dot: { width: 4, height: 4, borderRadius: radius.full },
   dotOn: { backgroundColor: color.olive },
-  dotOnSelected: { backgroundColor: color.surface },
+  dotOnSelected: { backgroundColor: color.onAction },
 });

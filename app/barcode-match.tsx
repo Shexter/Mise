@@ -37,10 +37,10 @@ export default function BarcodeMatchScreen() {
       const returnToBatch = pendingMatch.returnToBatch;
       clearPendingMatch();
       if (returnToBatch) {
-        addSessionProduct(product);
+        addSessionProduct(product, 'open-food-facts');
         router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } });
       } else {
-        router.replace({ pathname: '/barcode-review', params: { gtin: product.gtin ?? pendingMatch.product.gtin } });
+        router.replace({ pathname: '/barcode-review', params: { gtin: product.gtin ?? pendingMatch.product.gtin, origin: 'open-food-facts' } });
       }
     } catch (error) {
       toast.show({ message: error instanceof Error ? error.message : 'Could not save this barcode match.' });

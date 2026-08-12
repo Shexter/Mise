@@ -177,7 +177,7 @@ export default function ManualScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={insets.top}
       >
         <ScrollView
@@ -348,8 +348,8 @@ const styles = StyleSheet.create({
     borderColor: color.line,
     backgroundColor: color.surface,
   },
-  unitChipOn: { backgroundColor: color.ink, borderColor: color.ink },
-  unitChipTextOn: { color: color.surface },
+  unitChipOn: { backgroundColor: color.action, borderColor: color.action },
+  unitChipTextOn: { color: color.onAction },
   macrosLabel: { marginTop: space.xs },
   macros: { flexDirection: 'row', gap: space.sm },
   macroField: { flex: 1 },

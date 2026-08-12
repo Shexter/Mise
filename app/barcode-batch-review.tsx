@@ -2,11 +2,9 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { OPEN_FOOD_FACTS_ATTRIBUTION } from '@/api/openFoodFacts';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { Segmented } from '@/components/Choice';
-import { Field } from '@/components/Field';
+import { BarcodeProductEditor } from '@/components/barcode/BarcodeProductEditor';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
@@ -14,10 +12,8 @@ import { color, opacity, space } from '@/constants/theme';
 import { applyBarcodeSession, getAllCanonicals, getLocations, upsertProduct } from '@/db/queries';
 import { barcodePantryItems } from '@/logic/barcode';
 import { localDateString } from '@/logic/dates';
-import { BARCODE_REVIEW_UNITS, useBarcodeCaptureStore } from '@/store/barcodeCaptureStore';
-import type { CanonicalItem, Location, MeasureUnit } from '@/types';
-
-const UNIT_OPTIONS = BARCODE_REVIEW_UNITS.map((value) => ({ value, label: value }));
+import { useBarcodeCaptureStore } from '@/store/barcodeCaptureStore';
+import type { CanonicalItem, Location } from '@/types';
 
 /** Deferred review for a rapid barcode session; nothing is pantry stock yet. */
 export default function BarcodeBatchReviewScreen() {
@@ -89,7 +85,6 @@ export default function BarcodeBatchReviewScreen() {
       footer={<View style={styles.footer}><Button label={`Add ${pantryItemCount(session)} item${pantryItemCount(session) === 1 ? '' : 's'}`} onPress={() => void accept()} loading={saving} /><Button label="Keep scanning" variant="secondary" onPress={() => router.replace({ pathname: '/pantry-capture', params: { barcodeMode: 'batch' } })} disabled={saving} /><Button label="Discard scans" variant="ghost" onPress={() => { clearSession(); router.back(); }} disabled={saving} /></View>}
     >
       <View style={styles.header}><ScreenTitle>Review scanned items</ScreenTitle><Caption muted>Nothing is added until you confirm.</Caption></View>
-      <Caption muted>{OPEN_FOOD_FACTS_ATTRIBUTION}</Caption>
       <View style={styles.list}>
         {session.map((item) => (
           <Card key={item.id}>
@@ -97,28 +92,12 @@ export default function BarcodeBatchReviewScreen() {
               <RowTitle>{item.product.name}</RowTitle>
               <Pressable onPress={() => removeSessionProduct(item.id)} accessibilityRole="button" accessibilityLabel={`Remove ${item.product.name}`} style={({ pressed }) => [styles.remove, pressed && { opacity: opacity.pressed }]}><Caption style={styles.removeText}>Remove</Caption></Pressable>
             </View>
-            <Field label="Product name" value={item.product.name} onChangeText={(name) => updateSessionProduct(item.id, { name })} />
-            <Field label="Brand" value={item.product.brand ?? ''} onChangeText={(brand) => updateSessionProduct(item.id, { brand: brand.trim() || null })} />
-            <Field label="Package size" value={item.product.pkgQty?.toString() ?? ''} onChangeText={(value) => updateSessionProduct(item.id, { pkgQty: positiveNumber(value) })} keyboardType="decimal-pad" suffix={item.product.pkgUnit ?? undefined} hint="Leave blank when the package size is unknown." />
-            <Segmented options={UNIT_OPTIONS} value={item.product.pkgUnit ?? 'piece'} onChange={(pkgUnit: MeasureUnit) => updateSessionProduct(item.id, { pkgUnit })} />
-            <Field label="Containers in pack" value={item.product.containerCount?.toString() ?? '1'} onChangeText={(value) => updateSessionProduct(item.id, { containerCount: positiveInteger(value) })} keyboardType="number-pad" hint={item.product.containerCount === null ? 'Count is unknown. Mise will add one item unless you change it.' : 'One pantry item is created for each unopened container.'} />
+            <BarcodeProductEditor product={item.product} origin={item.origin} onChange={(correction) => updateSessionProduct(item.id, correction)} />
           </Card>
         ))}
       </View>
     </Screen>
   );
-}
-
-function positiveNumber(value: string): number | null {
-  if (value.trim() === '') return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function positiveInteger(value: string): number | null {
-  if (value.trim() === '') return null;
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function pantryItemCount(session: readonly { product: { containerCount: number | null } }[]): number {
