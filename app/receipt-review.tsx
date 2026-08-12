@@ -19,6 +19,7 @@ import {
   getReceipt,
   getReceiptFrames,
   listPantryItems,
+  undoShoppingReceiptMatch,
   markItemUsedUp,
   setReceiptLineDetails,
   setReceiptLineExcluded,
@@ -232,6 +233,10 @@ export default function ReceiptReviewScreen() {
           summary.names.length > 0
             ? `Added ${summary.names.slice(0, 3).join(', ')}${summary.names.length > 3 ? `, and ${summary.names.length - 3} more` : ''}.`
             : 'Receipt saved.',
+        actionLabel: summary.shoppingMatchIds.length > 0 ? 'Undo list matches' : undefined,
+        onAction: summary.shoppingMatchIds.length > 0 ? async () => {
+          for (const matchId of summary.shoppingMatchIds) await undoShoppingReceiptMatch(matchId);
+        } : undefined,
       });
       finished.current = true;
       router.dismissAll();

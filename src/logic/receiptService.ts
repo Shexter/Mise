@@ -19,6 +19,9 @@ import {
   recordReceiptFrameFailure,
   removeReceiptFrame,
   replaceReceiptFrame,
+  listShoppingItems,
+  listShoppingReceiptMatches,
+  matchShoppingItemToReceipt,
 } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { deletePhoto, photoBase64 } from '@/media/photos';
@@ -280,6 +283,7 @@ export async function reclassifyReceiptLine(
 export interface AcceptSummary {
   /** Canonical display names of items the review created. */
   names: string[];
+  shoppingMatchIds: string[];
 }
 
 /**
@@ -308,12 +312,22 @@ export async function acceptReceiptReview(receiptId: string): Promise<AcceptSumm
   );
   await applyReceiptChanges(receiptId, changes);
 
+  // Receipt application owns pantry writes. Shopping reconciliation is a
+  // separate, exact-identity transition that never reverses those effects.
+  const shoppingItems = await listShoppingItems();
+  for (const line of receipt.lines) {
+    if (line.kind !== 'food' || line.excluded || line.canonicalId === null) continue;
+    const item = shoppingItems.find((candidate) => candidate.canonicalId === line.canonicalId);
+    if (item) await matchShoppingItemToReceipt(item.id, receiptId, line.id);
+  }
+
   const names = new Set<string>();
   for (const change of changes) {
     if (change.kind !== 'create') continue;
     names.add(canonicals.get(change.item.canonicalId)?.displayName ?? change.item.canonicalId);
   }
-  return { names: [...names] };
+  const shoppingMatches = await listShoppingReceiptMatches(receiptId);
+  return { names: [...names], shoppingMatchIds: shoppingMatches.filter((match) => match.undoneAt === null).map((match) => match.id) };
 }
 
 /**

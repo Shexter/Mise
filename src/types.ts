@@ -181,6 +181,78 @@ export interface RecipeWithIngredients extends Recipe {
   ingredients: readonly RecipeIngredient[];
 }
 
+/* -------------------------------------------------------------------------- */
+/* Shopping list                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type ShoppingListStatus = 'open' | 'purchased' | 'snoozed' | 'dismissed';
+export const SHOPPING_LIST_STATUSES: readonly ShoppingListStatus[] = [
+  'open',
+  'purchased',
+  'snoozed',
+  'dismissed',
+];
+
+export type ShoppingListSourceKind =
+  | 'pantry_low'
+  | 'pantry_out'
+  | 'recipe_missing'
+  | 'suggestion_missing'
+  | 'manual';
+
+export const SHOPPING_LIST_SOURCE_KINDS: readonly ShoppingListSourceKind[] = [
+  'pantry_low',
+  'pantry_out',
+  'recipe_missing',
+  'suggestion_missing',
+  'manual',
+];
+
+export type ShoppingListCategory = FoodClass | 'other';
+
+export interface ShoppingListItem {
+  id: string;
+  canonicalId: string | null;
+  displayName: string;
+  normalizedName: string;
+  status: ShoppingListStatus;
+  requestedQty: number | null;
+  requestedUnit: MeasureUnit | null;
+  note: string | null;
+  category: ShoppingListCategory;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  sources: ShoppingListSource[];
+}
+
+export interface ShoppingListSource {
+  id: string;
+  shoppingItemId: string;
+  kind: ShoppingListSourceKind;
+  sourceId: string | null;
+  recipeId: string | null;
+  suggestionId: string | null;
+  createdAt: string;
+}
+
+export interface ShoppingListReceiptMatch {
+  id: string;
+  shoppingItemId: string;
+  receiptId: string;
+  receiptLineId: string;
+  previousStatus: ShoppingListStatus;
+  matchedAt: string;
+  undoneAt: string | null;
+}
+
+export interface ShoppingListSection {
+  category: ShoppingListCategory;
+  label: string;
+  items: ShoppingListItem[];
+}
+
 export interface Macros {
   calories: number | null;
   proteinG: number | null;

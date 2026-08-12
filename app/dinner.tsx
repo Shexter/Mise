@@ -15,7 +15,7 @@ import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components
 import { useToast } from '@/components/Toast';
 import { SuggestionPreferenceSheet } from '@/components/suggestions/PreferenceSheet';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
-import { clearSuggestionPreference, getAllCanonicals, saveSuggestionPreference } from '@/db/queries';
+import { addShoppingListSource, getAllCanonicals, insertShoppingListItem, listShoppingItems, clearSuggestionPreference, saveSuggestionPreference } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
 import { SUGGESTION_INTENT_POLICIES } from '@/logic/suggestionTemplates';
@@ -28,6 +28,7 @@ import {
   type SuggestionOutcome,
 } from '@/logic/suggestionService';
 import { useDayStore } from '@/store/dayStore';
+import { itemKey } from '@/logic/shoppingList';
 import type {
   CanonicalItem,
   Suggestion,
@@ -126,6 +127,24 @@ export default function DinnerScreen() {
     });
     router.dismissAll();
     router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
+  };
+
+  const addSuggestionGaps = async (suggestion: Suggestion, suggestionId: string) => {
+    const existing = await listShoppingItems(true);
+    let added = 0;
+    for (const missing of suggestion.missing) {
+      const candidate = { canonicalId: missing.canonicalId, displayName: missing.name };
+      const current = existing.find((item) => itemKey(item) === itemKey(candidate));
+      const item = current ?? await insertShoppingListItem({
+        canonicalId: missing.canonicalId,
+        displayName: missing.name,
+        normalizedName: missing.name.toLocaleLowerCase(),
+        category: 'other',
+      });
+      await addShoppingListSource({ shoppingItemId: item.id, kind: 'suggestion_missing', suggestionId });
+      if (!current) added += 1;
+    }
+    toast.show({ kind: 'success', message: added > 0 ? `${added} missing ingredient${added === 1 ? '' : 's'} added to your grocery haul.` : 'Your grocery haul already covers this idea.' });
   };
 
   const suggestions: Suggestion[] =
@@ -279,6 +298,7 @@ export default function DinnerScreen() {
                 suggestion={suggestion}
                 remaining={remaining}
                 onCook={() => startCooking(suggestion)}
+                onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)}
               />
             ))}
           </>
@@ -364,10 +384,12 @@ function SuggestionCard({
   suggestion,
   remaining,
   onCook,
+  onAddMissing,
 }: {
   suggestion: Suggestion;
   remaining: number | null;
   onCook: () => void;
+  onAddMissing: () => void;
 }) {
   const kcal = roundCalories(suggestion.kcalPerServing);
   const overshoots = remaining !== null && kcal > remaining;
@@ -405,9 +427,10 @@ function SuggestionCard({
       </View>
 
       {suggestion.missing.length > 0 ? (
-        <Caption muted style={styles.missing}>
-          Missing: {suggestion.missing.map((m) => m.name).join(', ')}
-        </Caption>
+        <View style={styles.missingBlock}>
+          <Caption muted style={styles.missing}>Missing: {suggestion.missing.map((m) => m.name).join(', ')}</Caption>
+          <Button label="Add missing to grocery haul" variant="secondary" onPress={onAddMissing} style={styles.cookButton} />
+        </View>
       ) : null}
 
       {suggestion.method.length > 0 ? (
@@ -468,6 +491,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
   },
   missing: { marginTop: space.sm },
+  missingBlock: { marginTop: space.sm },
   portion: { marginTop: space.sm },
   method: { marginTop: space.sm, gap: space.xs },
   methodStep: {},

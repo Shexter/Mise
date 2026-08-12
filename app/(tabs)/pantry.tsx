@@ -10,6 +10,7 @@ import { Segmented } from '@/components/Choice';
 import { AddPantryItemSheet } from '@/components/pantry/AddPantryItemSheet';
 import { PantryItemSheet } from '@/components/pantry/PantryItemSheet';
 import { SavedRecipesSection } from '@/components/recipes/SavedRecipesSection';
+import { ShoppingListSection } from '@/components/pantry/ShoppingListSection';
 import { expiryLabel, statusLabel } from '@/components/pantry/labels';
 import { Screen } from '@/components/Screen';
 import { EmptyPantryIllustration } from '@/components/StateIllustration';
@@ -21,8 +22,12 @@ import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
 import type { Recipe } from '@/types';
 
-type PantrySubsection = 'stock' | 'recipes';
-const SUBSECTIONS = [{ value: 'stock', label: 'Stock' }, { value: 'recipes', label: 'Recipes' }] as const;
+type PantrySubsection = 'stock' | 'recipes' | 'shop';
+const SUBSECTIONS = [
+  { value: 'stock', label: 'Stock' },
+  { value: 'recipes', label: 'Recipes' },
+  { value: 'shop', label: 'Shop' },
+] as const;
 
 /**
  * The catalogue: what is in the kitchen, soonest expiry first. Statuses are
@@ -151,8 +156,10 @@ export default function PantryScreen() {
         </Pressable>
       ) : null}
 
-      {subsection === 'recipes' ? (
+        {subsection === 'recipes' ? (
         <SavedRecipesSection recipes={recipes} showHeaderAction={false} />
+      ) : subsection === 'shop' ? (
+        <ShoppingListSection />
       ) : groups.length === 0 ? (
         <EmptyState
           title="Nothing catalogued yet"

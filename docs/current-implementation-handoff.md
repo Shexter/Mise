@@ -39,6 +39,29 @@ Treat `openspec list --json` and the worktree as authoritative.
 
 Updated 9 August 2026 in `/Users/timothylauw/Documents/Github Repos/Mise`.
 
+## Shopping list implementation — 12 August 2026
+
+`add-shopping-list` is now at its first automated implementation boundary.
+
+- Migration 24 adds `shopping_list_items`, `shopping_list_sources`, and
+  `shopping_list_receipt_matches`; `DROP_ALL` includes all three.
+- `src/logic/shoppingList.ts` owns canonical/text deduplication, source merging,
+  conservative pantry/recipe refresh planning, qualitative quantity copy,
+  category grouping, exact receipt eligibility, and isolated undo transitions.
+- Pantry now exposes Stock / Recipes / Shop. Shop supports local refresh from
+  low/out pantry state and saved-recipe gaps, grouped open entries, manual
+  additions, completion, and toast undo.
+- Saved recipe detail offers Add missing ingredients and preserves recipe
+  provenance. Confirmed receipt application exact-matches canonical shopping
+  entries after pantry writes; undo is list-only.
+- Shopping data is included in export and reset schema coverage.
+- Automated verification: **93 test files / 717 tests**, TypeScript, strict
+  `add-shopping-list` validation, and `git diff --check` pass.
+
+Remaining tasks are UI completeness (snooze/dismiss/edit/category controls),
+suggestion entry-point wiring, visible receipt-match review/undo, and owner
+device checks across offline restart, themes, large text, and screen readers.
+
 Use this document when a new conversation continues implementation. Verify the
 live repository state before acting because Git and task counts can change.
 

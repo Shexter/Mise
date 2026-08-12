@@ -598,6 +598,54 @@ ALTER TABLE products ADD COLUMN last_scanned_at TEXT;
 CREATE INDEX idx_products_last_scanned ON products(last_scanned_at DESC);
 `;
 
+/** Migration 24: local shopping list with explainable source provenance. */
+const SHOPPING_LIST = `
+CREATE TABLE shopping_list_items (
+  id TEXT PRIMARY KEY,
+  canonical_id TEXT REFERENCES canonical_items(id) ON DELETE SET NULL,
+  display_name TEXT NOT NULL,
+  normalized_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  requested_qty REAL,
+  requested_unit TEXT,
+  note TEXT,
+  category TEXT NOT NULL DEFAULT 'other',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT
+);
+
+CREATE INDEX idx_shopping_items_status ON shopping_list_items(status, sort_order, created_at);
+CREATE INDEX idx_shopping_items_canonical ON shopping_list_items(canonical_id);
+
+CREATE TABLE shopping_list_sources (
+  id TEXT PRIMARY KEY,
+  shopping_item_id TEXT NOT NULL REFERENCES shopping_list_items(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  source_id TEXT,
+  recipe_id TEXT REFERENCES recipes(id) ON DELETE CASCADE,
+  suggestion_id TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(shopping_item_id, kind, source_id, recipe_id, suggestion_id)
+);
+
+CREATE INDEX idx_shopping_sources_item ON shopping_list_sources(shopping_item_id);
+
+CREATE TABLE shopping_list_receipt_matches (
+  id TEXT PRIMARY KEY,
+  shopping_item_id TEXT NOT NULL REFERENCES shopping_list_items(id) ON DELETE CASCADE,
+  receipt_id TEXT NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+  receipt_line_id TEXT NOT NULL REFERENCES receipt_lines(id) ON DELETE CASCADE,
+  previous_status TEXT NOT NULL,
+  matched_at TEXT NOT NULL,
+  undone_at TEXT
+);
+
+CREATE UNIQUE INDEX idx_shopping_receipt_match_once
+  ON shopping_list_receipt_matches(shopping_item_id, receipt_line_id);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -622,12 +670,16 @@ export const MIGRATIONS: readonly string[] = [
   PRODUCT_CONTAINER_COUNT,
   SAVED_RECIPES,
   PRODUCT_SCAN_HISTORY,
+  SHOPPING_LIST,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS shopping_list_receipt_matches;
+DROP TABLE IF EXISTS shopping_list_sources;
+DROP TABLE IF EXISTS shopping_list_items;
 DROP TABLE IF EXISTS suggestion_preferences;
 DROP TABLE IF EXISTS recipe_ingredients;
 DROP TABLE IF EXISTS recipes;

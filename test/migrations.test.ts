@@ -56,6 +56,9 @@ describe('migrations', () => {
     expect(tables).toContain('suggestion_preferences');
     expect(tables).toContain('recipes');
     expect(tables).toContain('recipe_ingredients');
+    expect(tables).toContain('shopping_list_items');
+    expect(tables).toContain('shopping_list_sources');
+    expect(tables).toContain('shopping_list_receipt_matches');
     const productColumns = db.prepare('PRAGMA table_info(products)').all() as { name: string }[];
     expect(productColumns.map((column) => column.name)).toContain('last_scanned_at');
     const nutritionColumns = db.prepare('PRAGMA table_info(meal_items)').all() as {

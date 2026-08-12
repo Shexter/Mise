@@ -12,9 +12,10 @@ import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
 import { color, opacity, space } from '@/constants/theme';
-import { getAllCanonicals, getRecipe, listPantryItems, updateRecipe } from '@/db/queries';
+import { addShoppingListSource, getAllCanonicals, getRecipe, insertShoppingListItem, listPantryItems, listShoppingItems, updateRecipe } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { coverageForRecipe, mealFromRecipe, type RecipeCoverage } from '@/logic/recipe';
+import { itemKey } from '@/logic/shoppingList';
 import { confirmMatch, resolveIngredientReferencesLocally } from '@/logic/resolution';
 import { useDayStore } from '@/store/dayStore';
 import type { RecipeIngredient, RecipeWithIngredients } from '@/types';
@@ -109,6 +110,45 @@ export default function RecipeDetailScreen() {
     }
   };
 
+  const addMissingToShoppingList = async () => {
+    if (!recipe || !coverage) return;
+    const [existing, currentPantry, canonicalItems] = await Promise.all([
+      listShoppingItems(true),
+      listPantryItems(),
+      getAllCanonicals(),
+    ]);
+    const canonicalMap = new Map(canonicalItems.map((item) => [item.id, item]));
+    const held = new Set(currentPantry
+      .filter((item) => item.status === 'in_stock' || item.status === 'running_low')
+      .map((item) => item.canonicalId));
+    let added = 0;
+    for (const ingredient of recipe.ingredients) {
+      if (ingredient.canonicalId && held.has(ingredient.canonicalId)) continue;
+      const canonical = ingredient.canonicalId ? canonicalMap.get(ingredient.canonicalId) : null;
+      const candidate = {
+        canonicalId: ingredient.canonicalId,
+        displayName: canonical?.displayName ?? ingredient.name,
+      };
+      const current = existing.find((item) => itemKey(item) === itemKey(candidate));
+      const item = current ?? await insertShoppingListItem({
+        canonicalId: ingredient.canonicalId,
+        displayName: candidate.displayName,
+        normalizedName: candidate.displayName.toLocaleLowerCase(),
+        requestedQty: ingredient.quantity,
+        requestedUnit: ingredient.unit,
+        category: canonical?.foodClass ?? 'other',
+      });
+      await addShoppingListSource({
+        shoppingItemId: item.id,
+        kind: 'recipe_missing',
+        sourceId: ingredient.id,
+        recipeId: recipe.id,
+      });
+      if (!current) added += 1;
+    }
+    toast.show({ kind: 'success', message: added > 0 ? `${added} missing ingredient${added === 1 ? '' : 's'} added to your grocery haul.` : 'Your grocery haul already covers this recipe.' });
+  };
+
   if (!recipe) return <Screen><EmptyState title="Recipe not found" actionLabel="Back to recipes" onAction={() => router.replace('/recipes')} /></Screen>;
 
   return (
@@ -130,6 +170,7 @@ export default function RecipeDetailScreen() {
             <Coverage label="You have" names={coverage?.held ?? []} empty="Nothing matched in your pantry yet." />
             <Coverage label="Missing" names={coverage?.missing ?? []} empty="Nothing missing." />
             {(coverage?.unresolved.length ?? 0) > 0 ? <Coverage label="Needs a match" names={coverage?.unresolved ?? []} empty="" /> : null}
+            <Button label="Add missing ingredients" variant="secondary" onPress={() => void addMissingToShoppingList()} />
           </Card>
           <Card title="Ingredients">
             <Button label="Edit ingredients" variant="secondary" onPress={() => setEditingIngredients(true)} />

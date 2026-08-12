@@ -81,6 +81,12 @@ import type {
   SourceId,
   StockStatus,
   StorageLocation,
+  ShoppingListCategory,
+  ShoppingListItem,
+  ShoppingListReceiptMatch,
+  ShoppingListSource,
+  ShoppingListSourceKind,
+  ShoppingListStatus,
 } from '@/types';
 
 /**
@@ -157,6 +163,42 @@ interface MealItemRow {
   is_manual_addition: number;
   sort_order: number;
   canonical_id: string | null;
+}
+
+interface ShoppingListItemRow {
+  id: string;
+  canonical_id: string | null;
+  display_name: string;
+  normalized_name: string;
+  status: string;
+  requested_qty: number | null;
+  requested_unit: string | null;
+  note: string | null;
+  category: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+interface ShoppingListSourceRow {
+  id: string;
+  shopping_item_id: string;
+  kind: string;
+  source_id: string | null;
+  recipe_id: string | null;
+  suggestion_id: string | null;
+  created_at: string;
+}
+
+interface ShoppingListReceiptMatchRow {
+  id: string;
+  shopping_item_id: string;
+  receipt_id: string;
+  receipt_line_id: string;
+  previous_status: string;
+  matched_at: string;
+  undone_at: string | null;
 }
 
 interface DailyTargetRow {
@@ -2630,6 +2672,7 @@ export interface ExportBundle {
   profile: Profile | null;
   dailyTargets: DailyTarget[];
   meals: MealWithItems[];
+  shoppingList: ShoppingListItem[];
 }
 
 export async function exportEverything(
@@ -2645,6 +2688,7 @@ export async function exportEverything(
   const itemRows = await db().getAllAsync<MealItemRow>(
     'SELECT * FROM meal_items ORDER BY sort_order ASC',
   );
+  const shoppingList = await listShoppingItems(true);
 
   const itemsByMeal = new Map<string, MealItem[]>();
   for (const row of itemRows) {
@@ -2662,7 +2706,205 @@ export async function exportEverything(
       ...toMeal(row),
       items: itemsByMeal.get(row.id) ?? [],
     })),
+    shoppingList,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shopping list                                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface NewShoppingListItem {
+  id?: string;
+  canonicalId?: string | null;
+  displayName: string;
+  normalizedName: string;
+  status?: ShoppingListStatus;
+  requestedQty?: number | null;
+  requestedUnit?: MeasureUnit | null;
+  note?: string | null;
+  category?: ShoppingListCategory;
+  sortOrder?: number;
+}
+
+export interface NewShoppingListSource {
+  shoppingItemId: string;
+  kind: ShoppingListSourceKind;
+  sourceId?: string | null;
+  recipeId?: string | null;
+  suggestionId?: string | null;
+}
+
+function toShoppingListItem(row: ShoppingListItemRow, sources: ShoppingListSource[]): ShoppingListItem {
+  return {
+    id: row.id,
+    canonicalId: row.canonical_id,
+    displayName: row.display_name,
+    normalizedName: row.normalized_name,
+    status: row.status as ShoppingListStatus,
+    requestedQty: row.requested_qty,
+    requestedUnit: row.requested_unit as MeasureUnit | null,
+    note: row.note,
+    category: row.category as ShoppingListCategory,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at,
+    sources,
+  };
+}
+
+function toShoppingListSource(row: ShoppingListSourceRow): ShoppingListSource {
+  return {
+    id: row.id,
+    shoppingItemId: row.shopping_item_id,
+    kind: row.kind as ShoppingListSourceKind,
+    sourceId: row.source_id,
+    recipeId: row.recipe_id,
+    suggestionId: row.suggestion_id,
+    createdAt: row.created_at,
+  };
+}
+
+function toShoppingListReceiptMatch(row: ShoppingListReceiptMatchRow): ShoppingListReceiptMatch {
+  return {
+    id: row.id,
+    shoppingItemId: row.shopping_item_id,
+    receiptId: row.receipt_id,
+    receiptLineId: row.receipt_line_id,
+    previousStatus: row.previous_status as ShoppingListStatus,
+    matchedAt: row.matched_at,
+    undoneAt: row.undone_at,
+  };
+}
+
+export async function listShoppingItems(includeClosed = false): Promise<ShoppingListItem[]> {
+  const rows = await db().getAllAsync<ShoppingListItemRow>(
+    includeClosed
+      ? 'SELECT * FROM shopping_list_items ORDER BY sort_order ASC, display_name ASC'
+      : "SELECT * FROM shopping_list_items WHERE status = 'open' ORDER BY sort_order ASC, display_name ASC",
+  );
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+  const sources = await db().getAllAsync<ShoppingListSourceRow>(
+    `SELECT * FROM shopping_list_sources WHERE shopping_item_id IN (${ids.map(() => '?').join(',')}) ORDER BY created_at ASC`,
+    ids,
+  );
+  const sourcesByItem = new Map<string, ShoppingListSource[]>();
+  for (const source of sources) {
+    const list = sourcesByItem.get(source.shopping_item_id) ?? [];
+    list.push(toShoppingListSource(source));
+    sourcesByItem.set(source.shopping_item_id, list);
+  }
+  return rows.map((row) => toShoppingListItem(row, sourcesByItem.get(row.id) ?? []));
+}
+
+export async function insertShoppingListItem(input: NewShoppingListItem): Promise<ShoppingListItem> {
+  const id = input.id ?? randomUUID();
+  const now = new Date().toISOString();
+  await db().runAsync(
+    `INSERT INTO shopping_list_items
+      (id, canonical_id, display_name, normalized_name, status, requested_qty,
+       requested_unit, note, category, sort_order, created_at, updated_at, completed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [id, input.canonicalId ?? null, input.displayName, input.normalizedName,
+      input.status ?? 'open', input.requestedQty ?? null, input.requestedUnit ?? null,
+      input.note ?? null, input.category ?? 'other', input.sortOrder ?? 0, now, now],
+  );
+  const item = (await listShoppingItems(true)).find((candidate) => candidate.id === id);
+  if (!item) throw new Error('Shopping item vanished on insert.');
+  return item;
+}
+
+export async function updateShoppingListItem(
+  id: string,
+  patch: Partial<Pick<ShoppingListItem, 'displayName' | 'normalizedName' | 'requestedQty' | 'requestedUnit' | 'note' | 'category' | 'sortOrder' | 'status'>>,
+): Promise<void> {
+  const current = await db().getFirstAsync<ShoppingListItemRow>('SELECT * FROM shopping_list_items WHERE id = ?', [id]);
+  if (!current) throw new Error('Shopping item not found.');
+  const now = new Date().toISOString();
+  const nextStatus = patch.status ?? current.status;
+  await db().runAsync(
+    `UPDATE shopping_list_items SET display_name = ?, normalized_name = ?,
+       requested_qty = ?, requested_unit = ?, note = ?, category = ?,
+       sort_order = ?, status = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
+    [patch.displayName ?? current.display_name, patch.normalizedName ?? current.normalized_name,
+      patch.requestedQty === undefined ? current.requested_qty : patch.requestedQty,
+      patch.requestedUnit === undefined ? current.requested_unit : patch.requestedUnit,
+      patch.note === undefined ? current.note : patch.note, patch.category ?? current.category,
+      patch.sortOrder ?? current.sort_order, nextStatus, now,
+      nextStatus === 'purchased' ? (current.completed_at ?? now) : null, id],
+  );
+}
+
+export async function deleteShoppingListItem(id: string): Promise<void> {
+  await db().runAsync('DELETE FROM shopping_list_items WHERE id = ?', [id]);
+}
+
+export async function addShoppingListSource(input: NewShoppingListSource): Promise<void> {
+  await db().runAsync(
+    `INSERT OR IGNORE INTO shopping_list_sources
+       (id, shopping_item_id, kind, source_id, recipe_id, suggestion_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [randomUUID(), input.shoppingItemId, input.kind, input.sourceId ?? null,
+      input.recipeId ?? null, input.suggestionId ?? null, new Date().toISOString()],
+  );
+}
+
+export async function removeShoppingListSource(
+  shoppingItemId: string,
+  source: Pick<NewShoppingListSource, 'kind' | 'sourceId' | 'recipeId' | 'suggestionId'>,
+): Promise<void> {
+  await db().runAsync(
+    `DELETE FROM shopping_list_sources
+     WHERE shopping_item_id = ? AND kind = ?
+       AND source_id IS ? AND recipe_id IS ? AND suggestion_id IS ?`,
+    [shoppingItemId, source.kind, source.sourceId ?? null, source.recipeId ?? null, source.suggestionId ?? null],
+  );
+}
+
+export async function matchShoppingItemToReceipt(
+  shoppingItemId: string,
+  receiptId: string,
+  receiptLineId: string,
+): Promise<ShoppingListReceiptMatch | null> {
+  const item = await db().getFirstAsync<ShoppingListItemRow>('SELECT * FROM shopping_list_items WHERE id = ?', [shoppingItemId]);
+  if (!item || item.status !== 'open') return null;
+  const existing = await db().getFirstAsync<ShoppingListReceiptMatchRow>(
+    'SELECT * FROM shopping_list_receipt_matches WHERE shopping_item_id = ? AND receipt_line_id = ?',
+    [shoppingItemId, receiptLineId],
+  );
+  if (existing && existing.undone_at === null) return toShoppingListReceiptMatch(existing);
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync("UPDATE shopping_list_items SET status = 'purchased', completed_at = ?, updated_at = ? WHERE id = ?", [now, now, shoppingItemId]);
+    await txn.runAsync(
+      `INSERT OR REPLACE INTO shopping_list_receipt_matches
+        (id, shopping_item_id, receipt_id, receipt_line_id, previous_status, matched_at, undone_at)
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [id, shoppingItemId, receiptId, receiptLineId, item.status, now],
+    );
+  });
+  const row = await db().getFirstAsync<ShoppingListReceiptMatchRow>('SELECT * FROM shopping_list_receipt_matches WHERE id = ?', [id]);
+  return row ? toShoppingListReceiptMatch(row) : null;
+}
+
+export async function undoShoppingReceiptMatch(matchId: string): Promise<void> {
+  const match = await db().getFirstAsync<ShoppingListReceiptMatchRow>('SELECT * FROM shopping_list_receipt_matches WHERE id = ?', [matchId]);
+  if (!match || match.undone_at !== null) return;
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('UPDATE shopping_list_items SET status = ?, completed_at = NULL, updated_at = ? WHERE id = ?', [match.previous_status, now, match.shopping_item_id]);
+    await txn.runAsync('UPDATE shopping_list_receipt_matches SET undone_at = ? WHERE id = ?', [now, matchId]);
+  });
+}
+
+export async function listShoppingReceiptMatches(receiptId: string): Promise<ShoppingListReceiptMatch[]> {
+  const rows = await db().getAllAsync<ShoppingListReceiptMatchRow>(
+    'SELECT * FROM shopping_list_receipt_matches WHERE receipt_id = ? ORDER BY matched_at ASC', [receiptId],
+  );
+  return rows.map(toShoppingListReceiptMatch);
 }
 
 /* -------------------------------------------------------------------------- */

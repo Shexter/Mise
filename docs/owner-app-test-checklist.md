@@ -311,6 +311,16 @@ commit captions, source images, or provider responses that identify a creator.
 
 ## Future work, once implemented
 
+- [ ] Shopping list: open Pantry and confirm Stock, Recipes, and Shop are
+      separate, with Stock selected by default and no shopping card on Today.
+- [ ] Shopping list: populate low/out pantry fixtures and a saved recipe.
+      Confirm Shop deduplicates canonical entries and shows source explanations.
+- [ ] Shopping list: add an unresolved manual item, restart offline, and
+      confirm it remains editable locally.
+- [ ] Shopping list: confirm a reviewed grocery receipt exact-matches a list
+      item, then undo the list match without changing receipt or pantry state.
+- [ ] Shopping list: check themes, large text, reduced motion, and
+      VoiceOver/TalkBack labels for Shop, sections, check-off, and undo.
 - [ ] Fibre tracking: log a meal with a real key. Confirm fibre saves when known and remains unknown when absent.
 - [ ] Fibre tracking: check old, mixed, and complete days. Confirm none display unknown fibre as zero.
 - [ ] Barcode batch capture: scan one cached product, ten consecutive products, an unknown product, a variable-weight label, a multipack, and an Asian packaged item.
