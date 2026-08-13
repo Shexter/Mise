@@ -12,6 +12,8 @@ describe('theme palettes', () => {
     expect(DEFAULT_THEME_ID).toBe('organic');
     expect(resolveThemeId('utility')).toBe('utility');
     expect(resolveThemeId('cool-organic')).toBe('cool-organic');
+    expect(resolveThemeId('test-lab')).toBe('test-lab');
+    expect(resolveThemeId('coolors')).toBe('coolors');
     expect(resolveThemeId('unknown')).toBe('organic');
     expect(resolveThemeId(null)).toBe('organic');
   });
@@ -32,5 +34,19 @@ describe('theme palettes', () => {
       olive: '#74825F',
     });
     expect(themePalettes.organic).not.toEqual(themePalettes['cool-organic']);
+  });
+
+  test('Test Lab is an explicit opt-in palette with a distinct action colour', () => {
+    expect(themePalettes['test-lab'].action).toBe('#5946D9');
+    expect(themePalettes['test-lab'].action).not.toBe(themePalettes.organic.action);
+  });
+
+  test('Coolors keeps the supplied five-colour palette in semantic roles', () => {
+    expect(themePalettes.coolors).toMatchObject({
+      ground: '#DDFFF7',
+      surface: '#93E1D8',
+      action: '#AA4465',
+      ink: '#462255',
+    });
   });
 });

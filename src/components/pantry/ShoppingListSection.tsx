@@ -28,6 +28,7 @@ export function ShoppingListSection() {
   const toast = useToast();
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ShoppingListItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -98,6 +99,17 @@ export function ShoppingListSection() {
     await load();
   };
 
+  const editManual = async (item: ShoppingListItem | null, name: string, note: string, quantity: string, unit: MeasureUnit | null) => {
+    if (!item) return addManual(name, note, quantity, unit);
+    const trimmed = name.trim();
+    const parsedQty = quantity.trim() ? Number(quantity) : null;
+    if (!trimmed || (parsedQty !== null && (!Number.isFinite(parsedQty) || parsedQty < 0))) return;
+    await updateShoppingListItem(item.id, { displayName: trimmed, normalizedName: trimmed.toLocaleLowerCase(), note: note.trim() || null, requestedQty: parsedQty, requestedUnit: parsedQty === null ? null : unit });
+    setEditing(null);
+    await load();
+    toast.show({ kind: 'success', message: 'Grocery item updated.' });
+  };
+
   const sections = groupShoppingItems(items);
   return (
     <View style={styles.root}>
@@ -112,32 +124,33 @@ export function ShoppingListSection() {
       </View>
       {loading ? <Caption muted>Refreshing from your pantry…</Caption> : sections.length === 0 ? (
         <Card><EmptyState title="Your list is clear" detail="Low pantry items and missing recipe ingredients will appear here." actionLabel="Add an item" onAction={() => setAdding(true)} /></Card>
-      ) : sections.map((section) => <ShoppingSection key={section.category} section={section} onStatus={setStatus} />)}
-      <ManualShoppingItemSheet visible={adding} onClose={() => setAdding(false)} onSave={addManual} />
+      ) : sections.map((section) => <ShoppingSection key={section.category} section={section} onStatus={setStatus} onEdit={setEditing} />)}
+      <ManualShoppingItemSheet visible={adding} onClose={() => setAdding(false)} onSave={editManual} />
+      <ManualShoppingItemSheet item={editing} visible={editing !== null} onClose={() => setEditing(null)} onSave={editManual} />
     </View>
   );
 }
 
-function ShoppingSection({ section, onStatus }: { section: ShoppingListSection; onStatus: (item: ShoppingListItem, status: ShoppingListItem['status']) => void }) {
+function ShoppingSection({ section, onStatus, onEdit }: { section: ShoppingListSection; onStatus: (item: ShoppingListItem, status: ShoppingListItem['status']) => void; onEdit: (item: ShoppingListItem) => void }) {
   return <Card padded={false}>
     <SectionLabel muted style={styles.sectionLabel}>{section.label}</SectionLabel>
     {section.items.map((item, index) => <View key={item.id}>
       {index > 0 ? <Divider /> : null}
       <Pressable onPress={() => onStatus(item, 'purchased')} accessibilityRole="button" accessibilityLabel={`${item.displayName}, ${quantityLabel(item)}. Mark purchased`} style={({ pressed }) => [styles.row, pressed && { opacity: opacity.pressed }]}>
         <View style={styles.check}><Feather name="check" size={14} color={color.onAction} /></View>
-        <View style={styles.text}><Body>{item.displayName}</Body><Caption muted>{quantityLabel(item)}{item.sources.length > 1 ? ` · ${item.sources.length} reasons` : ''}</Caption><View style={styles.actions}><Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${item.displayName}`}><Caption muted>Later</Caption></Pressable><Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${item.displayName}`}><Caption muted>Remove</Caption></Pressable></View></View>
+        <View style={styles.text}><Body>{item.displayName}</Body><Caption muted>{quantityLabel(item)}{item.sources.length > 1 ? ` · ${item.sources.length} reasons` : ''}</Caption><View style={styles.actions}><Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${item.displayName}`}><Caption muted>Later</Caption></Pressable><Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${item.displayName}`}><Caption muted>Remove</Caption></Pressable><Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.displayName}`}><Caption muted>Edit</Caption></Pressable></View></View>
       </Pressable>
     </View>)}
   </Card>;
 }
 
-function ManualShoppingItemSheet({ visible, onClose, onSave }: { visible: boolean; onClose: () => void; onSave: (name: string, note: string, quantity: string, unit: MeasureUnit | null) => Promise<void> }) {
+function ManualShoppingItemSheet({ item, visible, onClose, onSave }: { item?: ShoppingListItem | null; visible: boolean; onClose: () => void; onSave: (item: ShoppingListItem | null, name: string, note: string, quantity: string, unit: MeasureUnit | null) => Promise<void> }) {
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState<MeasureUnit | null>(null);
-  useEffect(() => { if (visible) { setName(''); setNote(''); setQuantity(''); setUnit(null); } }, [visible]);
-  return <Sheet visible={visible} onClose={onClose} title="Add to grocery haul" footer={<Button label="Add item" onPress={() => void onSave(name, note, quantity, unit)} />}>
+  useEffect(() => { if (visible) { setName(item?.displayName ?? ''); setNote(item?.note ?? ''); setQuantity(item?.requestedQty == null ? '' : String(item.requestedQty)); setUnit(item?.requestedUnit ?? null); } }, [visible, item]);
+  return <Sheet visible={visible} onClose={onClose} title={item ? 'Edit grocery item' : 'Add to grocery haul'} footer={<Button label={item ? 'Save changes' : 'Add item'} onPress={() => void onSave(item ?? null, name, note, quantity, unit)} />}>
     <Field label="Item" value={name} onChangeText={setName} placeholder="e.g. scallions" autoFocus />
     <Field label="Amount" value={quantity} onChangeText={setQuantity} placeholder="Optional" keyboardType="decimal-pad" numeric />
     <SectionLabel muted>Unit</SectionLabel>

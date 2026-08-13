@@ -152,6 +152,9 @@ docs/         Product decisions and design
 openspec/     Change proposals
 ```
 
+Visual and theme work follows the project-scoped Hallmark workflow documented
+in [`docs/hallmark-workflow.md`](./docs/hallmark-workflow.md).
+
 Conventions that are not negotiable: all SQL in `src/db/queries.ts`, migrations
 appended to `MIGRATIONS` and never edited once shipped, the API key confined to
 `src/api/keyStore.ts`, and every colour, font, and spacing value taken from

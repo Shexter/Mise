@@ -76,7 +76,7 @@ interaction merely to match the web prototype.
 
 ## Colour themes
 
-Mise offers three palettes through one semantic token contract. Organic is the
+Mise offers five palettes through one semantic token contract. Organic is the
 default. A saved local choice is resolved before static React Native styles are
 created; changing it from Settings reloads the app once so every surface changes
 together. Invalid or unavailable preferences fall back to Organic.
@@ -86,6 +86,8 @@ together. Invalid or unavailable preferences fall back to Organic.
 | Organic (default) | `#F3EDE4` / `#EBE3D8` | `#211F1D` / `#A95A35` | paprika `#A45239`, wheat `#B68A43`, olive `#74825F` |
 | Utility | `#EDEAE4` / `#FFFFFF` | `#1C1A17` / `#1C1A17` | paprika `#8C3F2B`, wheat `#C8992F`, olive `#5C6B33` |
 | Cool Organic | `#F2F1EC` / `#FAFAF7` | `#202522` / `#4F7067` | clay `#B96F4F`, wheat `#A98236`, olive `#6C7B52` |
+| Test Lab (opt-in) | `#F2F0FA` / `#FFFFFF` | `#181526` / `#5946D9` | coral `#D94F70`, amber `#B77A1C`, teal `#327A68` |
+| Coolors (opt-in) | `#DDFFF7` / `#93E1D8` | `#462255` / `#AA4465` | pink `#FFA69E`, berry `#AA4465`, aqua `#93E1D8` |
 
 Organic deliberately keeps the original cream, sand, terracotta, wheat, and
 olive scheme. Its ground and supporting neutrals are less yellow than the ZIP
@@ -170,9 +172,11 @@ back to its full-colour icon until a purpose-built monochrome export is approved
 The repository inventory, five-surface code baseline, token-direction
 comparison, and launcher-size icon evidence are recorded in
 [`docs/brand-review-board.md`](./brand-review-board.md). The owner selected the
-three-theme model: reduced-warmth Organic is the default, with Utility and Cool
-Organic available in Settings. Fraunces/Archivo and the shared geometry remain
-constant across themes.
+reduced-warmth Organic is the default, with Utility, Cool Organic, Test Lab, and
+Coolors available in Settings. Fraunces/Archivo and the shared geometry remain
+constant across themes; Test Lab and Coolors are deliberately experimental and
+exist to stress-test hierarchy and contrast without changing the product's data
+or interaction model.
 
 At 60 px, both selected iOS PNGs retain a readable bowl silhouette and centre.
 The Android `1.png` remains readable inside circular and rounded-square masks,
@@ -201,6 +205,7 @@ The August Organic ZIP is integrated as a reference, with these boundaries:
 - Keep the approved glass-bowl PNG collection as the app-icon authority. The
   earlier spoon, steam, and monogram sketches are historical alternatives.
 - Keep Fraunces/Archivo and one semantic token API. Use reduced-warmth Organic
-  by default, with Utility and Cool Organic as selectable palettes.
+  by default, with Utility, Cool Organic, Test Lab, and Coolors as selectable
+  palettes.
 - Do not treat prototype screens, Anthropic-only copy, widgets, store listings,
   or marketing concepts as accepted product scope.

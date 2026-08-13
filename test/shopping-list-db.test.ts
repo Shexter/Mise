@@ -8,6 +8,7 @@ import {
   listShoppingItems,
   matchShoppingItemToReceipt,
   undoShoppingReceiptMatch,
+  updateShoppingListItem,
 } from '@/db/queries';
 import { openTestDatabase } from './stubs/db';
 
@@ -29,5 +30,15 @@ describe('shopping list persistence', () => {
     expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.status).toBe('purchased');
     await undoShoppingReceiptMatch(match!.id);
     expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.status).toBe('open');
+  });
+
+  test('edits a manual item without removing its source', async () => {
+    const item = await insertShoppingListItem({ displayName: 'Scallions', normalizedName: 'scallions' });
+    await addShoppingListSource({ shoppingItemId: item.id, kind: 'manual' });
+    await updateShoppingListItem(item.id, { displayName: 'Green onions', normalizedName: 'green onions', requestedQty: 2, requestedUnit: 'piece', note: 'For noodles' });
+    const updated = (await listShoppingItems(true)).find((entry) => entry.id === item.id);
+    expect(updated).toMatchObject({ displayName: 'Green onions', requestedQty: 2, requestedUnit: 'piece', note: 'For noodles' });
+    expect(updated?.sources).toHaveLength(1);
+    expect(updated?.sources[0]?.kind).toBe('manual');
   });
 });

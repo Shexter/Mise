@@ -7,6 +7,7 @@ import {
   getAllCanonicals,
   getLocations,
   insertPantryItem,
+  updatePantryItem,
   listPantryItems,
   markItemOpened,
   markItemRunningLow,
@@ -86,6 +87,7 @@ interface PantryState {
 
   refresh: () => Promise<void>;
   addItem: (input: NewPantryItem) => Promise<void>;
+  updateItem: (id: string, input: Parameters<typeof updatePantryItem>[1]) => Promise<void>;
   markOpened: (id: string) => Promise<void>;
   freeze: (id: string) => Promise<void>;
   setFullness: (id: string, fullness: Fullness) => Promise<void>;
@@ -129,6 +131,7 @@ export const usePantryStore = create<PantryState>((set, get) => {
     },
 
     addItem: (input) => act(() => insertPantryItem(input)),
+    updateItem: (id, input) => act(() => updatePantryItem(id, input)),
     markOpened: (id) => act(() => markItemOpened(id)),
     freeze: (id) => act(() => freezeToDefaultFreezer(id, get().locations)),
     setFullness: (id, fullness) => act(() => setItemFullness(id, fullness)),

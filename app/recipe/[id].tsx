@@ -173,7 +173,7 @@ export default function RecipeDetailScreen() {
             <Button label="Add missing ingredients" variant="secondary" onPress={() => void addMissingToShoppingList()} />
           </Card>
           <Card title="Ingredients">
-            <Button label="Edit ingredients" variant="secondary" onPress={() => setEditingIngredients(true)} />
+            <Caption muted>Ingredients can be corrected at any time.</Caption>
             <View style={styles.list}>{recipe.ingredients.map((ingredient) => <View key={ingredient.id} style={styles.ingredient}><Body>{ingredient.name}</Body><Caption muted>{ingredient.quantity === null ? 'No amount stated' : `${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`}</Caption></View>)}</View>
           </Card>
           {recipe.steps.length > 0 ? <Card title="Method"><Caption muted>The original method, kept for your own reference.</Caption><View style={styles.list}>{recipe.steps.map((step, index) => <Body key={`${step}-${index}`}>{index + 1}. {step}</Body>)}</View></Card> : null}

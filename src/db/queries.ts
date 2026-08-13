@@ -2095,6 +2095,67 @@ export async function insertPantryItem(
   return stored;
 }
 
+export interface UpdatePantryItemInput {
+  canonicalId: string;
+  locationId: string;
+  purchasedAt: string;
+  qtyRemaining: number | null;
+  qtyUnit: MeasureUnit | null;
+  expiresAt: string | null;
+}
+
+/** Updates only user-owned pantry fields; derived expiry is recomputed when it was predicted. */
+export async function updatePantryItem(
+  id: string,
+  input: UpdatePantryItemInput,
+): Promise<PantryItem> {
+  const canonical = await getCanonicalById(input.canonicalId);
+  if (!canonical) throw new Error(`Unknown canonical ingredient: ${input.canonicalId}`);
+  const location = await db().getFirstAsync<LocationRow>(
+    'SELECT * FROM locations WHERE id = ?',
+    [input.locationId],
+  );
+  if (!location) throw new Error(`Unknown location: ${input.locationId}`);
+  const existing = await getPantryItem(id);
+  if (!existing) throw new Error('Pantry item no longer exists.');
+
+  let expiresAt = input.expiresAt;
+  let expirySource: ExpirySource | null = input.expiresAt != null
+    ? (input.expiresAt === existing.expiresAt ? existing.expirySource ?? 'user' : 'user')
+    : null;
+  if (input.expiresAt == null && canRecomputeExpiry(existing.expirySource)) {
+    expiresAt = predictExpiry(
+      canonical,
+      location.kind as LocationKind,
+      input.purchasedAt,
+      existing.openedAt,
+    );
+    expirySource = expiresAt != null ? 'predicted' : null;
+  }
+  await db().runAsync(
+    `UPDATE pantry_items
+     SET canonical_id = ?, location_id = ?, purchased_at = ?,
+         qty_remaining = ?, qty_unit = ?, qty_source = ?,
+         expires_at = ?, expiry_source = ?, updated_at = ?
+     WHERE id = ?`,
+    [
+      input.canonicalId,
+      input.locationId,
+      input.purchasedAt,
+      input.qtyRemaining,
+      input.qtyUnit,
+      input.qtyRemaining != null ? 'user' : null,
+      expiresAt,
+      expirySource,
+      new Date().toISOString(),
+      id,
+    ],
+  );
+  const updated = await getPantryItem(id);
+  if (!updated) throw new Error('Pantry item vanished after update.');
+  return updated;
+}
+
 /** One accepted rapid-scan session becomes pantry stock atomically. */
 export async function applyBarcodeSession(
   items: readonly (NewPantryItem & { productId: string })[],
@@ -2672,6 +2733,8 @@ export interface ExportBundle {
   profile: Profile | null;
   dailyTargets: DailyTarget[];
   meals: MealWithItems[];
+  pantryItems: PantryItem[];
+  recipes: RecipeWithIngredients[];
   shoppingList: ShoppingListItem[];
 }
 
@@ -2689,6 +2752,8 @@ export async function exportEverything(
     'SELECT * FROM meal_items ORDER BY sort_order ASC',
   );
   const shoppingList = await listShoppingItems(true);
+  const pantryItems = await listPantryItems();
+  const recipes = (await listRecipes()).map((recipe) => getRecipe(recipe.id));
 
   const itemsByMeal = new Map<string, MealItem[]>();
   for (const row of itemRows) {
@@ -2706,6 +2771,8 @@ export async function exportEverything(
       ...toMeal(row),
       items: itemsByMeal.get(row.id) ?? [],
     })),
+    pantryItems,
+    recipes: (await Promise.all(recipes)).filter((recipe): recipe is RecipeWithIngredients => recipe !== null),
     shoppingList,
   };
 }
