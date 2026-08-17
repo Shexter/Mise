@@ -5,12 +5,17 @@ before starting a new teardown, so we don't duplicate work.
 
 | Feature | Teardown | Tier | Verdict | Why (one line) | OpenSpec change |
 |---|---|---|---|---|---|
-| Full micronutrient report (~80 nutrients) | `nutrient-report/full-micronutrient-report.md` | free | Adapt | biggest real gap; adopt the RDA-bar idea, not the false precision — needs a confidence/provenance treatment since Mise's data is vision-estimated | `none yet` |
-| Weight goal + goal-rate onboarding | `goals-targets/weight-goal-and-rate-onboarding.md` | free | Adopt | goal-directed calorie budgeting (target weight + rate → forecast date) is missing entirely; composes on top of existing `add-energy-sources` | `none yet` |
-| Foods hub — Custom Meals/Recipes/Foods, Repeat Items, Oracle Nutrient Search | `custom-foods/foods-hub.md` | free | Adapt (Oracle search) / Reject (Repeat Items) | Oracle Nutrient Search extends `add-macro-gap-suggestions`; Repeat Items conflicts with "the meal log IS the depletion signal" | extend `add-macro-gap-suggestions` |
-| Global Quick Input sheet + More/settings hub | `other/quick-input-and-settings-hub.md` | free | Adopt (Voice Log) / Reject (Fasting) / Adapt (global add entry point) | Voice Log is cheap and closes an accessibility gap; Fasting is unrelated scope creep; check `add-unified-capture` before proposing single global add button | `none yet` |
-| Discover dashboard + trend charts | `charts-trends/dashboard-and-charts.md` | free (Gold upsells inline) | Adapt | simple fixed weight/calorie trend charts are worth adding; skip user-configurable chart management, that's Gold-tier-justifying complexity Mise doesn't need | `none yet` |
+| Full micronutrient report (~80 nutrients) | `nutrient-report/full-micronutrient-report.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | confirmed genuinely lab-sourced (USDA/NCCDB/CNF/verified manufacturer data), not crowdsourced — Mise needs its own confidence/provenance treatment since it has no equivalent licensed database | `none yet` |
+| Weight goal + goal-rate onboarding | `goals-targets/weight-goal-and-rate-onboarding.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | goal-directed calorie budgeting (target weight + rate → forecast date) is missing entirely; composes on top of existing `add-energy-sources` | `none yet` |
+| Foods hub — Oracle Nutrient Search | `custom-foods/foods-hub.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | extends `add-macro-gap-suggestions` with a directed "what's high in X" mode | extend `add-macro-gap-suggestions` |
+| Foods hub — Repeat Items (scheduled auto-log) | `custom-foods/foods-hub.md` | free | Reject | conflicts with "the meal log IS the depletion signal" — a scheduled phantom log has no capture event behind it | `n/a` |
+| Fasting | `other/quick-input-and-settings-hub.md` | free | **Adopt** (overridden from Reject) — in `CRONO-ADAPTATION-PLAN.md` | self-contained timer/window/history surface; must not touch pantry depletion logic | `none yet` |
+| Global Quick Input sheet — Voice Log | `other/quick-input-and-settings-hub.md` | free | Adopt | cheap, fits existing vision-capture pipeline, closes an accessibility gap | `none yet` |
+| Global quick-add entry point (single "+") | `other/quick-input-and-settings-hub.md` | free | Adapt | check `add-unified-capture`'s existing scope before treating as new | `none yet` |
+| Discover dashboard + trend charts (with full "Manage Charts" configurability) | `charts-trends/dashboard-and-charts.md` | free (Gold upsells inline) | **Adopt** (overridden — keep the configurability) — in `CRONO-ADAPTATION-PLAN.md` | user-configurable chart picker across weight/calories/macros, extending to micronutrients later | `none yet` |
 | Diary (Today screen) | _no teardown — already equivalent_ | free | n/a | same concept as Mise's Today screen (energy rings, meal sections); no material gap found | `n/a` |
 | Onboarding notifications/TOS permission screens | _no teardown — reviewed, no action_ | free | Reject | local-first, no accounts (decision: local-first, no server/auth) — Cronometer's account/ToS/marketing-consent flow doesn't apply to Mise | `n/a` |
+
+**Adopted items are consolidated in [`CRONO-ADAPTATION-PLAN.md`](./CRONO-ADAPTATION-PLAN.md).**
 
 <!-- Add rows above this line, most recent first. -->

@@ -68,3 +68,14 @@ model to extend nutrient-by-nutrient.
 `add-micronutrient-tracking` change, phased (start with the 8 "highlighted"
 ones: fibre already shipped, vitamin C/iron/B12/calcium/folate/vitamin
 A/potassium next) rather than all ~80 at once.
+
+**Confirmed:** Cronometer's core database really is lab-sourced, not
+crowdsourced — anchored to USDA FoodData Central, the NCCDB (University of
+Minnesota, considered the research-grade standard), the Canadian Nutrient
+File, and verified manufacturer label submissions. User-submitted foods sit
+in a separate, explicitly lower-trust tier. This confirms rather than
+undercuts the verdict above: Mise has no equivalent licensed source, so the
+confidence/provenance treatment isn't a nice-to-have, it's load-bearing.
+See `CRONO-ADAPTATION-PLAN.md` for the sourcing strategy this implies.
+
+Sources: [Cronometer Data Sources](https://support.cronometer.com/hc/en-us/articles/360018239472-Data-Sources), [What Database Does Cronometer Use?](https://wellnd.com/what-database-does-cronometer-use-a-look-at-its-data-sources)

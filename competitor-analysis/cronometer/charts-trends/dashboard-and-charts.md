@@ -42,11 +42,11 @@ order" preference record.
 
 ## Verdict
 
-**Adapt** — a simple weight-over-time and calories-over-time chart is a
-reasonable, self-contained addition once enough history exists per user;
-skip the "Manage Charts" configurability for a first pass (fixed set of
-2-3 charts: weight, calories, macros) rather than building a
-user-customizable chart system Cronometer needed to justify a Gold tier
-around.
+**Adopt, including chart configurability** — overridden from an initial
+"adapt, skip the configurability" call. Build the full "Manage Charts" /
+"Add Chart" system: user picks which metrics get a trend chart, from
+weight/calories/macros today, extending to individual micronutrients once
+`full-micronutrient-report.md`'s tracking lands. See
+`CRONO-ADAPTATION-PLAN.md` for scope.
 
 **Linked OpenSpec change:** `none yet`.

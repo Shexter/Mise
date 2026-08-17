@@ -47,15 +47,16 @@ speech-to-text food entry as a capture method alongside photo/barcode/text.
 (swap image input for a transcript), and closes an accessibility gap photo
 capture doesn't cover (hands-full moments, eating out).
 
-**Reject (Fasting)** — a fasting timer is a genuinely separate product
-surface (streaks, windows, reminders) with no connection to pantry
-depletion or meal logging; it would be scope creep unless the user
-specifically wants Mise to grow into that space.
+**Adopt (Fasting)** — overridden from an initial Reject. It's a genuinely
+separate product surface (timer, window, history) with no connection to
+pantry depletion or meal logging, so it should ship as its own self-contained
+surface that never touches depletion logic — not folded into capture. See
+`CRONO-ADAPTATION-PLAN.md` for scope.
 
 **Adapt (global quick-add entry point)** — worth checking against
 `add-unified-capture`'s existing scope before treating as new; if it's not
 already the plan, a single global "+" is a real UX improvement over
 scattered per-screen add buttons.
 
-**Linked OpenSpec change:** `none yet` for Voice Log; check
+**Linked OpenSpec change:** `none yet` for Voice Log or Fasting; check
 `add-unified-capture` before proposing the global entry-point change.
