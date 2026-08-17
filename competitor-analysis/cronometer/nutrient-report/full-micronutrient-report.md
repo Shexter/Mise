@@ -64,18 +64,23 @@ Fibre's precedent (decision 188 — default target, no health claim,
 historical rows stay unknown rather than reading as zero) is exactly the
 model to extend nutrient-by-nutrient.
 
-**Linked OpenSpec change:** `none yet` — candidate for a new
-`add-micronutrient-tracking` change, phased (start with the 8 "highlighted"
-ones: fibre already shipped, vitamin C/iron/B12/calcium/folate/vitamin
-A/potassium next) rather than all ~80 at once.
+**Linked OpenSpec change:** `none yet` — but **not** a new
+`add-micronutrient-tracking` change from scratch. Checked against the
+codebase: `scripts/build-catalogue.ts` (`add-open-data-catalogue`) already
+calls FoodData Central per ingredient and reads its full nutrient array,
+currently mapping only 4 of the ~80 fields available in that same response.
+Extending that mapping — not building new ingestion — covers the 8
+"highlighted" nutrients (including upgrading fibre from its current
+vision-only estimate to an FDC-backed value) before the remaining ~70. See
+`CRONO-ADAPTATION-PLAN.md` item 1 for the exact fields and mechanism.
 
 **Confirmed:** Cronometer's core database really is lab-sourced, not
 crowdsourced — anchored to USDA FoodData Central, the NCCDB (University of
 Minnesota, considered the research-grade standard), the Canadian Nutrient
 File, and verified manufacturer label submissions. User-submitted foods sit
 in a separate, explicitly lower-trust tier. This confirms rather than
-undercuts the verdict above: Mise has no equivalent licensed source, so the
-confidence/provenance treatment isn't a nice-to-have, it's load-bearing.
-See `CRONO-ADAPTATION-PLAN.md` for the sourcing strategy this implies.
+undercuts the "confidence/provenance for vision-estimated meals" half of
+the verdict above — but the database-parity half turns out to be a cheap
+extension of existing infrastructure, not a gap requiring new sourcing.
 
 Sources: [Cronometer Data Sources](https://support.cronometer.com/hc/en-us/articles/360018239472-Data-Sources), [What Database Does Cronometer Use?](https://wellnd.com/what-database-does-cronometer-use-a-look-at-its-data-sources)

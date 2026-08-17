@@ -5,7 +5,7 @@ before starting a new teardown, so we don't duplicate work.
 
 | Feature | Teardown | Tier | Verdict | Why (one line) | OpenSpec change |
 |---|---|---|---|---|---|
-| Full micronutrient report (~80 nutrients) | `nutrient-report/full-micronutrient-report.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | confirmed genuinely lab-sourced (USDA/NCCDB/CNF/verified manufacturer data), not crowdsourced — Mise needs its own confidence/provenance treatment since it has no equivalent licensed database | `none yet` |
+| Full micronutrient report (~80 nutrients) | `nutrient-report/full-micronutrient-report.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md`, promoted to do first | confirmed genuinely lab-sourced (USDA/NCCDB/CNF), but FoodData Central is CC0 and `add-open-data-catalogue`'s script already fetches its full nutrient array — extending the mapping is cheap, not a new data source | `none yet` |
 | Weight goal + goal-rate onboarding | `goals-targets/weight-goal-and-rate-onboarding.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | goal-directed calorie budgeting (target weight + rate → forecast date) is missing entirely; composes on top of existing `add-energy-sources` | `none yet` |
 | Foods hub — Oracle Nutrient Search | `custom-foods/foods-hub.md` | free | **Adopt** — in `CRONO-ADAPTATION-PLAN.md` | extends `add-macro-gap-suggestions` with a directed "what's high in X" mode | extend `add-macro-gap-suggestions` |
 | Foods hub — Repeat Items (scheduled auto-log) | `custom-foods/foods-hub.md` | free | Reject | conflicts with "the meal log IS the depletion signal" — a scheduled phantom log has no capture event behind it | `n/a` |
