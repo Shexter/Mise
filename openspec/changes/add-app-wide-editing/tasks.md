@@ -22,8 +22,8 @@
 
 ## 4. Capture, barcode, receipts, and shopping list
 
-- [ ] 4.1 Add edit/correction paths to barcode and receipt review results before applying them, preserving raw capture and match provenance.
-- [ ] 4.2 Add post-apply correction for user-owned pantry fields created by capture, with safe re-resolution and no duplicate stock rows.
+- [x] 4.1 Add edit/correction paths to barcode and receipt review results before applying them, preserving raw capture and match provenance.
+- [x] 4.2 Add post-apply correction for user-owned pantry fields created by capture, with safe re-resolution and no duplicate stock rows.
 - [x] 4.3 Add edit controls for manual and source-backed shopping-list items, preserving source links and recalculating open/closed grouping.
 - [x] 4.4 Add regression tests for capture correction, barcode correction, receipt correction, shopping-list edits, and undo/error states.
 
