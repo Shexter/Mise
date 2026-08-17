@@ -6,21 +6,27 @@ not ship in the app and is not read by any runtime code.
 
 ## Loop
 
-1. **Drop screenshots** into the matching subfolder below (or paste them
-   directly in chat — either works, but a saved folder gives us a durable
-   record to diff against as Cronometer changes over time).
-2. **Teardown** — one `<feature-slug>.md` per feature, from `_teardown-template.md`.
-3. **Gap-check** — teardown gets checked against `docs/product-decisions.md`
+1. **Drop screenshots into `inbox/`** — however they're named (`IMG_0234.png`,
+   `Screenshot_2026...`, whatever the phone gives you). Don't sort them
+   yourself.
+2. **I sort and rename** — I look at each one, move it into the right feature
+   subfolder below, and rename it to `<feature-slug>-<what-it-shows>.png`
+   (e.g. `nutrient-report/rda-bars-collapsed.png`). `inbox/` should end up
+   empty after each batch.
+3. **Teardown** — one `<feature-slug>.md` per feature, from `_teardown-template.md`.
+4. **Gap-check** — teardown gets checked against `docs/product-decisions.md`
    and the non-negotiables in `openspec/config.yaml`. Anything server-side,
    account-based, or that shows a bare quantity Mise "can't defend" is an
    automatic reject per the existing ledger — no need to re-litigate those.
-4. **Verdict** — one row added to `TRACKER.md`: adopt / adapt / reject, with why.
-5. **Adopt → OpenSpec** — anything verdicted "adopt" gets a real
+5. **Verdict** — one row added to `TRACKER.md`: adopt / adapt / reject, with why.
+6. **Adopt → OpenSpec** — anything verdicted "adopt" gets a real
    `openspec-propose` change, same as any other Mise feature. This folder
    never substitutes for that; it's the input to it.
 
 ## Folders
 
+- `inbox/` — drop raw screenshots here, any filename. I sort/rename from here;
+  nothing should sit in `inbox/` for long.
 - `diary/` — food log / diary entry screens
 - `nutrient-report/` — the nutrient-by-nutrient breakdown, RDA bars
 - `custom-foods/` — custom food/recipe creation, barcode entry
