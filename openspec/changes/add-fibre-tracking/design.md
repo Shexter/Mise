@@ -1,10 +1,11 @@
 ## Context
 
-See `proposal.md` — Why. Fibre is absent from every layer: `Macros` in
-`src/types.ts` has calories, protein, carbs, and fat; `meal_items` has the same
-three macro columns; `src/api/prompt.ts` asks for exactly those; and
-`macroTargets` in `src/logic/macros.ts` divides `targetCalories` by a percentage
-split, which is a shape fibre does not fit.
+See `proposal.md` — Why. Fibre is absent from the canonical nutrition model:
+`Macros` in `src/types.ts` has calories, protein, carbs, and fat; `meal_items`
+has the same three macro columns; and `macroTargets` in `src/logic/macros.ts`
+divides `targetCalories` by a percentage split, which is a shape fibre does not
+fit. The image prompt/parser may carry a legacy optional `fibre_g`, but the
+revised flow treats resolved product/catalogue data as authoritative.
 
 ## Goals / Non-Goals
 
@@ -61,10 +62,14 @@ kind of number.
 change. The app makes no health claim about it (decision 64's spirit) — it is a
 target the user owns, not advice.
 
-### The prompt gains a field and the parser tolerates its absence
+### Fibre is a post-resolution derivation, not a visual estimate
 
-`fibre_g` is added to the schema block in `src/api/prompt.ts`; `parse.ts` treats
-it as optional.
+The image/model pass identifies each food, quantity, and existing meal fields.
+Once the item resolves to a canonical ingredient or barcode product, Mise
+derives fibre in this order: product nutrition, canonical catalogue nutrition,
+a text-only nutrition fallback using the resolved name and quantity, then
+`null` when no source can defend a value. `parse.ts` may accept `fibre_g` for
+legacy compatibility, but new flows do not treat photo output as authoritative.
 
 *Why:* the parser must not become stricter than it was. A model that omits the
 field, or an older cached response, should yield a meal with unknown fibre
@@ -78,11 +83,10 @@ files at once, and zero silences the error. Mitigation: the spec makes
 unknown-versus-zero a testable requirement, and a test asserts a pre-fibre day
 does not read as zero.
 
-**Estimate quality for fibre is unknown** → the model has never been asked for
-it here, and fibre is harder to eyeball than protein. Mitigation: it is an
-estimate like the others and is presented the same way; nothing depends on it
-being precise, and `add-macro-gap-suggestions` treats it as a signal rather than
-a measurement.
+**Resolved-food coverage may be incomplete** → some canonical and product rows
+will not carry fibre. Mitigation: prefer structured values, use a text-only
+nutrition fallback after resolution, preserve provenance/confidence, and keep
+the result nullable when no defensible source exists.
 
 **A fourth bar crowds the day view** → four bars where three were balanced.
 Mitigation: layout only, and the incomplete state needs a distinct treatment
@@ -90,9 +94,12 @@ anyway, so the component is being touched regardless.
 
 ## Migration Plan
 
-One forward-only migration adding nullable `meal_items.fibre_g` and
+The base change adds nullable `meal_items.fibre_g` and
 `profile.fibre_target_g` defaulted to 30. Existing meal items keep null, which
-is the correct value — their fibre genuinely is unknown.
+is the correct value — their fibre genuinely is unknown. If canonical or
+barcode-product records need fibre values or provenance columns, append one
+additional forward-only migration after inspecting the live schema ledger;
+never reuse or rewrite an applied migration.
 
 `DROP_ALL` is unchanged; no new tables.
 

@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
 import { Field } from '@/components/Field';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Segmented } from '@/components/Choice';
@@ -50,6 +51,7 @@ export function AddPantryItemSheet({ visible, onClose }: Props) {
   const [qty, setQty] = useState('');
   const [qtyUnit, setQtyUnit] = useState<MeasureUnit>('g');
   const [saving, setSaving] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
 
   const location =
     locations.find((l) => l.id === locationId) ??
@@ -126,10 +128,15 @@ export function AddPantryItemSheet({ visible, onClose }: Props) {
           )}
         </Pressable>
       </View>
-
-      <View style={styles.section}>
-        <SectionLabel muted>Where it lives</SectionLabel>
-        <View style={styles.locations}>
+      <CollapsibleEditorRow
+        title={canonical ? canonical.displayName : 'Item details'}
+        subtitle={canonical ? `${location?.name ?? 'Choose a location'} · optional quantity` : 'Choose an ingredient first'}
+        expanded={detailsExpanded}
+        onToggle={() => setDetailsExpanded((current) => !current)}
+      >
+        <View style={styles.section}>
+          <SectionLabel muted>Where it lives</SectionLabel>
+          <View style={styles.locations}>
           {locations.map((option) => {
             const selected = option.id === location?.id;
             return (
@@ -151,21 +158,15 @@ export function AddPantryItemSheet({ visible, onClose }: Props) {
               </Pressable>
             );
           })}
+          </View>
         </View>
-      </View>
-
-      <View style={styles.section}>
-        <SectionLabel muted>Acquired</SectionLabel>
-        <Segmented
-          options={ACQUIRED_OPTIONS}
-          value={acquired}
-          onChange={setAcquired}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <SectionLabel muted>How much (optional)</SectionLabel>
-        <View style={styles.qtyRow}>
+        <View style={styles.section}>
+          <SectionLabel muted>Acquired</SectionLabel>
+          <Segmented options={ACQUIRED_OPTIONS} value={acquired} onChange={setAcquired} />
+        </View>
+        <View style={styles.section}>
+          <SectionLabel muted>How much (optional)</SectionLabel>
+          <View style={styles.qtyRow}>
           <Field
             value={qty}
             onChangeText={setQty}
@@ -180,11 +181,10 @@ export function AddPantryItemSheet({ visible, onClose }: Props) {
             onChange={setQtyUnit}
             style={styles.qtyUnits}
           />
+          </View>
+          <Caption muted style={styles.hint}>Only shown back to you as your own entry.</Caption>
         </View>
-        <Caption muted style={styles.hint}>
-          Only shown back to you as your own entry.
-        </Caption>
-      </View>
+      </CollapsibleEditorRow>
 
       {canonical ? (
         <Caption muted>

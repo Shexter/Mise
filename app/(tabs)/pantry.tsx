@@ -17,16 +17,17 @@ import { EmptyPantryIllustration } from '@/components/StateIllustration';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { pendingReceipts, retryAllPending } from '@/logic/receiptService';
-import { listPendingCaptures, listRecipes } from '@/db/queries';
+import { listPendingCaptures, listRecipes, listReceipts } from '@/db/queries';
 import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
 import type { Recipe } from '@/types';
 
-type PantrySubsection = 'stock' | 'recipes' | 'shop';
+type PantrySubsection = 'stock' | 'recipes' | 'shop' | 'receipts';
 const SUBSECTIONS = [
   { value: 'stock', label: 'Stock' },
   { value: 'recipes', label: 'Recipes' },
   { value: 'shop', label: 'Shop' },
+  { value: 'receipts', label: 'Receipts' },
 ] as const;
 
 /**
@@ -45,6 +46,7 @@ export default function PantryScreen() {
   const [pendingCaptureCount, setPendingCaptureCount] = useState(0);
   const [subsection, setSubsection] = useState<PantrySubsection>('stock');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [receiptCount, setReceiptCount] = useState(0);
   // Derived from the store so the sheet reflects taps live; null once the
   // entry leaves the catalogue (e.g. discarded).
   const selected =
@@ -63,6 +65,7 @@ export default function PantryScreen() {
     useCallback(() => {
       void refresh();
       void listRecipes().then(setRecipes);
+      void listReceipts().then((items) => setReceiptCount(items.length));
       void (async () => {
         await retryAllPending();
         await checkPending();
@@ -156,8 +159,18 @@ export default function PantryScreen() {
         </Pressable>
       ) : null}
 
-        {subsection === 'recipes' ? (
+      {subsection === 'recipes' ? (
         <SavedRecipesSection recipes={recipes} showHeaderAction={false} />
+      ) : subsection === 'receipts' ? (
+        <Pressable
+          onPress={() => router.push('/receipt-history')}
+          accessibilityRole="button"
+          accessibilityLabel="Open saved receipt history"
+          style={({ pressed }) => [styles.receiptLink, pressed && { opacity: opacity.pressed }]}
+        >
+          <Body>{receiptCount ? `${receiptCount} saved receipt${receiptCount === 1 ? '' : 's'}` : 'No saved receipts yet'}</Body>
+          <Caption muted>Open original photos and review extracted lines.</Caption>
+        </Pressable>
       ) : subsection === 'shop' ? (
         <ShoppingListSection />
       ) : groups.length === 0 ? (
@@ -252,6 +265,14 @@ const styles = StyleSheet.create({
     padding: layout.cardPadding,
     gap: space.xs,
     marginBottom: space.lg,
+  },
+  receiptLink: {
+    backgroundColor: color.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: color.line,
+    padding: layout.cardPadding,
+    gap: space.xs,
   },
   headerButton: {
     width: layout.minTouchTarget,

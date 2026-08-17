@@ -6,6 +6,7 @@ import { classifyBarcode, confirmRecoveredBarcode, resolveBarcode } from '../src
 import { BARCODE_FACTUAL_RESULT_DISCLOSURE, barcodeNutritionRows } from '../src/logic/barcodePresentation';
 import { planCaptureItems } from '../src/logic/captureItems';
 import { useBarcodeCaptureStore } from '../src/store/barcodeCaptureStore';
+import { nextExpandedId } from '../src/logic/collapsibleEditor';
 import { openTestDatabase } from './stubs/db';
 
 beforeEach(async () => {
@@ -15,6 +16,11 @@ beforeEach(async () => {
 });
 
 describe('barcode guided recovery', () => {
+  test('switching disclosure rows keeps only the selected row open', () => {
+    expect(nextExpandedId(null, 'barcode-a')).toBe('barcode-a');
+    expect(nextExpandedId('barcode-a', 'barcode-b')).toBe('barcode-b');
+    expect(nextExpandedId('barcode-b', 'barcode-b')).toBeNull();
+  });
   test('parses only visible factual package fields and preserves unknown nutrition', () => {
     const evidence = parseBarcodeEvidence('{"name":"Tofu","brand":null,"pkgQty":300,"pkgUnit":"g","containerCount":null,"kcalPer100":null,"proteinPer100":12,"carbsPer100":null,"fatPer100":6}');
     expect(evidence.kcalPer100).toBeNull();

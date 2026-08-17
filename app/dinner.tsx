@@ -28,6 +28,7 @@ import {
   type SuggestionOutcome,
 } from '@/logic/suggestionService';
 import { useDayStore } from '@/store/dayStore';
+import { usePantryStore } from '@/store/pantryStore';
 import { itemKey } from '@/logic/shoppingList';
 import type {
   CanonicalItem,
@@ -55,6 +56,7 @@ export default function DinnerScreen() {
   const consumed = useDayStore((state) => state.consumed);
   const addMeal = useDayStore((state) => state.addMeal);
   const refresh = useDayStore((state) => state.refresh);
+  const pantryRevision = usePantryStore((state) => state.revision);
   const remaining = target && consumed.calories !== null
     ? target.targetCalories - roundCalories(consumed.calories)
     : null;
@@ -85,7 +87,7 @@ export default function DinnerScreen() {
     if (result.status === 'ready' && nextMode === 'tonight') {
       setTonightPreference(result.set.tonightPreference);
     }
-  }, [macro]);
+  }, [macro, pantryRevision]);
 
   useEffect(() => {
     void load(mode);

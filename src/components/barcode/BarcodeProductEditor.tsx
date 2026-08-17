@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { OPEN_FOOD_FACTS_ATTRIBUTION } from '@/api/openFoodFacts';
-import { Card } from '@/components/Card';
+import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
-import { Caption, RowTitle, SectionLabel } from '@/components/Type';
+import { Caption, SectionLabel } from '@/components/Type';
 import { space } from '@/constants/theme';
 import { BARCODE_FACTUAL_RESULT_DISCLOSURE, barcodeNutritionRows } from '@/logic/barcodePresentation';
 import { BARCODE_REVIEW_UNITS, type BarcodeResultOrigin } from '@/store/barcodeCaptureStore';
@@ -22,24 +23,28 @@ const UNIT_OPTIONS = BARCODE_REVIEW_UNITS.map((value) => ({ value, label: value 
 
 /** The same factual, editable product contract for single and batch review. */
 export function BarcodeProductEditor({ product, origin, onChange }: Props) {
+  const [expanded, setExpanded] = useState(false);
   return (
     <View style={styles.root}>
-      <Card>
+      <CollapsibleEditorRow
+        title={product.name || 'Unnamed product'}
+        subtitle={product.brand ?? originLabel(origin)}
+        expanded={expanded}
+        onToggle={() => setExpanded((current) => !current)}
+      >
         <Caption muted>{originLabel(origin)}</Caption>
-        <RowTitle>{product.name || 'Unnamed product'}</RowTitle>
-        {product.brand ? <Caption muted>{product.brand}</Caption> : null}
-        {product.source === 'barcode' ? <Caption muted>{OPEN_FOOD_FACTS_ATTRIBUTION}</Caption> : null}
-      </Card>
-      <Field label="Product name" value={product.name} onChangeText={(name) => onChange({ name })} />
-      <Field label="Brand" value={product.brand ?? ''} onChangeText={(brand) => onChange({ brand: brand.trim() || null })} />
-      <Field label="Package size" value={product.pkgQty?.toString() ?? ''} onChangeText={(value) => onChange({ pkgQty: positiveNumber(value) })} keyboardType="decimal-pad" suffix={product.pkgUnit ?? undefined} hint="Leave blank when the package size is unknown." />
-      <Segmented options={UNIT_OPTIONS} value={(product.pkgUnit ?? 'piece') as MeasureUnit} onChange={(pkgUnit) => onChange({ pkgUnit })} />
-      <Field label="Containers in pack" value={product.containerCount?.toString() ?? ''} onChangeText={(value) => onChange({ containerCount: positiveInteger(value) })} keyboardType="number-pad" hint="Leave blank when the pack count is unknown; Mise will add one item." />
-      <View style={styles.nutrition}>
-        <SectionLabel muted>Nutrition per 100</SectionLabel>
-        {barcodeNutritionRows(product).map((row) => <Caption key={row}>{row}</Caption>)}
-        <Caption muted>{BARCODE_FACTUAL_RESULT_DISCLOSURE}</Caption>
-      </View>
+        <Field label="Product name" value={product.name} onChangeText={(name) => onChange({ name })} />
+        <Field label="Brand" value={product.brand ?? ''} onChangeText={(brand) => onChange({ brand: brand.trim() || null })} />
+        <Field label="Package size" value={product.pkgQty?.toString() ?? ''} onChangeText={(value) => onChange({ pkgQty: positiveNumber(value) })} keyboardType="decimal-pad" suffix={product.pkgUnit ?? undefined} hint="Leave blank when the package size is unknown." />
+        <Segmented options={UNIT_OPTIONS} value={(product.pkgUnit ?? 'piece') as MeasureUnit} onChange={(pkgUnit) => onChange({ pkgUnit })} />
+        <Field label="Containers in pack" value={product.containerCount?.toString() ?? ''} onChangeText={(value) => onChange({ containerCount: positiveInteger(value) })} keyboardType="number-pad" hint="Leave blank when the pack count is unknown; Mise will add one item." />
+        <View style={styles.nutrition}>
+          <SectionLabel muted>Nutrition per 100</SectionLabel>
+          {barcodeNutritionRows(product).map((row) => <Caption key={row}>{row}</Caption>)}
+          <Caption muted>{BARCODE_FACTUAL_RESULT_DISCLOSURE}</Caption>
+          {product.source === 'barcode' ? <Caption muted>{OPEN_FOOD_FACTS_ATTRIBUTION}</Caption> : null}
+        </View>
+      </CollapsibleEditorRow>
     </View>
   );
 }

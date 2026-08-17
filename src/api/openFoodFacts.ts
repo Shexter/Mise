@@ -16,6 +16,7 @@ export interface OpenFoodFactsProduct {
   proteinPer100: number | null;
   carbsPer100: number | null;
   fatPer100: number | null;
+  fibrePer100?: number | null;
 }
 
 export async function lookupOpenFoodFacts(gtin: string, signal?: AbortSignal): Promise<OpenFoodFactsProduct | null> {
@@ -45,7 +46,7 @@ export function parseOpenFoodFactsResponse(raw: unknown, gtin: string): OpenFood
   const nutrition = isRecord(product.nutriments) ? product.nutriments : {};
   const quantity = parseQuantity(string(product.quantity));
   return { gtin, name, brand: string(product.brands), pkgQty: quantity?.qty ?? null, pkgUnit: quantity?.unit ?? null, containerCount: quantity?.containerCount ?? null,
-    kcalPer100: number(nutrition['energy-kcal_100g']) ?? number(nutrition['energy-kcal']), proteinPer100: number(nutrition.proteins_100g), carbsPer100: number(nutrition.carbohydrates_100g), fatPer100: number(nutrition.fat_100g) };
+    kcalPer100: number(nutrition['energy-kcal_100g']) ?? number(nutrition['energy-kcal']), proteinPer100: number(nutrition.proteins_100g), carbsPer100: number(nutrition.carbohydrates_100g), fatPer100: number(nutrition.fat_100g), fibrePer100: number(nutrition.fiber_100g) ?? number(nutrition.fibre_100g) ?? number(nutrition['dietary-fibre_100g']) };
 }
 function parseQuantity(value: string | null): { qty: number; unit: MeasureUnit; containerCount: number | null } | null {
   const multi = value?.match(/^\s*(\d+)\s*(?:x|×)\s*(\d+(?:\.\d+)?)\s*(g|ml|l)\b/i);

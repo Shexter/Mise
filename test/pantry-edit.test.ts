@@ -8,6 +8,7 @@ import {
   updatePantryItem,
 } from '@/db/queries';
 import { openTestDatabase } from './stubs/db';
+import { usePantryStore } from '@/store/pantryStore';
 
 describe('pantry editing', () => {
   beforeEach(async () => {
@@ -64,5 +65,20 @@ describe('pantry editing', () => {
     await updatePantryItem(original.id, { canonicalId: 'milk', locationId: 'counter', purchasedAt: original.purchasedAt, qtyRemaining: 2, qtyUnit: 'ml', expiresAt: null });
     const exported = await exportEverything(1);
     expect(exported.pantryItems.find((item) => item.id === original.id)?.locationId).toBe('counter');
+  });
+
+  test('signals dependent surfaces after a successful edit', async () => {
+    const original = await insertPantryItem({ canonicalId: 'milk', locationId: 'fridge' });
+    await usePantryStore.getState().refresh();
+    const before = usePantryStore.getState().revision;
+    await usePantryStore.getState().updateItem(original.id, {
+      canonicalId: original.canonicalId,
+      locationId: 'counter',
+      purchasedAt: original.purchasedAt,
+      qtyRemaining: null,
+      qtyUnit: null,
+      expiresAt: null,
+    });
+    expect(usePantryStore.getState().revision).toBe(before + 1);
   });
 });

@@ -32,22 +32,27 @@ SHALL be unknown rather than zero.
 - **THEN** it records zero
 - **AND** that is distinguishable from unknown
 
-### Requirement: The estimator asks for fibre and tolerates its absence
+### Requirement: Fibre is derived after food resolution
 
-The system SHALL request fibre as part of the meal estimate, and SHALL treat a
-response omitting it as a valid response with fibre unknown rather than a
-failure.
+The system SHALL identify foods and quantities during image estimation, then
+derive fibre after canonical or barcode resolution. It SHALL prefer structured
+product or catalogue nutrition, may use a text-only fallback based on the
+resolved food name and quantity, and SHALL keep fibre unknown when no source can
+defend a value. Legacy `fibre_g` responses MAY be parsed for compatibility but
+the image model SHALL NOT be required to estimate fibre.
 
-#### Scenario: A complete estimate is parsed
+#### Scenario: Resolved mixed greens receive post-resolution fibre
 
-- **WHEN** an estimate returns fibre for each item
-- **THEN** the meal is parsed with those amounts
+- **WHEN** the image identifies mixed greens and a quantity
+- **AND** the item resolves to a canonical or product nutrition record
+- **THEN** Mise derives and stores fibre after resolution
+- **AND** the image response is not the fibre authority
 
-#### Scenario: A response without fibre still parses
+#### Scenario: No resolved source remains unknown
 
-- **WHEN** an estimate returns no fibre field
-- **THEN** the meal parses successfully
-- **AND** its items' fibre is unknown
+- **WHEN** an identified item has no structured fibre and the text-only fallback
+  cannot produce a defensible value
+- **THEN** its fibre remains unknown rather than zero
 
 ### Requirement: A daily fibre target is set independently of the calorie split
 

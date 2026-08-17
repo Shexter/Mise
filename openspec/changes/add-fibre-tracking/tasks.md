@@ -12,11 +12,22 @@
 
 ## 2. Estimation
 
-- [x] 2.1 Add `fibre_g` to the schema block in `src/api/prompt.ts`.
-- [x] 2.2 Make `src/api/parse.ts` treat it as optional — a response omitting it
-      yields unknown fibre, never a parse failure. The calorie path must not
-      regress because a secondary field is missing.
+- [x] 2.1 Remove fibre as a required image-estimation field; keep food identity
+      and quantity as the post-resolution inputs.
+- [x] 2.2 Keep `src/api/parse.ts` backward-compatible with legacy `fibre_g`
+      responses without treating them as the preferred source.
 - [x] 2.3 Test parsing with the field present, absent, and null.
+
+## 2a. Post-resolution fibre derivation
+
+- [x] 2a.1 Add fibre fields/source metadata to canonical and barcode-product
+      nutrition records where the source can defend them.
+- [x] 2a.2 Implement post-resolution derivation: product, catalogue, text-only
+      fallback, then nullable unknown.
+- [x] 2a.3 Keep fibre provenance/confidence separate from photo confidence and
+      identity confidence.
+- [x] 2a.4 Test mixed greens, structured-source precedence, quantity scaling,
+      text-only fallback, and no-source unknown behavior.
 
 ## 3. Aggregation
 
@@ -77,7 +88,8 @@ door.
 
 ## 6. Verification
 
-- [ ] 6.1 Log a meal with a real key and confirm fibre is estimated and stored.
+- [ ] 6.1 Log mixed greens with a real key and confirm food/quantity are first
+      identified, then fibre is derived after resolution and stored.
 - [ ] 6.2 **Open a day whose meals predate this change and confirm its fibre
       reads unknown, not "0 / 30 g".** This is the requirement the whole change
       exists to protect.

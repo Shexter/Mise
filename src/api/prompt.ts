@@ -22,7 +22,7 @@ How to estimate:
 
 Output format:
 - Return raw JSON only. No prose, no explanation, no markdown code fences.
-- calories are integers. protein_g, carbs_g, fat_g and fibre_g have at most one decimal.
+- calories are integers. protein_g, carbs_g and fat_g have at most one decimal.
 - unit is one of: ${MEASURE_UNITS.join(', ')}.
 
 Schema:
@@ -38,8 +38,7 @@ Schema:
       "calories": 0,
       "protein_g": 0,
       "carbs_g": 0,
-      "fat_g": 0
-      "fibre_g": 0
+      "fat_g": 0,
     }
   ],
   "likely_hidden_ingredients": ["string"]

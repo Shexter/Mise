@@ -25,11 +25,13 @@ describe('shopping list persistence', () => {
     });
     const line = (await import('@/db/queries')).getReceipt;
     const storedReceipt = await line(receipt.id);
+    expect(storedReceipt?.lines[0]?.rawText).toBe('Miso');
     const match = await matchShoppingItemToReceipt(item.id, receipt.id, storedReceipt!.lines[0]!.id);
     expect(match?.previousStatus).toBe('open');
     expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.status).toBe('purchased');
     await undoShoppingReceiptMatch(match!.id);
     expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.status).toBe('open');
+    expect((await line(receipt.id))?.lines[0]?.rawText).toBe('Miso');
   });
 
   test('edits a manual item without removing its source', async () => {

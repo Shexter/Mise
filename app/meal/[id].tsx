@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-nat
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { CollapsibleEditorRow, nextExpandedId } from '@/components/CollapsibleEditorRow';
 import { Segmented } from '@/components/Choice';
 import { EmptyState } from '@/components/EmptyState';
 import { Field } from '@/components/Field';
@@ -57,6 +58,7 @@ export default function MealEditorScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pickingItemId, setPickingItemId] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const allowLeave = useRef(false);
 
   useEffect(() => {
@@ -195,9 +197,11 @@ export default function MealEditorScreen() {
         <SectionLabel muted>Items</SectionLabel>
         <Pressable
           accessibilityRole="button" accessibilityLabel="Add meal item"
-          onPress={() => patchDraft({
-            items: [...draft.items, newItemDraft()],
-          })}
+          onPress={() => {
+            const item = newItemDraft();
+            patchDraft({ items: [...draft.items, item] });
+            setExpandedItemId(item.id);
+          }}
           style={({ pressed }) => pressed && { opacity: opacity.pressed }}
         >
           <Body>+ Add item</Body>
@@ -208,7 +212,13 @@ export default function MealEditorScreen() {
       {draft.items.map((item, index) => {
         const itemErrors = errors?.itemFields[item.id];
         return (
-          <Card key={item.id} title={`Item ${index + 1}`} style={styles.itemCard}>
+          <CollapsibleEditorRow
+            key={item.id}
+            title={item.name.trim() || `Item ${index + 1}`}
+            subtitle={item.canonicalId ? `Catalogue: ${item.canonicalId}` : undefined}
+            expanded={expandedItemId === item.id}
+            onToggle={() => setExpandedItemId((current) => nextExpandedId(current, item.id))}
+          >
             <View style={styles.itemFields}>
               <Field
                 label="Name" value={item.name}
@@ -258,7 +268,7 @@ export default function MealEditorScreen() {
                 <Button label="Remove" variant="destructive" block={false} onPress={() => patchDraft({ items: draft.items.filter((candidate) => candidate.id !== item.id) })} />
               </View>
             </View>
-          </Card>
+          </CollapsibleEditorRow>
         );
       })}
 

@@ -646,6 +646,12 @@ CREATE UNIQUE INDEX idx_shopping_receipt_match_once
   ON shopping_list_receipt_matches(shopping_item_id, receipt_line_id);
 `;
 
+/** Migration 25: resolved nutrition carries fibre independently of photo output. */
+const RESOLVED_FIBRE_NUTRITION = `
+ALTER TABLE canonical_items ADD COLUMN fibre_per_100 REAL;
+ALTER TABLE products ADD COLUMN fibre_per_100 REAL;
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -671,6 +677,7 @@ export const MIGRATIONS: readonly string[] = [
   SAVED_RECIPES,
   PRODUCT_SCAN_HISTORY,
   SHOPPING_LIST,
+  RESOLVED_FIBRE_NUTRITION,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

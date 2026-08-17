@@ -51,7 +51,7 @@ export const useBarcodeCaptureStore = create<BarcodeCaptureState>((set) => ({
   })),
   removeSessionProduct: (id) => set((state) => ({ session: state.session.filter((item) => item.id !== id) })),
   clearSession: () => set({ session: [] }),
-  startRecovery: (gtin, returnToBatch) => set({ recoveryDraft: { gtin, returnToBatch, name: null, brand: null, pkgQty: null, pkgUnit: null, containerCount: null, kcalPer100: null, proteinPer100: null, carbsPer100: null, fatPer100: null } }),
+  startRecovery: (gtin, returnToBatch) => set({ recoveryDraft: { gtin, returnToBatch, name: null, brand: null, pkgQty: null, pkgUnit: null, containerCount: null, kcalPer100: null, proteinPer100: null, carbsPer100: null, fatPer100: null, fibrePer100: null } }),
   updateRecovery: (evidence) => set((state) => ({ recoveryDraft: state.recoveryDraft ? { ...state.recoveryDraft, ...evidence } : null })),
   clearRecovery: () => set({ recoveryDraft: null }),
 }));

@@ -1046,6 +1046,7 @@ interface CanonicalItemRow {
   protein_per_100: number | null;
   carbs_per_100: number | null;
   fat_per_100: number | null;
+  fibre_per_100: number | null;
   typical_use_qty: number | null;
   typical_use_unit: string | null;
   typical_pkg_qty: number | null;
@@ -1080,6 +1081,7 @@ interface ProductRow {
   protein_per_100: number | null;
   carbs_per_100: number | null;
   fat_per_100: number | null;
+  fibre_per_100: number | null;
   source: string;
   fetched_at: string | null;
   last_scanned_at: string | null;
@@ -1109,6 +1111,7 @@ function toCanonicalItem(row: CanonicalItemRow): CanonicalItem {
     proteinPer100: row.protein_per_100,
     carbsPer100: row.carbs_per_100,
     fatPer100: row.fat_per_100,
+    fibrePer100: row.fibre_per_100,
     typicalUseQty: row.typical_use_qty,
     typicalUseUnit: row.typical_use_unit as MeasureUnit | null,
     typicalPkgQty: row.typical_pkg_qty,
@@ -1147,6 +1150,7 @@ function toProduct(row: ProductRow): Product {
     proteinPer100: row.protein_per_100,
     carbsPer100: row.carbs_per_100,
     fatPer100: row.fat_per_100,
+    fibrePer100: row.fibre_per_100,
     source: row.source as ReferenceSource,
     fetchedAt: row.fetched_at,
     lastScannedAt: row.last_scanned_at,
@@ -1182,6 +1186,7 @@ interface CanonicalSeedEntry {
   proteinPer100?: number | null;
   carbsPer100?: number | null;
   fatPer100?: number | null;
+  fibrePer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -1224,10 +1229,10 @@ export async function loadSeedData(): Promise<void> {
         `INSERT INTO canonical_items
            (id, display_name, class, default_location, shelf_life_days,
             early_warning_days, open_life_days, sources, kcal_per_100,
-            protein_per_100, carbs_per_100, fat_per_100, typical_use_qty,
+            protein_per_100, carbs_per_100, fat_per_100, fibre_per_100, typical_use_qty,
             typical_use_unit, typical_pkg_qty, typical_pkg_unit,
             density_g_per_ml, is_seed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
          ON CONFLICT(id) DO UPDATE SET
            display_name = excluded.display_name,
            class = excluded.class,
@@ -1240,6 +1245,7 @@ export async function loadSeedData(): Promise<void> {
            protein_per_100 = excluded.protein_per_100,
            carbs_per_100 = excluded.carbs_per_100,
            fat_per_100 = excluded.fat_per_100,
+           fibre_per_100 = excluded.fibre_per_100,
            typical_use_qty = excluded.typical_use_qty,
            typical_use_unit = excluded.typical_use_unit,
            typical_pkg_qty = excluded.typical_pkg_qty,
@@ -1259,6 +1265,7 @@ export async function loadSeedData(): Promise<void> {
           entry.proteinPer100 ?? null,
           entry.carbsPer100 ?? null,
           entry.fatPer100 ?? null,
+          entry.fibrePer100 ?? null,
           entry.typicalUseQty ?? null,
           entry.typicalUseUnit ?? null,
           entry.typicalPkgQty ?? null,
@@ -1526,6 +1533,7 @@ export interface NewCanonicalItem {
   proteinPer100?: number | null;
   carbsPer100?: number | null;
   fatPer100?: number | null;
+  fibrePer100?: number | null;
   typicalUseQty?: number | null;
   typicalUseUnit?: MeasureUnit | null;
   typicalPkgQty?: number | null;
@@ -1541,10 +1549,10 @@ export async function insertCanonicalItem(
     `INSERT INTO canonical_items
        (id, display_name, class, default_location, shelf_life_days,
         early_warning_days, open_life_days, sources, kcal_per_100,
-        protein_per_100, carbs_per_100, fat_per_100, typical_use_qty,
+        protein_per_100, carbs_per_100, fat_per_100, fibre_per_100, typical_use_qty,
         typical_use_unit, typical_pkg_qty, typical_pkg_unit,
         density_g_per_ml, is_seed, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
     [
       item.id,
       item.displayName,
@@ -1561,6 +1569,7 @@ export async function insertCanonicalItem(
       item.proteinPer100 ?? null,
       item.carbsPer100 ?? null,
       item.fatPer100 ?? null,
+      item.fibrePer100 ?? null,
       item.typicalUseQty ?? null,
       item.typicalUseUnit ?? null,
       item.typicalPkgQty ?? null,
@@ -1585,6 +1594,7 @@ export async function insertCanonicalItem(
     proteinPer100: item.proteinPer100 ?? null,
     carbsPer100: item.carbsPer100 ?? null,
     fatPer100: item.fatPer100 ?? null,
+    fibrePer100: item.fibrePer100 ?? null,
     typicalUseQty: item.typicalUseQty ?? null,
     typicalUseUnit: item.typicalUseUnit ?? null,
     typicalPkgQty: item.typicalPkgQty ?? null,
@@ -1705,6 +1715,7 @@ export interface NewProduct {
   proteinPer100?: number | null;
   carbsPer100?: number | null;
   fatPer100?: number | null;
+  fibrePer100?: number | null;
   source: ReferenceSource;
 }
 
@@ -1714,8 +1725,8 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
   await db().runAsync(
     `INSERT INTO products
        (id, gtin, brand, name, pkg_qty, pkg_unit, container_count, canonical_id,
-        kcal_per_100, protein_per_100, carbs_per_100, fat_per_100, source, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        kcal_per_100, protein_per_100, carbs_per_100, fat_per_100, fibre_per_100, source, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       product.gtin ?? null,
@@ -1729,6 +1740,7 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
       product.proteinPer100 ?? null,
       product.carbsPer100 ?? null,
       product.fatPer100 ?? null,
+      product.fibrePer100 ?? null,
       product.source,
       fetchedAt,
     ],
@@ -1746,6 +1758,7 @@ export async function insertProduct(product: NewProduct): Promise<Product> {
     proteinPer100: product.proteinPer100 ?? null,
     carbsPer100: product.carbsPer100 ?? null,
     fatPer100: product.fatPer100 ?? null,
+    fibrePer100: product.fibrePer100 ?? null,
     source: product.source,
     fetchedAt,
     lastScannedAt: null,
@@ -1760,11 +1773,11 @@ export async function upsertProduct(product: NewProduct): Promise<Product> {
   const containerCount = product.containerCount === undefined ? existing.containerCount : product.containerCount;
   await db().runAsync(
     `UPDATE products SET brand = ?, name = ?, pkg_qty = ?, pkg_unit = ?, container_count = ?, canonical_id = ?,
-      kcal_per_100 = ?, protein_per_100 = ?, carbs_per_100 = ?, fat_per_100 = ?, source = ?, fetched_at = ?
+      kcal_per_100 = ?, protein_per_100 = ?, carbs_per_100 = ?, fat_per_100 = ?, fibre_per_100 = ?, source = ?, fetched_at = ?
      WHERE id = ?`,
     [product.brand ?? null, product.name, product.pkgQty ?? null, product.pkgUnit ?? null, containerCount,
       product.canonicalId, product.kcalPer100 ?? null, product.proteinPer100 ?? null,
-      product.carbsPer100 ?? null, product.fatPer100 ?? null, product.source, fetchedAt, existing.id],
+      product.carbsPer100 ?? null, product.fatPer100 ?? null, product.fibrePer100 ?? null, product.source, fetchedAt, existing.id],
   );
   return { ...existing, ...product, containerCount, gtin: product.gtin ?? null, fetchedAt };
 }

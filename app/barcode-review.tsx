@@ -54,6 +54,7 @@ export default function BarcodeReviewScreen() {
         pkgUnit: product.pkgUnit, containerCount: product.containerCount, canonicalId: product.canonicalId,
         kcalPer100: product.kcalPer100, proteinPer100: product.proteinPer100,
         carbsPer100: product.carbsPer100, fatPer100: product.fatPer100, source: product.source,
+        fibrePer100: product.fibrePer100,
       });
       await applyBarcodeSession(barcodePantryItems(saved, location.id, localDateString()));
       router.dismissAll();

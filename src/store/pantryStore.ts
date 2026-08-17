@@ -82,6 +82,8 @@ export interface PantryGroup {
 
 interface PantryState {
   loading: boolean;
+  /** Monotonic signal for surfaces whose derived data depends on pantry stock. */
+  revision: number;
   groups: PantryGroup[];
   locations: Location[];
 
@@ -103,10 +105,12 @@ export const usePantryStore = create<PantryState>((set, get) => {
   const act = async (work: () => Promise<unknown>) => {
     await work();
     await get().refresh();
+    set((state) => ({ revision: state.revision + 1 }));
   };
 
   return {
     loading: true,
+    revision: 0,
     groups: [],
     locations: [],
 

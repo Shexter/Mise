@@ -23,6 +23,9 @@ import { buildRefreshPlan, groupShoppingItems, itemKey, mergeShoppingSources, qu
 import { listPantryItems } from '@/db/queries';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { MEASURE_UNITS, type MeasureUnit, type ShoppingListItem, type ShoppingListSection } from '@/types';
+import { usePantryStore } from '@/store/pantryStore';
+import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
+import { nextExpandedId } from '@/logic/collapsibleEditor';
 
 export function ShoppingListSection() {
   const toast = useToast();
@@ -30,6 +33,7 @@ export function ShoppingListSection() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ShoppingListItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const pantryRevision = usePantryStore((state) => state.revision);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,7 +78,7 @@ export function ShoppingListSection() {
     }
     setItems(await listShoppingItems(true));
     setLoading(false);
-  }, []);
+  }, [pantryRevision]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -132,14 +136,25 @@ export function ShoppingListSection() {
 }
 
 function ShoppingSection({ section, onStatus, onEdit }: { section: ShoppingListSection; onStatus: (item: ShoppingListItem, status: ShoppingListItem['status']) => void; onEdit: (item: ShoppingListItem) => void }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return <Card padded={false}>
     <SectionLabel muted style={styles.sectionLabel}>{section.label}</SectionLabel>
     {section.items.map((item, index) => <View key={item.id}>
       {index > 0 ? <Divider /> : null}
-      <Pressable onPress={() => onStatus(item, 'purchased')} accessibilityRole="button" accessibilityLabel={`${item.displayName}, ${quantityLabel(item)}. Mark purchased`} style={({ pressed }) => [styles.row, pressed && { opacity: opacity.pressed }]}>
-        <View style={styles.check}><Feather name="check" size={14} color={color.onAction} /></View>
-        <View style={styles.text}><Body>{item.displayName}</Body><Caption muted>{quantityLabel(item)}{item.sources.length > 1 ? ` · ${item.sources.length} reasons` : ''}</Caption><View style={styles.actions}><Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${item.displayName}`}><Caption muted>Later</Caption></Pressable><Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${item.displayName}`}><Caption muted>Remove</Caption></Pressable><Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.displayName}`}><Caption muted>Edit</Caption></Pressable></View></View>
-      </Pressable>
+      <CollapsibleEditorRow
+        title={item.displayName}
+        subtitle={`${item.status === 'purchased' ? 'Purchased' : 'Open'} · ${quantityLabel(item)}${item.sources.length > 1 ? ` · ${item.sources.length} reasons` : ''}`}
+        expanded={expandedId === item.id}
+        onToggle={() => setExpandedId((current) => nextExpandedId(current, item.id))}
+      >
+        <View style={styles.detail}>
+          <Pressable onPress={() => onStatus(item, item.status === 'purchased' ? 'open' : 'purchased')} accessibilityRole="button" accessibilityLabel={`${item.status === 'purchased' ? 'Restore' : 'Mark purchased'} ${item.displayName}`} style={styles.complete}>
+            <View style={styles.check}><Feather name="check" size={14} color={color.onAction} /></View>
+            <Body>{item.status === 'purchased' ? 'Restore to open' : 'Mark purchased'}</Body>
+          </Pressable>
+          <View style={styles.actions}><Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${item.displayName}`}><Caption muted>Later</Caption></Pressable><Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${item.displayName}`}><Caption muted>Remove</Caption></Pressable><Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.displayName}`}><Caption muted>Edit</Caption></Pressable></View>
+        </View>
+      </CollapsibleEditorRow>
     </View>)}
   </Card>;
 }
@@ -170,4 +185,6 @@ const styles = StyleSheet.create({
   check: { width: 24, height: 24, borderRadius: radius.full, backgroundColor: color.action, alignItems: 'center', justifyContent: 'center' },
   text: { flex: 1, gap: space.xs },
   actions: { flexDirection: 'row', gap: space.base },
+  detail: { gap: space.base },
+  complete: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: layout.minTouchTarget },
 });

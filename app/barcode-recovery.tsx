@@ -31,7 +31,7 @@ export default function BarcodeRecoveryScreen() {
   }, [barcodeMode, gtin, recoveryDraft?.gtin, startRecovery]);
 
   if (!recoveryDraft) return <Screen><Body muted>Preparing recovery…</Body></Screen>;
-  const draftProduct: Product = { id: 'recovery-draft', gtin: recoveryDraft.gtin, name: recoveryDraft.name ?? '', brand: recoveryDraft.brand, pkgQty: recoveryDraft.pkgQty, pkgUnit: recoveryDraft.pkgUnit, containerCount: recoveryDraft.containerCount, canonicalId: canonical?.id ?? '', kcalPer100: recoveryDraft.kcalPer100, proteinPer100: recoveryDraft.proteinPer100, carbsPer100: recoveryDraft.carbsPer100, fatPer100: recoveryDraft.fatPer100, source: 'user', fetchedAt: null, lastScannedAt: null };
+  const draftProduct: Product = { id: 'recovery-draft', gtin: recoveryDraft.gtin, name: recoveryDraft.name ?? '', brand: recoveryDraft.brand, pkgQty: recoveryDraft.pkgQty, pkgUnit: recoveryDraft.pkgUnit, containerCount: recoveryDraft.containerCount, canonicalId: canonical?.id ?? '', kcalPer100: recoveryDraft.kcalPer100, proteinPer100: recoveryDraft.proteinPer100, carbsPer100: recoveryDraft.carbsPer100, fatPer100: recoveryDraft.fatPer100, fibrePer100: recoveryDraft.fibrePer100, source: 'user', fetchedAt: null, lastScannedAt: null };
 
   const photograph = async (kind: BarcodeEvidenceKind) => {
     const result = await ImagePicker.launchCameraAsync({ quality: 1, base64: false });
@@ -62,6 +62,7 @@ export default function BarcodeRecoveryScreen() {
         containerCount: draftProduct.containerCount, canonicalId: canonical.id,
         kcalPer100: draftProduct.kcalPer100, proteinPer100: draftProduct.proteinPer100,
         carbsPer100: draftProduct.carbsPer100, fatPer100: draftProduct.fatPer100,
+        fibrePer100: draftProduct.fibrePer100,
       });
       const returnToBatch = recoveryDraft.returnToBatch;
       clearRecovery();

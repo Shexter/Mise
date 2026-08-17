@@ -8,6 +8,8 @@ import { Field } from '@/components/Field';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Sheet } from '@/components/Sheet';
 import { Caption, SectionLabel } from '@/components/Type';
+import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
+import { nextExpandedId } from '@/logic/collapsibleEditor';
 import { color, space } from '@/constants/theme';
 import type { CanonicalItem, MeasureUnit, RecipeIngredient } from '@/types';
 import { MEASURE_UNITS } from '@/types';
@@ -55,12 +57,14 @@ export function RecipeIngredientEditor({
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     setDrafts(ingredients.map(toDraft));
     setError(null);
     setPickingId(null);
+    setExpandedId(ingredients[0]?.id ?? null);
   }, [visible, ingredients]);
 
   const patch = (id: string, values: Partial<DraftIngredient>) => {
@@ -116,7 +120,16 @@ export function RecipeIngredientEditor({
         Leave an amount blank when the recipe did not state one. Mise will not guess it.
       </Caption>
       {drafts.map((draft, index) => (
-        <Card key={draft.id} title={`Ingredient ${index + 1}`}>
+        <CollapsibleEditorRow
+          key={draft.id}
+          title={draft.name || `Ingredient ${index + 1}`}
+          subtitle={draft.quantity.trim().length > 0
+            ? `${draft.quantity}${draft.unit === 'none' ? '' : ` ${draft.unit}`}`
+            : 'Amount not stated'}
+          expanded={expandedId === draft.id}
+          onToggle={() => setExpandedId((current) => nextExpandedId(current, draft.id))}
+        >
+          <Card padded={false}>
           <View style={styles.fields}>
             <Field label="Name" value={draft.name} onChangeText={(name) => patch(draft.id, { name })} />
             <Field
@@ -157,7 +170,8 @@ export function RecipeIngredientEditor({
               />
             ) : null}
           </View>
-        </Card>
+          </Card>
+        </CollapsibleEditorRow>
       ))}
       {error ? <Caption style={styles.error}>{error}</Caption> : null}
       <CanonicalPickerSheet

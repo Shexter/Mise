@@ -98,6 +98,8 @@ export default function RootLayout() {
             <Stack.Screen name="barcode-fallback" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-history" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-recovery" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="receipt-history" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="add-pantry-item" options={{ presentation: 'modal' }} />
             <Stack.Screen name="pending-captures" options={{ presentation: 'modal' }} />
             <Stack.Screen name="review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="manual" options={{ presentation: 'modal' }} />

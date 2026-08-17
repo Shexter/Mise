@@ -1,4 +1,4 @@
-export const THEME_IDS = ['organic', 'utility', 'cool-organic', 'test-lab', 'coolors'] as const;
+export const THEME_IDS = ['organic', 'utility', 'cool-organic', 'test-lab', 'coolors', 'midnight-organic'] as const;
 export type ThemeId = typeof THEME_IDS[number];
 
 export interface ThemePalette {
@@ -33,14 +33,19 @@ export const themePalettes: Record<ThemeId, ThemePalette> = {
     paprika: '#B96F4F', wheat: '#A98236', olive: '#6C7B52',
   },
   'test-lab': {
-    ground: '#F2F0FA', surface: '#FFFFFF', ink: '#181526', muted: '#625B78',
-    line: '#D9D5E6', action: '#5946D9', onAction: '#FFFFFF',
-    paprika: '#D94F70', wheat: '#B77A1C', olive: '#327A68',
+    ground: '#F1EEF2', surface: '#F9F7F8', ink: '#2D2930', muted: '#746D76',
+    line: '#DDD6DF', action: '#8B6F8D', onAction: '#FFFFFF',
+    paprika: '#A86F79', wheat: '#B59A71', olive: '#7C927F',
   },
   coolors: {
-    ground: '#DDFFF7', surface: '#93E1D8', ink: '#462255', muted: '#6F587A',
-    line: '#B7EEE7', action: '#AA4465', onAction: '#FFFFFF',
-    paprika: '#AA4465', wheat: '#FFA69E', olive: '#93E1D8',
+    ground: '#EEF5F3', surface: '#E2EFEC', ink: '#313B3A', muted: '#6F7C7A',
+    line: '#CBDDD8', action: '#9A6378', onAction: '#FFFFFF',
+    paprika: '#A87883', wheat: '#C3A17D', olive: '#86A49A',
+  },
+  'midnight-organic': {
+    ground: '#1D211F', surface: '#272D2A', ink: '#F4F1EA', muted: '#B9BDB7',
+    line: '#3B4540', action: '#D08A68', onAction: '#201B18',
+    paprika: '#D58A73', wheat: '#D2B16F', olive: '#A8B68B',
   },
 };
 
@@ -48,8 +53,9 @@ export const themeOptions: readonly { id: ThemeId; label: string; detail: string
   { id: 'organic', label: 'Organic', detail: 'Soft cream, sand, terracotta, and sage with less yellow warmth.' },
   { id: 'utility', label: 'Utility', detail: 'The original quiet putty, white, ink, and olive palette.' },
   { id: 'cool-organic', label: 'Cool Organic', detail: 'Neutral stone with juniper and restrained botanical colour.' },
-  { id: 'test-lab', label: 'Test Lab', detail: 'Experimental indigo, lilac, coral, and teal direction for UI stress tests.' },
-  { id: 'coolors', label: 'Coolors', detail: 'Aqua, mint, pink, berry, and plum from the supplied Coolors palette.' },
+  { id: 'test-lab', label: 'Soft Studio', detail: 'A quiet lilac, clay, oat, and eucalyptus palette for gentle contrast testing.' },
+  { id: 'coolors', label: 'Misted Mint', detail: 'A softened aqua, rose, oat, and sage palette with low-saturation contrast.' },
+  { id: 'midnight-organic', label: 'Midnight Organic', detail: 'A dark kitchen-at-night palette with warm ember actions and calm botanical accents.' },
 ];
 
 export function resolveThemeId(value: unknown): ThemeId {

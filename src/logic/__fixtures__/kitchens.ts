@@ -45,6 +45,7 @@ export function canonical(
     proteinPer100: overrides.proteinPer100 ?? null,
     carbsPer100: overrides.carbsPer100 ?? null,
     fatPer100: overrides.fatPer100 ?? null,
+    fibrePer100: overrides.fibrePer100 ?? null,
   };
 }
 

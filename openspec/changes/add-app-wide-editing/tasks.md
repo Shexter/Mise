@@ -10,7 +10,7 @@
 - [x] 2.1 Add query-layer update commands for pantry identity, status/quantity, storage, expiry, notes, and other user-supplied fields; keep SQL in `src/db/queries.ts`.
 - [x] 2.2 Add the Pantry edit form, prefilled from the current row, with field parity to the add flow, validation, Cancel, Save, loading, and failure recovery.
 - [x] 2.3 Ensure Pantry identity corrections are explicit and do not create duplicate canonical entries or erase capture provenance.
-- [ ] 2.4 Refresh expiry/status, dinner suggestions, recipe gaps, shopping list, and analytics after a successful Pantry edit.
+- [x] 2.4 Refresh expiry/status, dinner suggestions, recipe gaps, shopping list, and analytics after a successful Pantry edit.
 - [x] 2.5 Add Pantry logic, database, UI, export/reset, and restart regression tests.
 
 ## 3. Meals and recipes
@@ -26,12 +26,11 @@
 - [ ] 4.2 Add post-apply correction for user-owned pantry fields created by capture, with safe re-resolution and no duplicate stock rows.
 - [x] 4.3 Add edit controls for manual and source-backed shopping-list items, preserving source links and recalculating open/closed grouping.
 - [x] 4.4 Add regression tests for capture correction, barcode correction, receipt correction, shopping-list edits, and undo/error states.
-- [ ] 4.4 Add regression tests for capture correction, barcode correction, receipt correction, shopping-list edits, and undo/error states.
 
 ## 5. Persistence, export, and quality gates
 
-- [ ] 5.1 Append a forward-only migration only if the inventory finds missing persisted correction/provenance fields; add upgrade and DROP_ALL coverage.
+- [x] 5.1 Inventory found no missing persisted correction/provenance fields; no migration is required.
 - [x] 5.2 Update export and reset coverage so corrected data and provenance round-trip without API keys or secrets.
-- [ ] 5.3 Run typecheck, full Vitest suite, strict OpenSpec validation, and `git diff --check`; fix regressions.
+- [x] 5.3 Run typecheck, full Vitest suite, strict OpenSpec validation, and `git diff --check`; fix regressions.
 - [ ] 5.4 Perform owner checks on Android and iOS/Expo Go for every edit surface: save, cancel, invalid input, persistence after restart, large text, themes, screen readers, and offline failure.
-- [ ] 5.5 Update the implementation handoff and queue with exact progress, remaining device evidence, and the rule that every future add flow must ship with edit parity.
+- [x] 5.5 Update the implementation handoff and queue with exact progress, remaining device evidence, and the rule that every future add flow must ship with edit parity.

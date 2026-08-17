@@ -384,6 +384,7 @@ export interface CanonicalItem {
   proteinPer100: number | null;
   carbsPer100: number | null;
   fatPer100: number | null;
+  fibrePer100?: number | null;
   typicalUseQty: number | null;
   typicalUseUnit: MeasureUnit | null;
   typicalPkgQty: number | null;
@@ -421,6 +422,7 @@ export interface Product {
   proteinPer100: number | null;
   carbsPer100: number | null;
   fatPer100: number | null;
+  fibrePer100?: number | null;
   source: ReferenceSource;
   fetchedAt: string | null;
   /** Updated only by a successful barcode recognition, never by opening review. */

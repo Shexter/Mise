@@ -16,9 +16,11 @@ Prerequisite for `add-macro-gap-suggestions`, and independently useful.
 - **`meal_items.fibre_g`, nullable.** Nullable is the important part: every meal
   logged before this change has *unknown* fibre, not zero, and the two must not
   be confused.
-- **The estimator asks for it.** `src/api/prompt.ts` gains `fibre_g` in its
-  schema, and `src/api/parse.ts` treats it as optional so a model that omits it
-  produces null rather than a parse failure.
+- **Fibre is derived after resolution.** The image pass identifies foods and
+  quantities; it does not visually estimate fibre. After canonical/barcode
+  resolution, Mise derives fibre from structured nutrition data and uses a
+  text-only fallback when no structured value exists. Legacy `fibre_g` model
+  responses remain parseable but are not the preferred source.
 - **A daily fibre target on the profile.** Unlike protein, carbs, and fat, fibre
   is **not a share of calories** — it is an absolute daily figure. So it cannot
   join `macroTargets`, which divides `targetCalories` by a percentage split. It
@@ -54,11 +56,16 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 
 ## Impact
 
-**Schema.** One migration adding nullable `meal_items.fibre_g` and a fibre
-target column on `profile`.
+**Schema.** The existing fibre migration adds nullable `meal_items.fibre_g`
+and a fibre target column on `profile`. If canonical or barcode nutrition
+records need new fibre/source fields, those additions must be appended through
+one forward-only migration after the live schema ledger is checked.
 
 **Code.**
-- `src/api/prompt.ts`, `src/api/parse.ts` — the estimator asks and parses.
+- `src/api/prompt.ts`, `src/api/parse.ts` — the estimator identifies foods and
+  quantities; fibre is derived after resolution.
+- `src/logic/nutrition.ts` and resolution services — derive fibre after identity
+  resolution, preserving source and confidence.
 - `src/types.ts` — `Macros` gains `fibreG`, which is a widely-used type, so the
   compiler will enumerate every site that needs a decision.
 - `src/logic/macros.ts` — a separate fibre target, deliberately outside

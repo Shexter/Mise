@@ -55,6 +55,9 @@ import { useDayStore } from '@/store/dayStore';
 import { lastServingsForDish } from '@/db/queries';
 import { saveDishVenueDefault } from '@/db/queries';
 import { inferVenueForDraft } from '@/logic/venueService';
+import { deriveResolvedFibre } from '@/logic/nutrition';
+import { getCanonicalById } from '@/db/queries';
+import { resolveIngredientReferencesLocally } from '@/logic/resolution';
 import { Stepper } from '@/components/Stepper';
 import type {
   Confidence,
@@ -244,6 +247,15 @@ export default function ReviewScreen() {
     if (items.length === 0) return;
     setSaving(true);
     const localDate = localDateString();
+    const resolvedItems = await Promise.all(items.map(async (item) => {
+      const outcome = item.canonicalId
+        ? { status: 'resolved' as const, canonicalId: item.canonicalId }
+        : (await resolveIngredientReferencesLocally([{ raw: item.name }], 'vision'))[0];
+      const canonicalId = outcome?.status === 'resolved' ? outcome.canonicalId : item.canonicalId;
+      const canonical = canonicalId ? await getCanonicalById(canonicalId) : null;
+      const fibre = deriveResolvedFibre(null, canonical, item.quantity, item.unit);
+      return { ...item, canonicalId, fibreG: fibre.value };
+    }));
     const meal: NewMeal = {
       loggedAt: new Date().toISOString(),
       localDate,
@@ -254,7 +266,7 @@ export default function ReviewScreen() {
       confidence,
       venue,
       servingsMult: venue === 'home' ? servings : 1,
-      items: items.map((item) => ({
+      items: resolvedItems.map((item) => ({
         name: item.name,
         quantity: item.quantity,
         unit: item.unit,
@@ -262,6 +274,7 @@ export default function ReviewScreen() {
         proteinG: item.proteinG,
         carbsG: item.carbsG,
         fatG: item.fatG,
+        fibreG: item.fibreG,
         isManualAddition: item.isManualAddition,
         canonicalId: item.canonicalId,
       })),

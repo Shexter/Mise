@@ -15,9 +15,10 @@ export interface BarcodeEvidence {
   proteinPer100: number | null;
   carbsPer100: number | null;
   fatPer100: number | null;
+  fibrePer100: number | null;
 }
 
-const SYSTEM = `Read factual package evidence for a product-identification draft. Do not rate healthfulness or infer missing values. Return raw JSON only with nullable fields: name, brand, pkgQty, pkgUnit, containerCount, kcalPer100, proteinPer100, carbsPer100, fatPer100. pkgUnit must be one of ${MEASURE_UNITS.join(', ')}. Nutrition must be per 100 g or 100 ml only; otherwise return null.`;
+const SYSTEM = `Read factual package evidence for a product-identification draft. Do not rate healthfulness or infer missing values. Return raw JSON only with nullable fields: name, brand, pkgQty, pkgUnit, containerCount, kcalPer100, proteinPer100, carbsPer100, fatPer100, fibrePer100. pkgUnit must be one of ${MEASURE_UNITS.join(', ')}. Nutrition must be per 100 g or 100 ml only; otherwise return null.`;
 
 export async function extractBarcodeEvidence(base64Jpeg: string, kind: BarcodeEvidenceKind, signal?: AbortSignal): Promise<BarcodeEvidence> {
   return parseBarcodeEvidence(await completeVision(base64Jpeg, SYSTEM, `This is the product's ${kind.replace('-', ' ')}. Extract only facts visible in this image.`, signal));
@@ -33,6 +34,7 @@ export function parseBarcodeEvidence(raw: string): BarcodeEvidence {
     pkgUnit: unit(row.pkgUnit), containerCount: positiveInteger(row.containerCount),
     kcalPer100: nonNegative(row.kcalPer100), proteinPer100: nonNegative(row.proteinPer100),
     carbsPer100: nonNegative(row.carbsPer100), fatPer100: nonNegative(row.fatPer100),
+    fibrePer100: nonNegative(row.fibrePer100),
   };
 }
 

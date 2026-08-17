@@ -18,6 +18,9 @@ counts are stale. Current code work has reached these boundaries:
    `add-unified-capture` — **46/58**, and `add-fibre-tracking` — **27/31**.
    Their remaining tasks require real keys, fixtures, research, or device
    acceptance; do not mark them complete from code-only verification.
+7. `add-app-wide-editing` — **18/22**. Pantry dependent refresh and automated
+   quality gates are implemented. Capture/barcode/receipt correction paths and
+   owner device checks remain.
 
 Do not archive any of these before owner app testing. Use `openspec list --json`
 for the live counts before selecting the next task.
@@ -58,6 +61,7 @@ none is blocked on code. They are a parallel track, not a queue position.
 | `edit-logged-meals` | 26/32 | Six Expo Go checks remain before archival. |
 | `add-history-calendar` | 39/46 | Seven in-app history-navigation checks remain before archival. |
 | `add-venue-inference` | 26/38 | Twelve real-photo, provider, and in-app checks remain before archival. |
+| `add-app-wide-editing` | 18/22 | Capture correction and owner device checks remain. |
 
 Automated verification passed: typecheck, 526 tests, clean diffs, and strict
 OpenSpec validation. These changes remain open until the owner completes their

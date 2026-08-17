@@ -62,6 +62,27 @@ Remaining tasks are UI completeness (snooze/dismiss/edit/category controls),
 suggestion entry-point wiring, visible receipt-match review/undo, and owner
 device checks across offline restart, themes, large text, and screen readers.
 
+## App-wide editing continuation — 12 August 2026
+
+`add-app-wide-editing` is now **18/22**. Pantry editing refreshes dependent
+surfaces through a monotonic Pantry revision signal: Shop reloads its source
+plan, Dinner re-evaluates suggestions, and Analytics reloads its daily source
+data after a successful Pantry save. The inventory found no missing persisted
+correction/provenance fields, so no migration was added.
+
+Automated verification: **95 test files / 725 tests**, `npm run typecheck`,
+strict `add-app-wide-editing` validation, and `git diff --check` all pass.
+
+Remaining implementation and acceptance:
+
+- Add correction before apply and post-apply correction for barcode/receipt
+  capture results while preserving raw capture and match provenance.
+- Perform owner checks on Android and iOS/Expo Go for all edit surfaces,
+  including invalid input, restart persistence, themes, large text, screen
+  readers, and offline failure.
+- Keep the future add-flow parity checklist active for every new user-created
+  record type.
+
 Use this document when a new conversation continues implementation. Verify the
 live repository state before acting because Git and task counts can change.
 

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Card, Divider } from '@/components/Card';
+import { CollapsibleEditorRow, nextExpandedId } from '@/components/CollapsibleEditorRow';
 import { Segmented } from '@/components/Choice';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { LineEditSheet } from '@/components/receipt/LineEditSheet';
@@ -64,7 +65,8 @@ export default function ReceiptReviewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const { receiptId } = useLocalSearchParams<{ receiptId: string }>();
+  const { receiptId, saved } = useLocalSearchParams<{ receiptId: string; saved?: string }>();
+  const savedReceipt = saved === '1';
 
   const [receipt, setReceipt] = useState<ReceiptWithLines | null>(null);
   const [frames, setFrames] = useState<ReceiptFrame[]>([]);
@@ -76,6 +78,7 @@ export default function ReceiptReviewScreen() {
   const [dismissedPrompts, setDismissedPrompts] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const finished = useRef(false);
   const receiptIdRef = useRef<string | null>(null);
   const setCaptureReview = usePantryCaptureStore((state) => state.set);
@@ -300,7 +303,7 @@ export default function ReceiptReviewScreen() {
         ) : null}
       </View>
 
-      {captureItemsFromReceiptLines(receipt.lines).length > 0 ? (
+      {captureItemsFromReceiptLines(receipt.lines).length > 0 && !savedReceipt ? (
         <View style={styles.correction}>
           <Caption muted>Not a receipt after all?</Caption>
           <Button label="Review as groceries" variant="secondary" block={false} onPress={() => void switchToGroceries()} loading={switching} disabled={saving} />
@@ -311,6 +314,14 @@ export default function ReceiptReviewScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]}
         showsVerticalScrollIndicator={false}
       >
+        {savedReceipt ? (
+          <Card>
+            <Body>Saved receipt</Body>
+            <Caption muted>This is a review of the stored photo and extracted lines. Opening it never adds pantry items again.</Caption>
+            <Button label="Add a missed food manually" variant="secondary" onPress={() => router.push('/add-pantry-item')} />
+          </Card>
+        ) : null}
+
         {arithmetic.status === 'mismatch' ? (
           <Card>
             <Body>
@@ -350,12 +361,8 @@ export default function ReceiptReviewScreen() {
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
                 <LineRow
-                  title={line.rawText}
-                  detail={priceLabel(line)}
-                  actionLabel="Match"
-                  onPress={() => setCorrecting(line)}
-                  onExclude={() => void toggleExcluded(line)}
-                />
+                  title={line.rawText} detail={priceLabel(line)} actionLabel="Match"
+                  onPress={() => setCorrecting(line)} onExclude={() => void toggleExcluded(line)} />
               </View>
             ))}
           </Card>
@@ -366,16 +373,9 @@ export default function ReceiptReviewScreen() {
             {matched.map((line, index) => (
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
-                <LineRow
-                  title={displayName(line)}
-                  provenance={line.rawText}
-                  detail={priceLabel(line)}
-                  actionLabel="Edit"
-                  onPress={() => setEditing(line)}
-                  onSecondaryPress={() => setCorrecting(line)}
-                  secondaryLabel="Change match"
-                  onExclude={() => void toggleExcluded(line)}
-                />
+                <CollapsibleEditorRow title={displayName(line)} subtitle={priceLabel(line)} expanded={expandedLineId === line.id} onToggle={() => setExpandedLineId((current) => nextExpandedId(current, line.id))}>
+                  <LineRow title={displayName(line)} provenance={line.rawText} detail={priceLabel(line)} actionLabel="Edit" onPress={() => setEditing(line)} onSecondaryPress={() => setCorrecting(line)} secondaryLabel="Change match" onExclude={() => void toggleExcluded(line)} />
+                </CollapsibleEditorRow>
               </View>
             ))}
           </Card>
@@ -386,13 +386,9 @@ export default function ReceiptReviewScreen() {
             {excludedLines.map((line, index) => (
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
-                <LineRow
-                  title={displayName(line)}
-                  detail="Excluded"
-                  actionLabel="Include"
-                  onPress={() => void toggleExcluded(line)}
-                  compact
-                />
+                <CollapsibleEditorRow title={displayName(line)} subtitle="Excluded" expanded={expandedLineId === line.id} onToggle={() => setExpandedLineId((current) => nextExpandedId(current, line.id))}>
+                  <LineRow title={displayName(line)} detail="Excluded" actionLabel="Include" onPress={() => void toggleExcluded(line)} compact />
+                </CollapsibleEditorRow>
               </View>
             ))}
           </Card>
@@ -403,12 +399,9 @@ export default function ReceiptReviewScreen() {
             {nonFoodLines.map((line, index) => (
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
-                <LineRow
-                  title={line.rawText}
-                  actionLabel="This is food"
-                  onPress={() => void reclassifyAsFood(line)}
-                  compact
-                />
+                <CollapsibleEditorRow title={line.rawText} subtitle="Not food" expanded={expandedLineId === line.id} onToggle={() => setExpandedLineId((current) => nextExpandedId(current, line.id))}>
+                  <LineRow title={line.rawText} actionLabel="This is food" onPress={() => void reclassifyAsFood(line)} compact />
+                </CollapsibleEditorRow>
               </View>
             ))}
           </Card>
@@ -419,17 +412,21 @@ export default function ReceiptReviewScreen() {
             {moneyLines.map((line, index) => (
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
-                <LineRow title={line.rawText} detail={moneyLineDetail(line)} compact />
+                <CollapsibleEditorRow title={line.rawText} subtitle={moneyLineDetail(line)} expanded={expandedLineId === line.id} onToggle={() => setExpandedLineId((current) => nextExpandedId(current, line.id))}>
+                  <LineRow title={line.rawText} detail={moneyLineDetail(line)} compact />
+                </CollapsibleEditorRow>
               </View>
             ))}
           </Card>
         ) : null}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
-        <Button label="Accept" onPress={() => void accept()} loading={saving} />
-        <Button label="Discard" variant="ghost" onPress={() => void discard()} />
-      </View>
+      {!savedReceipt ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
+          <Button label="Accept" onPress={() => void accept()} loading={saving} />
+          <Button label="Discard" variant="ghost" onPress={() => void discard()} />
+        </View>
+      ) : null}
 
       <CanonicalPickerSheet
         visible={correcting !== null}

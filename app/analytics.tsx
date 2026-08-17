@@ -25,6 +25,7 @@ import {
   type DailyNutritionMetric,
 } from '@/logic/dailyNutritionSummary';
 import type { DailyTarget, MealWithItems } from '@/types';
+import { usePantryStore } from '@/store/pantryStore';
 import {
   customNutritionPeriod,
   presetNutritionPeriod,
@@ -71,13 +72,14 @@ export default function NutritionAnalyticsScreen() {
   const [rangeError, setRangeError] = useState<string | null>(null);
   const [meals, setMeals] = useState<MealWithItems[]>([]);
   const [target, setTarget] = useState<DailyTarget | null>(null);
+  const pantryRevision = usePantryStore((state) => state.revision);
 
   useEffect(() => {
     void Promise.all([getMealsForDate(localDate), getDailyTarget(localDate)]).then(([nextMeals, nextTarget]) => {
       setMeals(nextMeals);
       setTarget(nextTarget);
     });
-  }, [localDate]);
+  }, [localDate, pantryRevision]);
 
   useEffect(() => {
     if (range === 'custom' && (!validDate(customStart) || !validDate(customEnd) || customStart > customEnd)) {

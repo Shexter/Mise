@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
 import { EditAction } from '@/components/EditAction';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
@@ -45,10 +46,12 @@ export function PantryItemSheet({ entry, onClose }: Props) {
   const [qtyUnit, setQtyUnit] = useState<MeasureUnit>('g');
   const [editExpiry, setEditExpiry] = useState('');
   const [editError, setEditError] = useState<string | undefined>();
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
 
   useEffect(() => {
     let active = true;
     setEditing(false);
+    setDetailsExpanded(true);
     setEditError(undefined);
     if (!entry) { setItem(null); return () => { active = false; }; }
     void getPantryItem(entry.id).then((loaded) => {
@@ -106,14 +109,14 @@ export function PantryItemSheet({ entry, onClose }: Props) {
   if (editing && item) {
     return (
       <Sheet visible onClose={() => setEditing(false)} title={`Edit ${entry.name}`} footer={<View style={styles.footer}><Button label="Cancel" variant="secondary" onPress={() => setEditing(false)} /><Button label="Save changes" onPress={saveEdit} loading={busy} disabled={!canonical || !locationId || !purchasedAt} /></View>}>
-        <View style={styles.editSection}>
+        <CollapsibleEditorRow title={canonical?.displayName ?? entry.name} subtitle="Pantry item details" expanded={detailsExpanded} onToggle={() => setDetailsExpanded((current) => !current)}>
           <Pressable onPress={() => setPicking(true)} accessibilityRole="button" accessibilityLabel="Change ingredient" style={styles.pickerBox}><Caption>{canonical?.displayName ?? entry.name}</Caption></Pressable>
-        </View>
-        <View style={styles.editSection}><SectionLabel muted>Where it lives</SectionLabel><View style={styles.locations}>{store.locations.map((location) => <Pressable key={location.id} onPress={() => setLocationId(location.id)} accessibilityRole="radio" accessibilityState={{ selected: location.id === locationId }} style={[styles.locationChip, location.id === locationId && styles.locationChipOn]}><Caption muted={location.id !== locationId} style={location.id === locationId ? styles.chipTextOn : undefined}>{location.name}</Caption></Pressable>)}</View></View>
-        <Field label="Acquired (YYYY-MM-DD)" value={purchasedAt} onChangeText={(value) => { setPurchasedAt(value); setEditError(undefined); }} placeholder={localDateString()} error={editError} />
-        <Field label="Expiry date (optional)" value={editExpiry} onChangeText={(value) => { setEditExpiry(value); setEditError(undefined); }} placeholder="YYYY-MM-DD" />
-        <View style={styles.qtyRow}><Field label="Your quantity (optional)" value={qty} onChangeText={(value) => { setQty(value); setEditError(undefined); }} placeholder="e.g. 500" keyboardType="numeric" numeric style={styles.qtyField} /><Segmented options={QTY_UNITS} value={qtyUnit} onChange={setQtyUnit} style={styles.qtyUnits} /></View>
-        <Caption muted>Changing the ingredient is an explicit identity correction. Captured source and provenance remain attached.</Caption>
+          <View style={styles.editSection}><SectionLabel muted>Where it lives</SectionLabel><View style={styles.locations}>{store.locations.map((location) => <Pressable key={location.id} onPress={() => setLocationId(location.id)} accessibilityRole="radio" accessibilityState={{ selected: location.id === locationId }} style={[styles.locationChip, location.id === locationId && styles.locationChipOn]}><Caption muted={location.id !== locationId} style={location.id === locationId ? styles.chipTextOn : undefined}>{location.name}</Caption></Pressable>)}</View></View>
+          <Field label="Acquired (YYYY-MM-DD)" value={purchasedAt} onChangeText={(value) => { setPurchasedAt(value); setEditError(undefined); }} placeholder={localDateString()} error={editError} />
+          <Field label="Expiry date (optional)" value={editExpiry} onChangeText={(value) => { setEditExpiry(value); setEditError(undefined); }} placeholder="YYYY-MM-DD" />
+          <View style={styles.qtyRow}><Field label="Your quantity (optional)" value={qty} onChangeText={(value) => { setQty(value); setEditError(undefined); }} placeholder="e.g. 500" keyboardType="numeric" numeric style={styles.qtyField} /><Segmented options={QTY_UNITS} value={qtyUnit} onChange={setQtyUnit} style={styles.qtyUnits} /></View>
+          <Caption muted>Changing the ingredient is an explicit identity correction. Captured source and provenance remain attached.</Caption>
+        </CollapsibleEditorRow>
         <CanonicalPickerSheet visible={picking} title="What is it?" onPick={(next) => { setCanonical(next); setPicking(false); }} onClose={() => setPicking(false)} />
       </Sheet>
     );
