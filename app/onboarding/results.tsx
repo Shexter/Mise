@@ -46,6 +46,7 @@ export default function ResultsStep() {
       },
       draft.activityLevel,
       draft.goal,
+      { targetWeightKg: draft.targetWeightKg, weightGoalRateKgPerWeek: draft.weightGoalRateKgPerWeek },
     );
     const macros = macroTargets(targets.target, {
       proteinPct: ONBOARDING_SPLIT.proteinPct,
@@ -98,6 +99,8 @@ export default function ResultsStep() {
       fibreTargetG: DEFAULT_FIBRE_TARGET_G,
       units: draft.units,
       onboardedAt: new Date().toISOString(),
+      targetWeightKg: draft.targetWeightKg,
+      weightGoalRateKgPerWeek: draft.weightGoalRateKgPerWeek,
     };
     await createProfile(profile);
     resetDraft();

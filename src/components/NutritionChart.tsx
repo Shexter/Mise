@@ -1,8 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Svg, { Circle, Line } from 'react-native-svg';
 
 import { Caption, SectionLabel } from '@/components/Type';
-import { color, layout, opacity, radius, space } from '@/constants/theme';
+import { color, fillParent, layout, opacity, radius, space } from '@/constants/theme';
 import type { NutritionBucket, NutritionChartForm } from '@/logic/nutritionRange';
+import { buildTrendChartModel } from '@/logic/trendChart';
 
 interface Props {
   buckets: readonly NutritionBucket[];
@@ -16,15 +18,21 @@ const PLOT_HEIGHT = layout.nutritionChartHeight - space.xl;
 const COLUMN_WIDTH = layout.minTouchTarget;
 
 /**
- * A dependency-free chart with no animation, so reduced-motion mode needs no
- * alternate timing path. Every bucket is also a chronological touch and
- * screen-reader target; the visual plot never carries information by colour
- * alone.
+ * A hand-rolled chart over the low-level SVG primitive, with no animation, so
+ * reduced-motion mode needs no alternate timing path. Every bucket is also a
+ * chronological touch and screen-reader target; the visual plot never carries
+ * information by colour alone.
  */
 export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: Props) {
   const knownValues = buckets.flatMap((bucket) => bucket.knownValue === null ? [] : [bucket.knownValue]);
   const maximum = Math.max(1, ...knownValues);
   const plotWidth = Math.max(COLUMN_WIDTH, buckets.length * COLUMN_WIDTH);
+  const lineModel = buildTrendChartModel(
+    buckets,
+    plotWidth,
+    PLOT_HEIGHT,
+    layout.nutritionChartPoint,
+  );
 
   if (buckets.length === 0) {
     return <Caption muted>No dates are available for this period.</Caption>;
@@ -38,18 +46,7 @@ export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: P
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator accessibilityLabel={`${metricLabel} ${form} chart`}>
         <View style={[styles.plot, { width: plotWidth }]}>
-          {form === 'line' ? buckets.slice(0, -1).map((bucket, index) => {
-            const next = buckets[index + 1]!;
-            if (bucket.knownValue === null || next.knownValue === null) return null;
-            return (
-              <LineSegment
-                key={`${bucket.startDate}-${next.startDate}`}
-                index={index}
-                from={bucket.knownValue / maximum}
-                to={next.knownValue / maximum}
-              />
-            );
-          }) : null}
+          {form === 'line' ? <SvgLinePlot width={plotWidth} model={lineModel} /> : null}
           <View style={styles.columns}>
             {buckets.map((bucket) => (
               <BucketColumn
@@ -75,6 +72,48 @@ export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: P
   );
 }
 
+function SvgLinePlot({
+  width,
+  model,
+}: {
+  width: number;
+  model: ReturnType<typeof buildTrendChartModel>;
+}) {
+  return (
+    <Svg
+      width={width}
+      height={PLOT_HEIGHT}
+      style={styles.svg}
+      pointerEvents="none"
+    >
+      {model.segments.map((segment) => (
+        <Line
+          key={`${segment.from.bucket.startDate}-${segment.to.bucket.startDate}`}
+          x1={segment.from.x}
+          y1={segment.from.y}
+          x2={segment.to.x}
+          y2={segment.to.y}
+          stroke={color.ink}
+          strokeWidth={layout.nutritionChartStrokeWidth}
+          strokeDasharray={segment.partial ? `${space.xs} ${space.xs}` : undefined}
+        />
+      ))}
+      {model.points.filter((point) => point.plottable).map((point) => (
+        <Circle
+          key={point.bucket.startDate}
+          cx={point.x}
+          cy={point.y}
+          r={layout.nutritionChartPoint / 2}
+          fill={point.partial ? color.surface : color.ink}
+          stroke={color.ink}
+          strokeWidth={point.partial ? layout.nutritionChartStrokeWidth : undefined}
+          strokeDasharray={point.partial ? `${space.xs} ${space.xs}` : undefined}
+        />
+      ))}
+    </Svg>
+  );
+}
+
 function BucketColumn({
   bucket,
   form,
@@ -90,7 +129,10 @@ function BucketColumn({
   maximum: number;
   onPress: () => void;
 }) {
-  const ratio = bucket.knownValue === null ? null : bucket.knownValue / maximum;
+  const plottable = bucket.knownValue !== null
+    && bucket.coverage !== 'unknown'
+    && bucket.coverage !== 'no-meals';
+  const ratio = plottable ? bucket.knownValue! / maximum : null;
   const label = bucket.startDate === bucket.endDate
     ? bucket.startDate
     : `${bucket.startDate} to ${bucket.endDate}`;
@@ -115,39 +157,11 @@ function BucketColumn({
             { height: Math.max(layout.nutritionChartPoint, PLOT_HEIGHT * ratio) },
           ]}
         />
-      ) : (
-        <View
-          style={[
-            styles.point,
-            bucket.coverage === 'partial' && styles.partialPoint,
-            { bottom: PLOT_HEIGHT * ratio - layout.nutritionChartPoint / 2 },
-          ]}
-        />
-      )}
+      ) : null}
       <Caption muted numberOfLines={1} style={styles.dateLabel}>
         {bucket.startDate.slice(5)}
       </Caption>
     </Pressable>
-  );
-}
-
-function LineSegment({ index, from, to }: { index: number; from: number; to: number }) {
-  const deltaY = PLOT_HEIGHT * (from - to);
-  const length = Math.sqrt(COLUMN_WIDTH ** 2 + deltaY ** 2);
-  const angle = Math.atan2(deltaY, COLUMN_WIDTH) * 180 / Math.PI;
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        styles.segment,
-        {
-          left: index * COLUMN_WIDTH + COLUMN_WIDTH / 2,
-          bottom: PLOT_HEIGHT * from,
-          width: length,
-          transform: [{ rotate: `${angle}deg` }],
-        },
-      ]}
-    />
   );
 }
 
@@ -171,13 +185,11 @@ const styles = StyleSheet.create({
   frame: { gap: space.md },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: space.sm },
   plot: { height: layout.nutritionChartHeight, borderBottomWidth: 1, borderBottomColor: color.line },
+  svg: { ...fillParent },
   columns: { flexDirection: 'row', height: '100%' },
   column: { width: COLUMN_WIDTH, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   bar: { width: space.base, backgroundColor: color.ink, borderRadius: radius.input },
   partialBar: { backgroundColor: color.surface, borderWidth: 1, borderStyle: 'dashed', borderColor: color.ink },
-  point: { position: 'absolute', width: layout.nutritionChartPoint, height: layout.nutritionChartPoint, borderRadius: radius.full, backgroundColor: color.ink },
-  partialPoint: { backgroundColor: color.surface, borderWidth: 1, borderStyle: 'dashed', borderColor: color.ink },
-  segment: { position: 'absolute', height: StyleSheet.hairlineWidth, backgroundColor: color.ink, transformOrigin: 'left center' },
   unknownPlotMark: { width: layout.nutritionChartPoint, height: layout.nutritionChartPoint, borderWidth: 1, borderColor: color.ink, transform: [{ rotate: '45deg' }], marginBottom: space.sm },
   absentPlotMark: { width: layout.nutritionChartPoint, height: layout.nutritionChartPoint, borderRadius: radius.full, borderWidth: 1, borderColor: color.line, marginBottom: space.sm },
   dateLabel: { width: COLUMN_WIDTH, textAlign: 'center', marginTop: space.xs },

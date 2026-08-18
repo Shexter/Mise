@@ -18,6 +18,9 @@ interface OnboardingDraft {
   /** True when the user chose to skip the API key step. */
   skippedKey: boolean;
   targetSource: TargetSource;
+  /** Optional pacing set from the goal step's "set a target and pace" affordance. */
+  targetWeightKg: number | null;
+  weightGoalRateKgPerWeek: number | null;
 }
 
 interface OnboardingState extends OnboardingDraft {
@@ -35,6 +38,8 @@ const EMPTY: OnboardingDraft = {
   units: 'metric',
   skippedKey: false,
   targetSource: 'estimated',
+  targetWeightKg: null,
+  weightGoalRateKgPerWeek: null,
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({

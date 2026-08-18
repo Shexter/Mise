@@ -24,12 +24,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 53,
     "proteinPer100": 8.14,
     "carbsPer100": 4.93,
-    "fatPer100": 0.57
+    "fatPer100": 0.57,
+    "fibrePer100": 0.8,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 1.45,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 33,
+    "folateMcgPer100": 14,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 435
   },
   {
     "id": "soy-sauce-dark",
@@ -80,12 +96,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 60,
     "proteinPer100": 10.51,
     "carbsPer100": 5.57,
-    "fatPer100": 0.1
+    "fatPer100": 0.1,
+    "fibrePer100": 0.8,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 2.38,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 20,
+    "folateMcgPer100": 18,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 212
   },
   {
     "id": "doubanjiang",
@@ -176,12 +208,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 35,
     "proteinPer100": 5.06,
     "carbsPer100": 3.64,
-    "fatPer100": 0.01
+    "fatPer100": 0.01,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0.5,
+    "ironMgPer100": 0.78,
+    "vitaminB12McgPer100": 0.48,
+    "calciumMgPer100": 43,
+    "folateMcgPer100": 51,
+    "vitaminAMcgPer100": 4,
+    "potassiumMgPer100": 288
   },
   {
     "id": "oyster-sauce",
@@ -210,12 +258,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 51,
     "proteinPer100": 1.35,
     "carbsPer100": 10.92,
-    "fatPer100": 0.25
+    "fatPer100": 0.25,
+    "fibrePer100": 0.3,
+    "vitaminCMgPer100": 0.1,
+    "ironMgPer100": 0.18,
+    "vitaminB12McgPer100": 0.41,
+    "calciumMgPer100": 32,
+    "folateMcgPer100": 15,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 54
   },
   {
     "id": "shaoxing-wine",
@@ -286,12 +350,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 198,
     "proteinPer100": 12.79,
     "carbsPer100": 25.37,
-    "fatPer100": 6.01
+    "fatPer100": 6.01,
+    "fibrePer100": 5.4,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 2.49,
+    "vitaminB12McgPer100": 0.08,
+    "calciumMgPer100": 57,
+    "folateMcgPer100": 19,
+    "vitaminAMcgPer100": 4,
+    "potassiumMgPer100": 210
   },
   {
     "id": "belacan",
@@ -358,12 +438,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 884,
     "proteinPer100": 0,
     "carbsPer100": 0,
-    "fatPer100": 100
+    "fatPer100": 100,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 0,
+    "folateMcgPer100": 0,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 0
   },
   {
     "id": "rice-vinegar",
@@ -408,12 +504,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 220,
     "proteinPer100": 3.31,
     "carbsPer100": 44.08,
-    "fatPer100": 3.39
+    "fatPer100": 3.39,
+    "fibrePer100": 2.8,
+    "vitaminCMgPer100": 0.4,
+    "ironMgPer100": 1.01,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 32,
+    "folateMcgPer100": 23,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 119
   },
   {
     "id": "xo-sauce",
@@ -458,12 +570,26 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 93,
     "proteinPer100": 1.93,
     "carbsPer100": 19.16,
-    "fatPer100": 0.93
+    "fatPer100": 0.93,
+    "fibrePer100": 2.2,
+    "vitaminCMgPer100": 26.9,
+    "ironMgPer100": 1.64,
+    "calciumMgPer100": 18,
+    "folateMcgPer100": 22,
+    "vitaminAMcgPer100": 129,
+    "potassiumMgPer100": 321
   },
   {
     "id": "tamarind-paste",
@@ -502,12 +628,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 296,
     "proteinPer100": 10.4,
     "carbsPer100": 68.61,
-    "fatPer100": 2.12
+    "fatPer100": 2.12,
+    "fibrePer100": 26.2,
+    "vitaminCMgPer100": 21,
+    "ironMgPer100": 14.31,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 265,
+    "folateMcgPer100": 10,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 73
   },
   {
     "id": "five-spice",
@@ -592,12 +734,20 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 358,
     "proteinPer100": 13.1,
     "carbsPer100": 73.2,
-    "fatPer100": 1.48
+    "fatPer100": 1.48,
+    "ironMgPer100": 5.41,
+    "calciumMgPer100": 21,
+    "folateMcgPer100": 159,
+    "potassiumMgPer100": 135
   },
   {
     "id": "sugar",
@@ -622,12 +772,18 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 385,
     "proteinPer100": 0,
     "carbsPer100": 99.6,
-    "fatPer100": 0.32
+    "fatPer100": 0.32,
+    "ironMgPer100": 0.05,
+    "calciumMgPer100": 1,
+    "potassiumMgPer100": 2
   },
   {
     "id": "olive-oil",
@@ -654,12 +810,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 884,
     "proteinPer100": 0,
     "carbsPer100": 0,
-    "fatPer100": 100
+    "fatPer100": 100,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.56,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 1,
+    "folateMcgPer100": 0,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 1
   },
   {
     "id": "vegetable-oil",
@@ -686,12 +858,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 884,
     "proteinPer100": 0,
     "carbsPer100": 0,
-    "fatPer100": 100
+    "fatPer100": 100,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.02,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 0,
+    "folateMcgPer100": 0,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 0
   },
   {
     "id": "butter",
@@ -718,12 +906,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 717,
     "proteinPer100": 0.85,
     "carbsPer100": 0.06,
-    "fatPer100": 81.11
+    "fatPer100": 81.11,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.02,
+    "vitaminB12McgPer100": 0.17,
+    "calciumMgPer100": 24,
+    "folateMcgPer100": 3,
+    "vitaminAMcgPer100": 684,
+    "potassiumMgPer100": 24
   },
   {
     "id": "ghee",
@@ -746,12 +950,20 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central"
     },
     "kcalPer100": 900,
     "proteinPer100": 0,
     "carbsPer100": 0,
-    "fatPer100": 100
+    "fatPer100": 100,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0,
+    "calciumMgPer100": 0
   },
   {
     "id": "salt",
@@ -771,12 +983,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 0,
     "proteinPer100": 0,
     "carbsPer100": 0,
-    "fatPer100": 0
+    "fatPer100": 0,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.33,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 24,
+    "folateMcgPer100": 0,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 8
   },
   {
     "id": "black-pepper",
@@ -797,12 +1025,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 251,
     "proteinPer100": 10.39,
     "carbsPer100": 63.95,
-    "fatPer100": 3.26
+    "fatPer100": 3.26,
+    "fibrePer100": 25.3,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 9.71,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 443,
+    "folateMcgPer100": 17,
+    "vitaminAMcgPer100": 27,
+    "potassiumMgPer100": 1329
   },
   {
     "id": "honey",
@@ -822,12 +1066,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 304,
     "proteinPer100": 0.3,
     "carbsPer100": 82.4,
-    "fatPer100": 0
+    "fatPer100": 0,
+    "fibrePer100": 0.2,
+    "vitaminCMgPer100": 0.5,
+    "ironMgPer100": 0.42,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 6,
+    "folateMcgPer100": 2,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 52
   },
   {
     "id": "peanut-butter",
@@ -854,12 +1114,22 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 24,
     "carbsPer100": 22.7,
     "fatPer100": 49.4,
-    "kcalPer100": 632
+    "kcalPer100": 632,
+    "fibrePer100": 6.32,
+    "ironMgPer100": 1.85,
+    "calciumMgPer100": 49.8,
+    "folateMcgPer100": 97.3,
+    "potassiumMgPer100": 654
   },
   {
     "id": "ketchup",
@@ -882,12 +1152,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 101,
     "proteinPer100": 1.04,
     "carbsPer100": 27.4,
-    "fatPer100": 0.1
+    "fatPer100": 0.1,
+    "fibrePer100": 0.3,
+    "vitaminCMgPer100": 4.1,
+    "ironMgPer100": 0.35,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 15,
+    "folateMcgPer100": 9,
+    "vitaminAMcgPer100": 26,
+    "potassiumMgPer100": 281
   },
   {
     "id": "mayonnaise",
@@ -910,12 +1196,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 680,
     "proteinPer100": 0.96,
     "carbsPer100": 0.57,
-    "fatPer100": 74.85
+    "fatPer100": 74.85,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.21,
+    "vitaminB12McgPer100": 0.12,
+    "calciumMgPer100": 8,
+    "folateMcgPer100": 5,
+    "vitaminAMcgPer100": 16,
+    "potassiumMgPer100": 20
   },
   {
     "id": "dijon-mustard",
@@ -976,12 +1278,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 792,
     "proteinPer100": 0.26,
     "carbsPer100": 20.69,
-    "fatPer100": 78.69
+    "fatPer100": 78.69,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 0,
+    "folateMcgPer100": 0,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 0
   },
   {
     "id": "oats",
@@ -1001,12 +1319,20 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 13.49645,
     "carbsPer100": 68.65755,
     "fatPer100": 5.89,
-    "kcalPer100": 381.626
+    "kcalPer100": 381.626,
+    "ironMgPer100": 4.339,
+    "calciumMgPer100": 45.53,
+    "folateMcgPer100": 32.03,
+    "potassiumMgPer100": 350.1
   },
   {
     "id": "coffee-beans",
@@ -1043,9 +1369,17 @@
       "shelfLifeDays.counter": "hand-authored",
       "typicalUseQty": "hand-authored",
       "typicalUseUnit": "hand-authored",
-      "proteinPer100": "food-data-central"
+      "proteinPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
-    "proteinPer100": 0.66875
+    "proteinPer100": 0.66875,
+    "fibrePer100": 2.3,
+    "ironMgPer100": 1.044,
+    "calciumMgPer100": 59.44,
+    "potassiumMgPer100": 232
   },
   {
     "id": "garlic",
@@ -1071,12 +1405,16 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central"
     },
     "kcalPer100": 143,
     "proteinPer100": 6.62,
     "carbsPer100": 28.2,
-    "fatPer100": 0.38
+    "fatPer100": 0.38,
+    "fibrePer100": 2.7,
+    "vitaminCMgPer100": 10
   },
   {
     "id": "ginger",
@@ -1103,13 +1441,29 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "earlyWarningDays": 2,
     "kcalPer100": 80,
     "proteinPer100": 1.82,
     "carbsPer100": 17.77,
-    "fatPer100": 0.75
+    "fatPer100": 0.75,
+    "fibrePer100": 2,
+    "vitaminCMgPer100": 5,
+    "ironMgPer100": 0.6,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 16,
+    "folateMcgPer100": 11,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 415
   },
   {
     "id": "yellow-onion",
@@ -1131,12 +1485,22 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 38,
     "proteinPer100": 0.83,
     "carbsPer100": 8.61,
-    "fatPer100": 0.05
+    "fatPer100": 0.05,
+    "fibrePer100": 1.9,
+    "vitaminCMgPer100": 8.2,
+    "ironMgPer100": 0.28,
+    "calciumMgPer100": 15,
+    "potassiumMgPer100": 182
   },
   {
     "id": "banana",
@@ -1160,12 +1524,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 89,
     "proteinPer100": 1.09,
     "carbsPer100": 22.84,
-    "fatPer100": 0.33
+    "fatPer100": 0.33,
+    "fibrePer100": 2.6,
+    "vitaminCMgPer100": 8.7,
+    "ironMgPer100": 0.26,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 5,
+    "folateMcgPer100": 20,
+    "vitaminAMcgPer100": 3,
+    "potassiumMgPer100": 358
   },
   {
     "id": "tomato",
@@ -1189,12 +1569,26 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 0.695625,
     "carbsPer100": 3.837475,
     "fatPer100": 0.425,
-    "kcalPer100": 21.9574
+    "kcalPer100": 21.9574,
+    "fibrePer100": 0.9706,
+    "vitaminCMgPer100": 17.75,
+    "ironMgPer100": 0.1031,
+    "calciumMgPer100": 9.963,
+    "folateMcgPer100": 9.994,
+    "vitaminAMcgPer100": 23.9,
+    "potassiumMgPer100": 192.8
   },
   {
     "id": "cucumber",
@@ -1214,12 +1608,18 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 0.625,
     "carbsPer100": 2.9525,
     "fatPer100": 0.1775,
-    "kcalPer100": 15.9075
+    "kcalPer100": 15.9075,
+    "ironMgPer100": 0,
+    "calciumMgPer100": 16.34,
+    "potassiumMgPer100": 169.6
   },
   {
     "id": "cilantro",
@@ -1241,12 +1641,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 23,
     "proteinPer100": 2.13,
     "carbsPer100": 3.67,
-    "fatPer100": 0.52
+    "fatPer100": 0.52,
+    "fibrePer100": 2.8,
+    "vitaminCMgPer100": 27,
+    "ironMgPer100": 1.77,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 67,
+    "folateMcgPer100": 62,
+    "vitaminAMcgPer100": 337,
+    "potassiumMgPer100": 521
   },
   {
     "id": "lime",
@@ -1268,12 +1684,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 30,
     "proteinPer100": 0.7,
     "carbsPer100": 10.54,
-    "fatPer100": 0.2
+    "fatPer100": 0.2,
+    "fibrePer100": 2.8,
+    "vitaminCMgPer100": 29.1,
+    "ironMgPer100": 0.6,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 33,
+    "folateMcgPer100": 8,
+    "vitaminAMcgPer100": 2,
+    "potassiumMgPer100": 102
   },
   {
     "id": "napa-cabbage",
@@ -1290,9 +1722,17 @@
       "shelfLifeDays.fridge": "hand-authored",
       "typicalUseQty": "hand-authored",
       "typicalUseUnit": "hand-authored",
-      "proteinPer100": "food-data-central"
+      "proteinPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
-    "proteinPer100": 1.06375
+    "proteinPer100": 1.06375,
+    "fibrePer100": 1.2,
+    "ironMgPer100": 0.2554,
+    "calciumMgPer100": 35.05,
+    "potassiumMgPer100": 234.6
   },
   {
     "id": "bok-choy",
@@ -1314,12 +1754,24 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 1.02375,
     "carbsPer100": 3.51495,
     "fatPer100": 0.2338,
-    "kcalPer100": 20.259
+    "kcalPer100": 20.259,
+    "fibrePer100": 1.259,
+    "vitaminCMgPer100": 30.3,
+    "ironMgPer100": 0.4388,
+    "calciumMgPer100": 61.93,
+    "folateMcgPer100": 68,
+    "potassiumMgPer100": 227.8
   },
   {
     "id": "shiitake-mushroom",
@@ -1339,12 +1791,22 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 2.414375,
     "carbsPer100": 8.170625,
     "fatPer100": 0.195,
-    "kcalPer100": 44.095
+    "kcalPer100": 44.095,
+    "fibrePer100": 4.166,
+    "ironMgPer100": 0.1443,
+    "calciumMgPer100": 0.7663,
+    "folateMcgPer100": 32.13,
+    "potassiumMgPer100": 243
   },
   {
     "id": "daikon",
@@ -1388,12 +1850,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 83,
     "proteinPer100": 9.98,
     "carbsPer100": 1.18,
-    "fatPer100": 5.26
+    "fatPer100": 5.26,
+    "fibrePer100": 1,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 2.04,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 282,
+    "folateMcgPer100": 9,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 130
   },
   {
     "id": "chicken-breast",
@@ -1415,12 +1893,18 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 22.525,
     "carbsPer100": 0,
     "fatPer100": 1.934,
-    "kcalPer100": 106.034
+    "kcalPer100": 106.034,
+    "ironMgPer100": 0.3543,
+    "calciumMgPer100": 3.939,
+    "potassiumMgPer100": 330.1
   },
   {
     "id": "chicken-thigh",
@@ -1442,12 +1926,18 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 18.6125,
     "carbsPer100": 0,
     "fatPer100": 7.916,
-    "kcalPer100": 144.07
+    "kcalPer100": 144.07,
+    "ironMgPer100": 0.6018,
+    "calciumMgPer100": 5.65,
+    "potassiumMgPer100": 271.8
   },
   {
     "id": "ground-pork",
@@ -1469,12 +1959,18 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 17.80625,
     "carbsPer100": 0,
     "fatPer100": 17.49,
-    "kcalPer100": 228.2728
+    "kcalPer100": 228.2728,
+    "ironMgPer100": 0.7876,
+    "calciumMgPer100": 5.857,
+    "potassiumMgPer100": 317.7
   },
   {
     "id": "pork-belly",
@@ -1496,12 +1992,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 518,
     "proteinPer100": 9.34,
     "carbsPer100": 0,
-    "fatPer100": 53.01
+    "fatPer100": 53.01,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0.3,
+    "ironMgPer100": 0.52,
+    "vitaminB12McgPer100": 0.84,
+    "calciumMgPer100": 5,
+    "folateMcgPer100": 1,
+    "vitaminAMcgPer100": 3,
+    "potassiumMgPer100": 185
   },
   {
     "id": "eggs",
@@ -1544,12 +2056,18 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 85,
     "proteinPer100": 20.1,
     "carbsPer100": 0,
-    "fatPer100": 0.51
+    "fatPer100": 0.51,
+    "ironMgPer100": 0.52,
+    "calciumMgPer100": 64,
+    "potassiumMgPer100": 264
   },
   {
     "id": "salmon",
@@ -1571,12 +2089,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 179,
     "proteinPer100": 19.93,
     "carbsPer100": 0,
-    "fatPer100": 10.43
+    "fatPer100": 10.43,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 4,
+    "ironMgPer100": 0.25,
+    "vitaminB12McgPer100": 1.3,
+    "calciumMgPer100": 26,
+    "folateMcgPer100": 30,
+    "vitaminAMcgPer100": 136,
+    "potassiumMgPer100": 394
   },
   {
     "id": "bacon",
@@ -1641,12 +2175,24 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 408,
     "proteinPer100": 23.3,
     "carbsPer100": 2.44,
-    "fatPer100": 34
+    "fatPer100": 34,
+    "ironMgPer100": 0.16,
+    "vitaminB12McgPer100": 1.06,
+    "calciumMgPer100": 707,
+    "folateMcgPer100": 21,
+    "vitaminAMcgPer100": 316,
+    "potassiumMgPer100": 77
   },
   {
     "id": "parmesan",
@@ -1667,12 +2213,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 392,
     "proteinPer100": 35.75,
     "carbsPer100": 3.22,
-    "fatPer100": 25
+    "fatPer100": 25,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 0.82,
+    "vitaminB12McgPer100": 1.2,
+    "calciumMgPer100": 1184,
+    "folateMcgPer100": 7,
+    "vitaminAMcgPer100": 207,
+    "potassiumMgPer100": 92
   },
   {
     "id": "greek-yogurt",
@@ -1696,13 +2258,29 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "earlyWarningDays": 7,
     "kcalPer100": 73,
     "proteinPer100": 9.95,
     "carbsPer100": 3.94,
-    "fatPer100": 1.92
+    "fatPer100": 1.92,
+    "fibrePer100": 0,
+    "vitaminCMgPer100": 0.8,
+    "ironMgPer100": 0.04,
+    "vitaminB12McgPer100": 0.52,
+    "calciumMgPer100": 115,
+    "folateMcgPer100": 12,
+    "vitaminAMcgPer100": 90,
+    "potassiumMgPer100": 141
   },
   {
     "id": "heavy-cream",
@@ -1725,12 +2303,20 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 2.017994,
     "carbsPer100": 3.799506,
     "fatPer100": 35.56,
-    "kcalPer100": 343.31
+    "kcalPer100": 343.31,
+    "ironMgPer100": 0,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 61.21,
+    "potassiumMgPer100": 96.94
   },
   {
     "id": "frozen-peas",
@@ -1789,12 +2375,20 @@
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
       "fatPer100": "food-data-central",
-      "kcalPer100": "food-data-central"
+      "kcalPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "proteinPer100": 23.205,
     "carbsPer100": 26.498,
     "fatPer100": 43.28,
-    "kcalPer100": 588.332
+    "kcalPer100": 588.332,
+    "fibrePer100": 8.014,
+    "ironMgPer100": 1.554,
+    "calciumMgPer100": 49.13,
+    "potassiumMgPer100": 635.6
   },
   {
     "id": "tree-nut",
@@ -1881,12 +2475,28 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 573,
     "proteinPer100": 17.73,
     "carbsPer100": 23.45,
-    "fatPer100": 49.67
+    "fatPer100": 49.67,
+    "fibrePer100": 11.8,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 14.55,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 975,
+    "folateMcgPer100": 97,
+    "vitaminAMcgPer100": 0,
+    "potassiumMgPer100": 468
   },
   {
     "id": "fish",
@@ -1951,11 +2561,27 @@
       "kcalPer100": "food-data-central",
       "proteinPer100": "food-data-central",
       "carbsPer100": "food-data-central",
-      "fatPer100": "food-data-central"
+      "fatPer100": "food-data-central",
+      "fibrePer100": "food-data-central",
+      "vitaminCMgPer100": "food-data-central",
+      "ironMgPer100": "food-data-central",
+      "vitaminB12McgPer100": "food-data-central",
+      "calciumMgPer100": "food-data-central",
+      "folateMcgPer100": "food-data-central",
+      "vitaminAMcgPer100": "food-data-central",
+      "potassiumMgPer100": "food-data-central"
     },
     "kcalPer100": 595,
     "proteinPer100": 17,
     "carbsPer100": 21.19,
-    "fatPer100": 53.76
+    "fatPer100": 53.76,
+    "fibrePer100": 9.3,
+    "vitaminCMgPer100": 0,
+    "ironMgPer100": 8.95,
+    "vitaminB12McgPer100": 0,
+    "calciumMgPer100": 426,
+    "folateMcgPer100": 98,
+    "vitaminAMcgPer100": 3,
+    "potassiumMgPer100": 414
   }
 ]

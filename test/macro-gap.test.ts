@@ -7,6 +7,8 @@ const canonical = (id: string, overrides: Partial<CanonicalItem>): CanonicalItem
   id, displayName: id, foodClass: 'protein', defaultLocation: 'fridge',
   shelfLifeDays: {}, earlyWarningDays: null, openLifeDays: null, sources: {},
   kcalPer100: null, proteinPer100: null, carbsPer100: null, fatPer100: null,
+  fibrePer100: null, vitaminCMgPer100: null, ironMgPer100: null, vitaminB12McgPer100: null,
+  calciumMgPer100: null, folateMcgPer100: null, vitaminAMcgPer100: null, potassiumMgPer100: null,
   typicalUseQty: null, typicalUseUnit: null, typicalPkgQty: null, typicalPkgUnit: null,
   densityGPerMl: null, isSeed: true, createdAt: '2026-01-01', ...overrides,
 });
@@ -85,5 +87,61 @@ describe('macro-gap assessment', () => {
     expect(result).toMatchObject({
       hasMeasuredCoverage: true, hasUnmeasuredStock: true, bestAchievableG: 30,
     });
+  });
+
+  test('per100 reads the matching field for every new micronutrient target, present and absent', () => {
+    const full = canonical('spinach', {
+      fibrePer100: 2.2, vitaminCMgPer100: 28, ironMgPer100: 2.7, vitaminB12McgPer100: 0,
+      calciumMgPer100: 99, folateMcgPer100: 194, vitaminAMcgPer100: 469, potassiumMgPer100: 558,
+    });
+    const targets: [import('../src/logic/macroGap').MacroGapTarget, number][] = [
+      ['fibre', 2.2], ['vitaminC', 28], ['iron', 2.7], ['vitaminB12', 0],
+      ['calcium', 99], ['folate', 194], ['vitaminA', 469], ['potassium', 558],
+    ];
+    for (const [target, expected] of targets) {
+      expect(assessMacroGap([item('spinach', 'spinach', 100, null)], new Map([['spinach', full]]), target).bestAchievableG).toBe(expected);
+    }
+
+    const empty = canonical('mystery', {});
+    for (const [target] of targets) {
+      expect(assessMacroGap([item('mystery', 'mystery', 100, null)], new Map([['mystery', empty]]), target)).toMatchObject({
+        hasMeasuredCoverage: false, hasUnmeasuredStock: true,
+      });
+    }
+  });
+
+  test('fibre is no longer unconditionally null now that the catalogue populates it', () => {
+    const result = assessMacroGap(
+      [item('kale', 'kale', 200, '2026-01-05')],
+      new Map([['kale', canonical('kale', { fibrePer100: 3.6 })]]),
+      'fibre',
+      '2026-01-01',
+    );
+    expect(result.bestAchievableG).toBe(7.2);
+    expect(result.hasMeasuredCoverage).toBe(true);
+  });
+
+  test('a new target (iron) ranks and tiebreaks identically to the macro targets, with the same unmeasured-stock behavior', () => {
+    const canonicals = new Map([
+      ['lentils', canonical('lentils', { ironMgPer100: 7.5 })],
+      ['spinach', canonical('spinach', { ironMgPer100: 2.7 })],
+      ['unknown', canonical('unknown', { ironMgPer100: null })],
+    ]);
+    const result = assessMacroGap([
+      item('lentils', 'lentils', 200, '2026-01-10'),
+      item('spinach', 'spinach', 200, '2026-01-02'),
+      item('unknown', 'unknown', 200, null),
+    ], canonicals, 'iron', '2026-01-01');
+    expect(result.contributors.map((entry) => entry.canonical.id)).toEqual(['lentils', 'spinach']);
+    expect(result.hasMeasuredCoverage).toBe(true);
+    expect(result.hasUnmeasuredStock).toBe(true);
+  });
+
+  test('the seven new micronutrient targets have no daily target to derive a shortfall from', () => {
+    const target = { proteinG: 120, carbsG: 240, fatG: 80, fibreG: 30 };
+    const consumed = { proteinG: 85, carbsG: 260, fatG: 70, fibreG: 10 };
+    for (const macro of ['vitaminC', 'iron', 'vitaminB12', 'calcium', 'folate', 'vitaminA', 'potassium'] as const) {
+      expect(macroShortfall(target, consumed, macro)).toBeNull();
+    }
   });
 });

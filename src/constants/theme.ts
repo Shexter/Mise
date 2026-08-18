@@ -141,6 +141,7 @@ export const layout = {
   dayRailHeight: 72,
   nutritionChartHeight: 192,
   nutritionChartPoint: 12,
+  nutritionChartStrokeWidth: 2,
 } as const;
 
 export const radius = {

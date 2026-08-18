@@ -16,6 +16,7 @@ const profile: Profile = {
   targetSource: 'stated', statedCalories: 2000, statedFigureKind: 'total',
   proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3, fibreTargetG: 30,
   units: 'metric', onboardedAt: '2026-01-01T00:00:00.000Z',
+  targetWeightKg: null, weightGoalRateKgPerWeek: null,
 };
 
 beforeEach(() => openTestDatabase());
@@ -59,7 +60,7 @@ describe('nutrition range queries', () => {
       { localDate: '2026-08-03', knownValue: 6, coverage: 'partial', hasMeals: true, recordedTarget: 30 },
       { localDate: '2026-08-04', knownValue: 0, coverage: 'complete', hasMeals: true, recordedTarget: null },
       { localDate: '2026-08-05', knownValue: null, coverage: 'unknown', hasMeals: true, recordedTarget: null },
-      { localDate: '2026-08-06', knownValue: null, coverage: 'no-meals', hasMeals: false, recordedTarget: 35 },
+      { localDate: '2026-08-06', knownValue: 0, coverage: 'no-meals', hasMeals: false, recordedTarget: 35 },
     ]);
   });
 
@@ -91,7 +92,7 @@ describe('nutrition range queries', () => {
     const period = customNutritionPeriod('2026-08-03', '2026-08-11');
     const daily = await getNutritionRangeBuckets('protein', period, 'daily');
     expect(daily).toHaveLength(9);
-    expect(daily[2]).toMatchObject({ startDate: '2026-08-05', coverage: 'no-meals', knownValue: null });
+    expect(daily[2]).toMatchObject({ startDate: '2026-08-05', coverage: 'no-meals', knownValue: 0 });
 
     const weekly = await getNutritionRangeBuckets('energy', period, 'weekly');
     expect(weekly).toHaveLength(2);
@@ -107,5 +108,25 @@ describe('nutrition range queries', () => {
 
   test('rejects reversed query bounds before reading storage', async () => {
     await expect(getNutritionDayValues('energy', '2026-08-12', '2026-08-11')).rejects.toThrow(/start/i);
+  });
+
+  test('reads a realistic 90-day logged range within the local performance budget', async () => {
+    const dates = Array.from({ length: 90 }, (_, index) =>
+      new Date(Date.UTC(2026, 4, 14 + index)).toISOString().slice(0, 10),
+    );
+    for (const date of dates) {
+      await log(date, [
+        { calories: 500, proteinG: 30, carbsG: 60, fatG: 15, fibreG: 8 },
+        { calories: 250, proteinG: 12, carbsG: 25, fatG: 8, fibreG: 3 },
+      ]);
+    }
+
+    const startedAt = performance.now();
+    const values = await getNutritionDayValues('energy', dates[0]!, dates[89]!);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(values).toHaveLength(90);
+    expect(values.every((value) => value.coverage === 'complete')).toBe(true);
+    expect(elapsedMs).toBeLessThan(1_000);
   });
 });

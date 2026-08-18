@@ -59,6 +59,14 @@ export interface CatalogueEntry {
   proteinPer100?: number | null;
   carbsPer100?: number | null;
   fatPer100?: number | null;
+  fibrePer100?: number | null;
+  vitaminCMgPer100?: number | null;
+  ironMgPer100?: number | null;
+  vitaminB12McgPer100?: number | null;
+  calciumMgPer100?: number | null;
+  folateMcgPer100?: number | null;
+  vitaminAMcgPer100?: number | null;
+  potassiumMgPer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -74,6 +82,14 @@ export interface CataloguePatch {
   proteinPer100?: number | null;
   carbsPer100?: number | null;
   fatPer100?: number | null;
+  fibrePer100?: number | null;
+  vitaminCMgPer100?: number | null;
+  ironMgPer100?: number | null;
+  vitaminB12McgPer100?: number | null;
+  calciumMgPer100?: number | null;
+  folateMcgPer100?: number | null;
+  vitaminAMcgPer100?: number | null;
+  potassiumMgPer100?: number | null;
 }
 
 export interface BuildIssue {
@@ -303,6 +319,14 @@ function initialSources(entry: CatalogueEntry): Partial<Record<string, SourceId>
     'proteinPer100',
     'carbsPer100',
     'fatPer100',
+    'fibrePer100',
+    'vitaminCMgPer100',
+    'ironMgPer100',
+    'vitaminB12McgPer100',
+    'calciumMgPer100',
+    'folateMcgPer100',
+    'vitaminAMcgPer100',
+    'potassiumMgPer100',
     'typicalUseQty',
     'typicalUseUnit',
     'typicalPkgQty',
@@ -377,6 +401,14 @@ export function mergeCataloguePatch(
   apply('proteinPer100', patch.proteinPer100);
   apply('carbsPer100', patch.carbsPer100);
   apply('fatPer100', patch.fatPer100);
+  apply('fibrePer100', patch.fibrePer100);
+  apply('vitaminCMgPer100', patch.vitaminCMgPer100);
+  apply('ironMgPer100', patch.ironMgPer100);
+  apply('vitaminB12McgPer100', patch.vitaminB12McgPer100);
+  apply('calciumMgPer100', patch.calciumMgPer100);
+  apply('folateMcgPer100', patch.folateMcgPer100);
+  apply('vitaminAMcgPer100', patch.vitaminAMcgPer100);
+  apply('potassiumMgPer100', patch.potassiumMgPer100);
   return entry;
 }
 
@@ -504,7 +536,38 @@ export function nutritionFromFdc(food: FdcFood): CataloguePatch {
     proteinPer100: nutrientValue(food, 1003, /^protein$/i),
     carbsPer100: nutrientValue(food, 1005, /carbohydrate, by difference/i),
     fatPer100: nutrientValue(food, 1004, /total lipid \(fat\)/i),
+    fibrePer100: nutrientValue(food, 1079, /fiber, total dietary/i),
+    vitaminCMgPer100: nutrientValue(food, 1162, /vitamin c, total ascorbic acid/i),
+    ironMgPer100: nutrientValue(food, 1089, /^iron, fe$/i),
+    // Anchored (not a bare substring match) because FDC also carries
+    // "Vitamin B-12, added" (id 1246, the fortification-only portion) on
+    // enriched foods — an unanchored pattern would match that name too and
+    // silently report a fortification figure as the ingredient's total B12.
+    vitaminB12McgPer100: nutrientValue(food, 1178, /^vitamin b-12$/i),
+    calciumMgPer100: nutrientValue(food, 1087, /^calcium, ca$/i),
+    // FDC carries several folate-related IDs (1177 "Folate, total", 1186 "Folic
+    // acid", 1190 "Folate, DFE"). Verified against live Foundation data
+    // (spinach, beets) that "Folate, total" (1177) is the one populated
+    // consistently across food types and matches Cronometer's single
+    // "Folate" figure — DFE (1190) and folic acid (1186) are fortification-
+    // specific breakdowns, not present on unfortified whole foods.
+    folateMcgPer100: nutrientValue(food, 1177, /folate, total/i),
+    vitaminAMcgPer100: nutrientValue(food, 1106, /vitamin a, rae/i),
+    potassiumMgPer100: nutrientValue(food, 1092, /^potassium, k$/i),
   };
+}
+
+/**
+ * Whether a food has at least one of the 4 core macros — deliberately
+ * narrower than all 12 fields `nutritionFromFdc()` now extracts, since a
+ * food with only a micronutrient value (e.g. fibre) and no macro data is
+ * too thin a record to accept as a match; it should fall through to
+ * `unmatched` for manual review rather than being silently selected.
+ */
+function hasMacroData(patch: CataloguePatch): boolean {
+  return [patch.kcalPer100, patch.proteinPer100, patch.carbsPer100, patch.fatPer100].some(
+    (value) => value != null,
+  );
 }
 
 function categoryCompatible(entry: CatalogueEntry, food: FdcFood): boolean {
@@ -526,9 +589,7 @@ export async function chooseFdcFood(
 ): Promise<FdcFood | null> {
   if (reviewedFdcId != null) {
     const reviewed = foods.find((food) => food.fdcId === reviewedFdcId);
-    return reviewed && Object.values(nutritionFromFdc(reviewed)).some((value) => value != null)
-      ? reviewed
-      : null;
+    return reviewed && hasMacroData(nutritionFromFdc(reviewed)) ? reviewed : null;
   }
   const candidates = foods.filter(
     (food): food is FdcFood & { description: string } =>
@@ -544,7 +605,7 @@ export async function chooseFdcFood(
       (candidate) =>
         candidate.outcome?.status === 'resolved' &&
         candidate.outcome.canonicalId === entry.id &&
-        Object.values(nutritionFromFdc(candidate.food)).some((value) => value != null),
+        hasMacroData(nutritionFromFdc(candidate.food)),
     )
     .sort((left, right) => {
       const dataRank = (food: FdcFood) => (food.dataType === 'Foundation' ? 2 : 1);

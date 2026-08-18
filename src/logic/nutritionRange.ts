@@ -1,7 +1,12 @@
 import { addDays, differenceInCalendarDays, startOfWeek } from 'date-fns';
 
 import { localDateString, parseLocalDate } from '@/logic/dates';
-import type { DailyNutritionMetric, NutritionCoverage } from '@/logic/dailyNutritionSummary';
+import {
+  dailyNutritionSummary,
+  type DailyNutritionMetric,
+  type NutritionCoverage,
+} from '@/logic/dailyNutritionSummary';
+import type { DailyTarget, MealWithItems } from '@/types';
 
 export type NutritionPresetRange = '7-day' | '30-day' | '90-day';
 export type NutritionRange = NutritionPresetRange | 'custom';
@@ -40,6 +45,43 @@ export interface NutritionRangeConfiguration {
   period: NutritionPeriod;
   aggregation: NutritionAggregation;
   chartForm: NutritionChartForm;
+}
+
+/**
+ * Extends the canonical single-day read model across a period. Storage can be
+ * fetched in one bounded range, but each date still passes through
+ * `dailyNutritionSummary` so no-meals/unknown/partial semantics cannot drift.
+ */
+export function nutritionTrend(
+  period: NutritionPeriod,
+  metric: DailyNutritionMetric,
+  meals: readonly MealWithItems[],
+  targets: readonly DailyTarget[],
+): NutritionDayValue[] {
+  const mealsByDate = new Map<string, MealWithItems[]>();
+  for (const meal of meals) {
+    const current = mealsByDate.get(meal.localDate) ?? [];
+    current.push(meal);
+    mealsByDate.set(meal.localDate, current);
+  }
+  const targetsByDate = new Map(targets.map((target) => [target.localDate, target]));
+
+  return nutritionPeriodDates(period).map((localDate) => {
+    const dayMeals = mealsByDate.get(localDate) ?? [];
+    const summary = dailyNutritionSummary(
+      localDate,
+      dayMeals,
+      targetsByDate.get(localDate) ?? null,
+    );
+    const value = summary.metrics[metric];
+    return {
+      localDate,
+      knownValue: value.knownValue,
+      coverage: value.coverage,
+      hasMeals: summary.hasMeals,
+      recordedTarget: value.target,
+    };
+  });
 }
 
 export function presetNutritionPeriod(
@@ -87,7 +129,7 @@ export function bucketNutritionValues(
   return [...groups.values()].map((groupDates) => {
     const records = groupDates.map((date) => byDate.get(date) ?? {
       localDate: date,
-      knownValue: null,
+      knownValue: 0,
       coverage: 'no-meals' as const,
       hasMeals: false,
       recordedTarget: null,

@@ -9,6 +9,15 @@ export type DailyNutritionMetric =
 
 export type NutritionCoverage = 'no-meals' | 'complete' | 'partial' | 'unknown';
 
+/** Metrics with durable per-meal consumed values and therefore honest trends. */
+export const DAILY_NUTRITION_METRICS: readonly DailyNutritionMetric[] = [
+  'energy',
+  'protein',
+  'carbohydrate',
+  'fat',
+  'fibre',
+];
+
 export interface DailyNutritionMetricSummary {
   metric: DailyNutritionMetric;
   unit: 'kcal' | 'g';

@@ -81,6 +81,15 @@ export interface BodyMeasurement {
   fatFreeMassKg: number;
 }
 
+/** One continuous fasting interval. A null end marks the single active fast. */
+export interface Fast {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  targetDurationMinutes: number | null;
+  createdAt: string;
+}
+
 export interface Profile {
   sex: Sex | null;
   age: number | null;
@@ -99,6 +108,10 @@ export interface Profile {
   fibreTargetG: number;
   units: Units;
   onboardedAt: string;
+  /** Optional goal weight; unset means the fixed goal adjustment applies. */
+  targetWeightKg: number | null;
+  /** Non-negative weekly pace; direction comes from comparing to weightKg. */
+  weightGoalRateKgPerWeek: number | null;
 }
 
 export interface MealItem {
@@ -384,7 +397,14 @@ export interface CanonicalItem {
   proteinPer100: number | null;
   carbsPer100: number | null;
   fatPer100: number | null;
-  fibrePer100?: number | null;
+  fibrePer100: number | null;
+  vitaminCMgPer100: number | null;
+  ironMgPer100: number | null;
+  vitaminB12McgPer100: number | null;
+  calciumMgPer100: number | null;
+  folateMcgPer100: number | null;
+  vitaminAMcgPer100: number | null;
+  potassiumMgPer100: number | null;
   typicalUseQty: number | null;
   typicalUseUnit: MeasureUnit | null;
   typicalPkgQty: number | null;

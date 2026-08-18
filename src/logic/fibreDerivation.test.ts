@@ -11,6 +11,15 @@ const product = (fibrePer100: number | null): Product => ({
 });
 
 describe('post-resolution fibre derivation', () => {
+  test('uses catalogue fibre for a resolved ingredient without falling through to text', () => {
+    const kale = canonical({ id: 'kale', displayName: 'Kale', fibrePer100: 3.6 });
+    expect(deriveResolvedFibre(null, kale, 200, 'g')).toMatchObject({
+      value: 7.2,
+      source: 'hand-authored',
+      confidence: 'structured',
+    });
+  });
+
   test('prefers structured product fibre and scales quantity', () => {
     expect(deriveResolvedFibre(product(2.5), greens, 200, 'g')).toMatchObject({ value: 5, source: 'product', confidence: 'structured' });
   });

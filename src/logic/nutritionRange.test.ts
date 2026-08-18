@@ -3,9 +3,12 @@ import { describe, expect, test } from 'vitest';
 import {
   bucketNutritionValues,
   customNutritionPeriod,
+  nutritionTrend,
   nutritionPeriodDates,
   presetNutritionPeriod,
 } from '@/logic/nutritionRange';
+import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
+import type { DailyTarget, MealWithItems } from '@/types';
 
 describe('nutrition ranges', () => {
   test.each([
@@ -31,7 +34,7 @@ describe('nutrition ranges', () => {
     ], period, 'daily');
 
     expect(buckets.map(({ knownValue, coverage }) => ({ knownValue, coverage }))).toEqual([
-      { knownValue: null, coverage: 'no-meals' },
+      { knownValue: 0, coverage: 'no-meals' },
       { knownValue: null, coverage: 'unknown' },
       { knownValue: 0, coverage: 'complete' },
     ]);
@@ -55,4 +58,69 @@ describe('nutrition ranges', () => {
       coverage: 'complete', recordedTarget: 35, targetChanged: false,
     });
   });
+
+  test('ranged output exactly reuses single-day coverage for mixed days', () => {
+    const period = customNutritionPeriod('2026-08-01', '2026-08-03');
+    const meals: MealWithItems[] = [
+      meal('complete', '2026-08-02', [20]),
+      meal('partial', '2026-08-03', [10, null]),
+    ];
+    const targets: DailyTarget[] = [target('2026-08-02'), target('2026-08-03')];
+    const trend = nutritionTrend(period, 'protein', meals, targets);
+
+    for (const point of trend) {
+      const dayMeals = meals.filter((candidate) => candidate.localDate === point.localDate);
+      const dayTarget = targets.find((candidate) => candidate.localDate === point.localDate) ?? null;
+      const expected = dailyNutritionSummary(point.localDate, dayMeals, dayTarget);
+      expect(point).toMatchObject({
+        knownValue: expected.metrics.protein.knownValue,
+        coverage: expected.metrics.protein.coverage,
+        hasMeals: expected.hasMeals,
+        recordedTarget: expected.metrics.protein.target,
+      });
+    }
+    expect(trend.map((point) => point.coverage)).toEqual(['no-meals', 'complete', 'partial']);
+  });
 });
+
+function meal(id: string, localDate: string, proteinValues: Array<number | null>): MealWithItems {
+  return {
+    id,
+    loggedAt: `${localDate}T12:00:00.000Z`,
+    localDate,
+    mealType: 'lunch',
+    name: id,
+    photoUri: null,
+    source: 'manual',
+    confidence: null,
+    venue: 'out',
+    servingsMult: 1,
+    createdAt: `${localDate}T12:00:00.000Z`,
+    items: proteinValues.map((proteinG, index) => ({
+      id: `${id}-${index}`,
+      mealId: id,
+      name: `Item ${index}`,
+      quantity: 1,
+      unit: 'serving',
+      calories: proteinG === null ? null : proteinG * 4,
+      proteinG,
+      carbsG: 0,
+      fatG: 0,
+      fibreG: 0,
+      isManualAddition: true,
+      sortOrder: index,
+      canonicalId: null,
+    })),
+  };
+}
+
+function target(localDate: string): DailyTarget {
+  return {
+    localDate,
+    targetCalories: 2_000,
+    proteinG: 150,
+    carbsG: 200,
+    fatG: 67,
+    fibreG: 30,
+  };
+}

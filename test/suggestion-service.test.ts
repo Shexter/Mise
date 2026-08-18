@@ -82,6 +82,7 @@ describe('getOrGenerateSuggestions caching', () => {
       goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
       statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
       fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+      targetWeightKg: null, weightGoalRateKgPerWeek: null,
     };
     await saveProfile(profile);
 
@@ -129,6 +130,7 @@ describe('getOrGenerateSuggestions caching', () => {
       goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
       statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
       fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+      targetWeightKg: null, weightGoalRateKgPerWeek: null,
     };
     await saveProfile(profile);
 
@@ -194,6 +196,7 @@ describe('getOrGenerateSuggestions caching', () => {
       goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
       statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
       fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+      targetWeightKg: null, weightGoalRateKgPerWeek: null,
     });
     await insertPantryItem({
       canonicalId: 'chicken-breast', locationId: 'fridge', qtyRemaining: 500, qtyUnit: 'g',
@@ -236,6 +239,7 @@ describe('getOrGenerateSuggestions caching', () => {
       goal: 'maintain', targetCalories: 2000, targetSource: 'estimated', statedCalories: null,
       statedFigureKind: null, proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3,
       fibreTargetG: 30, units: 'metric', onboardedAt: '2026-01-01',
+      targetWeightKg: null, weightGoalRateKgPerWeek: null,
     });
     await insertMeal({
       loggedAt: `${localDate}T12:00:00.000Z`, localDate, mealType: 'lunch', name: 'Unknown meal',

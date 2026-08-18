@@ -652,6 +652,49 @@ ALTER TABLE canonical_items ADD COLUMN fibre_per_100 REAL;
 ALTER TABLE products ADD COLUMN fibre_per_100 REAL;
 `;
 
+/** Migration 26: seven more per-ingredient nutrients from FoodData Central. */
+const MICRONUTRIENT_TRACKING = `
+ALTER TABLE canonical_items ADD COLUMN vitamin_c_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN iron_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN vitamin_b12_mcg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN calcium_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN folate_mcg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN vitamin_a_mcg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN potassium_mg_per_100 REAL;
+`;
+
+/** Migration 27: optional goal weight and pace, additive to the fixed goal adjustment. */
+const WEIGHT_GOAL_PACING = `
+ALTER TABLE profile ADD COLUMN target_weight_kg REAL;
+ALTER TABLE profile ADD COLUMN weight_goal_rate_kg_per_week REAL;
+`;
+
+/** Migration 28: self-contained fasting intervals. An unfinished row is the
+ * active timer; the query layer serialises starts so at most one can exist. */
+const FASTING_TRACKING = `
+CREATE TABLE fasts (
+  id                      TEXT PRIMARY KEY,
+  started_at              TEXT NOT NULL,
+  ended_at                TEXT,
+  target_duration_minutes INTEGER CHECK (
+    target_duration_minutes IS NULL OR target_duration_minutes > 0
+  ),
+  created_at              TEXT NOT NULL
+);
+
+CREATE INDEX idx_fasts_started ON fasts(started_at DESC);
+`;
+
+/** Migration 29: the ordered set of nutrition metrics shown on the trend
+ * dashboard. One local user owns one whole-list preference. */
+const CHART_PREFERENCES = `
+CREATE TABLE chart_preferences (
+  id              INTEGER PRIMARY KEY CHECK (id = 1),
+  enabled_metrics TEXT NOT NULL,
+  updated_at      TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -678,12 +721,18 @@ export const MIGRATIONS: readonly string[] = [
   PRODUCT_SCAN_HISTORY,
   SHOPPING_LIST,
   RESOLVED_FIBRE_NUTRITION,
+  MICRONUTRIENT_TRACKING,
+  WEIGHT_GOAL_PACING,
+  FASTING_TRACKING,
+  CHART_PREFERENCES,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS chart_preferences;
+DROP TABLE IF EXISTS fasts;
 DROP TABLE IF EXISTS shopping_list_receipt_matches;
 DROP TABLE IF EXISTS shopping_list_sources;
 DROP TABLE IF EXISTS shopping_list_items;

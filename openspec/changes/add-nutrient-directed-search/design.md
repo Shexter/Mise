@@ -77,6 +77,22 @@ returning `null` would silently keep fibre unrankable even though the data
 now exists. Fixing it is a one-line change living in the same file this
 proposal already touches for the same reason.
 
+**Correction found during implementation:** `macroGap.ts` also exports
+`macroShortfall(target, consumed, macro: MacroGapTarget)`, used by
+`suggestionService.ts`'s `macro_gap` request mode to compute today's
+shortfall before ranking pantry stock. It switches exhaustively over
+`MacroGapTarget` too, so widening the union for `per100()` also widens
+`macroShortfall`'s parameter type, and its switch needed a case for each
+of the 7 new targets to keep compiling. Each returns `null` — there is no
+per-day target or consumed figure for a micronutrient (explicit
+Non-Goal: "Nutrient targets for the eight new micronutrients"), so `null`
+is the same "unknown, not a guessed gap" answer the function already gives
+for e.g. an unset daily target. In practice `macroShortfall` is only ever
+called with `SuggestionTargetMacro` (`'protein'|'carbs'|'fat'` — a
+separate, narrower type that has never included fibre or the
+micronutrients), so this correction is required for the type system to
+accept the widened union, not a new reachable code path.
+
 ### The surface is a ranked list, not a scored suggestion
 
 Results show contributor items, their measured contribution, and days

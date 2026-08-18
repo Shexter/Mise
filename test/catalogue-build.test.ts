@@ -214,7 +214,82 @@ describe('catalogue build pipeline', () => {
       proteinPer100: 31,
       carbsPer100: null,
       fatPer100: 3.6,
+      fibrePer100: null,
+      vitaminCMgPer100: null,
+      ironMgPer100: null,
+      vitaminB12McgPer100: null,
+      calciumMgPer100: null,
+      folateMcgPer100: null,
+      vitaminAMcgPer100: null,
+      potassiumMgPer100: null,
     });
+  });
+
+  test('extracts all eight micronutrients when FoodData Central reports them all', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1079, value: 2.2 },
+          { nutrientId: 1162, value: 28.1 },
+          { nutrientId: 1089, value: 2.7 },
+          { nutrientId: 1178, value: 0 },
+          { nutrientId: 1087, value: 99 },
+          { nutrientId: 1177, value: 194 },
+          { nutrientId: 1106, value: 469 },
+          { nutrientId: 1092, value: 558 },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        fibrePer100: 2.2,
+        vitaminCMgPer100: 28.1,
+        ironMgPer100: 2.7,
+        vitaminB12McgPer100: 0,
+        calciumMgPer100: 99,
+        folateMcgPer100: 194,
+        vitaminAMcgPer100: 469,
+        potassiumMgPer100: 558,
+      }),
+    );
+  });
+
+  test('a mix of present and absent micronutrients leaves the missing ones null, never zero', () => {
+    const result = nutritionFromFdc({
+      foodNutrients: [
+        { nutrientId: 1079, value: 3.1 },
+        { nutrientId: 1092, value: 210 },
+      ],
+    });
+    expect(result.fibrePer100).toBe(3.1);
+    expect(result.potassiumMgPer100).toBe(210);
+    expect(result.vitaminCMgPer100).toBeNull();
+    expect(result.ironMgPer100).toBeNull();
+    expect(result.vitaminB12McgPer100).toBeNull();
+    expect(result.calciumMgPer100).toBeNull();
+    expect(result.folateMcgPer100).toBeNull();
+    expect(result.vitaminAMcgPer100).toBeNull();
+  });
+
+  test('picks "Folate, total" by ID, falling back to its name when the ID is absent', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [{ nutrientId: 1177, value: 116.5 }],
+      }).folateMcgPer100,
+    ).toBe(116.5);
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientName: 'Folate, total', unitName: 'UG', value: 103 },
+        ],
+      }).folateMcgPer100,
+    ).toBe(103);
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1186, nutrientName: 'Folic acid', value: 400 },
+        ],
+      }).folateMcgPer100,
+    ).toBeNull();
   });
 
   test('uses the existing resolver to reject noisy and uncertain FDC results', async () => {
@@ -265,6 +340,52 @@ describe('catalogue build pipeline', () => {
     ).toBeNull();
   });
 
+  test('rejects a reviewed record that has only a micronutrient and no macro data', async () => {
+    const oliveOil = entry({ id: 'olive-oil', displayName: 'Olive oil', class: 'staple' });
+    expect(
+      await chooseFdcFood(
+        oliveOil,
+        [{ fdcId: 123, description: 'Olive oil', foodNutrients: [{ nutrientId: 1079, value: 2.2 }] }],
+        [oliveOil],
+        123,
+      ),
+    ).toBeNull();
+  });
+
+  test('rejects an unreviewed candidate with only micronutrient data the same way', async () => {
+    const oliveOil = entry({ id: 'olive-oil', displayName: 'Olive oil', class: 'staple' });
+    expect(
+      await chooseFdcFood(
+        oliveOil,
+        [{
+          description: 'Olive oil',
+          dataType: 'Foundation',
+          foodCategory: 'Fats and Oils',
+          foodNutrients: [{ nutrientId: 1092, value: 1 }],
+        }],
+        [oliveOil],
+      ),
+    ).toBeNull();
+  });
+
+  test('picks the true total B12 over a co-occurring "added" fortification figure', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1178, nutrientName: 'Vitamin B-12', value: 2.5 },
+          { nutrientId: 1246, nutrientName: 'Vitamin B-12, added', value: 2.5 },
+        ],
+      }).vitaminB12McgPer100,
+    ).toBe(2.5);
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientName: 'Vitamin B-12, added', unitName: 'UG', value: 2.5 },
+        ],
+      }).vitaminB12McgPer100,
+    ).toBeNull();
+  });
+
   test('fills Dark soy sauce from the reviewed CoFID row without inventing trace fat', () => {
     const report = buildReport();
     const darkSoy = entry({
@@ -290,6 +411,56 @@ describe('catalogue build pipeline', () => {
     expect(report.cofid).toEqual({ reviewed: 1, matched: 1 });
     expect(report.skipped).toContainEqual(
       expect.objectContaining({ source: 'cofid', field: 'fatPer100', reason: 'unknown' }),
+    );
+  });
+
+  test('a hand-authored micronutrient value survives a rebuild; the dataset value is reported, not applied', () => {
+    const lists = reportLists();
+    const original = entry({
+      ironMgPer100: 4,
+      sources: { ironMgPer100: 'hand-authored' },
+    });
+    const merged = mergeCataloguePatch(
+      original,
+      { ironMgPer100: 2.1 },
+      'food-data-central',
+      'Chicken breast',
+      lists,
+    );
+    expect(merged.ironMgPer100).toBe(4);
+    expect(lists.conflicts).toContainEqual(
+      expect.objectContaining({ field: 'ironMgPer100', existing: 4, proposed: 2.1 }),
+    );
+  });
+
+  test('a first-time build fills an empty micronutrient field and records the dataset as its source', () => {
+    const lists = reportLists();
+    const merged = mergeCataloguePatch(
+      entry(),
+      { folateMcgPer100: 6 },
+      'food-data-central',
+      'Chicken breast',
+      lists,
+    );
+    expect(merged.folateMcgPer100).toBe(6);
+    expect(merged.sources?.folateMcgPer100).toBe('food-data-central');
+    expect(lists.filled).toContainEqual(
+      expect.objectContaining({ field: 'folateMcgPer100', proposed: 6 }),
+    );
+  });
+
+  test('a food missing one of the eight nutrients in its FDC response leaves that field null, not zero', () => {
+    const lists = reportLists();
+    const merged = mergeCataloguePatch(
+      entry(),
+      nutritionFromFdc({ foodNutrients: [{ nutrientId: 1008, value: 165 }] }),
+      'food-data-central',
+      'Chicken breast',
+      lists,
+    );
+    expect(merged.vitaminCMgPer100).toBeUndefined();
+    expect(lists.skipped).toContainEqual(
+      expect.objectContaining({ field: 'vitaminCMgPer100', reason: 'unknown' }),
     );
   });
 

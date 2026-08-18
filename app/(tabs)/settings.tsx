@@ -15,10 +15,7 @@ import { useToast } from '@/components/Toast';
 import { Caption, ScreenTitle } from '@/components/Type';
 import { space, themeId } from '@/constants/theme';
 import { themeOptions } from '@/constants/themePalettes';
-import {
-  activityLabel,
-  goalLabel,
-} from '@/constants/activityLevels';
+import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
 import { populateDemoData } from '@/db/demoData';
 import { getBodyMeasurements, listPendingCaptures, removePendingCapture, saveBodyMeasurement } from '@/db/queries';
@@ -27,6 +24,7 @@ import { isMeasurementStale, resolveTarget } from '@/logic/bodyComposition';
 import { localDateString } from '@/logic/dates';
 import { retryPendingCapture } from '@/logic/pendingCaptureService';
 import { formatHeight, formatWeight } from '@/logic/units';
+import { goalSummaryLabel } from '@/logic/weightGoalPacing';
 import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -280,7 +278,7 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             label="Goal"
-            value={goalLabel(profile.goal)}
+            value={goalRowValue(profile)}
             onPress={() => setProfileField('goal')}
           />
         </Card>
@@ -329,6 +327,13 @@ export default function SettingsScreen() {
                   : 'metric') as Units,
               })
             }
+          />
+        </Card>
+
+        <Card title="Tracking" padded={false}>
+          <SettingsRow
+            label="Fasting"
+            onPress={() => router.push('/fasting')}
           />
         </Card>
 
@@ -438,4 +443,8 @@ const styles = StyleSheet.create({
 
 function targetSourceLabel(source: Profile['targetSource']): string {
   return source === 'dexa' ? 'DEXA scan' : source === 'inbody' ? 'InBody result' : source === 'stated' ? 'Known figure' : 'Formula';
+}
+
+function goalRowValue(profile: Profile): string {
+  return goalSummaryLabel(profile.goal, profile.weightKg, profile.targetWeightKg, profile.weightGoalRateKgPerWeek, new Date());
 }

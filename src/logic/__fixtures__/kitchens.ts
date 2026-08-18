@@ -46,6 +46,13 @@ export function canonical(
     carbsPer100: overrides.carbsPer100 ?? null,
     fatPer100: overrides.fatPer100 ?? null,
     fibrePer100: overrides.fibrePer100 ?? null,
+    vitaminCMgPer100: overrides.vitaminCMgPer100 ?? null,
+    ironMgPer100: overrides.ironMgPer100 ?? null,
+    vitaminB12McgPer100: overrides.vitaminB12McgPer100 ?? null,
+    calciumMgPer100: overrides.calciumMgPer100 ?? null,
+    folateMcgPer100: overrides.folateMcgPer100 ?? null,
+    vitaminAMcgPer100: overrides.vitaminAMcgPer100 ?? null,
+    potassiumMgPer100: overrides.potassiumMgPer100 ?? null,
   };
 }
 

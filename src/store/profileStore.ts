@@ -73,5 +73,7 @@ export function draftProfile(): Omit<
     fibreTargetG: DEFAULT_FIBRE_TARGET_G,
     units: 'metric',
     onboardedAt: new Date().toISOString(),
+    targetWeightKg: null,
+    weightGoalRateKgPerWeek: null,
   };
 }

@@ -81,8 +81,13 @@ already produced `kcalPer100` rather than a bare `caloriesPer100`.
 
 ### Fibre's catalogue value slots in ahead of the text fallback, not ahead of product nutrition
 
-`fibreDerivation.ts`'s order becomes: product/receipt nutrition → canonical
-catalogue nutrition (now actually populated) → text-only fallback → `null`.
+**Correction found during implementation:** no `fibreDerivation.ts` file
+exists in this codebase — this logic lives in `deriveResolvedFibre()` in
+`src/logic/nutrition.ts`. Its order already is: product/receipt nutrition →
+canonical catalogue nutrition → text-only fallback → `null`. That ordering
+was already correct and already reads `canonical.fibrePer100`; the gap was
+only that nothing populated the field. No code change was needed in
+`nutrition.ts` for this change — see task 3.1.
 
 *Why this position specifically:* a barcode-scanned product's own label is
 still more specific than a generic ingredient average — chicken breast's
@@ -125,14 +130,21 @@ This change doesn't need a new mechanism, just to run the existing one.
 
 ## Migration Plan
 
-No database migration — these are build-time catalogue fields shipped in
-`assets/canonical-items.json`, not `meal_items` or `profile` columns. The
-schema-level precedent (`RESOLVED_FIBRE_NUTRITION`) already covers where a
-resolved item's nutrition is persisted at read time; this change only
-widens what the catalogue can supply into that existing path.
+**Correction found during implementation:** this section originally said
+"no database migration," reasoning that these are build-time catalogue
+fields shipped in `assets/canonical-items.json` only. That's wrong —
+`canonical_items` is a real SQLite table (`IDENTITY_LAYER`, migrated
+further by `RESOLVED_FIBRE_NUTRITION` for `fibre_per_100`), reseeded from
+the JSON catalogue on every app launch via an explicit column-by-column
+`INSERT ... ON CONFLICT DO UPDATE` in `loadSeedData()`
+(`src/db/queries.ts`). A JSON-only change would never reach the running
+app's database. This change adds migration 26 (`MICRONUTRIENT_TRACKING`),
+following the exact precedent `RESOLVED_FIBRE_NUTRITION` set for
+`fibre_per_100`, and extends `loadSeedData()`'s column list and
+`insertCanonicalItem()` to match.
 
-Rollback is additive: an older build simply doesn't read the eight new
-fields, exactly as it already ignores `fibrePer100` today.
+Rollback is additive: an older build simply doesn't read the seven new
+columns, exactly as it already ignores `fibre_per_100` today.
 
 ## Open Questions
 

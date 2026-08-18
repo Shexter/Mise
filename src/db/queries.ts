@@ -7,10 +7,15 @@ import aliasSeed from '../../assets/item-aliases.json';
 
 import { db } from '@/db';
 import { localDateString } from '@/logic/dates';
-import type { DailyNutritionMetric, NutritionCoverage } from '@/logic/dailyNutritionSummary';
+import {
+  DAILY_NUTRITION_METRICS,
+  type DailyNutritionMetric,
+} from '@/logic/dailyNutritionSummary';
 import { mergeReceiptFrameLines, type ReceiptFrameLineInput } from '@/logic/receiptFrames';
 import {
   bucketNutritionValues,
+  customNutritionPeriod,
+  nutritionTrend,
   type NutritionAggregation,
   type NutritionBucket,
   type NutritionDayValue,
@@ -48,6 +53,7 @@ import type {
   DietaryRule,
   DietaryRuleKind,
   ExpirySource,
+  Fast,
   FoodClass,
   Fullness,
   ItemAlias,
@@ -123,6 +129,8 @@ interface ProfileRow {
   target_source: string;
   stated_calories: number | null;
   stated_figure_kind: string | null;
+  target_weight_kg: number | null;
+  weight_goal_rate_kg_per_week: number | null;
 }
 
 interface BodyMeasurementRow {
@@ -133,6 +141,14 @@ interface BodyMeasurementRow {
   lean_tissue_kg: number | null;
   bone_mineral_content_kg: number | null;
   fat_free_mass_kg: number;
+}
+
+interface FastRow {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  target_duration_minutes: number | null;
+  created_at: string;
 }
 
 interface MealRow {
@@ -253,6 +269,8 @@ function toProfile(row: ProfileRow): Profile {
     fibreTargetG: row.fibre_target_g,
     units: row.units as Profile['units'],
     onboardedAt: row.onboarded_at,
+    targetWeightKg: row.target_weight_kg,
+    weightGoalRateKgPerWeek: row.weight_goal_rate_kg_per_week,
   };
 }
 
@@ -262,6 +280,16 @@ function toBodyMeasurement(row: BodyMeasurementRow): BodyMeasurement {
     measuredAt: row.measured_at, bodyFatPct: row.body_fat_pct,
     leanTissueKg: row.lean_tissue_kg, boneMineralContentKg: row.bone_mineral_content_kg,
     fatFreeMassKg: row.fat_free_mass_kg,
+  };
+}
+
+function toFast(row: FastRow): Fast {
+  return {
+    id: row.id,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    targetDurationMinutes: row.target_duration_minutes,
+    createdAt: row.created_at,
   };
 }
 
@@ -361,8 +389,9 @@ export async function saveProfile(profile: Profile): Promise<void> {
     `INSERT INTO profile (
        id, sex, age, height_cm, weight_kg, activity_level, goal,
        target_calories, protein_pct, carbs_pct, fat_pct, fibre_target_g, units, onboarded_at,
-       target_source, stated_calories, stated_figure_kind
-     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       target_source, stated_calories, stated_figure_kind,
+       target_weight_kg, weight_goal_rate_kg_per_week
+     ) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        sex = excluded.sex,
        age = excluded.age,
@@ -378,7 +407,9 @@ export async function saveProfile(profile: Profile): Promise<void> {
        units = excluded.units,
        target_source = excluded.target_source,
        stated_calories = excluded.stated_calories,
-       stated_figure_kind = excluded.stated_figure_kind`,
+       stated_figure_kind = excluded.stated_figure_kind,
+       target_weight_kg = excluded.target_weight_kg,
+       weight_goal_rate_kg_per_week = excluded.weight_goal_rate_kg_per_week`,
     [
       profile.sex,
       profile.age,
@@ -396,6 +427,8 @@ export async function saveProfile(profile: Profile): Promise<void> {
       profile.targetSource,
       profile.statedCalories,
       profile.statedFigureKind,
+      profile.targetWeightKg ?? null,
+      profile.weightGoalRateKgPerWeek ?? null,
     ],
   );
 }
@@ -415,6 +448,95 @@ export async function saveBodyMeasurement(measurement: BodyMeasurement): Promise
        bone_mineral_content_kg = excluded.bone_mineral_content_kg, fat_free_mass_kg = excluded.fat_free_mass_kg`,
     [measurement.provider, measurement.weightKg, measurement.measuredAt, measurement.bodyFatPct, measurement.leanTissueKg, measurement.boneMineralContentKg, measurement.fatFreeMassKg],
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Fasting                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export async function getActiveFast(): Promise<Fast | null> {
+  const row = await db().getFirstAsync<FastRow>(
+    'SELECT * FROM fasts WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1',
+  );
+  return row ? toFast(row) : null;
+}
+
+/** Completed intervals only, newest first. The active timer is returned by
+ * `getActiveFast`, so history never has to special-case an unfinished row. */
+export async function listFastHistory(): Promise<Fast[]> {
+  const rows = await db().getAllAsync<FastRow>(
+    'SELECT * FROM fasts WHERE ended_at IS NOT NULL ORDER BY started_at DESC',
+  );
+  return rows.map(toFast);
+}
+
+/** Starts one interval in an exclusive transaction so two callers cannot both
+ * observe an empty active slot and insert. */
+export async function startFast(
+  targetDurationMinutes: number | null = null,
+  startedAt: string = new Date().toISOString(),
+): Promise<Fast> {
+  if (
+    targetDurationMinutes !== null
+    && (!Number.isInteger(targetDurationMinutes) || targetDurationMinutes <= 0)
+  ) {
+    throw new Error('Target duration must be a positive whole number of minutes.');
+  }
+  if (!Number.isFinite(Date.parse(startedAt))) {
+    throw new Error('Fast start time is invalid.');
+  }
+
+  const fast: Fast = {
+    id: randomUUID(),
+    startedAt,
+    endedAt: null,
+    targetDurationMinutes,
+    createdAt: startedAt,
+  };
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const active = await txn.getFirstAsync<{ id: string }>(
+      'SELECT id FROM fasts WHERE ended_at IS NULL LIMIT 1',
+      [],
+    );
+    if (active) throw new Error('A fast is already active.');
+    await txn.runAsync(
+      `INSERT INTO fasts (id, started_at, ended_at, target_duration_minutes, created_at)
+       VALUES (?, ?, NULL, ?, ?)`,
+      [fast.id, fast.startedAt, fast.targetDurationMinutes, fast.createdAt],
+    );
+  });
+
+  return fast;
+}
+
+/** Ends the active interval and returns its completed value. */
+export async function endFast(
+  endedAt: string = new Date().toISOString(),
+): Promise<Fast> {
+  if (!Number.isFinite(Date.parse(endedAt))) {
+    throw new Error('Fast end time is invalid.');
+  }
+
+  let completed: Fast | null = null;
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const active = await txn.getFirstAsync<FastRow>(
+      'SELECT * FROM fasts WHERE ended_at IS NULL ORDER BY started_at DESC LIMIT 1',
+      [],
+    );
+    if (!active) throw new Error('There is no active fast to end.');
+    if (Date.parse(endedAt) < Date.parse(active.started_at)) {
+      throw new Error('Fast end time cannot be before its start time.');
+    }
+    await txn.runAsync(
+      'UPDATE fasts SET ended_at = ? WHERE id = ? AND ended_at IS NULL',
+      [endedAt, active.id],
+    );
+    completed = toFast({ ...active, ended_at: endedAt });
+  });
+
+  if (!completed) throw new Error('The active fast could not be ended.');
+  return completed;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -945,28 +1067,10 @@ export async function getDaySummaries(
   }));
 }
 
-interface NutritionDayRow {
-  local_date: string;
-  meal_count: number;
-  item_count: number;
-  known_count: number;
-  known_value: number | null;
-  recorded_target: number | null;
-}
-
-const NUTRITION_RANGE_COLUMNS = {
-  energy: { value: 'calories', target: 'target_calories' },
-  protein: { value: 'protein_g', target: 'protein_g' },
-  carbohydrate: { value: 'carbs_g', target: 'carbs_g' },
-  fat: { value: 'fat_g', target: 'fat_g' },
-  fibre: { value: 'fibre_g', target: 'fibre_g' },
-} as const satisfies Record<DailyNutritionMetric, { value: string; target: string }>;
-
 /**
- * One bounded local read for nutrition history. The selected columns come
- * from the closed metric map above; dates remain parameterized. Target-only
- * dates are retained, while dates with neither a meal nor a recorded target
- * are filled by `bucketNutritionValues` as absent rather than known zero.
+ * Three bounded local reads for the whole range, independent of its day count.
+ * The pure ranged model still calls `dailyNutritionSummary` once per date so
+ * query optimisation cannot fork the app's coverage semantics.
  */
 export async function getNutritionDayValues(
   metric: DailyNutritionMetric,
@@ -974,43 +1078,41 @@ export async function getNutritionDayValues(
   to: string,
 ): Promise<NutritionDayValue[]> {
   if (from > to) throw new Error('Nutrition range start must not be after its end.');
-  const columns = NUTRITION_RANGE_COLUMNS[metric];
-  const rows = await db().getAllAsync<NutritionDayRow>(
-    `WITH range_dates AS (
-       SELECT local_date FROM meals WHERE local_date BETWEEN ? AND ?
-       UNION
-       SELECT local_date FROM daily_targets WHERE local_date BETWEEN ? AND ?
-     ), item_totals AS (
-       SELECT m.local_date,
-              COUNT(DISTINCT m.id) AS meal_count,
-              COUNT(mi.id) AS item_count,
-              COUNT(mi.${columns.value}) AS known_count,
-              SUM(mi.${columns.value}) AS known_value
-         FROM meals m
-         LEFT JOIN meal_items mi ON mi.meal_id = m.id
-        WHERE m.local_date BETWEEN ? AND ?
-        GROUP BY m.local_date
-     )
-     SELECT d.local_date,
-            COALESCE(i.meal_count, 0) AS meal_count,
-            COALESCE(i.item_count, 0) AS item_count,
-            COALESCE(i.known_count, 0) AS known_count,
-            CASE WHEN COALESCE(i.known_count, 0) = 0 THEN NULL ELSE i.known_value END AS known_value,
-            t.${columns.target} AS recorded_target
-       FROM range_dates d
-       LEFT JOIN item_totals i ON i.local_date = d.local_date
-       LEFT JOIN daily_targets t ON t.local_date = d.local_date
-      ORDER BY d.local_date ASC`,
-    [from, to, from, to, from, to],
-  );
+  const [mealRows, itemRows, targetRows] = await Promise.all([
+    db().getAllAsync<MealRow>(
+      'SELECT * FROM meals WHERE local_date BETWEEN ? AND ? ORDER BY logged_at ASC',
+      [from, to],
+    ),
+    db().getAllAsync<MealItemRow>(
+      `SELECT mi.* FROM meal_items mi
+       INNER JOIN meals m ON m.id = mi.meal_id
+       WHERE m.local_date BETWEEN ? AND ?
+       ORDER BY m.logged_at ASC, mi.sort_order ASC`,
+      [from, to],
+    ),
+    db().getAllAsync<DailyTargetRow>(
+      'SELECT * FROM daily_targets WHERE local_date BETWEEN ? AND ? ORDER BY local_date ASC',
+      [from, to],
+    ),
+  ]);
 
-  return rows.map((row) => ({
-    localDate: row.local_date,
-    knownValue: row.known_value,
-    coverage: nutritionRowCoverage(row),
-    hasMeals: row.meal_count > 0,
-    recordedTarget: row.recorded_target,
+  const itemsByMeal = new Map<string, MealItem[]>();
+  for (const row of itemRows) {
+    const current = itemsByMeal.get(row.meal_id) ?? [];
+    current.push(toMealItem(row));
+    itemsByMeal.set(row.meal_id, current);
+  }
+  const meals = mealRows.map((row): MealWithItems => ({
+    ...toMeal(row),
+    items: itemsByMeal.get(row.id) ?? [],
   }));
+
+  return nutritionTrend(
+    customNutritionPeriod(from, to),
+    metric,
+    meals,
+    targetRows.map(toDailyTarget),
+  );
 }
 
 /** Daily or Monday-first weekly buckets from existing local meal and target records. */
@@ -1023,10 +1125,50 @@ export async function getNutritionRangeBuckets(
   return bucketNutritionValues(values, period, aggregation);
 }
 
-function nutritionRowCoverage(row: NutritionDayRow): NutritionCoverage {
-  if (row.meal_count === 0) return 'no-meals';
-  if (row.known_count === 0) return 'unknown';
-  return row.known_count === row.item_count ? 'complete' : 'partial';
+interface ChartPreferenceRow {
+  enabled_metrics: string;
+}
+
+/** Documented first-run default: energy is useful immediately without making
+ * the initial dashboard noisy. Saving an empty list explicitly shows none. */
+export const DEFAULT_CHART_METRICS: readonly DailyNutritionMetric[] = ['energy'];
+
+export async function getChartPreference(): Promise<DailyNutritionMetric[]> {
+  const row = await db().getFirstAsync<ChartPreferenceRow>(
+    'SELECT enabled_metrics FROM chart_preferences WHERE id = 1',
+  );
+  if (!row) return [...DEFAULT_CHART_METRICS];
+  try {
+    const parsed: unknown = JSON.parse(row.enabled_metrics);
+    if (!Array.isArray(parsed)) return [...DEFAULT_CHART_METRICS];
+    return [...new Set(parsed.filter(
+      (metric): metric is DailyNutritionMetric =>
+        typeof metric === 'string'
+        && DAILY_NUTRITION_METRICS.includes(metric as DailyNutritionMetric),
+    ))];
+  } catch {
+    return [...DEFAULT_CHART_METRICS];
+  }
+}
+
+export async function saveChartPreference(
+  enabledMetrics: readonly DailyNutritionMetric[],
+): Promise<void> {
+  const unique = [...new Set(enabledMetrics)];
+  if (
+    unique.length !== enabledMetrics.length
+    || unique.some((metric) => !DAILY_NUTRITION_METRICS.includes(metric))
+  ) {
+    throw new Error('Chart preferences contain an unavailable or repeated metric.');
+  }
+  await db().runAsync(
+    `INSERT INTO chart_preferences (id, enabled_metrics, updated_at)
+     VALUES (1, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       enabled_metrics = excluded.enabled_metrics,
+       updated_at = excluded.updated_at`,
+    [JSON.stringify(unique), new Date().toISOString()],
+  );
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1047,6 +1189,13 @@ interface CanonicalItemRow {
   carbs_per_100: number | null;
   fat_per_100: number | null;
   fibre_per_100: number | null;
+  vitamin_c_mg_per_100: number | null;
+  iron_mg_per_100: number | null;
+  vitamin_b12_mcg_per_100: number | null;
+  calcium_mg_per_100: number | null;
+  folate_mcg_per_100: number | null;
+  vitamin_a_mcg_per_100: number | null;
+  potassium_mg_per_100: number | null;
   typical_use_qty: number | null;
   typical_use_unit: string | null;
   typical_pkg_qty: number | null;
@@ -1112,6 +1261,13 @@ function toCanonicalItem(row: CanonicalItemRow): CanonicalItem {
     carbsPer100: row.carbs_per_100,
     fatPer100: row.fat_per_100,
     fibrePer100: row.fibre_per_100,
+    vitaminCMgPer100: row.vitamin_c_mg_per_100,
+    ironMgPer100: row.iron_mg_per_100,
+    vitaminB12McgPer100: row.vitamin_b12_mcg_per_100,
+    calciumMgPer100: row.calcium_mg_per_100,
+    folateMcgPer100: row.folate_mcg_per_100,
+    vitaminAMcgPer100: row.vitamin_a_mcg_per_100,
+    potassiumMgPer100: row.potassium_mg_per_100,
     typicalUseQty: row.typical_use_qty,
     typicalUseUnit: row.typical_use_unit as MeasureUnit | null,
     typicalPkgQty: row.typical_pkg_qty,
@@ -1187,6 +1343,13 @@ interface CanonicalSeedEntry {
   carbsPer100?: number | null;
   fatPer100?: number | null;
   fibrePer100?: number | null;
+  vitaminCMgPer100?: number | null;
+  ironMgPer100?: number | null;
+  vitaminB12McgPer100?: number | null;
+  calciumMgPer100?: number | null;
+  folateMcgPer100?: number | null;
+  vitaminAMcgPer100?: number | null;
+  potassiumMgPer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -1229,10 +1392,13 @@ export async function loadSeedData(): Promise<void> {
         `INSERT INTO canonical_items
            (id, display_name, class, default_location, shelf_life_days,
             early_warning_days, open_life_days, sources, kcal_per_100,
-            protein_per_100, carbs_per_100, fat_per_100, fibre_per_100, typical_use_qty,
+            protein_per_100, carbs_per_100, fat_per_100, fibre_per_100,
+            vitamin_c_mg_per_100, iron_mg_per_100, vitamin_b12_mcg_per_100,
+            calcium_mg_per_100, folate_mcg_per_100, vitamin_a_mcg_per_100,
+            potassium_mg_per_100, typical_use_qty,
             typical_use_unit, typical_pkg_qty, typical_pkg_unit,
             density_g_per_ml, is_seed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
          ON CONFLICT(id) DO UPDATE SET
            display_name = excluded.display_name,
            class = excluded.class,
@@ -1246,6 +1412,13 @@ export async function loadSeedData(): Promise<void> {
            carbs_per_100 = excluded.carbs_per_100,
            fat_per_100 = excluded.fat_per_100,
            fibre_per_100 = excluded.fibre_per_100,
+           vitamin_c_mg_per_100 = excluded.vitamin_c_mg_per_100,
+           iron_mg_per_100 = excluded.iron_mg_per_100,
+           vitamin_b12_mcg_per_100 = excluded.vitamin_b12_mcg_per_100,
+           calcium_mg_per_100 = excluded.calcium_mg_per_100,
+           folate_mcg_per_100 = excluded.folate_mcg_per_100,
+           vitamin_a_mcg_per_100 = excluded.vitamin_a_mcg_per_100,
+           potassium_mg_per_100 = excluded.potassium_mg_per_100,
            typical_use_qty = excluded.typical_use_qty,
            typical_use_unit = excluded.typical_use_unit,
            typical_pkg_qty = excluded.typical_pkg_qty,
@@ -1266,6 +1439,13 @@ export async function loadSeedData(): Promise<void> {
           entry.carbsPer100 ?? null,
           entry.fatPer100 ?? null,
           entry.fibrePer100 ?? null,
+          entry.vitaminCMgPer100 ?? null,
+          entry.ironMgPer100 ?? null,
+          entry.vitaminB12McgPer100 ?? null,
+          entry.calciumMgPer100 ?? null,
+          entry.folateMcgPer100 ?? null,
+          entry.vitaminAMcgPer100 ?? null,
+          entry.potassiumMgPer100 ?? null,
           entry.typicalUseQty ?? null,
           entry.typicalUseUnit ?? null,
           entry.typicalPkgQty ?? null,
@@ -1534,6 +1714,13 @@ export interface NewCanonicalItem {
   carbsPer100?: number | null;
   fatPer100?: number | null;
   fibrePer100?: number | null;
+  vitaminCMgPer100?: number | null;
+  ironMgPer100?: number | null;
+  vitaminB12McgPer100?: number | null;
+  calciumMgPer100?: number | null;
+  folateMcgPer100?: number | null;
+  vitaminAMcgPer100?: number | null;
+  potassiumMgPer100?: number | null;
   typicalUseQty?: number | null;
   typicalUseUnit?: MeasureUnit | null;
   typicalPkgQty?: number | null;
@@ -1549,10 +1736,13 @@ export async function insertCanonicalItem(
     `INSERT INTO canonical_items
        (id, display_name, class, default_location, shelf_life_days,
         early_warning_days, open_life_days, sources, kcal_per_100,
-        protein_per_100, carbs_per_100, fat_per_100, fibre_per_100, typical_use_qty,
+        protein_per_100, carbs_per_100, fat_per_100, fibre_per_100,
+        vitamin_c_mg_per_100, iron_mg_per_100, vitamin_b12_mcg_per_100,
+        calcium_mg_per_100, folate_mcg_per_100, vitamin_a_mcg_per_100,
+        potassium_mg_per_100, typical_use_qty,
         typical_use_unit, typical_pkg_qty, typical_pkg_unit,
         density_g_per_ml, is_seed, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
     [
       item.id,
       item.displayName,
@@ -1570,6 +1760,13 @@ export async function insertCanonicalItem(
       item.carbsPer100 ?? null,
       item.fatPer100 ?? null,
       item.fibrePer100 ?? null,
+      item.vitaminCMgPer100 ?? null,
+      item.ironMgPer100 ?? null,
+      item.vitaminB12McgPer100 ?? null,
+      item.calciumMgPer100 ?? null,
+      item.folateMcgPer100 ?? null,
+      item.vitaminAMcgPer100 ?? null,
+      item.potassiumMgPer100 ?? null,
       item.typicalUseQty ?? null,
       item.typicalUseUnit ?? null,
       item.typicalPkgQty ?? null,
@@ -1595,6 +1792,13 @@ export async function insertCanonicalItem(
     carbsPer100: item.carbsPer100 ?? null,
     fatPer100: item.fatPer100 ?? null,
     fibrePer100: item.fibrePer100 ?? null,
+    vitaminCMgPer100: item.vitaminCMgPer100 ?? null,
+    ironMgPer100: item.ironMgPer100 ?? null,
+    vitaminB12McgPer100: item.vitaminB12McgPer100 ?? null,
+    calciumMgPer100: item.calciumMgPer100 ?? null,
+    folateMcgPer100: item.folateMcgPer100 ?? null,
+    vitaminAMcgPer100: item.vitaminAMcgPer100 ?? null,
+    potassiumMgPer100: item.potassiumMgPer100 ?? null,
     typicalUseQty: item.typicalUseQty ?? null,
     typicalUseUnit: item.typicalUseUnit ?? null,
     typicalPkgQty: item.typicalPkgQty ?? null,

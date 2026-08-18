@@ -52,14 +52,51 @@ in the proposal's Risk section — a future change to the floor, or to how
 `maintenance` combines with an adjustment, would need to be applied twice
 and could silently diverge. One function, one branch, one clamp.
 
+**Correction found during implementation:** `energyTargets()` is not the
+only place `goalAdjustment(goal)` is called. `add-energy-sources` (already
+shipped) introduced `TARGET_RESOLVERS` in `src/logic/bodyComposition.ts`
+with four `TargetSource` paths — `estimated` (calls `energyTargets()`),
+`dexa`/`inbody` (via `measuredTarget()`, which calls `goalAdjustment`
+directly), and `stated` (calls `goalAdjustment` directly too). Patching only
+`energyTargets()` would mean a user on a DEXA/InBody/stated calorie source
+sees no effect from setting a target weight and rate — contradicting this
+proposal's plain language ("whenever both are set... in place of the fixed
+goal adjustment") and its own single-function principle above, which this
+correction now extends: a `goalCalorieAdjustment()` dispatcher in `bmr.ts`
+is the one place the rate-vs-fixed branch is decided, and all three
+`goalAdjustment(profile.goal)` call sites in `bodyComposition.ts` route
+through it — not just `energyTargets()`. `stated`'s `'adjusted'` branch is
+unaffected (it never called `goalAdjustment` and still doesn't); its
+`'resting'`/`'total'` branch keeps its existing lack of an
+`MIN_TARGET_CALORIES` floor, which predates this change and is not this
+proposal's to add.
+
+**Sign convention correction:** the formula below originally read
+`dailyAdjustment = -(rateKgPerWeek * KCAL_PER_KG) / 7` with `rateKgPerWeek`
+described as signed (negative for loss, positive for gain) — but that
+formula and that sign description contradict each other (a negative rate
+through that formula yields a positive/surplus adjustment, not the deficit
+the text describes). Implemented instead as: `weightGoalRateKgPerWeek` is
+stored as a non-negative weekly pace (magnitude only, matching how the
+bounded input in Non-Goals/task 4.3 naturally presents it — "how fast," not
+a signed value), and direction is derived the same "direction-agnostic" way
+the forecast section below already describes for weeks-to-goal:
+`Math.sign(targetWeightKg - currentWeightKg)`. A target above current
+weight yields a surplus; below yields a deficit; equal yields zero
+(maintenance) rather than a divide-by-zero or undefined case. One
+direction rule, reused by both the calorie adjustment and the forecast,
+rather than each guessing the other's sign convention.
+
 ### The kcal-per-kilogram constant is approximate and named as such
 
 A commonly used approximation (roughly 7700 kcal per kg of body mass) is
-used to convert a weekly rate into a daily calorie adjustment:
-`dailyAdjustment = -(rateKgPerWeek * KCAL_PER_KG) / 7`. Negative rate (loss)
-produces a negative (deficit) adjustment; positive rate (gain) produces a
-surplus; the sign falls out of the arithmetic rather than needing a
-separate lose/gain branch.
+used to convert a weekly pace into a daily calorie adjustment:
+`dailyAdjustment = sign(targetWeightKg - currentWeightKg) * rateKgPerWeek *
+KCAL_PER_KG / 7`, where `rateKgPerWeek` is the non-negative pace (see the
+sign-convention correction above). A target below current weight produces
+a deficit; above produces a surplus; equal produces zero — the direction
+falls out of comparing target to current rather than needing a separate
+lose/gain branch or a signed rate field.
 
 *Why not a more precise metabolic model:* the conversion is already an
 approximation in every app that uses it, including Cronometer's — actual

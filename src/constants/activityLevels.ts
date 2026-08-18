@@ -74,4 +74,31 @@ export function goalLabel(goal: Goal): string {
 /** Targets never drop below this, whatever the inputs say. */
 export const MIN_TARGET_CALORIES = 1200;
 
+/**
+ * Rough approximation: ~7700 kcal of cumulative energy imbalance per kg of
+ * body-mass change. Actual energy density of gained or lost mass varies by
+ * body composition — this is the same widely used estimate every app in
+ * this space relies on, not a precise metabolic model.
+ */
+export const KCAL_PER_KG = 7700;
+
+/** Bounds for the weekly-pace input control — not an open text field. */
+export const WEIGHT_GOAL_RATE_RANGE = { min: 0.1, max: 1 } as const;
+
+/**
+ * Converts a weekly pace into a daily calorie adjustment. `rateKgPerWeek`
+ * is a non-negative pace (its magnitude is used regardless of sign);
+ * direction comes from comparing the target to the current weight, not
+ * from the sign of the rate itself — a target below current weight yields
+ * a deficit, above yields a surplus, equal yields zero.
+ */
+export function rateGoalAdjustment(
+  currentWeightKg: number,
+  targetWeightKg: number,
+  rateKgPerWeek: number,
+): number {
+  const direction = Math.sign(targetWeightKg - currentWeightKg);
+  return (direction * Math.abs(rateKgPerWeek) * KCAL_PER_KG) / 7;
+}
+
 export const AGE_RANGE = { min: 13, max: 100 } as const;

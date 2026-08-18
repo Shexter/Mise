@@ -14,6 +14,8 @@ const canonical = (id: string, foodClass: CanonicalItem['foodClass'] = 'staple')
   id, displayName: `${id.slice(0, 1).toUpperCase()}${id.slice(1)}`, foodClass, defaultLocation: 'pantry',
   shelfLifeDays: {}, earlyWarningDays: null, openLifeDays: null, sources: {},
   kcalPer100: null, proteinPer100: null, carbsPer100: null, fatPer100: null,
+  fibrePer100: null, vitaminCMgPer100: null, ironMgPer100: null, vitaminB12McgPer100: null,
+  calciumMgPer100: null, folateMcgPer100: null, vitaminAMcgPer100: null, potassiumMgPer100: null,
   typicalUseQty: null, typicalUseUnit: null, typicalPkgQty: null, typicalPkgUnit: null,
   densityGPerMl: null, isSeed: true, createdAt: '2026-01-01',
 });

@@ -2508,81 +2508,109 @@
   },
   "filled": [
     {
-      "source": "cofid",
-      "row": "17-721: Soy sauce, light and dark varieties",
-      "canonicalId": "soy-sauce-dark",
-      "field": "kcalPer100",
-      "proposed": 79
-    },
-    {
-      "source": "cofid",
-      "row": "17-721: Soy sauce, light and dark varieties",
-      "canonicalId": "soy-sauce-dark",
-      "field": "proteinPer100",
-      "proposed": 3
-    },
-    {
-      "source": "cofid",
-      "row": "17-721: Soy sauce, light and dark varieties",
-      "canonicalId": "soy-sauce-dark",
-      "field": "carbsPer100",
-      "proposed": 17.9
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "ironMgPer100",
+      "proposed": 0.05
     },
     {
       "source": "food-data-central",
-      "row": "Oil, olive, salad or cooking",
-      "canonicalId": "olive-oil",
-      "field": "kcalPer100",
-      "proposed": 884
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "calciumMgPer100",
+      "proposed": 1
     },
     {
       "source": "food-data-central",
-      "row": "Oil, olive, salad or cooking",
-      "canonicalId": "olive-oil",
-      "field": "proteinPer100",
-      "proposed": 0
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "potassiumMgPer100",
+      "proposed": 2
     },
     {
       "source": "food-data-central",
-      "row": "Oil, olive, salad or cooking",
-      "canonicalId": "olive-oil",
-      "field": "carbsPer100",
-      "proposed": 0
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "fibrePer100",
+      "proposed": 1.9
     },
     {
       "source": "food-data-central",
-      "row": "Oil, olive, salad or cooking",
-      "canonicalId": "olive-oil",
-      "field": "fatPer100",
-      "proposed": 100
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "vitaminCMgPer100",
+      "proposed": 8.2
     },
     {
       "source": "food-data-central",
-      "row": "Salad dressing, mayonnaise, regular",
-      "canonicalId": "mayonnaise",
-      "field": "kcalPer100",
-      "proposed": 680
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "ironMgPer100",
+      "proposed": 0.28
     },
     {
       "source": "food-data-central",
-      "row": "Salad dressing, mayonnaise, regular",
-      "canonicalId": "mayonnaise",
-      "field": "proteinPer100",
-      "proposed": 0.96
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "calciumMgPer100",
+      "proposed": 15
     },
     {
       "source": "food-data-central",
-      "row": "Salad dressing, mayonnaise, regular",
-      "canonicalId": "mayonnaise",
-      "field": "carbsPer100",
-      "proposed": 0.57
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "potassiumMgPer100",
+      "proposed": 182
     },
     {
       "source": "food-data-central",
-      "row": "Salad dressing, mayonnaise, regular",
-      "canonicalId": "mayonnaise",
-      "field": "fatPer100",
-      "proposed": 74.85
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "fibrePer100",
+      "proposed": 0.9706
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "vitaminCMgPer100",
+      "proposed": 17.75
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "ironMgPer100",
+      "proposed": 0.1031
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "calciumMgPer100",
+      "proposed": 9.963
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "folateMcgPer100",
+      "proposed": 9.994
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "vitaminAMcgPer100",
+      "proposed": 23.9
+    },
+    {
+      "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "potassiumMgPer100",
+      "proposed": 192.8
     }
   ],
   "conflicts": [
@@ -2761,6 +2789,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Oyster sauce",
+      "canonicalId": "oyster-sauce",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Miso",
       "canonicalId": "miso",
       "field": "earlyWarningDays",
@@ -2799,6 +2883,62 @@
       "row": "Miso",
       "canonicalId": "miso",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Miso",
+      "canonicalId": "miso",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -2838,6 +2978,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame oil",
+      "canonicalId": "sesame-oil",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Hoisin sauce",
       "canonicalId": "hoisin-sauce",
       "field": "earlyWarningDays",
@@ -2869,6 +3065,62 @@
       "row": "Hoisin sauce",
       "canonicalId": "hoisin-sauce",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Hoisin sauce",
+      "canonicalId": "hoisin-sauce",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -2908,6 +3160,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tamarind paste",
+      "canonicalId": "tamarind-paste",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Sugar, granulated",
       "canonicalId": "sugar",
       "field": "earlyWarningDays",
@@ -2939,6 +3247,62 @@
       "row": "Sugar, granulated",
       "canonicalId": "sugar",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sugar, granulated",
+      "canonicalId": "sugar",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -2985,6 +3349,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Canola oil",
+      "canonicalId": "vegetable-oil",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Butter",
       "canonicalId": "butter",
       "field": "earlyWarningDays",
@@ -3027,6 +3447,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Butter",
+      "canonicalId": "butter",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Ghee",
       "canonicalId": "ghee",
       "field": "earlyWarningDays",
@@ -3069,6 +3545,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ghee",
+      "canonicalId": "ghee",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Honey",
       "canonicalId": "honey",
       "field": "earlyWarningDays",
@@ -3107,6 +3639,62 @@
       "row": "Honey",
       "canonicalId": "honey",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Honey",
+      "canonicalId": "honey",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3146,6 +3734,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Mustard",
+      "canonicalId": "dijon-mustard",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Garlic",
       "canonicalId": "garlic",
       "field": "earlyWarningDays",
@@ -3184,6 +3828,62 @@
       "row": "Garlic",
       "canonicalId": "garlic",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Garlic",
+      "canonicalId": "garlic",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3223,6 +3923,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Ginger root",
+      "canonicalId": "ginger",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Bananas",
       "canonicalId": "banana",
       "field": "earlyWarningDays",
@@ -3261,6 +4017,62 @@
       "row": "Bananas",
       "canonicalId": "banana",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bananas",
+      "canonicalId": "banana",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3307,6 +4119,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tomatoes",
+      "canonicalId": "tomato",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Cucumbers",
       "canonicalId": "cucumber",
       "field": "earlyWarningDays",
@@ -3349,6 +4217,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cucumbers",
+      "canonicalId": "cucumber",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Cilantro",
       "canonicalId": "cilantro",
       "field": "earlyWarningDays",
@@ -3391,6 +4315,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Cilantro",
+      "canonicalId": "cilantro",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Bok choy",
       "canonicalId": "bok-choy",
       "field": "earlyWarningDays",
@@ -3433,6 +4413,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bok choy",
+      "canonicalId": "bok-choy",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Tofu",
       "canonicalId": "tofu-firm",
       "field": "earlyWarningDays",
@@ -3471,6 +4507,62 @@
       "row": "Tofu",
       "canonicalId": "tofu-firm",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tofu",
+      "canonicalId": "tofu-firm",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3510,6 +4602,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Bacon",
+      "canonicalId": "bacon",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Yogurt",
       "canonicalId": "greek-yogurt",
       "field": "openLifeDays",
@@ -3541,6 +4689,62 @@
       "row": "Yogurt",
       "canonicalId": "greek-yogurt",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Yogurt",
+      "canonicalId": "greek-yogurt",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3587,6 +4791,62 @@
     },
     {
       "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Sesame seeds",
+      "canonicalId": "sesame",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
       "row": "Tahini",
       "canonicalId": "tahini",
       "field": "earlyWarningDays",
@@ -3618,6 +4878,139 @@
       "row": "Tahini",
       "canonicalId": "tahini",
       "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "foodkeeper",
+      "row": "Tahini",
+      "canonicalId": "tahini",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "earlyWarningDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "fatPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "cofid",
+      "row": "17-721: Soy sauce, light and dark varieties",
+      "canonicalId": "soy-sauce-dark",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -3734,6 +5127,13 @@
     },
     {
       "source": "food-data-central",
+      "row": "Sauce, hot chile, sriracha",
+      "canonicalId": "sriracha",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Spices, pepper, white",
       "canonicalId": "white-pepper",
       "field": "earlyWarningDays",
@@ -3762,6 +5162,34 @@
     },
     {
       "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Flour, wheat, all-purpose, enriched, unbleached",
+      "canonicalId": "all-purpose-flour",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Sugars, granulated",
       "canonicalId": "sugar",
       "field": "earlyWarningDays",
@@ -3772,6 +5200,41 @@
       "row": "Sugars, granulated",
       "canonicalId": "sugar",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Sugars, granulated",
+      "canonicalId": "sugar",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {
@@ -3832,6 +5295,34 @@
     },
     {
       "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Butter, Clarified butter (ghee)",
+      "canonicalId": "ghee",
+      "field": "potassiumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Salt, table",
       "canonicalId": "salt",
       "field": "earlyWarningDays",
@@ -3888,6 +5379,27 @@
     },
     {
       "source": "food-data-central",
+      "row": "Peanut butter, creamy",
+      "canonicalId": "peanut-butter",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanut butter, creamy",
+      "canonicalId": "peanut-butter",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanut butter, creamy",
+      "canonicalId": "peanut-butter",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Catsup",
       "canonicalId": "ketchup",
       "field": "earlyWarningDays",
@@ -3940,6 +5452,34 @@
       "row": "Oats, whole grain, rolled, old fashioned",
       "canonicalId": "oats",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Oats, whole grain, rolled, old fashioned",
+      "canonicalId": "oats",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {
@@ -3979,6 +5519,34 @@
     },
     {
       "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Green onion, (scallion), bulb and greens, root removed, raw",
+      "canonicalId": "green-onion",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Garlic, raw",
       "canonicalId": "garlic",
       "field": "earlyWarningDays",
@@ -3989,6 +5557,48 @@
       "row": "Garlic, raw",
       "canonicalId": "garlic",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "ironMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "calciumMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Garlic, raw",
+      "canonicalId": "garlic",
+      "field": "potassiumMgPer100",
       "reason": "unknown"
     },
     {
@@ -4021,6 +5631,27 @@
     },
     {
       "source": "food-data-central",
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Onions, yellow, raw",
+      "canonicalId": "yellow-onion",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Bananas, raw",
       "canonicalId": "banana",
       "field": "earlyWarningDays",
@@ -4049,6 +5680,13 @@
     },
     {
       "source": "food-data-central",
+      "row": "Tomato, roma",
+      "canonicalId": "tomato",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Cucumber, with peel, raw",
       "canonicalId": "cucumber",
       "field": "earlyWarningDays",
@@ -4059,6 +5697,41 @@
       "row": "Cucumber, with peel, raw",
       "canonicalId": "cucumber",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cucumber, with peel, raw",
+      "canonicalId": "cucumber",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {
@@ -4126,6 +5799,34 @@
     },
     {
       "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, napa, leaf, destemmed, raw",
+      "canonicalId": "napa-cabbage",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Cabbage, bok choy, raw",
       "canonicalId": "bok-choy",
       "field": "earlyWarningDays",
@@ -4140,6 +5841,20 @@
     },
     {
       "source": "food-data-central",
+      "row": "Cabbage, bok choy, raw",
+      "canonicalId": "bok-choy",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cabbage, bok choy, raw",
+      "canonicalId": "bok-choy",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Mushrooms, shiitake",
       "canonicalId": "shiitake-mushroom",
       "field": "earlyWarningDays",
@@ -4150,6 +5865,27 @@
       "row": "Mushrooms, shiitake",
       "canonicalId": "shiitake-mushroom",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Mushrooms, shiitake",
+      "canonicalId": "shiitake-mushroom",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Mushrooms, shiitake",
+      "canonicalId": "shiitake-mushroom",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Mushrooms, shiitake",
+      "canonicalId": "shiitake-mushroom",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {
@@ -4182,6 +5918,41 @@
     },
     {
       "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, breast, boneless, skinless, raw",
+      "canonicalId": "chicken-breast",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Chicken, thigh, boneless, skinless, raw",
       "canonicalId": "chicken-thigh",
       "field": "earlyWarningDays",
@@ -4196,6 +5967,41 @@
     },
     {
       "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Chicken, thigh, boneless, skinless, raw",
+      "canonicalId": "chicken-thigh",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Pork, ground, raw",
       "canonicalId": "ground-pork",
       "field": "earlyWarningDays",
@@ -4206,6 +6012,41 @@
       "row": "Pork, ground, raw",
       "canonicalId": "ground-pork",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Pork, ground, raw",
+      "canonicalId": "ground-pork",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {
@@ -4238,6 +6079,41 @@
     },
     {
       "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Crustaceans, shrimp, raw",
+      "canonicalId": "shrimp",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Fish, salmon, chinook, raw",
       "canonicalId": "salmon",
       "field": "earlyWarningDays",
@@ -4262,6 +6138,20 @@
       "row": "Cheese, cheddar",
       "canonicalId": "cheddar-cheese",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, cheddar",
+      "canonicalId": "cheddar-cheese",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cheese, cheddar",
+      "canonicalId": "cheddar-cheese",
+      "field": "vitaminCMgPer100",
       "reason": "unknown"
     },
     {
@@ -4308,6 +6198,34 @@
     },
     {
       "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "fibrePer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Cream, heavy",
+      "canonicalId": "heavy-cream",
+      "field": "vitaminAMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
       "row": "Peanuts, raw",
       "canonicalId": "peanut",
       "field": "earlyWarningDays",
@@ -4318,6 +6236,34 @@
       "row": "Peanuts, raw",
       "canonicalId": "peanut",
       "field": "openLifeDays",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "vitaminCMgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "vitaminB12McgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "folateMcgPer100",
+      "reason": "unknown"
+    },
+    {
+      "source": "food-data-central",
+      "row": "Peanuts, raw",
+      "canonicalId": "peanut",
+      "field": "vitaminAMcgPer100",
       "reason": "unknown"
     },
     {

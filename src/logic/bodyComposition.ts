@@ -1,5 +1,5 @@
-import { MIN_TARGET_CALORIES, activityMultiplier, goalAdjustment } from '@/constants/activityLevels';
-import { energyTargets, katchMcArdle } from '@/logic/bmr';
+import { MIN_TARGET_CALORIES, activityMultiplier } from '@/constants/activityLevels';
+import { energyTargets, goalCalorieAdjustment, katchMcArdle } from '@/logic/bmr';
 import type { BodyMeasurement, Profile, TargetSource } from '@/types';
 
 export const MEASUREMENT_WEIGHT_DIVERGENCE: Record<BodyMeasurement['provider'], number> = { dexa: 0.05, inbody: 0.05 };
@@ -27,14 +27,19 @@ export function dexaFatFreeMass(measurement: Pick<BodyMeasurement, 'weightKg' | 
   return null;
 }
 
+/** Pulls the optional pacing fields off a profile for `goalCalorieAdjustment()`. */
+function pacingOf(profile: Profile) {
+  return { targetWeightKg: profile.targetWeightKg, weightGoalRateKgPerWeek: profile.weightGoalRateKgPerWeek };
+}
+
 type Resolver = (profile: Profile, measurements: readonly BodyMeasurement[]) => number | null;
 function measuredTarget(profile: Profile, measurement: BodyMeasurement | undefined): number | null {
   if (!measurement) return null;
-  return Math.max(MIN_TARGET_CALORIES, Math.round(katchMcArdle(measurement.fatFreeMassKg) * activityMultiplier(profile.activityLevel) + goalAdjustment(profile.goal)));
+  return Math.max(MIN_TARGET_CALORIES, Math.round(katchMcArdle(measurement.fatFreeMassKg) * activityMultiplier(profile.activityLevel) + goalCalorieAdjustment(profile.weightKg, profile.goal, pacingOf(profile))));
 }
 
 export const TARGET_RESOLVERS: Record<TargetSource, Resolver> = {
-  estimated: (profile) => profile.sex === null || profile.age === null || profile.heightCm === null ? null : energyTargets({ sex: profile.sex, age: profile.age, heightCm: profile.heightCm, weightKg: profile.weightKg }, profile.activityLevel, profile.goal).target,
+  estimated: (profile) => profile.sex === null || profile.age === null || profile.heightCm === null ? null : energyTargets({ sex: profile.sex, age: profile.age, heightCm: profile.heightCm, weightKg: profile.weightKg }, profile.activityLevel, profile.goal, pacingOf(profile)).target,
   dexa: (profile, measurements) => measuredTarget(profile, measurements.find((item) => item.provider === 'dexa')),
   inbody: (profile, measurements) => measuredTarget(profile, measurements.find((item) => item.provider === 'inbody')),
   stated: (profile) => {
@@ -43,7 +48,7 @@ export const TARGET_RESOLVERS: Record<TargetSource, Resolver> = {
     const total = profile.statedFigureKind === 'resting'
       ? profile.statedCalories * activityMultiplier(profile.activityLevel)
       : profile.statedCalories;
-    return Math.round(total + goalAdjustment(profile.goal));
+    return Math.round(total + goalCalorieAdjustment(profile.weightKg, profile.goal, pacingOf(profile)));
   },
 };
 

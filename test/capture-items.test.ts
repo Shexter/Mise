@@ -1,19 +1,16 @@
 import { describe, expect, test } from 'vitest';
 
 import { captureItemsFromReceiptLines, planCaptureItems } from '../src/logic/captureItems';
-import type { CanonicalItem, Location, ReceiptLine } from '../src/types';
+import { canonical } from '../src/logic/__fixtures__/kitchens';
+import type { Location, ReceiptLine } from '../src/types';
 
-const tomato = {
+const tomato = canonical({
   id: 'tomato',
   displayName: 'Tomato',
   foodClass: 'produce',
   defaultLocation: 'fridge',
   shelfLifeDays: { fridge: 7 },
-  openLifeDays: null,
-  typicalUseQty: null,
-  typicalUseUnit: null,
-  sources: {},
-} as CanonicalItem;
+});
 
 const locations = [
   { id: 'pantry', name: 'Pantry', kind: 'ambient', sortOrder: 0 },

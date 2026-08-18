@@ -1,14 +1,17 @@
+import { format } from 'date-fns';
 import { useState } from 'react';
 
 import { ChoiceList, Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { Sheet } from '@/components/Sheet';
 import { Button } from '@/components/Button';
-import { Caption } from '@/components/Type';
+import { Stepper } from '@/components/Stepper';
+import { Caption, SectionLabel } from '@/components/Type';
 import {
   ACTIVITY_LEVELS,
   AGE_RANGE,
   GOALS,
+  WEIGHT_GOAL_RATE_RANGE,
 } from '@/constants/activityLevels';
 import {
   HEIGHT_RANGE_CM,
@@ -18,6 +21,7 @@ import {
   kgToLb,
   lbToKg,
 } from '@/logic/units';
+import { weightGoalForecast } from '@/logic/weightGoalPacing';
 import type { ActivityLevel, Goal, Profile, Sex, Units } from '@/types';
 
 type Editable =
@@ -286,6 +290,35 @@ function ActivityEditor({ profile, onSave, onClose }: EditorProps) {
 
 function GoalEditor({ profile, onSave, onClose }: EditorProps) {
   const [goal, setGoal] = useState<Goal>(profile.goal);
+  const [pacing, setPacing] = useState(
+    profile.targetWeightKg !== null && profile.weightGoalRateKgPerWeek !== null,
+  );
+  const [units, setUnits] = useState<Units>(profile.units);
+  const [targetText, setTargetText] = useState(
+    profile.targetWeightKg === null
+      ? ''
+      : units === 'metric'
+        ? String(Math.round(profile.targetWeightKg))
+        : String(kgToLb(profile.targetWeightKg)),
+  );
+  const [rate, setRate] = useState(profile.weightGoalRateKgPerWeek ?? WEIGHT_GOAL_RATE_RANGE.min);
+
+  const entered = Number.parseFloat(targetText);
+  const targetWeightKg = Number.isFinite(entered)
+    ? units === 'metric'
+      ? entered
+      : lbToKg(entered)
+    : null;
+  const targetValid =
+    targetWeightKg !== null &&
+    targetWeightKg >= WEIGHT_RANGE_KG.min &&
+    targetWeightKg <= WEIGHT_RANGE_KG.max;
+
+  const forecast =
+    pacing && targetValid
+      ? weightGoalForecast(profile.weightKg, targetWeightKg, rate, new Date())
+      : null;
+
   return (
     <>
       <ChoiceList
@@ -298,9 +331,67 @@ function GoalEditor({ profile, onSave, onClose }: EditorProps) {
         onChange={setGoal}
       />
       <Button
+        label={pacing ? 'Remove target and pace' : 'Set a target and pace'}
+        variant="ghost"
+        onPress={() => setPacing((current) => !current)}
+      />
+      {pacing ? (
+        <>
+          <Segmented
+            options={[
+              { value: 'metric', label: 'kg' },
+              { value: 'imperial', label: 'lb' },
+            ]}
+            value={units}
+            onChange={(next) => {
+              const parsed = Number.parseFloat(targetText);
+              if (Number.isFinite(parsed)) {
+                setTargetText(
+                  next === 'metric'
+                    ? String(Math.round(lbToKg(parsed)))
+                    : String(kgToLb(parsed)),
+                );
+              }
+              setUnits(next);
+            }}
+          />
+          <Field
+            label="Target weight"
+            value={targetText}
+            onChangeText={setTargetText}
+            keyboardType="decimal-pad"
+            suffix={units === 'metric' ? 'kg' : 'lb'}
+            numeric
+            maxLength={5}
+          />
+          <SectionLabel>Weekly pace</SectionLabel>
+          <Stepper
+            label="Weekly pace"
+            value={rate}
+            onChange={setRate}
+            step={0.1}
+            min={WEIGHT_GOAL_RATE_RANGE.min}
+            max={WEIGHT_GOAL_RATE_RANGE.max}
+            unit="kg / week"
+          />
+          <Caption muted>
+            {forecast
+              ? forecast.weeksToGoal === 0
+                ? "You're already at this weight."
+                : `At this pace, an estimate — around ${format(forecast.forecastDate, 'd MMMM yyyy')}. Moves as your weight and pace change.`
+              : 'Enter a target weight to see an estimate.'}
+          </Caption>
+        </>
+      ) : null}
+      <Button
         label="Save"
+        disabled={pacing && !targetValid}
         onPress={() => {
-          onSave({ goal });
+          onSave(
+            pacing && targetValid
+              ? { goal, targetWeightKg, weightGoalRateKgPerWeek: rate }
+              : { goal, targetWeightKg: null, weightGoalRateKgPerWeek: null },
+          );
           onClose();
         }}
       />

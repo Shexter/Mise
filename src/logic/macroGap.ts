@@ -1,8 +1,18 @@
 import { daysUntil } from '@/logic/stockStatus';
 import type { CanonicalItem, DailyTarget, Macros, PantryItem } from '@/types';
 
-/** Fibre is calculable from meals, but is not a pantry-suggestion target yet. */
-export type MacroGapTarget = 'protein' | 'carbs' | 'fat' | 'fibre';
+export type MacroGapTarget =
+  | 'protein'
+  | 'carbs'
+  | 'fat'
+  | 'fibre'
+  | 'vitaminC'
+  | 'iron'
+  | 'vitaminB12'
+  | 'calcium'
+  | 'folate'
+  | 'vitaminA'
+  | 'potassium';
 
 export interface MacroContributor {
   item: PantryItem;
@@ -20,7 +30,15 @@ export interface MacroGapAssessment {
   hasUnmeasuredStock: boolean;
 }
 
-/** Returns null when the day's target macro is unknown, never a guessed gap. */
+/**
+ * Returns null when the day's target macro is unknown, never a guessed gap.
+ * Only the four original macros have a daily target/consumed figure to
+ * compare — the seven micronutrients `add-micronutrient-tracking` added to
+ * the catalogue have no Today-screen target (explicit non-goal of
+ * `add-nutrient-directed-search`), so there is nothing to derive a
+ * shortfall from for them; they always return null here, same as any other
+ * "unknown" case this function already returns null for.
+ */
 export function macroShortfall(
   target: Pick<DailyTarget, 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>,
   consumed: Pick<Macros, 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>,
@@ -31,6 +49,14 @@ export function macroShortfall(
     case 'carbs': return consumed.carbsG === null ? null : Math.max(0, target.carbsG - consumed.carbsG);
     case 'fat': return consumed.fatG === null ? null : Math.max(0, target.fatG - consumed.fatG);
     case 'fibre': return consumed.fibreG === null ? null : Math.max(0, target.fibreG - consumed.fibreG);
+    case 'vitaminC':
+    case 'iron':
+    case 'vitaminB12':
+    case 'calcium':
+    case 'folate':
+    case 'vitaminA':
+    case 'potassium':
+      return null;
   }
 }
 
@@ -39,7 +65,14 @@ function per100(canonical: CanonicalItem, target: MacroGapTarget): number | null
     case 'protein': return canonical.proteinPer100;
     case 'carbs': return canonical.carbsPer100;
     case 'fat': return canonical.fatPer100;
-    case 'fibre': return null;
+    case 'fibre': return canonical.fibrePer100;
+    case 'vitaminC': return canonical.vitaminCMgPer100;
+    case 'iron': return canonical.ironMgPer100;
+    case 'vitaminB12': return canonical.vitaminB12McgPer100;
+    case 'calcium': return canonical.calciumMgPer100;
+    case 'folate': return canonical.folateMcgPer100;
+    case 'vitaminA': return canonical.vitaminAMcgPer100;
+    case 'potassium': return canonical.potassiumMgPer100;
   }
 }
 

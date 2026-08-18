@@ -34,6 +34,42 @@ const IDENTITY_TABLES = [
 const PANTRY_TABLES = ['locations', 'pantry_items'];
 
 describe('migrations', () => {
+  test('the fasting migration upgrades its prior head without touching existing data', () => {
+    const db = new DatabaseSync(':memory:');
+    const fastingIndex = MIGRATIONS.findIndex((statement) => statement.includes('CREATE TABLE fasts'));
+    expect(fastingIndex).toBeGreaterThan(0);
+    migrate(db, 0, fastingIndex);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('before-fasting', '2026-08-17T12:00:00Z', '2026-08-17', 'lunch', 'Noodles', 'manual', '2026-08-17T12:00:00Z')`,
+    ).run();
+
+    migrate(db, fastingIndex, fastingIndex + 1);
+
+    expect(tableNames(db)).toContain('fasts');
+    expect(db.prepare("SELECT name FROM meals WHERE id = 'before-fasting'").get()).toEqual({
+      name: 'Noodles',
+    });
+    db.close();
+  });
+
+  test('the chart-preference migration upgrades the current head without touching existing data', () => {
+    const db = new DatabaseSync(':memory:');
+    migrate(db, 0, LATEST_VERSION - 1);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('before-charts', '2026-08-17T12:00:00Z', '2026-08-17', 'lunch', 'Noodles', 'manual', '2026-08-17T12:00:00Z')`,
+    ).run();
+
+    migrate(db, LATEST_VERSION - 1, LATEST_VERSION);
+
+    expect(tableNames(db)).toContain('chart_preferences');
+    expect(db.prepare("SELECT name FROM meals WHERE id = 'before-charts'").get()).toEqual({
+      name: 'Noodles',
+    });
+    db.close();
+  });
+
   test('a fresh install reaches the latest version with every table', () => {
     const db = new DatabaseSync(':memory:');
     migrate(db, 0, LATEST_VERSION);
@@ -59,6 +95,8 @@ describe('migrations', () => {
     expect(tables).toContain('shopping_list_items');
     expect(tables).toContain('shopping_list_sources');
     expect(tables).toContain('shopping_list_receipt_matches');
+    expect(tables).toContain('fasts');
+    expect(tables).toContain('chart_preferences');
     const productColumns = db.prepare('PRAGMA table_info(products)').all() as { name: string }[];
     expect(productColumns.map((column) => column.name)).toContain('last_scanned_at');
     const nutritionColumns = db.prepare('PRAGMA table_info(meal_items)').all() as {

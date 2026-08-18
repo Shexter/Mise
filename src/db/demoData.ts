@@ -39,6 +39,8 @@ const profile: Profile = {
   fibreTargetG: 30,
   units: 'metric',
   onboardedAt: '2026-01-15T18:00:00.000Z',
+  targetWeightKg: null,
+  weightGoalRateKgPerWeek: null,
 };
 
 interface DemoMeal {

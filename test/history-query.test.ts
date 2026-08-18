@@ -14,6 +14,7 @@ const profile: Profile = {
   targetSource: 'estimated', statedCalories: null, statedFigureKind: null,
   proteinPct: 0.3, carbsPct: 0.4, fatPct: 0.3, fibreTargetG: 30, units: 'metric',
   onboardedAt: '2026-01-01T00:00:00.000Z',
+  targetWeightKg: null, weightGoalRateKgPerWeek: null,
 };
 
 beforeEach(() => {

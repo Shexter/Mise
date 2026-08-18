@@ -66,6 +66,8 @@ export default function EnergySourceStep() {
     fibreTargetG: existingProfile?.fibreTargetG ?? DEFAULT_FIBRE_TARGET_G,
     units: existingProfile?.units ?? 'metric',
     onboardedAt: existingProfile?.onboardedAt ?? new Date().toISOString(),
+    targetWeightKg: existingProfile?.targetWeightKg ?? null,
+    weightGoalRateKgPerWeek: existingProfile?.weightGoalRateKgPerWeek ?? null,
   };
   const warnings = valid ? energyInputWarnings(preview, measurement ?? undefined) : [];
   const save = async () => {
