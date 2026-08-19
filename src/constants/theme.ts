@@ -1,5 +1,6 @@
 import { readThemePreference } from '@/constants/themePreference';
 import { themePalettes } from '@/constants/themePalettes';
+import type { DailyNutritionMetric } from '@/logic/dailyNutritionSummary';
 
 /**
  * The single source of truth for colour, type, space, shape and motion.
@@ -38,6 +39,15 @@ export const macroColor = {
   fat: color.olive,
   fibre: color.ink,
 } as const;
+
+/** A dedicated, per-theme-validated categorical palette for the five daily nutrition metrics. */
+export const metricColor: Record<DailyNutritionMetric, string> = {
+  energy: color.chart1,
+  protein: color.chart2,
+  carbohydrate: color.chart3,
+  fat: color.chart4,
+  fibre: color.chart5,
+};
 
 export const font = {
   /** Display serif. Large numerals only — never below 22px. */

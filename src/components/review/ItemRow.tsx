@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   title: { flexShrink: 1 },
   badge: {
     paddingHorizontal: space.sm,
-    paddingVertical: 2,
+    paddingVertical: space.xs,
     borderRadius: radius.full,
     backgroundColor: color.ground,
   },

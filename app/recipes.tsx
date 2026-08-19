@@ -15,14 +15,14 @@ export default function RecipesScreen() {
   useFocusEffect(load);
   return (
     <Screen scroll>
-      <View style={styles.header}>
-        <ScreenTitle>Saved recipes</ScreenTitle>
-      </View>
+      <View style={styles.sections}>
+      <ScreenTitle>Saved recipes</ScreenTitle>
       <SavedRecipesSection recipes={recipes} />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { marginTop: space.base, marginBottom: space.lg },
+  sections: { marginTop: space.base, gap: space.lg },
 });

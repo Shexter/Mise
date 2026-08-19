@@ -16,9 +16,9 @@
 ## 3. Pantry Shop surface
 
 - [x] 3.1 Add Stock / Recipes / Shop subsection navigation while keeping Stock selected by default.
-- [ ] 3.2 Build grouped Shop list with source explanations, qualitative states, completion, snooze, dismiss, restore, and empty states.
+- [x] 3.2 Build grouped Shop list with source explanations, qualitative states, completion, snooze, dismiss, restore, and empty states.
 - [x] 3.3 Add manual item entry/edit UI for resolved and unresolved names, optional quantity/unit, note, and category.
-- [ ] 3.4 Keep Today unchanged and cover themes, large text, reduced motion, and screen-reader selected-state semantics.
+- [x] 3.4 Keep Today unchanged and cover themes, large text, reduced motion, and screen-reader selected-state semantics.
 
 ## 4. Recipe and suggestion entry points
 

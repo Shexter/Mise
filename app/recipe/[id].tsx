@@ -165,7 +165,13 @@ export default function RecipeDetailScreen() {
           </Pressable>
         ) : <Caption muted>No source link was provided with this recipe.</Caption>}
 
-        {recipe.status === 'awaiting_content' ? <Card><EmptyState title="Add the ingredients when you have them" detail="This link was saved without usable recipe text. Paste the caption or add a screenshot from Saved recipes." actionLabel="Back to recipes" onAction={() => router.replace('/recipes')} /></Card> : <>
+        {recipe.status === 'awaiting_content' ? (
+          <Card>
+            <Body>Add the ingredients when you have them</Body>
+            <Caption muted>This link was saved without usable recipe text. Paste the caption or add a screenshot from Saved recipes.</Caption>
+            <Button label="Back to recipes" variant="secondary" block={false} onPress={() => router.replace('/recipes')} style={styles.emptyAction} />
+          </Card>
+        ) : <>
           <Card title="Kitchen coverage">
             <Coverage label="You have" names={coverage?.held ?? []} empty="Nothing matched in your pantry yet." />
             <Coverage label="Missing" names={coverage?.missing ?? []} empty="Nothing missing." />
@@ -201,6 +207,7 @@ function Coverage({ label, names, empty }: { label: string; names: readonly stri
 }
 
 const styles = StyleSheet.create({
+  emptyAction: { marginTop: space.sm },
   header: { marginTop: space.base, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   content: { gap: space.base, marginTop: space.lg },
   source: { gap: space.xs, paddingVertical: space.sm },

@@ -12,12 +12,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hasApiKey } from '@/api/keyStore';
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { CountingNumber } from '@/components/CountingNumber';
 import { DailyTargetSummary } from '@/components/DailyTargetSummary';
 import { DateStrip } from '@/components/DateStrip';
 import { DayRail } from '@/components/DayRail';
-import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { MealRow } from '@/components/MealRow';
@@ -233,12 +233,9 @@ export default function TodayScreen() {
 
           {loading && meals.length === 0 ? null : meals.length === 0 ? (
             <Card>
-              <EmptyState
-                title="Nothing logged yet"
-                detail="Photograph your first meal to start the day."
-                actionLabel="Take a photo"
-                onAction={() => router.push('/capture')}
-              />
+              <Body>Nothing logged yet</Body>
+              <Caption muted>Photograph your first meal to start the day.</Caption>
+              <Button label="Take a photo" variant="secondary" block={false} onPress={() => router.push('/capture')} style={styles.emptyAction} />
             </Card>
           ) : (
             <Card padded={false}>
@@ -279,6 +276,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ground },
+  emptyAction: { marginTop: space.sm },
   content: {
     paddingHorizontal: layout.screenGutter,
     gap: space.lg,

@@ -4,7 +4,6 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card, Divider } from '@/components/Card';
-import { EmptyState } from '@/components/EmptyState';
 import { Field } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, Hero, RowTitle, ScreenTitle } from '@/components/Type';
@@ -127,10 +126,8 @@ export default function FastingScreen() {
         <RowTitle>History</RowTitle>
         {history.length === 0 ? (
           <Card>
-            <EmptyState
-              title="No completed fasts"
-              detail="A fast appears here after you end it."
-            />
+            <Body>No completed fasts</Body>
+            <Caption muted>A fast appears here after you end it.</Caption>
           </Card>
         ) : (
           <Card padded={false}>

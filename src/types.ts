@@ -951,6 +951,85 @@ export interface ReceiptFrame {
   extractedAt: string | null;
 }
 
+/* -------------------------------------------------------------------------- */
+/* On-device receipt OCR                                                      */
+/* -------------------------------------------------------------------------- */
+
+/** The platform-native text recognizer behind the shared OCR contract. */
+export type OcrEngine = 'ml_kit' | 'vision';
+
+/**
+ * Install lifecycle of the on-device model, kept separate from any single
+ * recognition attempt's outcome. `unavailable` means the platform itself
+ * cannot host the model (e.g. no Google Play services) — a device
+ * condition, not a failed attempt. `failed` means a download attempt
+ * failed and can be retried.
+ */
+export type OcrModelState =
+  | 'not_installed'
+  | 'downloading'
+  | 'installed'
+  | 'unavailable'
+  | 'failed';
+
+export const OCR_MODEL_STATES: readonly OcrModelState[] = [
+  'not_installed',
+  'downloading',
+  'installed',
+  'unavailable',
+  'failed',
+];
+
+/** A recognition-language pack. Start Latin-only (design decision 6); add scripts deliberately. */
+export type OcrScript = 'latin';
+
+export const OCR_SCRIPTS: readonly OcrScript[] = ['latin'];
+
+export type OcrModelErrorKind = 'network' | 'storage' | 'services_unavailable' | 'cancelled' | 'unknown';
+
+export interface OcrModelStatus {
+  engine: OcrEngine;
+  state: OcrModelState;
+  script: OcrScript;
+  /** 0-1 while `state` is `downloading`; null otherwise. */
+  downloadProgress: number | null;
+  /** Approximate installed size in bytes, once known. Null before install. */
+  sizeBytes: number | null;
+  lastErrorKind: OcrModelErrorKind | null;
+}
+
+/** One corner-anchored bounding box in image-space pixels, as the platform reports it. */
+export interface OcrBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** One recognized line of text, before any semantic interpretation. */
+export interface OcrLine {
+  text: string;
+  /** Reading order as the engine produced it. */
+  order: number;
+  boundingBox: OcrBoundingBox;
+  /**
+   * The engine's own recognition confidence (0-1). Kept apart from
+   * canonical match confidence everywhere it's used — a crisply recognized
+   * word can still be the wrong ingredient, and a smudged one the right one.
+   */
+  confidence: number;
+}
+
+export type OcrConfidenceBand = 'high' | 'medium' | 'low';
+
+/** The output of one on-device recognition pass over one receipt frame. Temporary, local-only data. */
+export interface OcrResult {
+  engine: OcrEngine;
+  script: OcrScript;
+  lines: readonly OcrLine[];
+  recognizedAt: string;
+}
+
 /** A camera image retained until it can be interpreted and reviewed. */
 export type PendingCaptureKind = 'receipt' | 'items' | 'unclear' | 'nothing';
 export type PendingCaptureStatus = 'pending' | 'failed';

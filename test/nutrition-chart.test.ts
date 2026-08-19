@@ -3,8 +3,11 @@ import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
+import { metricColor } from '@/constants/theme';
+import { THEME_IDS, themePalettes } from '@/constants/themePalettes';
 import type { NutritionBucket } from '@/logic/nutritionRange';
 import { buildTrendChartModel } from '@/logic/trendChart';
+import { DAILY_NUTRITION_METRICS } from '@/logic/dailyNutritionSummary';
 
 const root = path.resolve(__dirname, '..');
 const chart = fs.readFileSync(path.join(root, 'src/components/NutritionChart.tsx'), 'utf8');
@@ -45,6 +48,25 @@ describe('NutritionChart accessibility and truth boundaries', () => {
 
   test('introduces no animation, making reduced-motion output identical', () => {
     expect(chart).not.toMatch(/Animated|withTiming|duration|transition/i);
+  });
+
+  test('accepts a colour prop and renders line stroke, dot fill, and bar fill from it, not a hardcoded ink', () => {
+    expect(chart).toContain('color: string');
+    expect(chart).toContain('stroke={metricColor}');
+    expect(chart).toContain('fill={point.partial ? color.surface : metricColor}');
+    expect(chart).toContain('backgroundColor: metricColor');
+    expect(chart).not.toContain('stroke={color.ink}');
+    // The shared legend key (coverage state, not a metric identity) intentionally stays ink.
+    expect(chart).toContain('completeMark: { backgroundColor: color.ink');
+  });
+
+  test('two different metrics resolve two different, theme-correct colours, not the same hardcoded value', () => {
+    expect(metricColor.energy).not.toBe(metricColor.protein);
+    for (const themeId of THEME_IDS) {
+      const palette = themePalettes[themeId];
+      const colors = DAILY_NUTRITION_METRICS.map((metric, index) => palette[(['chart1', 'chart2', 'chart3', 'chart4', 'chart5'] as const)[index]!]);
+      expect(new Set(colors).size).toBe(colors.length);
+    }
   });
 
   test('handles empty and single-point fixtures without inventing segments', () => {

@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { DietaryRuleList } from '@/components/dietary/DietaryRuleList';
 import { Screen } from '@/components/Screen';
@@ -9,17 +9,18 @@ import { space } from '@/constants/theme';
 export default function DietaryRulesScreen() {
   return (
     <Screen scroll>
-      <ScreenTitle style={styles.title}>What you avoid</ScreenTitle>
-      <Caption muted style={styles.subtitle}>
+      <View style={styles.sections}>
+      <ScreenTitle>What you avoid</ScreenTitle>
+      <Caption muted>
         Allergies and restrictions are filtered out of suggestions. Dislikes
         rank lower, but can still appear if nothing else fits.
       </Caption>
       <DietaryRuleList />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { marginTop: space.base },
-  subtitle: { marginTop: space.sm, marginBottom: space.lg },
+  sections: { marginTop: space.base, gap: space.lg },
 });

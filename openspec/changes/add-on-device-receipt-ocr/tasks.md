@@ -1,7 +1,35 @@
 ## 1. Contract and research
 
-- [ ] 1.1 Inventory the existing receipt/unified-capture extraction, review, queue, and fallback seams; document integration points and decisions 8, 21, 55, 60, 111, and 113.
-- [ ] 1.2 Define OCR model state, engine, line geometry, confidence, temporary-data retention, and fallback types with platform-neutral tests.
+- [x] 1.1 Inventory the existing receipt/unified-capture extraction, review, queue, and fallback seams; document integration points and decisions 8, 21, 55, 60, 111, and 113.
+
+      Recorded as `design.md`'s "Existing pipeline inventory (task 1.1)"
+      section: capture entry points, the two extraction call sites sharing
+      one contract, review's per-line actions, the two offline queues
+      (`pending_captures` and per-frame receipt pending state), every
+      existing fallback tier, and the application/reconciliation path
+      (`planReceiptApply` / `reanchorFromReceipt` / shopping-list match),
+      each tied to its cited decision. One genuine open question surfaced
+      (not resolved here, per design.md's existing Open Questions): whether
+      OCR text still needs a subsequent cloud semantic pass, since today's
+      single vision call does both reading and structuring and this
+      change's own Non-Goals exclude "semantic understanding in the OCR
+      bridge" from the local bridge itself.
+- [x] 1.2 Define OCR model state, engine, line geometry, confidence, temporary-data retention, and fallback types with platform-neutral tests.
+
+      `src/types.ts`: `OcrEngine`, `OcrModelState` (+ `unavailable` vs
+      `failed` distinction — device-capability vs retryable-attempt),
+      `OcrScript` (Latin-only for now), `OcrModelStatus`, `OcrBoundingBox`,
+      `OcrLine`, `OcrConfidenceBand`, `OcrResult` (the temporary, local-only
+      recognition-pass record). `src/logic/receiptOcr.ts`: pure
+      `advanceOcrModelState`/`applyOcrModelEvent` (the model lifecycle
+      state machine), `orderedOcrLines`, `ocrConfidenceBand`,
+      `shouldFallbackToCloud` (installed-and-nonempty is the only bar —
+      never triggered by low per-line confidence, which is a review
+      concern per design.md), and `isWrappedContinuation` (the geometry
+      grouping primitive task 2.5/3.4 will use, deliberately narrow so it
+      only ever merges a genuine line-wrap, never two separate printed
+      lines — decision 111). 22 unit tests in
+      `src/logic/receiptOcr.test.ts`, no native dependency.
 - [ ] 1.3 Build a receipt fixture corpus covering tiny type, columns, wrapped lines, blur, skew, lighting, totals, non-food lines, and Latin/CJK candidates; record baseline extraction quality.
 
 ## 2. Local image and OCR pipeline

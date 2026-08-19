@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Segmented } from '@/components/Choice';
-import { EmptyState } from '@/components/EmptyState';
 import { Sheet } from '@/components/Sheet';
 import { Stepper } from '@/components/Stepper';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
@@ -224,54 +223,49 @@ export default function DinnerScreen() {
           </View>
         ) : outcome.status === 'no_key' ? (
           <Card>
-            <EmptyState
-              title="Add an API key to get ideas"
-              detail="Suggestions come from the same key photo estimates use. Your pantry and calorie tracking work fine without one."
-              actionLabel="Open Settings"
-              onAction={() => router.push('/(tabs)/settings')}
-            />
+            <Body>Add an API key to get ideas</Body>
+            <Caption muted>Suggestions come from the same key photo estimates use. Your pantry and calorie tracking work fine without one.</Caption>
+            <Button label="Open Settings" variant="secondary" block={false} onPress={() => router.push('/(tabs)/settings')} style={styles.emptyAction} />
           </Card>
         ) : outcome.status === 'error' ? (
           <Card>
-            <EmptyState
-              title="Couldn't get suggestions"
-              detail={outcome.message}
-              actionLabel="Try again"
-              onAction={() => void load(mode, true)}
-            />
+            <Body>Couldn't get suggestions</Body>
+            <Caption muted>{outcome.message}</Caption>
+            <Button label="Try again" variant="secondary" block={false} onPress={() => void load(mode, true)} style={styles.emptyAction} />
           </Card>
         ) : outcome.status === 'met_target' ? (
-          <Card><EmptyState title="That target is already met" detail="There is no remaining gap to solve." /></Card>
+          <Card>
+            <Body>That target is already met</Body>
+            <Caption muted>There is no remaining gap to solve.</Caption>
+          </Card>
         ) : outcome.status === 'insufficient_data' ? (
-          <Card><EmptyState
-            title={outcome.reason === 'consumed_total_unknown'
-              ? 'This day’s macro total is unavailable'
-              : 'Not enough catalogue nutrition yet'}
-            detail={outcome.reason === 'consumed_total_unknown'
-              ? 'One or more logged meals has an unknown value for this macro, so Mise cannot calculate the gap.'
-              : 'Mise cannot calculate a pantry contribution for this macro from current data.'}
-          /></Card>
+          <Card>
+            <Body>
+              {outcome.reason === 'consumed_total_unknown'
+                ? 'This day’s macro total is unavailable'
+                : 'Not enough catalogue nutrition yet'}
+            </Body>
+            <Caption muted>
+              {outcome.reason === 'consumed_total_unknown'
+                ? 'One or more logged meals has an unknown value for this macro, so Mise cannot calculate the gap.'
+                : 'Mise cannot calculate a pantry contribution for this macro from current data.'}
+            </Caption>
+          </Card>
         ) : suggestions.length === 0 && droppedForDiet > 0 ? (
           <Card>
-            <EmptyState
-              title="Nothing left after your dietary rules"
-              detail="Every idea today ran into something you avoid. Try again for a fresh set."
-              actionLabel="Try again"
-              onAction={() => void load(mode, true)}
-            />
+            <Body>Nothing left after your dietary rules</Body>
+            <Caption muted>Every idea today ran into something you avoid. Try again for a fresh set.</Caption>
+            <Button label="Try again" variant="secondary" block={false} onPress={() => void load(mode, true)} style={styles.emptyAction} />
           </Card>
         ) : suggestions.length === 0 && droppedForConstraint > 0 ? (
           <Card>
-            <EmptyState
-              title="Nothing left after using what needs using first"
-              detail="Every idea today skipped what's expiring soon. Try again for a fresh set."
-              actionLabel="Try again"
-              onAction={() => void load(mode, true)}
-            />
+            <Body>Nothing left after using what needs using first</Body>
+            <Caption muted>Every idea today skipped what's expiring soon. Try again for a fresh set.</Caption>
+            <Button label="Try again" variant="secondary" block={false} onPress={() => void load(mode, true)} style={styles.emptyAction} />
           </Card>
         ) : suggestions.length === 0 ? (
           <Card>
-            <EmptyState title="Nothing to suggest right now" />
+            <Body>Nothing to suggest right now</Body>
           </Card>
         ) : (
           <>
@@ -458,6 +452,7 @@ function SuggestionCard({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ground },
+  emptyAction: { marginTop: space.sm },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

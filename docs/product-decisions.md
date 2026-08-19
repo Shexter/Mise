@@ -2503,3 +2503,41 @@ The default is a practical starting point for a new profile, stored independentl
 of the calorie split and editable in Settings. It is not recalculated when a
 calorie target changes, and the app makes no health claim about it. Historical
 meal rows without a fibre estimate remain unknown rather than reading as zero.
+
+## Chart colour
+
+**189. Trend charts get a dedicated, validated 5-slot categorical palette
+— not a reuse of the three UI accent hues.** `SETTLED`
+Running `paprika`/`wheat`/`olive`/`ink` (the existing `macroColor` mapping)
+through the data-viz skill's categorical-palette validator against every
+theme in `themePalettes.ts` showed objective failures, not a taste
+complaint: the default `organic` theme fails the normal-vision
+distinguishability floor for olive vs. wheat (ΔE 11.0, floor 15);
+`midnight-organic`, the one dark theme, fails lightness, chroma, and
+distinguishability together; `utility` fails the chroma floor for olive and
+the contrast floor for wheat. Those three hues were designed as UI accents
+(buttons, small highlights) and were never validated as a categorical
+dataviz palette.
+
+Rather than retune the three accents — which are used throughout the app
+outside charts (buttons, `MacroBars`, chips) and would ripple far beyond
+this scope — each theme in `themePalettes.ts` gained five new fields
+(`chart1`…`chart5`), assigned in a fixed order
+(`energy → protein → carbohydrate → fat → fibre`, matching
+`DAILY_NUTRITION_METRICS`'s own declared order) via a new `metricColor`
+export in `theme.ts`, colocated with `macroColor`. Every theme's five-hex
+set was independently run through the validator against that theme's own
+surface before being accepted; none shipped unvalidated. `NutritionChart`
+now renders each metric's line, dot, and bar in its resolved colour instead
+of a single hardcoded `color.ink`; the existing coverage encoding (dashed
+= partial, diamond = unknown, hollow ring = no-meals) is untouched, so
+colour stays a secondary channel layered on top of it, never a replacement.
+
+Accepted trade-off: `NutritionChart` (Analytics) and `MacroBars` (Today)
+now render the same metric — e.g. protein — in two different colours.
+Unifying them would mean retuning `paprika`/`wheat`/`olive` app-wide, which
+is out of scope here. One theme's set (the default `organic`'s worst
+adjacent pair, fat↔carbohydrate) sits in the CVD 6–8 warn band rather than
+clearing the ≥8 target; that is legal only because the screen's own visible
+per-chart `SectionLabel` already provides direct-label secondary encoding,
+not a silent gap.

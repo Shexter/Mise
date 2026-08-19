@@ -11,6 +11,8 @@ interface Props {
   form: NutritionChartForm;
   metricLabel: string;
   unit: string;
+  /** The metric's validated categorical colour (see `metricColor` in `@/constants/theme`). */
+  color: string;
   onSelect?: (bucket: NutritionBucket) => void;
 }
 
@@ -23,7 +25,7 @@ const COLUMN_WIDTH = layout.minTouchTarget;
  * chronological touch and screen-reader target; the visual plot never carries
  * information by colour alone.
  */
-export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: Props) {
+export function NutritionChart({ buckets, form, metricLabel, unit, color: metricColor, onSelect }: Props) {
   const knownValues = buckets.flatMap((bucket) => bucket.knownValue === null ? [] : [bucket.knownValue]);
   const maximum = Math.max(1, ...knownValues);
   const plotWidth = Math.max(COLUMN_WIDTH, buckets.length * COLUMN_WIDTH);
@@ -46,7 +48,7 @@ export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: P
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator accessibilityLabel={`${metricLabel} ${form} chart`}>
         <View style={[styles.plot, { width: plotWidth }]}>
-          {form === 'line' ? <SvgLinePlot width={plotWidth} model={lineModel} /> : null}
+          {form === 'line' ? <SvgLinePlot width={plotWidth} model={lineModel} color={metricColor} /> : null}
           <View style={styles.columns}>
             {buckets.map((bucket) => (
               <BucketColumn
@@ -56,6 +58,7 @@ export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: P
                 metricLabel={metricLabel}
                 unit={unit}
                 maximum={maximum}
+                color={metricColor}
                 onPress={() => onSelect?.(bucket)}
               />
             ))}
@@ -75,9 +78,11 @@ export function NutritionChart({ buckets, form, metricLabel, unit, onSelect }: P
 function SvgLinePlot({
   width,
   model,
+  color: metricColor,
 }: {
   width: number;
   model: ReturnType<typeof buildTrendChartModel>;
+  color: string;
 }) {
   return (
     <Svg
@@ -93,7 +98,7 @@ function SvgLinePlot({
           y1={segment.from.y}
           x2={segment.to.x}
           y2={segment.to.y}
-          stroke={color.ink}
+          stroke={metricColor}
           strokeWidth={layout.nutritionChartStrokeWidth}
           strokeDasharray={segment.partial ? `${space.xs} ${space.xs}` : undefined}
         />
@@ -104,8 +109,8 @@ function SvgLinePlot({
           cx={point.x}
           cy={point.y}
           r={layout.nutritionChartPoint / 2}
-          fill={point.partial ? color.surface : color.ink}
-          stroke={color.ink}
+          fill={point.partial ? color.surface : metricColor}
+          stroke={metricColor}
           strokeWidth={point.partial ? layout.nutritionChartStrokeWidth : undefined}
           strokeDasharray={point.partial ? `${space.xs} ${space.xs}` : undefined}
         />
@@ -120,6 +125,7 @@ function BucketColumn({
   metricLabel,
   unit,
   maximum,
+  color: metricColor,
   onPress,
 }: {
   bucket: NutritionBucket;
@@ -127,6 +133,7 @@ function BucketColumn({
   metricLabel: string;
   unit: string;
   maximum: number;
+  color: string;
   onPress: () => void;
 }) {
   const plottable = bucket.knownValue !== null
@@ -153,7 +160,9 @@ function BucketColumn({
         <View
           style={[
             styles.bar,
-            bucket.coverage === 'partial' && styles.partialBar,
+            bucket.coverage === 'partial'
+              ? [styles.partialBar, { borderColor: metricColor }]
+              : { backgroundColor: metricColor },
             { height: Math.max(layout.nutritionChartPoint, PLOT_HEIGHT * ratio) },
           ]}
         />
@@ -188,8 +197,8 @@ const styles = StyleSheet.create({
   svg: { ...fillParent },
   columns: { flexDirection: 'row', height: '100%' },
   column: { width: COLUMN_WIDTH, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  bar: { width: space.base, backgroundColor: color.ink, borderRadius: radius.input },
-  partialBar: { backgroundColor: color.surface, borderWidth: 1, borderStyle: 'dashed', borderColor: color.ink },
+  bar: { width: space.base, borderRadius: radius.input },
+  partialBar: { backgroundColor: color.surface, borderWidth: 1, borderStyle: 'dashed' },
   unknownPlotMark: { width: layout.nutritionChartPoint, height: layout.nutritionChartPoint, borderWidth: 1, borderColor: color.ink, transform: [{ rotate: '45deg' }], marginBottom: space.sm },
   absentPlotMark: { width: layout.nutritionChartPoint, height: layout.nutritionChartPoint, borderRadius: radius.full, borderWidth: 1, borderColor: color.line, marginBottom: space.sm },
   dateLabel: { width: COLUMN_WIDTH, textAlign: 'center', marginTop: space.xs },

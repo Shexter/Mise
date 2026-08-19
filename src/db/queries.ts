@@ -3102,17 +3102,18 @@ export async function insertShoppingListItem(input: NewShoppingListItem): Promis
 
 export async function updateShoppingListItem(
   id: string,
-  patch: Partial<Pick<ShoppingListItem, 'displayName' | 'normalizedName' | 'requestedQty' | 'requestedUnit' | 'note' | 'category' | 'sortOrder' | 'status'>>,
+  patch: Partial<Pick<ShoppingListItem, 'canonicalId' | 'displayName' | 'normalizedName' | 'requestedQty' | 'requestedUnit' | 'note' | 'category' | 'sortOrder' | 'status'>>,
 ): Promise<void> {
   const current = await db().getFirstAsync<ShoppingListItemRow>('SELECT * FROM shopping_list_items WHERE id = ?', [id]);
   if (!current) throw new Error('Shopping item not found.');
   const now = new Date().toISOString();
   const nextStatus = patch.status ?? current.status;
   await db().runAsync(
-    `UPDATE shopping_list_items SET display_name = ?, normalized_name = ?,
+    `UPDATE shopping_list_items SET canonical_id = ?, display_name = ?, normalized_name = ?,
        requested_qty = ?, requested_unit = ?, note = ?, category = ?,
        sort_order = ?, status = ?, updated_at = ?, completed_at = ? WHERE id = ?`,
-    [patch.displayName ?? current.display_name, patch.normalizedName ?? current.normalized_name,
+    [patch.canonicalId === undefined ? current.canonical_id : patch.canonicalId,
+      patch.displayName ?? current.display_name, patch.normalizedName ?? current.normalized_name,
       patch.requestedQty === undefined ? current.requested_qty : patch.requestedQty,
       patch.requestedUnit === undefined ? current.requested_unit : patch.requestedUnit,
       patch.note === undefined ? current.note : patch.note, patch.category ?? current.category,

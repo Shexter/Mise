@@ -69,6 +69,7 @@ export default function NutrientSearchScreen() {
 
   return (
     <Screen scroll>
+      <View style={styles.sections}>
       <View style={styles.header}>
         <ScreenTitle>Search by nutrient</ScreenTitle>
         <Pressable
@@ -84,7 +85,7 @@ export default function NutrientSearchScreen() {
           <Feather name="x" size={22} color={color.ink} />
         </Pressable>
       </View>
-      <Caption muted style={styles.subtitle}>
+      <Caption muted>
         What&rsquo;s in your kitchen with the most of a nutrient you&rsquo;re
         after.
       </Caption>
@@ -101,12 +102,12 @@ export default function NutrientSearchScreen() {
           detail="Close this and try again."
         />
       ) : items === null || canonicals === null ? (
-        <Caption muted style={styles.loading}>
+        <Caption muted>
           Loading your pantry…
         </Caption>
       ) : assessment && assessment.hasMeasuredCoverage ? (
         <>
-          <Card padded={false} style={styles.results}>
+          <Card padded={false}>
             {assessment.contributors.map((contributor, index) => (
               <View key={contributor.item.id}>
                 {index > 0 ? <Divider /> : null}
@@ -131,6 +132,7 @@ export default function NutrientSearchScreen() {
           }
         />
       ) : null}
+      </View>
     </Screen>
   );
 }
@@ -171,11 +173,11 @@ function daysLeftLabel(daysLeft: number | null): string {
 }
 
 const styles = StyleSheet.create({
+  sections: { marginTop: space.base, gap: space.lg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: space.base,
   },
   closeButton: {
     width: layout.minTouchTarget,
@@ -183,9 +185,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  subtitle: { marginTop: space.sm, marginBottom: space.lg },
-  results: { marginTop: space.lg },
-  loading: { marginTop: space.lg },
   footnote: { marginTop: space.sm },
   row: {
     minHeight: layout.minRowHeight,

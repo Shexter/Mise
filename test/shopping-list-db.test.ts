@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import {
   addShoppingListSource,
   insertShoppingListItem,
+  insertCanonicalItem,
   insertCapturedReceipt,
   attachExtractedLines,
   listShoppingItems,
   matchShoppingItemToReceipt,
+  removeShoppingListSource,
   undoShoppingReceiptMatch,
   updateShoppingListItem,
 } from '@/db/queries';
@@ -40,6 +42,36 @@ describe('shopping list persistence', () => {
     await updateShoppingListItem(item.id, { displayName: 'Green onions', normalizedName: 'green onions', requestedQty: 2, requestedUnit: 'piece', note: 'For noodles' });
     const updated = (await listShoppingItems(true)).find((entry) => entry.id === item.id);
     expect(updated).toMatchObject({ displayName: 'Green onions', requestedQty: 2, requestedUnit: 'piece', note: 'For noodles' });
+    expect(updated?.sources).toHaveLength(1);
+    expect(updated?.sources[0]?.kind).toBe('manual');
+  });
+
+  test('can attach a canonical to a manual item and later clear it back to unresolved free text', async () => {
+    await insertCanonicalItem({
+      id: 'scallion', displayName: 'Scallion', foodClass: 'produce', defaultLocation: 'fridge',
+      shelfLifeDays: { fridge: 14 }, openLifeDays: null, typicalUseQty: null, typicalUseUnit: null,
+    });
+    const item = await insertShoppingListItem({ canonicalId: null, displayName: 'Scallions', normalizedName: 'scallions' });
+    await updateShoppingListItem(item.id, { canonicalId: 'scallion', displayName: 'Scallion', normalizedName: 'scallion', category: 'produce' });
+    expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.canonicalId).toBe('scallion');
+
+    await updateShoppingListItem(item.id, { canonicalId: null });
+    const cleared = (await listShoppingItems(true)).find((entry) => entry.id === item.id);
+    expect(cleared?.canonicalId).toBeNull();
+    // Unrelated fields set by the earlier update are untouched by an update that omits them.
+    expect(cleared?.displayName).toBe('Scallion');
+  });
+
+  test('removes a stale automatic source without touching the item or its other sources', async () => {
+    await insertCanonicalItem({
+      id: 'rice', displayName: 'Rice', foodClass: 'staple', defaultLocation: 'pantry',
+      shelfLifeDays: { pantry: 365 }, openLifeDays: null, typicalUseQty: null, typicalUseUnit: null,
+    });
+    const item = await insertShoppingListItem({ canonicalId: 'rice', displayName: 'Rice', normalizedName: 'rice' });
+    await addShoppingListSource({ shoppingItemId: item.id, kind: 'pantry_low', sourceId: 'rice-pantry' });
+    await addShoppingListSource({ shoppingItemId: item.id, kind: 'manual' });
+    await removeShoppingListSource(item.id, { kind: 'pantry_low', sourceId: 'rice-pantry', recipeId: null, suggestionId: null });
+    const updated = (await listShoppingItems(true)).find((entry) => entry.id === item.id);
     expect(updated?.sources).toHaveLength(1);
     expect(updated?.sources[0]?.kind).toBe('manual');
   });

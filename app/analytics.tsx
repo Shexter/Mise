@@ -4,14 +4,13 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { EmptyState } from '@/components/EmptyState';
 import { Field } from '@/components/Field';
 import { NutritionChart } from '@/components/NutritionChart';
 import { NutritionReport } from '@/components/NutritionReport';
 import { Segmented } from '@/components/Choice';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
-import { color, layout, opacity, space } from '@/constants/theme';
+import { color, layout, metricColor, opacity, space } from '@/constants/theme';
 import {
   readNutritionAnalyticsPreference,
   writeNutritionAnalyticsPreference,
@@ -170,6 +169,7 @@ export default function NutritionAnalyticsScreen() {
 
   return (
     <Screen scroll footer={<Button label="Back to Today" onPress={() => router.back()} />}>
+      <View style={styles.sections}>
       <View style={styles.header}>
         <ScreenTitle>Nutrition Analytics</ScreenTitle>
         <Body muted>{friendlyDate(localDate)}</Body>
@@ -253,7 +253,10 @@ export default function NutritionAnalyticsScreen() {
         {!chartPreferenceReady ? (
           <Card><Caption muted>Loading chart preferences…</Caption></Card>
         ) : enabledMetrics.length === 0 ? (
-          <Card><EmptyState title="No charts enabled" detail="Choose a metric above to add its trend." /></Card>
+          <Card>
+            <Body>No charts enabled</Body>
+            <Caption muted>Choose a metric above to add its trend.</Caption>
+          </Card>
         ) : enabledMetrics.map((enabledMetric) => (
           <Card key={enabledMetric}>
             <NutritionChart
@@ -261,6 +264,7 @@ export default function NutritionAnalyticsScreen() {
               form="line"
               metricLabel={LABELS[enabledMetric]}
               unit={UNITS[enabledMetric]}
+              color={metricColor[enabledMetric]}
             />
           </Card>
         ))}
@@ -281,7 +285,10 @@ export default function NutritionAnalyticsScreen() {
       </Card>
 
       {contributors.length === 0 ? (
-        <Card><EmptyState title="No known contributors" detail={`No logged meal has a known ${LABELS[metric].toLowerCase()} value for this day.`} /></Card>
+        <Card>
+          <Body>No known contributors</Body>
+          <Caption muted>{`No logged meal has a known ${LABELS[metric].toLowerCase()} value for this day.`}</Caption>
+        </Card>
       ) : (
         <Card padded={false}>
           {contributors.map((contributor, index) => (
@@ -301,6 +308,7 @@ export default function NutritionAnalyticsScreen() {
           ))}
         </Card>
       )}
+      </View>
     </Screen>
   );
 }
@@ -315,6 +323,7 @@ function validDate(value: string): boolean {
 }
 
 const styles = StyleSheet.create({
+  sections: { gap: space.lg },
   header: { marginTop: space.base, gap: space.xs },
   controls: { gap: space.md },
   chartManager: { gap: space.md },

@@ -12,6 +12,11 @@ export interface ThemePalette {
   paprika: string;
   wheat: string;
   olive: string;
+  chart1: string;
+  chart2: string;
+  chart3: string;
+  chart4: string;
+  chart5: string;
 }
 
 export const DEFAULT_THEME_ID: ThemeId = 'organic';
@@ -21,31 +26,37 @@ export const themePalettes: Record<ThemeId, ThemePalette> = {
     ground: '#F3EDE4', surface: '#EBE3D8', ink: '#211F1D', muted: '#756F68',
     line: '#D8CEC3', action: '#A95A35', onAction: '#FFFDFC',
     paprika: '#A45239', wheat: '#B68A43', olive: '#74825F',
+    chart1: '#A6672E', chart2: '#8C6BB8', chart3: '#1E8F68', chart4: '#A8452F', chart5: '#0F7C9E',
   },
   utility: {
     ground: '#EDEAE4', surface: '#FFFFFF', ink: '#1C1A17', muted: '#8A857C',
     line: '#DCD8D0', action: '#1C1A17', onAction: '#FFFFFF',
     paprika: '#8C3F2B', wheat: '#C8992F', olive: '#5C6B33',
+    chart1: '#A6672E', chart2: '#8C6BB8', chart3: '#1E8F68', chart4: '#A8452F', chart5: '#0F7C9E',
   },
   'cool-organic': {
     ground: '#F2F1EC', surface: '#FAFAF7', ink: '#202522', muted: '#68716B',
     line: '#D3D8D1', action: '#4F7067', onAction: '#FFFFFF',
     paprika: '#B96F4F', wheat: '#A98236', olive: '#6C7B52',
+    chart1: '#A6672E', chart2: '#8C6BB8', chart3: '#1E8F68', chart4: '#A8452F', chart5: '#0F7C9E',
   },
   'test-lab': {
     ground: '#F1EEF2', surface: '#F9F7F8', ink: '#2D2930', muted: '#746D76',
     line: '#DDD6DF', action: '#8B6F8D', onAction: '#FFFFFF',
     paprika: '#A86F79', wheat: '#B59A71', olive: '#7C927F',
+    chart1: '#A6672E', chart2: '#8C6BB8', chart3: '#1E8F68', chart4: '#A8452F', chart5: '#0F7C9E',
   },
   coolors: {
     ground: '#EEF5F3', surface: '#E2EFEC', ink: '#313B3A', muted: '#6F7C7A',
     line: '#CBDDD8', action: '#9A6378', onAction: '#FFFFFF',
     paprika: '#A87883', wheat: '#C3A17D', olive: '#86A49A',
+    chart1: '#A6672E', chart2: '#8C6BB8', chart3: '#1E8F68', chart4: '#A8452F', chart5: '#0F7C9E',
   },
   'midnight-organic': {
     ground: '#1D211F', surface: '#272D2A', ink: '#F4F1EA', muted: '#B9BDB7',
     line: '#3B4540', action: '#D08A68', onAction: '#201B18',
     paprika: '#D58A73', wheat: '#D2B16F', olive: '#A8B68B',
+    chart1: '#C07F3F', chart2: '#9A78CC', chart3: '#2FA890', chart4: '#C05F4A', chart5: '#2E9DBF',
   },
 };
 

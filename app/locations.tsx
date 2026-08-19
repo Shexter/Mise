@@ -72,8 +72,9 @@ export default function LocationsScreen() {
 
   return (
     <Screen scroll>
-      <ScreenTitle style={styles.title}>Storage spots</ScreenTitle>
-      <Caption muted style={styles.subtitle}>
+      <View style={styles.sections}>
+      <ScreenTitle>Storage spots</ScreenTitle>
+      <Caption muted>
         Name them the way your kitchen works. The type decides how long food
         keeps there.
       </Caption>
@@ -137,6 +138,7 @@ export default function LocationsScreen() {
           disabled={addingName.trim().length === 0}
         />
       </View>
+      </View>
 
       <Sheet
         visible={editing !== null}
@@ -175,8 +177,7 @@ export default function LocationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { marginTop: space.base },
-  subtitle: { marginTop: space.sm, marginBottom: space.lg },
+  sections: { marginTop: space.base, gap: space.lg },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -196,5 +197,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBlock: { marginTop: space.lg, gap: space.sm },
+  addBlock: { gap: space.sm },
 });
