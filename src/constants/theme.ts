@@ -148,6 +148,12 @@ export const layout = {
   cardPadding: space.base,
   minRowHeight: 64,
   minTouchTarget: 44,
+  /**
+   * Widest a single column of reading and form content is allowed to get.
+   * A phone never reaches it; a desktop browser would otherwise stretch one
+   * paragraph across the whole viewport.
+   */
+  contentMaxWidth: 560,
   dayRailHeight: 72,
   nutritionChartHeight: 192,
   nutritionChartPoint: 12,

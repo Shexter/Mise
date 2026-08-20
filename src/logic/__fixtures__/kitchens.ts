@@ -53,6 +53,14 @@ export function canonical(
     folateMcgPer100: overrides.folateMcgPer100 ?? null,
     vitaminAMcgPer100: overrides.vitaminAMcgPer100 ?? null,
     potassiumMgPer100: overrides.potassiumMgPer100 ?? null,
+    vitaminDMcgPer100: overrides.vitaminDMcgPer100 ?? null,
+    magnesiumMgPer100: overrides.magnesiumMgPer100 ?? null,
+    zincMgPer100: overrides.zincMgPer100 ?? null,
+    sodiumMgPer100: overrides.sodiumMgPer100 ?? null,
+    vitaminEMgPer100: overrides.vitaminEMgPer100 ?? null,
+    vitaminKMcgPer100: overrides.vitaminKMcgPer100 ?? null,
+    thiaminMgPer100: overrides.thiaminMgPer100 ?? null,
+    riboflavinMgPer100: overrides.riboflavinMgPer100 ?? null,
   };
 }
 

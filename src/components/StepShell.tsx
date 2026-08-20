@@ -31,6 +31,8 @@ interface Props {
   children?: ReactNode;
   /** Omit both to let the step's own content own its actions. */
   primaryLabel?: string;
+  /** A short helper line under the primary action's label. */
+  primaryDetail?: string;
   onPrimary?: () => void;
   primaryDisabled?: boolean;
   primaryLoading?: boolean;
@@ -48,6 +50,7 @@ export function StepShell({
   detail,
   children,
   primaryLabel,
+  primaryDetail,
   onPrimary,
   primaryDisabled = false,
   primaryLoading = false,
@@ -80,6 +83,7 @@ export function StepShell({
           <View style={styles.footer}>
             <Button
               label={primaryLabel}
+              detail={primaryDetail}
               onPress={onPrimary}
               disabled={primaryDisabled}
               loading={primaryLoading}
@@ -95,7 +99,7 @@ export function StepShell({
         ) : undefined
       }
     >
-      <View style={styles.header}>
+      <View style={[styles.header, styles.column]}>
         {showBack && router.canGoBack() ? (
           <Pressable
             onPress={() => router.back()}
@@ -114,7 +118,7 @@ export function StepShell({
         <Progress index={index} />
       </View>
 
-      <Animated.View entering={entering} style={styles.body}>
+      <Animated.View entering={entering} style={[styles.body, styles.column]}>
         <ScreenTitle>{title}</ScreenTitle>
         {detail ? (
           <Body muted style={styles.detail}>
@@ -168,7 +172,13 @@ const styles = StyleSheet.create({
   },
   tickOn: { backgroundColor: color.action },
   body: { gap: space.sm },
+  /**
+   * One question per screen reads as one column. On a phone this is inert;
+   * in a desktop browser it stops a single line of copy from stretching the
+   * full width of the viewport.
+   */
+  column: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center' },
   detail: { marginTop: space.xs },
   content: { marginTop: space.lg, gap: space.base },
-  footer: { gap: space.sm },
+  footer: { gap: space.sm, width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center' },
 });

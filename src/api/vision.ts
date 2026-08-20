@@ -1,13 +1,7 @@
-import {
-  completeVisionWithAnthropic,
-  estimateWithAnthropic,
-  verifyAnthropicKey,
-} from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
-import { completeVisionWithGemini, estimateWithGemini, verifyGeminiKey } from '@/api/gemini';
-import { getApiKey, getOpenAIEndpoint, PROVIDERS, providerForKey, type Provider } from '@/api/keyStore';
-import { completeVisionWithOpenAI, estimateWithOpenAI, verifyOpenAIKey } from '@/api/openai';
+import { PROVIDERS, type Provider } from '@/api/keyStore';
 import { parseEstimate } from '@/api/parse';
+import { verifyStoredApiKey, withResolvedTransport } from '@/api/transport';
 import type { MealEstimate } from '@/types';
 
 /**
@@ -19,82 +13,14 @@ import type { MealEstimate } from '@/types';
 
 export { VisionError } from '@/api/errors';
 export type { VisionErrorKind } from '@/api/errors';
-
-export interface Transport {
-  estimate: (apiKey: string, base64Jpeg: string, signal?: AbortSignal) => Promise<string>;
-  completeVision: (
-    apiKey: string,
-    system: string,
-    user: string,
-    base64Jpeg: string,
-    signal?: AbortSignal,
-  ) => Promise<string>;
-  verify: (apiKey: string) => Promise<void>;
-}
-
-/** Exhaustive by design: a new provider cannot compile without a transport. */
-export const TRANSPORTS: Record<Provider, Transport> = {
-  anthropic: {
-    estimate: estimateWithAnthropic,
-    completeVision: completeVisionWithAnthropic,
-    verify: verifyAnthropicKey,
-  },
-  gemini: {
-    estimate: estimateWithGemini,
-    completeVision: completeVisionWithGemini,
-    verify: verifyGeminiKey,
-  },
-  openai: {
-    estimate: async (apiKey, base64Jpeg, signal) =>
-      estimateWithOpenAI(apiKey, base64Jpeg, signal, await getOpenAIEndpoint()),
-    completeVision: async (apiKey, system, user, base64Jpeg, signal) =>
-      completeVisionWithOpenAI(
-        apiKey,
-        system,
-        user,
-        base64Jpeg,
-        signal,
-        await getOpenAIEndpoint(),
-      ),
-    verify: async (apiKey) => verifyOpenAIKey(apiKey, await getOpenAIEndpoint()),
-  },
-};
-
-export const DEFAULT_RATE_LIMIT_RETRY_MS = 2_000;
-
-export async function waitForRetry(delayMs: number, signal?: AbortSignal): Promise<void> {
-  if (signal?.aborted) throw new VisionError('cancelled', 'Estimate cancelled.');
-  await new Promise<void>((resolve, reject) => {
-    const finish = () => {
-      signal?.removeEventListener('abort', abort);
-      resolve();
-    };
-    const timeout = setTimeout(finish, delayMs);
-    const abort = () => {
-      clearTimeout(timeout);
-      signal?.removeEventListener('abort', abort);
-      reject(new VisionError('cancelled', 'Estimate cancelled.'));
-    };
-    signal?.addEventListener('abort', abort, { once: true });
-  });
-}
-
-export async function retryRateLimitedOnce<T>(
-  request: () => Promise<T>,
-  signal?: AbortSignal,
-  onRetryWait?: (delayMs: number) => void,
-  wait: (delayMs: number, signal?: AbortSignal) => Promise<void> = waitForRetry,
-): Promise<T> {
-  try {
-    return await request();
-  } catch (error) {
-    if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
-    const delayMs = error.retryAfterMs ?? DEFAULT_RATE_LIMIT_RETRY_MS;
-    onRetryWait?.(delayMs);
-    await wait(delayMs, signal);
-    return request();
-  }
-}
+export {
+  completeVision,
+  DEFAULT_RATE_LIMIT_RETRY_MS,
+  retryRateLimitedOnce,
+  TRANSPORTS,
+  waitForRetry,
+} from '@/api/transport';
+export type { Transport } from '@/api/transport';
 
 /**
  * Estimates a meal from a base64 JPEG.
@@ -110,56 +36,18 @@ export async function estimateMeal(
   signal?: AbortSignal,
   onRetryWait?: (delayMs: number) => void,
 ): Promise<MealEstimate> {
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    throw new VisionError('no_key', 'No API key is set.');
-  }
-  const provider = providerForKey(apiKey);
-
-  if (!provider) {
-    throw new VisionError('no_key', 'The saved API key is not recognised.');
-  }
-  const request = () => TRANSPORTS[provider].estimate(apiKey, base64Jpeg, signal);
-
-  try {
-    return parseEstimate(await retryRateLimitedOnce(request, signal, onRetryWait));
-  } catch (error) {
-    if (error instanceof VisionError) error.provider = provider;
-    throw error;
-  }
-}
-
-/** Sends one image request with a caller-supplied prompt through the selected provider. */
-export async function completeVision(
-  base64Jpeg: string,
-  system: string,
-  user: string,
-  signal?: AbortSignal,
-  onRetryWait?: (delayMs: number) => void,
-): Promise<string> {
-  const apiKey = await getApiKey();
-  if (!apiKey) throw new VisionError('no_key', 'No API key is set.');
-  const provider = providerForKey(apiKey);
-  if (!provider) throw new VisionError('no_key', 'The saved API key is not recognised.');
-
-  const request = () => TRANSPORTS[provider].completeVision(apiKey, system, user, base64Jpeg, signal);
-  try {
-    return await retryRateLimitedOnce(request, signal, onRetryWait);
-  } catch (error) {
-    if (error instanceof VisionError) error.provider = provider;
-    throw error;
-  }
+  return withResolvedTransport(
+    async ({ apiKey, transport }) => parseEstimate(
+      await transport.estimate(apiKey, base64Jpeg, signal),
+    ),
+    signal,
+    onRetryWait,
+  );
 }
 
 /** Confirms the stored key works, for the "Test key" button. */
 export async function verifyApiKey(): Promise<void> {
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    throw new VisionError('no_key', 'No API key is set.');
-  }
-  const provider = providerForKey(apiKey);
-  if (provider) return TRANSPORTS[provider].verify(apiKey);
-  throw new VisionError('no_key', 'The saved API key is not recognised.');
+  return verifyStoredApiKey();
 }
 
 /* -------------------------------------------------------------------------- */

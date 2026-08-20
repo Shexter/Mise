@@ -10,6 +10,8 @@ export interface ReceiptFrameLineInput {
   lineTotalCents: number | null;
   unitPriceCents: number | null;
   appliesToText: string | null;
+  /** The on-device engine's recognition confidence, carried through the merge untouched. */
+  ocrConfidence?: number | null;
 }
 
 export interface ExtractedFrameLines {

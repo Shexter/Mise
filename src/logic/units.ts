@@ -2,7 +2,7 @@ import type { Units } from '@/types';
 
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
-const KG_PER_LB = 0.45359237;
+export const KG_PER_LB = 0.45359237;
 
 export interface FeetInches {
   feet: number;
@@ -26,7 +26,12 @@ export function kgToLb(kg: number): number {
 }
 
 export function lbToKg(lb: number): number {
-  return Math.round((lb * KG_PER_LB) * 10) / 10;
+  return Math.round(lbToKgExact(lb) * 10) / 10;
+}
+
+/** Exact conversion for calculations that must not round review evidence. */
+export function lbToKgExact(lb: number): number {
+  return lb * KG_PER_LB;
 }
 
 export function formatHeight(cm: number, units: Units): string {

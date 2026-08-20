@@ -13,7 +13,7 @@ knowable from documentation.
 - [ ] 1.3 **Do not build on an assumption here.** The design already degrades to
       "we saved the link, now paste or screenshot the ingredients"; confirm that
       is the common case or the exception before optimising either.
-- [ ] 1.4 Collect at least 20 real captions as fixtures, including CJK ones —
+- [x] 1.4 Collect at least 20 real captions as fixtures, including CJK ones —
       decision 4's audience is exactly who saves these — plus ones that are
       mostly emoji and hashtags, and ones with quantities written in prose.
 
@@ -32,17 +32,65 @@ knowable from documentation.
 ## 3. Intake
 
 - [ ] 3.1 Register the app as a share target for URLs, text, and images in the
-      Expo config.
+      Expo config. **Android done; iOS blocked on 1.1.**
+
+      `app.config.ts` now declares two `android.intentFilters`: `SEND` with
+      `text/plain` (a URL, a caption, or both glued together) and `SEND` with
+      `image/*` (a screenshot). The `mise` scheme already generates the `VIEW`
+      filter, so it is not repeated. `SEND_MULTIPLE` is deliberately absent —
+      one recipe at a time is the whole model.
+
+      iOS is left open on purpose rather than marked done: appearing in the iOS
+      *share sheet* needs a Share Extension native target, which needs a config
+      plugin, and nothing declarative in `app.config.ts` can substitute. The
+      config carries a comment saying so. Task 1.1's spike decides whether the
+      plugin is worth adding; until then iOS reaches the intake by pasting,
+      which the screen is built around anyway.
 - [ ] 3.2 Build one intake that accepts all three and works out which it has. Do
       not ask the user to choose — decision 92's argument applies again.
 - [ ] 3.3 Save a bare link with no usable content as a recipe awaiting content,
       and offer paste or screenshot. This is the degraded path and it must be
       pleasant, not an error.
-- [ ] 3.4 Route the screenshot case through `add-unified-capture`'s image path
+- [x] 3.4 Route the screenshot case through `add-unified-capture`'s image path
       where it has landed, rather than building a second image pipeline.
-- [ ] 3.5 **Make no request to any platform.** No scraping, no API call, no
+
+      `app/recipe-intake.tsx` gained a secondary "Read a screenshot" action:
+      library picker → `preparePhoto(…, 'recipes')` → `extractCapture` → the
+      recipe. That is the pantry's existing image path exactly; the only new
+      code is the mapping, `recipeIngredientsFromCapture` in
+      `src/logic/recipeIntake.ts`. An `items` capture becomes ingredients with
+      their quantities; a written list the model read as a receipt yields its
+      food lines through the existing `captureItemsFromReceiptLines`; a
+      `nothing` or `unclear` capture yields none — and is saved as an
+      awaiting-content recipe *with the screenshot attached* rather than
+      discarded or raised as an error. A link already typed into the field is
+      carried onto the saved recipe, so a shared post keeps its attribution
+      when its ingredients arrived as a picture.
+
+      The screen was refactored onto `src/logic/recipeIntake.ts` at the same
+      time, so link, text, and screenshot share one resolve-and-store tail
+      instead of three copies of it — and so 3.5's test exercises the real
+      save path rather than a stand-in.
+- [x] 3.5 **Make no request to any platform.** No scraping, no API call, no
       oEmbed, no media download. Add a test asserting no request is made to a
       platform host when a link is saved.
+
+      `test/recipe-links.test.ts` asserts the absence rather than trusting it,
+      at two levels. At runtime it stubs `fetch` itself — not any one module —
+      and runs the real save paths over real Instagram, TikTok, YouTube, and
+      youtu.be links: saving a bare link makes no request at all; splitting a
+      shared payload resolves nothing; the screenshot path keeps its platform
+      link without requesting it; and where a provider call does happen, every
+      recorded host is `api.anthropic.com` and never a platform. Statically, it
+      scans `src/api`, `src/logic`, `src/media`, and `src/db` for a platform
+      hostname in a *string literal* (comments are where the constraint is
+      explained, so they are excluded) — the guard against somebody later
+      adding a "just fetch the oEmbed title, it's only one request"
+      convenience.
+
+      Both guards were verified by planting a `fetch` to a TikTok oEmbed
+      endpoint in the save path: 5 tests failed, and passed again once it was
+      removed.
 
 ## 4. Extraction
 
@@ -56,7 +104,7 @@ knowable from documentation.
       storage.
 - [x] 4.4 Report content containing no recipe rather than inventing one from it.
 - [x] 4.5 Parse defensively; a malformed response is an error, not a crash.
-- [ ] 4.6 Unit-test against the 1.4 fixtures, including a caption that is mostly
+- [x] 4.6 Unit-test against the 1.4 fixtures, including a caption that is mostly
       hashtags and one in CJK.
 
 ## 5. Resolution and coverage

@@ -222,6 +222,14 @@ describe('catalogue build pipeline', () => {
       folateMcgPer100: null,
       vitaminAMcgPer100: null,
       potassiumMgPer100: null,
+      vitaminDMcgPer100: null,
+      magnesiumMgPer100: null,
+      zincMgPer100: null,
+      sodiumMgPer100: null,
+      vitaminEMgPer100: null,
+      vitaminKMcgPer100: null,
+      thiaminMgPer100: null,
+      riboflavinMgPer100: null,
     });
   });
 
@@ -251,6 +259,235 @@ describe('catalogue build pipeline', () => {
         potassiumMgPer100: 558,
       }),
     );
+  });
+
+  test('extracts the eight later nutrients by FoodData Central ID', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1114, value: 0.2 },
+          { nutrientId: 1090, value: 79 },
+          { nutrientId: 1095, value: 0.53 },
+          { nutrientId: 1093, value: 79 },
+          { nutrientId: 1109, value: 2.03 },
+          { nutrientId: 1185, value: 482.9 },
+          { nutrientId: 1165, value: 0.078 },
+          { nutrientId: 1166, value: 0.189 },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        vitaminDMcgPer100: 0.2,
+        magnesiumMgPer100: 79,
+        zincMgPer100: 0.53,
+        sodiumMgPer100: 79,
+        vitaminEMgPer100: 2.03,
+        vitaminKMcgPer100: 482.9,
+        thiaminMgPer100: 0.078,
+        riboflavinMgPer100: 0.189,
+      }),
+    );
+  });
+
+  test('falls back to the nutrient name when the later nutrients carry no ID', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientName: 'Vitamin D (D2 + D3)', unitName: 'UG', value: 0.4 },
+          { nutrientName: 'Magnesium, Mg', unitName: 'MG', value: 25 },
+          { nutrientName: 'Zinc, Zn', unitName: 'MG', value: 1.1 },
+          { nutrientName: 'Sodium, Na', unitName: 'MG', value: 4 },
+          { nutrientName: 'Vitamin E (alpha-tocopherol)', unitName: 'MG', value: 0.9 },
+          { nutrientName: 'Vitamin K (phylloquinone)', unitName: 'UG', value: 102 },
+          { nutrientName: 'Thiamin', unitName: 'MG', value: 0.05 },
+          { nutrientName: 'Riboflavin', unitName: 'MG', value: 0.12 },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        vitaminDMcgPer100: 0.4,
+        magnesiumMgPer100: 25,
+        zincMgPer100: 1.1,
+        sodiumMgPer100: 4,
+        vitaminEMgPer100: 0.9,
+        vitaminKMcgPer100: 102,
+        thiaminMgPer100: 0.05,
+        riboflavinMgPer100: 0.12,
+      }),
+    );
+  });
+
+  test('takes combined vitamin D in mcg, not the IU figure or a single component', () => {
+    // FDC reports the same vitamin D three ways. 1110 is IU and 1112/1111 are
+    // the D2 and D3 halves; picking any of them would silently store a number
+    // in the wrong unit or a fraction of the total.
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1110, nutrientName: 'Vitamin D (D2 + D3), International Units', value: 40 },
+          { nutrientId: 1112, nutrientName: 'Vitamin D2 (ergocalciferol)', value: 0.4 },
+          { nutrientId: 1114, nutrientName: 'Vitamin D (D2 + D3)', unitName: 'UG', value: 1 },
+        ],
+      }).vitaminDMcgPer100,
+    ).toBe(1);
+    // Only the IU row present: no mcg figure exists, and converting one is not
+    // this function's job — null, not a guess.
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1110, nutrientName: 'Vitamin D (D2 + D3), International Units', value: 40 },
+        ],
+      }).vitaminDMcgPer100,
+    ).toBeNull();
+  });
+
+  test('takes alpha-tocopherol for vitamin E and phylloquinone for vitamin K', () => {
+    const result = nutritionFromFdc({
+      foodNutrients: [
+        { nutrientId: 1125, nutrientName: 'Tocopherol, beta', value: 0.01 },
+        { nutrientId: 1126, nutrientName: 'Tocopherol, gamma', value: 0.4 },
+        { nutrientId: 1183, nutrientName: 'Menaquinone-4', value: 3 },
+        { nutrientId: 1184, nutrientName: 'Dihydrophylloquinone', value: 1 },
+      ],
+    });
+    expect(result.vitaminEMgPer100).toBeNull();
+    expect(result.vitaminKMcgPer100).toBeNull();
+
+    // And the fortification-only alpha-tocopherol row is not the total either.
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          {
+            nutrientName: 'Vitamin E (alpha-tocopherol), added',
+            unitName: 'MG',
+            value: 1.4,
+          },
+        ],
+      }).vitaminEMgPer100,
+    ).toBeNull();
+  });
+
+  test('anchors thiamin and riboflavin so an "added" fortification row is not mistaken for the total', () => {
+    expect(
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientName: 'Thiamin, added', unitName: 'MG', value: 0.5 },
+          { nutrientName: 'Riboflavin, added', unitName: 'MG', value: 0.6 },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({ thiaminMgPer100: null, riboflavinMgPer100: null }),
+    );
+  });
+
+  test('a mix of present and absent later nutrients leaves the missing ones null, never zero', () => {
+    const result = nutritionFromFdc({
+      foodNutrients: [
+        { nutrientId: 1093, value: 0 },
+        { nutrientId: 1166, value: 0.189 },
+      ],
+    });
+    // A measured zero is a value, not a gap — sodium stays 0.
+    expect(result.sodiumMgPer100).toBe(0);
+    expect(result.riboflavinMgPer100).toBe(0.189);
+    expect(result.vitaminDMcgPer100).toBeNull();
+    expect(result.magnesiumMgPer100).toBeNull();
+    expect(result.zincMgPer100).toBeNull();
+    expect(result.vitaminEMgPer100).toBeNull();
+    expect(result.vitaminKMcgPer100).toBeNull();
+    expect(result.thiaminMgPer100).toBeNull();
+  });
+
+  test('records FoodData Central as the provenance of each later nutrient it fills', () => {
+    const report = reportLists();
+    const merged = mergeCataloguePatch(
+      entry(),
+      nutritionFromFdc({
+        foodNutrients: [
+          { nutrientId: 1114, value: 0.2 },
+          { nutrientId: 1090, value: 79 },
+          { nutrientId: 1095, value: 0.53 },
+          { nutrientId: 1093, value: 79 },
+          { nutrientId: 1109, value: 2.03 },
+          { nutrientId: 1185, value: 482.9 },
+          { nutrientId: 1165, value: 0.078 },
+          { nutrientId: 1166, value: 0.189 },
+        ],
+      }),
+      'food-data-central',
+      'Chicken, breast',
+      report,
+    );
+
+    expect(merged).toMatchObject({
+      vitaminDMcgPer100: 0.2,
+      magnesiumMgPer100: 79,
+      zincMgPer100: 0.53,
+      sodiumMgPer100: 79,
+      vitaminEMgPer100: 2.03,
+      vitaminKMcgPer100: 482.9,
+      thiaminMgPer100: 0.078,
+      riboflavinMgPer100: 0.189,
+    });
+    for (const field of [
+      'vitaminDMcgPer100',
+      'magnesiumMgPer100',
+      'zincMgPer100',
+      'sodiumMgPer100',
+      'vitaminEMgPer100',
+      'vitaminKMcgPer100',
+      'thiaminMgPer100',
+      'riboflavinMgPer100',
+    ]) {
+      expect(merged.sources?.[field]).toBe('food-data-central');
+      expect(report.filled.some((issue) => issue.field === field)).toBe(true);
+    }
+    expect(report.conflicts).toEqual([]);
+  });
+
+  test('a hand-authored later nutrient keeps its provenance and reports the disagreement', () => {
+    const report = reportLists();
+    const authored = entry({ sodiumMgPer100: 5 });
+    const merged = mergeCataloguePatch(
+      authored,
+      { sodiumMgPer100: 79 },
+      'food-data-central',
+      'Chicken, breast',
+      report,
+    );
+
+    expect(merged.sodiumMgPer100).toBe(5);
+    expect(merged.sources?.sodiumMgPer100).toBe('hand-authored');
+    expect(report.conflicts).toEqual([
+      {
+        source: 'food-data-central',
+        row: 'Chicken, breast',
+        canonicalId: 'chicken-breast',
+        field: 'sodiumMgPer100',
+        existing: 5,
+        proposed: 79,
+      },
+    ]);
+  });
+
+  test('an unknown later nutrient is skipped rather than written as zero', () => {
+    const report = reportLists();
+    const merged = mergeCataloguePatch(
+      entry(),
+      { zincMgPer100: null, thiaminMgPer100: 0.078 },
+      'food-data-central',
+      'Chicken, breast',
+      report,
+    );
+
+    expect(merged.zincMgPer100).toBeUndefined();
+    expect(merged.sources?.zincMgPer100).toBeUndefined();
+    expect(merged.thiaminMgPer100).toBe(0.078);
+    expect(
+      report.skipped.some(
+        (issue) => issue.field === 'zincMgPer100' && issue.reason === 'unknown',
+      ),
+    ).toBe(true);
   });
 
   test('a mix of present and absent micronutrients leaves the missing ones null, never zero', () => {

@@ -54,7 +54,7 @@ describe('captureItemsFromReceiptLines', () => {
       id: 'line', receiptId: 'receipt', rawText: 'Rice', kind: 'food', qty: 500,
       unit: 'g', quantityKind: 'measure', lineTotalCents: 399, unitPriceCents: null,
       canonicalId: null, appliesToLineId: null, pantryItemId: null, excluded: false,
-      createdAt: '2026-08-09T00:00:00.000Z', ...overrides,
+      ocrConfidence: null, createdAt: '2026-08-09T00:00:00.000Z', ...overrides,
     });
 
     expect(captureItemsFromReceiptLines([

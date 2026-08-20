@@ -29,8 +29,10 @@ import {
 import type { Decrement } from '@/logic/deplete';
 import { DEFAULT_FIBRE_TARGET_G, macroTargets } from '@/logic/macros';
 import { normalise } from '@/logic/normalise';
+import { coarsen, defaultShopName } from '@/logic/shops';
 import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
+import { RECEIPT_EXTRACTION_SOURCES } from '@/types';
 import type {
   CanonicalItem,
   BodyMeasurement,
@@ -58,6 +60,8 @@ import type {
   Fullness,
   ItemAlias,
   Location,
+  NeededIngredient,
+  Shop,
   LocationKind,
   MeasureUnit,
   Meal,
@@ -74,8 +78,10 @@ import type {
   QuantitySource,
   QueuedMatch,
   Receipt,
+  ReceiptExtractionSource,
   ReceiptLine,
   ReceiptLineKind,
+  ReceiptOcrPreference,
   ReceiptType,
   QuantityKind,
   ReceiptWithLines,
@@ -1171,6 +1177,36 @@ export async function saveChartPreference(
   );
 }
 
+/**
+ * The receipt-OCR preference. Absent means never chosen, which reads as
+ * off — the local-first default, so a receipt's text is never sent to a
+ * provider because nobody got round to answering a question.
+ */
+export const DEFAULT_RECEIPT_OCR_PREFERENCE: ReceiptOcrPreference = {
+  cloudTextEnhancement: false,
+};
+
+export async function getReceiptOcrPreference(): Promise<ReceiptOcrPreference> {
+  const row = await db().getFirstAsync<{ cloud_text_enhancement: number }>(
+    'SELECT cloud_text_enhancement FROM receipt_ocr_preferences WHERE id = 1',
+  );
+  if (!row) return { ...DEFAULT_RECEIPT_OCR_PREFERENCE };
+  return { cloudTextEnhancement: row.cloud_text_enhancement === 1 };
+}
+
+export async function saveReceiptOcrPreference(
+  preference: ReceiptOcrPreference,
+): Promise<void> {
+  await db().runAsync(
+    `INSERT INTO receipt_ocr_preferences (id, cloud_text_enhancement, updated_at)
+     VALUES (1, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       cloud_text_enhancement = excluded.cloud_text_enhancement,
+       updated_at = excluded.updated_at`,
+    [preference.cloudTextEnhancement ? 1 : 0, new Date().toISOString()],
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Ingredient identity: row shapes and mappers                                 */
 /* -------------------------------------------------------------------------- */
@@ -1196,6 +1232,14 @@ interface CanonicalItemRow {
   folate_mcg_per_100: number | null;
   vitamin_a_mcg_per_100: number | null;
   potassium_mg_per_100: number | null;
+  vitamin_d_mcg_per_100: number | null;
+  magnesium_mg_per_100: number | null;
+  zinc_mg_per_100: number | null;
+  sodium_mg_per_100: number | null;
+  vitamin_e_mg_per_100: number | null;
+  vitamin_k_mcg_per_100: number | null;
+  thiamin_mg_per_100: number | null;
+  riboflavin_mg_per_100: number | null;
   typical_use_qty: number | null;
   typical_use_unit: string | null;
   typical_pkg_qty: number | null;
@@ -1268,6 +1312,14 @@ function toCanonicalItem(row: CanonicalItemRow): CanonicalItem {
     folateMcgPer100: row.folate_mcg_per_100,
     vitaminAMcgPer100: row.vitamin_a_mcg_per_100,
     potassiumMgPer100: row.potassium_mg_per_100,
+    vitaminDMcgPer100: row.vitamin_d_mcg_per_100,
+    magnesiumMgPer100: row.magnesium_mg_per_100,
+    zincMgPer100: row.zinc_mg_per_100,
+    sodiumMgPer100: row.sodium_mg_per_100,
+    vitaminEMgPer100: row.vitamin_e_mg_per_100,
+    vitaminKMcgPer100: row.vitamin_k_mcg_per_100,
+    thiaminMgPer100: row.thiamin_mg_per_100,
+    riboflavinMgPer100: row.riboflavin_mg_per_100,
     typicalUseQty: row.typical_use_qty,
     typicalUseUnit: row.typical_use_unit as MeasureUnit | null,
     typicalPkgQty: row.typical_pkg_qty,
@@ -1350,6 +1402,14 @@ interface CanonicalSeedEntry {
   folateMcgPer100?: number | null;
   vitaminAMcgPer100?: number | null;
   potassiumMgPer100?: number | null;
+  vitaminDMcgPer100?: number | null;
+  magnesiumMgPer100?: number | null;
+  zincMgPer100?: number | null;
+  sodiumMgPer100?: number | null;
+  vitaminEMgPer100?: number | null;
+  vitaminKMcgPer100?: number | null;
+  thiaminMgPer100?: number | null;
+  riboflavinMgPer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -1395,10 +1455,12 @@ export async function loadSeedData(): Promise<void> {
             protein_per_100, carbs_per_100, fat_per_100, fibre_per_100,
             vitamin_c_mg_per_100, iron_mg_per_100, vitamin_b12_mcg_per_100,
             calcium_mg_per_100, folate_mcg_per_100, vitamin_a_mcg_per_100,
-            potassium_mg_per_100, typical_use_qty,
+            potassium_mg_per_100,
+            vitamin_d_mcg_per_100, magnesium_mg_per_100, zinc_mg_per_100, sodium_mg_per_100, vitamin_e_mg_per_100, vitamin_k_mcg_per_100, thiamin_mg_per_100, riboflavin_mg_per_100,
+            typical_use_qty,
             typical_use_unit, typical_pkg_qty, typical_pkg_unit,
             density_g_per_ml, is_seed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
          ON CONFLICT(id) DO UPDATE SET
            display_name = excluded.display_name,
            class = excluded.class,
@@ -1419,6 +1481,14 @@ export async function loadSeedData(): Promise<void> {
            folate_mcg_per_100 = excluded.folate_mcg_per_100,
            vitamin_a_mcg_per_100 = excluded.vitamin_a_mcg_per_100,
            potassium_mg_per_100 = excluded.potassium_mg_per_100,
+           vitamin_d_mcg_per_100 = excluded.vitamin_d_mcg_per_100,
+           magnesium_mg_per_100 = excluded.magnesium_mg_per_100,
+           zinc_mg_per_100 = excluded.zinc_mg_per_100,
+           sodium_mg_per_100 = excluded.sodium_mg_per_100,
+           vitamin_e_mg_per_100 = excluded.vitamin_e_mg_per_100,
+           vitamin_k_mcg_per_100 = excluded.vitamin_k_mcg_per_100,
+           thiamin_mg_per_100 = excluded.thiamin_mg_per_100,
+           riboflavin_mg_per_100 = excluded.riboflavin_mg_per_100,
            typical_use_qty = excluded.typical_use_qty,
            typical_use_unit = excluded.typical_use_unit,
            typical_pkg_qty = excluded.typical_pkg_qty,
@@ -1446,6 +1516,14 @@ export async function loadSeedData(): Promise<void> {
           entry.folateMcgPer100 ?? null,
           entry.vitaminAMcgPer100 ?? null,
           entry.potassiumMgPer100 ?? null,
+          entry.vitaminDMcgPer100 ?? null,
+          entry.magnesiumMgPer100 ?? null,
+          entry.zincMgPer100 ?? null,
+          entry.sodiumMgPer100 ?? null,
+          entry.vitaminEMgPer100 ?? null,
+          entry.vitaminKMcgPer100 ?? null,
+          entry.thiaminMgPer100 ?? null,
+          entry.riboflavinMgPer100 ?? null,
           entry.typicalUseQty ?? null,
           entry.typicalUseUnit ?? null,
           entry.typicalPkgQty ?? null,
@@ -1721,6 +1799,14 @@ export interface NewCanonicalItem {
   folateMcgPer100?: number | null;
   vitaminAMcgPer100?: number | null;
   potassiumMgPer100?: number | null;
+  vitaminDMcgPer100?: number | null;
+  magnesiumMgPer100?: number | null;
+  zincMgPer100?: number | null;
+  sodiumMgPer100?: number | null;
+  vitaminEMgPer100?: number | null;
+  vitaminKMcgPer100?: number | null;
+  thiaminMgPer100?: number | null;
+  riboflavinMgPer100?: number | null;
   typicalUseQty?: number | null;
   typicalUseUnit?: MeasureUnit | null;
   typicalPkgQty?: number | null;
@@ -1739,10 +1825,12 @@ export async function insertCanonicalItem(
         protein_per_100, carbs_per_100, fat_per_100, fibre_per_100,
         vitamin_c_mg_per_100, iron_mg_per_100, vitamin_b12_mcg_per_100,
         calcium_mg_per_100, folate_mcg_per_100, vitamin_a_mcg_per_100,
-        potassium_mg_per_100, typical_use_qty,
+        potassium_mg_per_100,
+        vitamin_d_mcg_per_100, magnesium_mg_per_100, zinc_mg_per_100, sodium_mg_per_100, vitamin_e_mg_per_100, vitamin_k_mcg_per_100, thiamin_mg_per_100, riboflavin_mg_per_100,
+        typical_use_qty,
         typical_use_unit, typical_pkg_qty, typical_pkg_unit,
         density_g_per_ml, is_seed, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
     [
       item.id,
       item.displayName,
@@ -1767,6 +1855,14 @@ export async function insertCanonicalItem(
       item.folateMcgPer100 ?? null,
       item.vitaminAMcgPer100 ?? null,
       item.potassiumMgPer100 ?? null,
+      item.vitaminDMcgPer100 ?? null,
+      item.magnesiumMgPer100 ?? null,
+      item.zincMgPer100 ?? null,
+      item.sodiumMgPer100 ?? null,
+      item.vitaminEMgPer100 ?? null,
+      item.vitaminKMcgPer100 ?? null,
+      item.thiaminMgPer100 ?? null,
+      item.riboflavinMgPer100 ?? null,
       item.typicalUseQty ?? null,
       item.typicalUseUnit ?? null,
       item.typicalPkgQty ?? null,
@@ -1799,6 +1895,14 @@ export async function insertCanonicalItem(
     folateMcgPer100: item.folateMcgPer100 ?? null,
     vitaminAMcgPer100: item.vitaminAMcgPer100 ?? null,
     potassiumMgPer100: item.potassiumMgPer100 ?? null,
+    vitaminDMcgPer100: item.vitaminDMcgPer100 ?? null,
+    magnesiumMgPer100: item.magnesiumMgPer100 ?? null,
+    zincMgPer100: item.zincMgPer100 ?? null,
+    sodiumMgPer100: item.sodiumMgPer100 ?? null,
+    vitaminEMgPer100: item.vitaminEMgPer100 ?? null,
+    vitaminKMcgPer100: item.vitaminKMcgPer100 ?? null,
+    thiaminMgPer100: item.thiaminMgPer100 ?? null,
+    riboflavinMgPer100: item.riboflavinMgPer100 ?? null,
     typicalUseQty: item.typicalUseQty ?? null,
     typicalUseUnit: item.typicalUseUnit ?? null,
     typicalPkgQty: item.typicalPkgQty ?? null,
@@ -3404,6 +3508,7 @@ interface ReceiptLineRow {
   applies_to_line_id: string | null;
   pantry_item_id: string | null;
   excluded: number;
+  ocr_confidence: number | null;
   created_at: string;
 }
 
@@ -3420,6 +3525,7 @@ interface ReceiptFrameRow {
   subtotal_cents: number | null;
   tax_cents: number | null;
   total_cents: number | null;
+  extraction_source: string | null;
   created_at: string;
   extracted_at: string | null;
 }
@@ -3435,6 +3541,7 @@ interface ReceiptFrameLineRow {
   line_total_cents: number | null;
   unit_price_cents: number | null;
   applies_to_text: string | null;
+  ocr_confidence: number | null;
 }
 
 interface PendingCaptureRow {
@@ -3509,6 +3616,7 @@ function toReceiptLine(row: ReceiptLineRow): ReceiptLine {
     appliesToLineId: row.applies_to_line_id,
     pantryItemId: row.pantry_item_id,
     excluded: row.excluded === 1,
+    ocrConfidence: row.ocr_confidence,
     createdAt: row.created_at,
   };
 }
@@ -3521,9 +3629,17 @@ function toReceiptFrame(row: ReceiptFrameRow): ReceiptFrame {
     sortOrder: row.sort_order,
     status: row.status as ReceiptFrame['status'],
     lastErrorKind: row.last_error_kind,
+    extractionSource: asExtractionSource(row.extraction_source),
     createdAt: row.created_at,
     extractedAt: row.extracted_at,
   };
+}
+
+/** An unrecognised or pre-provenance value reads as "not recorded", never as a guess. */
+function asExtractionSource(value: string | null): ReceiptExtractionSource | null {
+  return RECEIPT_EXTRACTION_SOURCES.includes(value as ReceiptExtractionSource)
+    ? (value as ReceiptExtractionSource)
+    : null;
 }
 
 export interface NewReceiptLine {
@@ -3540,6 +3656,8 @@ export interface NewReceiptLine {
    * every other kind, and for a discount naming no line.
    */
   appliesToText: string | null;
+  /** The on-device engine's recognition confidence for this line, when local OCR read it. */
+  ocrConfidence?: number | null;
 }
 
 export interface ExtractedReceiptHeader {
@@ -3550,6 +3668,8 @@ export interface ExtractedReceiptHeader {
   taxCents: number | null;
   totalCents: number | null;
   lines: NewReceiptLine[];
+  /** How these lines were produced. Defaults to the original cloud vision path. */
+  extractionSource?: ReceiptExtractionSource;
 }
 
 /**
@@ -3651,7 +3771,7 @@ export async function recordReceiptFrameExtraction(
     await txn.runAsync(
       `UPDATE receipt_frames
        SET status = 'extracted', last_error_kind = NULL, store = ?, purchased_at = ?, receipt_type = ?,
-           subtotal_cents = ?, tax_cents = ?, total_cents = ?, extracted_at = ?
+           subtotal_cents = ?, tax_cents = ?, total_cents = ?, extraction_source = ?, extracted_at = ?
        WHERE id = ?`,
       [
         extracted.store,
@@ -3660,6 +3780,7 @@ export async function recordReceiptFrameExtraction(
         extracted.subtotalCents,
         extracted.taxCents,
         extracted.totalCents,
+        extracted.extractionSource ?? 'cloud_vision',
         now,
         frameId,
       ],
@@ -3668,11 +3789,12 @@ export async function recordReceiptFrameExtraction(
       await txn.runAsync(
         `INSERT INTO receipt_frame_lines
            (id, frame_id, frame_position, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
-            unit_price_cents, applies_to_text, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            unit_price_cents, applies_to_text, ocr_confidence, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           randomUUID(), frameId, position, line.rawText, line.kind, line.qty, line.unit,
-          line.quantityKind, line.lineTotalCents, line.unitPriceCents, line.appliesToText, now,
+          line.quantityKind, line.lineTotalCents, line.unitPriceCents, line.appliesToText,
+          line.ocrConfidence ?? null, now,
         ],
       );
     }
@@ -3706,6 +3828,7 @@ async function rebuildReceiptFromReceipt(receiptId: string): Promise<void> {
         rawText: line.raw_text, kind: line.kind, qty: line.qty, unit: line.unit,
         quantityKind: line.quantity_kind, lineTotalCents: line.line_total_cents,
         unitPriceCents: line.unit_price_cents, appliesToText: line.applies_to_text,
+        ocrConfidence: line.ocr_confidence,
       });
       linesByFrame.set(line.frame_id, lines);
     }
@@ -3739,11 +3862,13 @@ async function rebuildReceiptFromReceipt(receiptId: string): Promise<void> {
       await txn.runAsync(
         `INSERT INTO receipt_lines
            (id, receipt_id, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
-            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
+            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded,
+            ocr_confidence, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?, ?)`,
         [ids[index]!, receiptId, line.rawText, line.kind, line.qty, line.unit,
           line.quantityKind, line.lineTotalCents, line.unitPriceCents,
-          line.appliesToText ? (idByRawText.get(line.appliesToText) ?? null) : null, now],
+          line.appliesToText ? (idByRawText.get(line.appliesToText) ?? null) : null,
+          line.ocrConfidence ?? null, now],
       );
     }
   });
@@ -3905,8 +4030,9 @@ export async function attachExtractedLines(
       await txn.runAsync(
         `INSERT INTO receipt_lines
            (id, receipt_id, raw_text, kind, qty, unit, quantity_kind, line_total_cents,
-            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?)`,
+            unit_price_cents, canonical_id, applies_to_line_id, pantry_item_id, excluded,
+            ocr_confidence, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, 0, ?, ?)`,
         [
           ids[index]!,
           receiptId,
@@ -3918,6 +4044,7 @@ export async function attachExtractedLines(
           line.lineTotalCents,
           line.unitPriceCents,
           appliesToLineId,
+          line.ocrConfidence ?? null,
           now,
         ],
       );
@@ -4265,4 +4392,124 @@ export async function listDerivativeEdges(): Promise<
     'SELECT parent_id, child_id FROM canonical_derivatives',
   );
   return rows.map((row) => ({ parentId: row.parent_id, childId: row.child_id }));
+}
+
+// ---------------------------------------------------------------------------
+// Shops
+//
+// Five columns and no timestamps, by design — see the `shops` migration. Every
+// query below reads or writes shop positions; none of them records a visit,
+// and there is deliberately no "touch" helper here of the kind the pantry has.
+// ---------------------------------------------------------------------------
+
+interface ShopRow {
+  id: string;
+  name: string;
+  store_name: string;
+  latitude: number;
+  longitude: number;
+}
+
+function toShop(row: ShopRow): Shop {
+  return {
+    id: row.id,
+    name: row.name,
+    storeName: row.store_name,
+    latitude: row.latitude,
+    longitude: row.longitude,
+  };
+}
+
+/** Every known shop, for matching a position or for the management screen. */
+export async function listShops(): Promise<Shop[]> {
+  const rows = await db().getAllAsync<ShopRow>(
+    'SELECT * FROM shops ORDER BY name ASC',
+  );
+  return rows.map(toShop);
+}
+
+/**
+ * Records where a store is, from a receipt imported at it.
+ *
+ * Keyed on the store name, so importing a second receipt from the same shop
+ * updates its position rather than accumulating a duplicate row — and, because
+ * the row is overwritten rather than appended to, a run of imports leaves one
+ * position behind instead of a trail. The user's own name for the shop
+ * survives the update; only the position moves.
+ */
+export async function rememberShop(
+  storeName: string,
+  position: { latitude: number; longitude: number },
+): Promise<Shop> {
+  const coarse = coarsen(position);
+  const name = storeName.trim();
+  const existing = await db().getFirstAsync<ShopRow>(
+    'SELECT * FROM shops WHERE store_name = ?',
+    [name],
+  );
+  if (existing) {
+    await db().runAsync('UPDATE shops SET latitude = ?, longitude = ? WHERE id = ?', [
+      coarse.latitude,
+      coarse.longitude,
+      existing.id,
+    ]);
+    return { ...toShop(existing), ...coarse };
+  }
+  const id = randomUUID();
+  await db().runAsync(
+    'INSERT INTO shops (id, name, store_name, latitude, longitude) VALUES (?, ?, ?, ?, ?)',
+    [id, defaultShopName(name), name, coarse.latitude, coarse.longitude],
+  );
+  return {
+    id,
+    name: defaultShopName(name),
+    storeName: name,
+    latitude: coarse.latitude,
+    longitude: coarse.longitude,
+  };
+}
+
+/** Renames a shop. The store name receipts print is left alone. */
+export async function renameShop(id: string, name: string): Promise<void> {
+  await db().runAsync('UPDATE shops SET name = ? WHERE id = ?', [name.trim(), id]);
+}
+
+/** Forgets one shop's position. */
+export async function deleteShop(id: string): Promise<void> {
+  await db().runAsync('DELETE FROM shops WHERE id = ?', [id]);
+}
+
+/**
+ * Forgets every stored shop position and nothing else. Withdrawing from this
+ * feature must not mean withdrawing from the app, so this is deliberately
+ * narrower than "Delete all data".
+ */
+export async function deleteAllShops(): Promise<void> {
+  await db().runAsync('DELETE FROM shops');
+}
+
+/**
+ * What is running low or out, by identity and status.
+ *
+ * No quantity is selected — not filtered out in the caller, not selected here
+ * (decision 15). Seasonings and other status-only items are included on the
+ * same footing as everything else, because status is the whole answer.
+ */
+export async function listNeededIngredients(): Promise<NeededIngredient[]> {
+  const rows = await db().getAllAsync<{
+    canonical_id: string;
+    display_name: string;
+    status: string;
+  }>(
+    `SELECT DISTINCT p.canonical_id AS canonical_id, c.display_name AS display_name, p.status AS status
+       FROM pantry_items p
+       JOIN canonical_items c ON c.id = p.canonical_id
+      WHERE p.status IN ('running_low', 'out')
+      ORDER BY p.status = 'running_low' ASC, c.display_name ASC`,
+  );
+  return rows.map((row) => ({
+    canonicalId: row.canonical_id,
+    displayName: row.display_name,
+    status: row.status as NeededIngredient['status'],
+  }));
 }

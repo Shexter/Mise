@@ -22,6 +22,7 @@ const canonical = (id: string, foodClass: CanonicalItem['foodClass'] = 'staple')
   kcalPer100: null, proteinPer100: null, carbsPer100: null, fatPer100: null,
   fibrePer100: null, vitaminCMgPer100: null, ironMgPer100: null, vitaminB12McgPer100: null,
   calciumMgPer100: null, folateMcgPer100: null, vitaminAMcgPer100: null, potassiumMgPer100: null,
+  vitaminDMcgPer100: null, magnesiumMgPer100: null, zincMgPer100: null, sodiumMgPer100: null, vitaminEMgPer100: null, vitaminKMcgPer100: null, thiaminMgPer100: null, riboflavinMgPer100: null,
   typicalUseQty: null, typicalUseUnit: null, typicalPkgQty: null, typicalPkgUnit: null,
   densityGPerMl: null, isSeed: true, createdAt: '2026-01-01',
 });

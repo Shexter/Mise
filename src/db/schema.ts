@@ -695,6 +695,65 @@ CREATE TABLE chart_preferences (
 );
 `;
 
+/** Migration 30: shops the user buys from, learned from their own receipts.
+ *
+ * Deliberately five columns and no more. There is no `created_at`, no
+ * `updated_at`, no `last_seen_at`, and no companion visit table: this records
+ * *where a shop is*, never *where the user has been*. A timestamp column here
+ * would turn a list of supermarkets into a movement log, which is the one
+ * thing `add-shop-locations` promises never to store. Coordinates are stored
+ * coarsely (see `COARSE_DECIMALS` in `src/logic/shops.ts`) because matching
+ * "which shop is this" only ever needs building-level precision. */
+/** Migration 31: the eight further FoodData Central nutrients the catalogue
+ * builder already extracts. Additive and nullable, like migration 26 before
+ * it: an existing row's new columns are NULL, meaning "not known", never 0. */
+const EXTENDED_MICRONUTRIENT_TRACKING = `
+ALTER TABLE canonical_items ADD COLUMN vitamin_d_mcg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN magnesium_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN zinc_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN sodium_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN vitamin_e_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN vitamin_k_mcg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN thiamin_mg_per_100 REAL;
+ALTER TABLE canonical_items ADD COLUMN riboflavin_mg_per_100 REAL;
+`;
+
+const SHOPS = `
+CREATE TABLE shops (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  store_name TEXT NOT NULL,
+  latitude   REAL NOT NULL,
+  longitude  REAL NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_shops_store_name ON shops(store_name);
+`;
+
+/** Migration 33: on-device receipt OCR provenance and its one preference.
+ *
+ * `extraction_source` records how a frame's lines were produced — a local
+ * recognition pass, a text-only cloud structuring pass over those local
+ * lines, or the original cloud vision call. Review shows it, so the user
+ * can always tell what left the device. `ocr_confidence` is the engine's
+ * own per-line recognition confidence, carried from the frame through the
+ * rebuilt draft so review can flag a smudged line; it is deliberately
+ * separate from canonical match confidence and never used to drop a line.
+ *
+ * The preference defaults to off: nothing about a receipt is sent anywhere
+ * until the user asks for it. */
+const RECEIPT_OCR = `
+ALTER TABLE receipt_frames ADD COLUMN extraction_source TEXT;
+ALTER TABLE receipt_frame_lines ADD COLUMN ocr_confidence REAL;
+ALTER TABLE receipt_lines ADD COLUMN ocr_confidence REAL;
+
+CREATE TABLE receipt_ocr_preferences (
+  id                     INTEGER PRIMARY KEY CHECK (id = 1),
+  cloud_text_enhancement INTEGER NOT NULL DEFAULT 0,
+  updated_at             TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -725,12 +784,17 @@ export const MIGRATIONS: readonly string[] = [
   WEIGHT_GOAL_PACING,
   FASTING_TRACKING,
   CHART_PREFERENCES,
+  SHOPS,
+  EXTENDED_MICRONUTRIENT_TRACKING,
+  RECEIPT_OCR,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS receipt_ocr_preferences;
+DROP TABLE IF EXISTS shops;
 DROP TABLE IF EXISTS chart_preferences;
 DROP TABLE IF EXISTS fasts;
 DROP TABLE IF EXISTS shopping_list_receipt_matches;

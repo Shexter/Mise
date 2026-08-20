@@ -2541,3 +2541,47 @@ adjacent pair, fat↔carbohydrate) sits in the CVD 6–8 warn band rather than
 clearing the ≥8 target; that is legal only because the screen's own visible
 per-chart `SectionLabel` already provides direct-label secondary encoding,
 not a silent gap.
+
+## Shop locations
+
+**The permission level: "While in Use", foreground only.** The original plan
+was OS-level region monitoring, so arrival and departure would drive prompts
+automatically. Checking that against the platforms killed it: reliable
+arrival/departure detection needs background region monitoring, which needs
+"Always" authorization on both iOS and Android — not "While in Use". iOS shows
+a second, separate prompt for "Always", weeks after the first grant; Android
+requires declaring `ACCESS_BACKGROUND_LOCATION` and justifying it to Play Store
+review before the permission is grantable at all. That is a materially bigger
+trade than the change had argued for — it weighed *a* permission, not the one
+both platforms treat as their most sensitive.
+
+So automatic detection was dropped and everything else kept. Every position
+read is a one-shot foreground request, triggered either by the user tapping
+"check this shop" or by a receipt import already in progress. There is no
+background task, no geofence, no `TaskManager` registration, and consequently
+no battery question, because nothing runs when the app is not open. The
+requested accuracy is `Accuracy.Low`, since the answer is rounded to
+building-level precision anyway.
+
+**What is stored: shops, never visits.** `shops(id, name, store_name, latitude,
+longitude)` — five columns, no timestamps, and no companion visit table. "The
+app knows where the supermarkets are" and "the app knows where you have been"
+are different databases with wildly different consequences if the device is
+lost, and only the first is needed. The property is enforced by
+`test/shop-locations.test.ts`, which asserts the schema holds no field capable
+of recording when the user was anywhere, so a later `last_seen_at` "cache"
+fails the suite rather than quietly crossing the line.
+
+**The shop list is learned, not downloaded.** Importing a receipt that names
+its store records that store's coarse position; nothing is ever fetched from a
+places database. That works offline (signal is worst inside a shop), carries no
+ODbL licensing question (decision 144), and learns the corner grocer no
+database lists. The cost — nothing happens at a shop until a receipt from it is
+imported — is real, self-resolving, and free.
+
+**The check is an offer.** It surfaces what is `running_low` or `out`, by
+status and never by quantity (decision 15), and it writes nothing: no pantry
+item, no receipt, no stock change, and no record of the check. A printed
+receipt header always beats a position match when naming the store for
+normalisation — direct evidence over circumstantial, since someone can buy a
+coffee next door or shop at two places in one trip.

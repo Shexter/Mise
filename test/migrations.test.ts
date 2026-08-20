@@ -53,20 +53,75 @@ describe('migrations', () => {
     db.close();
   });
 
-  test('the chart-preference migration upgrades the current head without touching existing data', () => {
+  test('the chart-preference migration upgrades its prior head without touching existing data', () => {
     const db = new DatabaseSync(':memory:');
-    migrate(db, 0, LATEST_VERSION - 1);
+    const chartIndex = MIGRATIONS.findIndex((statement) =>
+      statement.includes('CREATE TABLE chart_preferences'),
+    );
+    expect(chartIndex).toBeGreaterThan(0);
+    migrate(db, 0, chartIndex);
     db.prepare(
       `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
        VALUES ('before-charts', '2026-08-17T12:00:00Z', '2026-08-17', 'lunch', 'Noodles', 'manual', '2026-08-17T12:00:00Z')`,
     ).run();
 
-    migrate(db, LATEST_VERSION - 1, LATEST_VERSION);
+    expect(tableNames(db)).not.toContain('chart_preferences');
+    migrate(db, chartIndex, chartIndex + 1);
 
     expect(tableNames(db)).toContain('chart_preferences');
     expect(db.prepare("SELECT name FROM meals WHERE id = 'before-charts'").get()).toEqual({
       name: 'Noodles',
     });
+    db.close();
+  });
+
+  test('the extended-micronutrient migration adds eight nullable columns to populated rows', () => {
+    const db = new DatabaseSync(':memory:');
+    const extendedIndex = MIGRATIONS.findIndex((statement) =>
+      statement.includes('ADD COLUMN riboflavin_mg_per_100'),
+    );
+    expect(extendedIndex).toBeGreaterThan(0);
+    migrate(db, 0, extendedIndex);
+    db.prepare(
+      `INSERT INTO canonical_items
+         (id, display_name, class, default_location, shelf_life_days,
+          kcal_per_100, potassium_mg_per_100, is_seed, created_at)
+       VALUES ('spinach', 'Spinach', 'produce', 'fridge', '{"fridge":7}', 23, 558, 1, '2026-01-01')`,
+    ).run();
+
+    migrate(db, extendedIndex, extendedIndex + 1);
+
+    const columns = (
+      db.prepare('PRAGMA table_info(canonical_items)').all() as {
+        name: string;
+        type: string;
+        notnull: number;
+      }[]
+    );
+    const added = [
+      'vitamin_d_mcg_per_100',
+      'magnesium_mg_per_100',
+      'zinc_mg_per_100',
+      'sodium_mg_per_100',
+      'vitamin_e_mg_per_100',
+      'vitamin_k_mcg_per_100',
+      'thiamin_mg_per_100',
+      'riboflavin_mg_per_100',
+    ];
+    for (const name of added) {
+      const column = columns.find((candidate) => candidate.name === name);
+      expect(column).toMatchObject({ type: 'REAL', notnull: 0 });
+    }
+
+    // The pre-existing row keeps what it had, and the new columns read as
+    // unknown rather than as a fabricated zero.
+    const row = db
+      .prepare(`SELECT kcal_per_100, potassium_mg_per_100, ${added.join(', ')}
+                FROM canonical_items WHERE id = 'spinach'`)
+      .get() as Record<string, number | null>;
+    expect(row.kcal_per_100).toBe(23);
+    expect(row.potassium_mg_per_100).toBe(558);
+    for (const name of added) expect(row[name]).toBeNull();
     db.close();
   });
 
@@ -97,6 +152,22 @@ describe('migrations', () => {
     expect(tables).toContain('shopping_list_receipt_matches');
     expect(tables).toContain('fasts');
     expect(tables).toContain('chart_preferences');
+    expect(tables).toContain('shops');
+    const canonicalColumns = (
+      db.prepare('PRAGMA table_info(canonical_items)').all() as { name: string }[]
+    ).map((column) => column.name);
+    for (const column of [
+      'vitamin_d_mcg_per_100',
+      'magnesium_mg_per_100',
+      'zinc_mg_per_100',
+      'sodium_mg_per_100',
+      'vitamin_e_mg_per_100',
+      'vitamin_k_mcg_per_100',
+      'thiamin_mg_per_100',
+      'riboflavin_mg_per_100',
+    ]) {
+      expect(canonicalColumns).toContain(column);
+    }
     const productColumns = db.prepare('PRAGMA table_info(products)').all() as { name: string }[];
     expect(productColumns.map((column) => column.name)).toContain('last_scanned_at');
     const nutritionColumns = db.prepare('PRAGMA table_info(meal_items)').all() as {

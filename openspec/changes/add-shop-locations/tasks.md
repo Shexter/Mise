@@ -1,105 +1,147 @@
-## 1. Decide the permission story before writing any of it
+## 1. The permission story, resolved
 
-- [ ] 1.1 Write the sentence shown before the permission is requested. If it
-      cannot be justified in one honest sentence, the feature is not worth the
-      permission and this change should stop here.
-- [ ] 1.2 Confirm which permission level is actually needed. "While in use" does
-      not deliver departure events reliably; "always" is a much larger ask.
-      Establish this from the platforms before designing around either.
-- [ ] 1.3 Record the answer, because it changes how defensible the feature is.
-      If it needs always-on location, that is a materially bigger trade than the
-      proposal weighed and it should be re-decided rather than assumed.
+- [x] 1.2 Confirm which permission level is actually needed. Resolved:
+      reliable arrival/departure detection needs background region monitoring,
+      which needs "Always" authorization on both platforms — iOS requires a
+      second, separate prompt for it; Android requires declaring
+      `ACCESS_BACKGROUND_LOCATION` and justifying it to Play Store review. "While
+      in Use" cannot deliver background events, confirmed from platform docs
+      (see `design.md`'s "Foreground-only reads, not geofencing").
+- [x] 1.3 Record the answer: this was a materially bigger trade than the
+      proposal weighed. Per the change's own stop condition, it was re-decided
+      rather than assumed — the user chose to drop automatic arrival/departure
+      detection and keep the rest, making "While in Use" (foreground-only, no
+      background task) sufficient. See `design.md`'s Decisions and the revised
+      `proposal.md`.
+- [x] 1.1 Write the sentence shown before the permission is requested, now that
+      the ask is foreground-only. Written and shipped verbatim in three places
+      — `app/shops.tsx` (`PERMISSION_EXPLANATION`, shown on screen before the
+      OS dialog can appear), and `app.config.ts` as both
+      `NSLocationWhenInUseUsageDescription` and the `expo-location` plugin's
+      `locationWhenInUsePermission`: "Mise uses your location, only while the
+      app is open, to recognise shops you've bought from before and show what
+      you're low on when you check one."
 
 ## 2. Schema
 
-- [ ] 2.1 Append the migration creating `shops` — id, display name, the store
-      name receipts use, and a coarse latitude and longitude.
-- [ ] 2.2 **No visit table, no timestamps of presence, no `last_seen_at`.** The
-      stored data must be unable to reconstruct movement, and that is a property
-      of the schema rather than of the code. Someone will later want a cache
-      column here; the answer is no.
-- [ ] 2.3 Add `Shop` to `src/types.ts`.
-- [ ] 2.4 Extend `DROP_ALL`, and confirm *Delete all data* removes shop
-      positions.
-- [ ] 2.5 Add a test asserting the schema holds no field capable of recording
-      when the user was somewhere.
-- [ ] 2.6 Verify the migration runs from the current head and `npm run typecheck`
-      passes.
+- [x] 2.1 Appended `SHOPS` to `src/db/schema.ts` as Migration 30 (index 29,
+      `LATEST_VERSION` 30 — the change's original "Migration 28" note predated
+      the fasting and chart-preference migrations landing). Five columns:
+      `id`, `name`, `store_name`, `latitude`, `longitude`, with a unique index
+      on `store_name`.
+- [x] 2.2 No visit table, no timestamps of presence, no `last_seen_at`. The
+      migration's own comment says why, and the property is enforced by test
+      rather than by review — see 2.5.
+- [x] 2.3 Added `Shop` to `src/types.ts`, alongside `NeededIngredient`
+      (identity and status only — no quantity field exists to leak).
+- [x] 2.4 `DROP_ALL` drops `shops` first; `test/shop-locations.test.ts` asserts
+      *Delete all data* removes the table, and `test/migrations.test.ts`'s
+      existing "DROP_ALL removes every table" test still passes.
+- [x] 2.5 `test/shop-locations.test.ts` asserts the `shops` table has exactly
+      those five columns and none matching a time-like name, that no table
+      anywhere is named for visits/arrivals/geofences, and that no *other*
+      table carries a coordinate that could be paired with a timestamp.
+- [x] 2.6 The migration is applied from the prior head with existing data
+      intact in `test/shop-locations.test.ts`. `npm run typecheck` passes.
 
 ## 3. Learning shops
 
-- [ ] 3.1 On receipt import with permission granted, record a coarse position
-      against the receipt's store name.
-- [ ] 3.2 Store coarse, not precise. A geofence radius is hundreds of metres and
-      a supermarket is a large building; precision buys nothing and stores more
-      than is needed.
-- [ ] 3.3 Update an existing shop rather than creating a duplicate when the same
-      store is imported again nearby.
-- [ ] 3.4 **Make no request for nearby places.** Add a test asserting no places
-      lookup occurs. The obvious open source is ODbL and decision 144 is already
-      holding a change behind exactly that question.
-- [ ] 3.5 Do nothing at all when permission is absent — import proceeds
-      unchanged.
+- [x] 3.1 `attachAndResolveReceipt` in `src/logic/receiptService.ts` calls
+      `noteShopForReceipt` (`src/logic/shopService.ts`), which does one
+      foreground read via `readCoarsePosition` and records it against the
+      receipt's store name.
+- [x] 3.2 `coarsen` in `src/logic/shops.ts` rounds to `COARSE_DECIMALS` (4,
+      ~11 m) before anything is stored; `rememberShop` coarsens again at the
+      query layer so no caller can bypass it. Tested with two readings inside
+      one supermarket collapsing to the same stored position.
+- [x] 3.3 `rememberShop` is keyed on `store_name` (unique index) and updates in
+      place. The user's own name for the shop survives the update; only the
+      position moves, so repeated imports leave one row rather than a trail.
+- [x] 3.4 No places lookup exists. `test/shop-locations.test.ts` scans every
+      source file in the feature for `geocodeAsync`, `reverseGeocode`, `fetch(`,
+      `nominatim`, `overpass`, `places`, and the background-location APIs, and
+      `test/stubs/expo-location.ts` deliberately implements only the three
+      foreground calls, so reaching for a lookup breaks the suite.
+- [x] 3.5 Without permission, `noteShopForReceipt` returns before reading —
+      asserted by the position stub recording zero reads — and the import
+      proceeds unchanged.
 
-## 4. Geofencing
+## 4. The manual shop check
 
-- [ ] 4.1 Add `expo-location` and register region monitoring for known shops.
-- [ ] 4.2 Handle the OS cap on monitored regions by monitoring the nearest, and
-      say so where shops are managed.
-- [ ] 4.3 Do not poll position. An app that polls is an app with a position to
-      mishandle; region events are what the platforms provide for this.
-- [ ] 4.4 Measure battery impact over a normal day rather than assuming region
-      monitoring is free.
-- [ ] 4.5 Handle permission revoked at runtime without crashing or nagging.
+- [x] 4.1 `expo-location` added (`~19.0.8`, via `expo install`) and wrapped in
+      `src/logic/location.ts`: `getCurrentPositionAsync` at `Accuracy.Low`,
+      one shot, foreground. No `startLocationUpdatesAsync`, no
+      `startGeofencingAsync`, no `TaskManager`, no background permission
+      request — the config declares only `ACCESS_COARSE_LOCATION` and the
+      "when in use" strings.
+- [x] 4.2 `checkCurrentShop` matches the read position with `nearestShop`
+      (`SHOP_MATCH_RADIUS_METRES`, 150 m) and returns what
+      `listNeededIngredients` finds at `running_low` or `out`.
+- [x] 4.3 `NeededIngredient` carries `canonicalId`, `displayName`, `status`
+      and nothing else; the query does not select a quantity column at all.
+      Tested by asserting the result keys.
+- [x] 4.4 `nothing_needed` and `unknown_shop` are distinct outcomes, both
+      surfacing a one-line toast rather than an empty result screen.
+- [x] 4.5 A test snapshots `pantry_items`, `receipts`, `shops`, and
+      `consumption_events`, runs the check twice, and asserts nothing moved.
+- [x] 4.6 Every failure mode — denied, revoked mid-check, services off, no fix
+      — resolves to `no_permission` or `no_position`. Nothing throws and
+      nothing re-prompts; the OS remembers a decline and the screen returns to
+      showing the explanation.
 
-## 5. The two prompts
+## 5. Feeding receipt matching
 
-- [ ] 5.1 On arrival, surface ingredients that are `running_low` or `out`.
-- [ ] 5.2 **Show status, never a quantity.** Decision 15 — "running low on soy
-      sauce" is defensible, "you have 40 ml left" standing in an aisle is not.
-- [ ] 5.3 Surface nothing when nothing is low or out. A prompt that fires with
-      no content teaches the user to dismiss the next one.
-- [ ] 5.4 On departure, offer to capture what was bought, routing to the existing
-      capture surface.
-- [ ] 5.5 **Neither prompt acts.** No pantry item, no receipt, no stock change
-      without the user. A feature triggered by walking through a door is the last
-      place to break the pattern decisions 95 and 122 set, because the user did
-      not initiate it and may not even be shopping.
-- [ ] 5.6 Make an ignored prompt leave no trace.
+- [x] 5.1 `storeForReceipt` passes the resolved store into
+      `resolveReceiptLines`, which already threads it to `normalise` via
+      `referencesFromLines`. `normalise.ts` is untouched.
+- [x] 5.2 `storeForNormalisation` returns the printed header whenever it is
+      non-blank, and only falls back to the recognised shop otherwise.
+- [x] 5.3 `SHOP_RECENCY_WINDOW_MS` (30 minutes) in `src/logic/shops.ts`, with
+      the guess documented. It gates an in-memory `lastRecognised` value only
+      — nothing about when the user was anywhere reaches disk.
+- [x] 5.4 Both directions tested: an unreadable header at a known shop adopts
+      the shop's store name; a legible header standing in a *different* known
+      shop keeps its own. An unreadable header at an unknown shop yields null
+      rather than a guess.
 
-## 6. Feeding receipt matching
+## 6. Managing shops
 
-- [ ] 6.1 Pass a recognised shop's store name into `normalise` as the store,
-      using the parameter `add-receipt-import` already added. No change to
-      `normalise.ts` itself.
-- [ ] 6.2 **The receipt's own header wins** where it states a store. The printed
-      header is direct evidence; the geofence is circumstantial, and someone can
-      buy a coffee next door or shop at two places in one trip.
-- [ ] 6.3 Define "shortly after being at a known shop" as a named constant.
-- [ ] 6.4 Test the fallback with an illegible-header fixture and the override
-      with a legible one.
+- [x] 6.1 `app/shops.tsx` — list, rename (via `Sheet` + `Field`), and remove
+      individually. Reachable from Settings → Tracking → Shops.
+- [x] 6.2 "Forget all shop positions" calls `deleteAllShops`, which touches
+      only the `shops` table; a test asserts the pantry survives it intact.
+- [x] 6.3 One line at the top of the screen: "Mise stores where a shop is,
+      learned from receipts you import there. It never stores when you were
+      anywhere."
+- [x] 6.4 Built from `Screen`, `Card`, `Divider`, `Button`, `Field`, `Sheet`,
+      `Toast`, and the `Type` components, styled only with `color`, `space`,
+      `layout`, and `opacity` tokens. No colour, font, or spacing literal.
 
-## 7. Managing shops
+## 7. Verification
 
-- [ ] 7.1 Add a shops surface: list, rename, remove.
-- [ ] 7.2 Allow deleting all stored positions without deleting anything else, so
-      withdrawing from the feature does not mean withdrawing from the app.
-- [ ] 7.3 Explain in one line what is stored — shop positions, not visits.
-- [ ] 7.4 Components from `src/components`, tokens from
-      `src/constants/theme.ts`. No colour, font, or spacing literals.
-
-## 8. Verification
-
-- [ ] 8.1 Import a receipt at a real shop and confirm it is remembered.
-- [ ] 8.2 Return to that shop and confirm the low-stock list surfaces.
-- [ ] 8.3 Leave and confirm the capture offer appears and does nothing on its own.
-- [ ] 8.4 Confirm a shop with nothing needed surfaces nothing.
-- [ ] 8.5 Decline the permission and confirm the whole app behaves exactly as it
-      does today.
-- [ ] 8.6 Revoke the permission mid-use and confirm nothing breaks.
-- [ ] 8.7 Inspect the database and confirm it cannot answer where the user was on
-      any given day.
-- [ ] 8.8 Confirm no request anywhere carries a position.
-- [ ] 8.9 Run `npm run typecheck` and `npm test`, then record the permission
-      level required and the measured battery impact in
-      `docs/product-decisions.md`.
+- [ ] 7.1 Import a receipt at a real shop and confirm it is remembered.
+      *(On-device; not runnable here. Covered in automated form by
+      `test/shop-locations.test.ts` "learns the shop when a receipt names its
+      store".)*
+- [ ] 7.2 Check that shop and confirm the low-stock list surfaces.
+      *(On-device; automated equivalent: "surfaces what is low or out, by
+      status and never by quantity".)*
+- [x] 7.3 Confirm a shop with nothing needed surfaces nothing, and confirm
+      checking never creates or changes anything on its own — both asserted in
+      `test/shop-locations.test.ts`, the second by a full before/after
+      database snapshot across two checks.
+- [x] 7.4 Declining the permission leaves the app exactly as it is today:
+      `noteShopForReceipt` returns without reading, the import path is
+      unchanged, and `checkCurrentShop` reports `no_permission`. Asserted.
+- [x] 7.5 Revoking mid-use, including mid-check, is covered by the stub's
+      `throwOnRead`: both entry points resolve to a null/`no_position` result
+      rather than throwing, and neither re-prompts.
+- [x] 7.6 The database cannot answer where the user was on any given day —
+      enforced by the schema tests in 2.5 rather than by inspection.
+- [x] 7.7 No request carries a position: nothing in the feature calls `fetch`,
+      geocodes, or reverse-geocodes (asserted by source scan), and the receipt
+      extraction request is built from the photo alone — the shop is used only
+      to pick brand prefixes locally in `normalise`.
+- [x] 7.8 `npm run typecheck` and `npm test` both pass (106 files, 888 tests).
+      The permission level — "While in Use", foreground-only — is recorded in
+      `docs/product-decisions.md` under "Shop locations".

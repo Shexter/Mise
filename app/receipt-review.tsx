@@ -28,6 +28,7 @@ import {
 import { captureItemsFromReceiptLines, resolveCapturedItems } from '@/logic/captureItems';
 import { friendlyDate } from '@/logic/dates';
 import { checkArithmetic, planReceiptApply, type PantryChange } from '@/logic/receipt';
+import { ocrConfidenceBand } from '@/logic/receiptOcr';
 import {
   acceptReceiptReview,
   abandonReceiptReview,
@@ -40,6 +41,7 @@ import { formatQuantity } from '@/logic/scaling';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 import type {
   CanonicalItem,
+  ReceiptExtractionSource,
   Location,
   MeasureUnit,
   PantryItem,
@@ -134,6 +136,7 @@ export default function ReceiptReviewScreen() {
   );
 
   const arithmetic = checkArithmetic(receipt.lines, receipt.subtotalCents);
+  const provenance = provenanceLabel(frames);
 
   const preview: PantryChange[] = planReceiptApply(
     receipt.lines,
@@ -296,6 +299,7 @@ export default function ReceiptReviewScreen() {
             disabled={saving || receipt.frameEditsLocked}
           />
         </ScrollView>
+        {provenance ? <Caption muted style={styles.provenance}>{provenance}</Caption> : null}
         {receipt.frameEditsLocked ? (
           <Caption muted style={styles.frameLockMessage}>
             Finish or discard this receipt before changing its photos.
@@ -362,6 +366,7 @@ export default function ReceiptReviewScreen() {
                 {index > 0 ? <Divider /> : null}
                 <LineRow
                   title={line.rawText} detail={priceLabel(line)} actionLabel="Match"
+                  lowConfidence={isLowConfidence(line)}
                   onPress={() => setCorrecting(line)} onExclude={() => void toggleExcluded(line)} />
               </View>
             ))}
@@ -374,7 +379,7 @@ export default function ReceiptReviewScreen() {
               <View key={line.id}>
                 {index > 0 ? <Divider /> : null}
                 <CollapsibleEditorRow title={displayName(line)} subtitle={priceLabel(line)} expanded={expandedLineId === line.id} onToggle={() => setExpandedLineId((current) => nextExpandedId(current, line.id))}>
-                  <LineRow title={displayName(line)} provenance={line.rawText} detail={priceLabel(line)} actionLabel="Edit" onPress={() => setEditing(line)} onSecondaryPress={() => setCorrecting(line)} secondaryLabel="Change match" onExclude={() => void toggleExcluded(line)} />
+                  <LineRow title={displayName(line)} provenance={line.rawText} detail={priceLabel(line)} actionLabel="Edit" lowConfidence={isLowConfidence(line)} onPress={() => setEditing(line)} onSecondaryPress={() => setCorrecting(line)} secondaryLabel="Change match" onExclude={() => void toggleExcluded(line)} />
                 </CollapsibleEditorRow>
               </View>
             ))}
@@ -446,6 +451,39 @@ export default function ReceiptReviewScreen() {
   );
 }
 
+/**
+ * Whether the recognizer itself was unsure of this line. Only the lowest
+ * band is flagged: a badge on a third of the receipt is not a signal, and
+ * OCR confidence says nothing about whether the match is right — that is a
+ * separate question the "Needs a match" section already asks.
+ */
+function isLowConfidence(line: ReceiptLine): boolean {
+  return line.ocrConfidence !== null && ocrConfidenceBand(line.ocrConfidence) === 'low';
+}
+
+const SOURCE_LABELS: Record<ReceiptExtractionSource, string> = {
+  local_ocr: 'Read on this device',
+  cloud_text: 'Read on this device, tidied up by AI (text only — the photo stayed here)',
+  cloud_vision: 'Read by AI from the photo',
+};
+
+/**
+ * Says plainly what left the device. Frames can differ — one photo added
+ * while offline, one after — so a mixed draft names both rather than
+ * picking the flattering one.
+ */
+function provenanceLabel(frames: ReceiptFrame[]): string | null {
+  const sources = [...new Set(
+    frames
+      .filter((frame) => frame.status === 'extracted')
+      .map((frame) => frame.extractionSource)
+      .filter((source): source is ReceiptExtractionSource => source !== null),
+  )];
+  if (sources.length === 0) return null;
+  if (sources.length === 1) return SOURCE_LABELS[sources[0]!];
+  return sources.map((source) => SOURCE_LABELS[source]).join(' · ');
+}
+
 function priceLabel(line: ReceiptLine): string {
   if (line.lineTotalCents === null) return 'Price unknown';
   const price = `$${(line.lineTotalCents / 100).toFixed(2)}`;
@@ -482,6 +520,7 @@ function LineRow({
   secondaryLabel,
   onSecondaryPress,
   onExclude,
+  lowConfidence = false,
   compact = false,
 }: {
   title: string;
@@ -492,12 +531,19 @@ function LineRow({
   secondaryLabel?: string;
   onSecondaryPress?: () => void;
   onExclude?: () => void;
+  /** The on-device recognizer was unsure of this line's text — worth a second look, never a reason to drop it. */
+  lowConfidence?: boolean;
   compact?: boolean;
 }) {
   return (
     <View style={[styles.row, compact && styles.rowCompact]}>
       <View style={styles.rowText}>
         <RowTitle numberOfLines={1}>{title}</RowTitle>
+        {lowConfidence ? (
+          <View style={styles.confidenceBadge}>
+            <Caption>Hard to read — check this line</Caption>
+          </View>
+        ) : null}
         {provenance ? (
           <Caption muted numberOfLines={1}>
             “{provenance}”
@@ -576,6 +622,15 @@ const styles = StyleSheet.create({
   },
   rowCompact: { paddingVertical: space.sm, opacity: opacity.disabled },
   rowText: { flex: 1, gap: space.xs },
+  provenance: { marginTop: space.xs },
+  confidenceBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: color.wheat,
+    borderRadius: radius.input,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+  },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   actionChip: {
     borderWidth: 1,

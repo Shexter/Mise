@@ -9,7 +9,7 @@ import { Screen } from '@/components/Screen';
 import { ApiKeySheet } from '@/components/settings/ApiKeySheet';
 import { MacroSplitSheet } from '@/components/settings/MacroSplitSheet';
 import { ProfileSheet } from '@/components/settings/ProfileSheet';
-import { SettingsRow } from '@/components/settings/Row';
+import { SettingsRow, SettingsToggleRow } from '@/components/settings/Row';
 import { ThemeSheet } from '@/components/settings/ThemeSheet';
 import { useToast } from '@/components/Toast';
 import { Caption, ScreenTitle } from '@/components/Type';
@@ -18,7 +18,14 @@ import { themeOptions } from '@/constants/themePalettes';
 import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
 import { populateDemoData } from '@/db/demoData';
-import { getBodyMeasurements, listPendingCaptures, removePendingCapture, saveBodyMeasurement } from '@/db/queries';
+import {
+  getBodyMeasurements,
+  getReceiptOcrPreference,
+  listPendingCaptures,
+  removePendingCapture,
+  saveBodyMeasurement,
+  saveReceiptOcrPreference,
+} from '@/db/queries';
 import { exportData } from '@/logic/export';
 import { isMeasurementStale, resolveTarget } from '@/logic/bodyComposition';
 import { localDateString } from '@/logic/dates';
@@ -49,6 +56,7 @@ export default function SettingsScreen() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
+  const [ocrCloudText, setOcrCloudText] = useState(false);
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
@@ -82,6 +90,9 @@ export default function SettingsScreen() {
 
   useEffect(loadKey, [loadKey]);
   useEffect(() => { void getBodyMeasurements().then(setMeasurements); }, []);
+  useEffect(() => {
+    void getReceiptOcrPreference().then((preference) => setOcrCloudText(preference.cloudTextEnhancement));
+  }, []);
 
   if (!profile) return <Screen />;
   const activeMeasurement = measurements.find((item) => item.provider === profile.targetSource);
@@ -131,6 +142,16 @@ export default function SettingsScreen() {
       'Each option is your own calculation. Add the inputs a source needs before using it.',
       [...choices, { text: 'Cancel', style: 'cancel' }],
     );
+  };
+
+  // Optimistic, then reconciled: a toggle that visibly lags is worse than
+  // one that snaps back on the rare write failure.
+  const changeOcrCloudText = (next: boolean) => {
+    setOcrCloudText(next);
+    void saveReceiptOcrPreference({ cloudTextEnhancement: next }).catch(() => {
+      setOcrCloudText(!next);
+      toast.show({ kind: 'recoverable-error', message: 'That preference could not be saved.' });
+    });
   };
 
   const removeKey = () => {
@@ -335,6 +356,24 @@ export default function SettingsScreen() {
             label="Fasting"
             onPress={() => router.push('/fasting')}
           />
+          <SettingsRow
+            label="Shops"
+            onPress={() => router.push('/shops')}
+          />
+        </Card>
+
+        <Card title="Receipt OCR" padded={false}>
+          <SettingsToggleRow
+            label="Enhance receipt text with AI"
+            description="Lightweight text-only; photos never leave device"
+            value={ocrCloudText}
+            onValueChange={changeOcrCloudText}
+          />
+          {ocrCloudText && !maskedKey ? (
+            <Caption muted style={styles.stale}>
+              This needs an API key. Until one is added, receipts are structured on this device.
+            </Caption>
+          ) : null}
         </Card>
 
         <Card title="API key" padded={false}>

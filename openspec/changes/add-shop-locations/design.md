@@ -34,26 +34,43 @@ timestamps of presence, no arrival log.
 *Why this is the decision the whole change rests on:* "the app knows where the
 supermarkets are" and "the app knows where you have been" are different
 databases with wildly different consequences if the device is lost, and only one
-of them is needed. Geofencing gives arrival and departure events at runtime;
-nothing requires persisting them, so nothing does.
+of them is needed. A foreground position read tells the app which shop it is
+looking at, in the moment, without needing to keep a record of where the user
+has been to do it.
 
 *The test that keeps it honest:* the stored data must be unable to reconstruct
 movement. That is a property of the schema, not of the code, which is why it is
 a requirement rather than a guideline — someone adding a `last_seen_at` column
 for a reasonable-sounding cache would quietly cross the line.
 
-### Geofencing rather than polling
+### Foreground-only reads, not geofencing
 
-OS-level region monitoring, entering and exiting.
+A one-shot position read at two moments: when a receipt is imported, and when
+the user taps "check this shop." No background task, no region monitoring.
 
-*Why:* it is what the platforms provide for exactly this, it is
-battery-efficient because the OS is already tracking regions for other apps, and
-it delivers events rather than requiring the app to ask where the user is. An
-app that polls position is an app that has a position to mishandle.
+*Why this replaced geofencing:* the original plan was OS-level region
+monitoring — entering and exiting a shop's radius would drive both prompts
+automatically. Checking that plan against the platforms (task 1.2) found that
+reliable arrival/departure detection needs background region monitoring, which
+needs "Always" location authorization on both iOS and Android — not "While in
+Use." iOS shows a second, separate prompt specifically for "Always," weeks
+after the first grant; Android requires declaring
+`ACCESS_BACKGROUND_LOCATION` and justifying it to Play Store review before the
+permission is even grantable app-wide. That is a materially bigger trade than
+this change argued for: the proposal weighs "a permission," not *the*
+permission both platforms treat as their most sensitive, gated by their
+heaviest review scrutiny. Per task 1.3, that gap triggered a re-decision
+rather than proceeding on the original assumption. The user chose to drop
+automatic detection and keep everything else, which makes the permission
+foreground-only: no background task, no region cap, no battery question,
+because there is nothing running when the app is not.
 
-*Consequence:* the number of monitored regions is capped by the OS. If the user
-learns more shops than the cap, monitor the nearest — which needs a position and
-is the one place this change reads one directly.
+*What this costs:* the two automatic prompts become one manual action (see
+"The manual check is an offer, and it never acts," below). Arrival surfacing
+is still available, just user-triggered; departure-triggered capture is
+dropped entirely rather than replaced, because there is no reliable
+foreground-only way to detect "leaving," and receipt capture already covers
+that moment without needing a trigger.
 
 ### Shops are learned at receipt import
 
@@ -63,9 +80,9 @@ against the receipt's store name.
 *Why at import rather than at capture:* the receipt is the thing that names the
 store. A photograph taken in a shop knows where it was and not what it was.
 
-*Why coarse:* a supermarket is a large building and a geofence radius is
-hundreds of metres. Storing a precise position buys nothing and stores more than
-is needed.
+*Why coarse:* a supermarket is a large building, and matching "which shop is
+this" only ever needs building-level precision. Storing a precise position
+buys nothing and stores more than is needed.
 
 *Why this beats a places database:* argued in the proposal. The short version is
 that it works offline, carries no licence question — decision 144 is currently
@@ -77,28 +94,35 @@ from it has been imported. That is a real limitation. It is also self-resolving,
 explainable in a sentence, and free — importing the receipt was already the
 thing the user was doing.
 
-### Both prompts are offers, and neither acts
+### The manual check is an offer, and it never acts
 
-Arrival surfaces what is low or out. Departure offers capture. Neither changes
-anything.
+Checking a known shop surfaces what is low or out. It changes nothing.
 
-*Why:* every other automatic-seeming thing in this app lands on review first —
-decision 95 for capture routing, decision 122 for pending captures. A feature
-triggered by walking through a door is the last place to break that pattern,
-because the user did not initiate it at all and may not even be shopping.
+*Why still frame it as an offer, now that it is user-triggered rather than
+automatic:* every other automatic-seeming thing in this app lands on review
+first — decision 95 for capture routing, decision 122 for pending captures.
+The user asking "what do I need here" should not silently do anything beyond
+answering that question — no different from any other read-only query in the
+app.
 
-*Why arrival shows status rather than quantity:* decision 15. "Running low on
-soy sauce" is defensible; "you have 40 ml left" standing in an aisle is a number
+*Why it shows status rather than quantity:* decision 15. "Running low on soy
+sauce" is defensible; "you have 40 ml left" standing in an aisle is a number
 the app cannot justify and the user cannot check.
+
+*Why the departure/capture offer was dropped rather than kept manual too:* a
+manual "capture what I bought" button needs no location at all — it is just
+the existing capture surface, reachable the same way it already is today.
+Location only would have added value by triggering it automatically on
+departure, and that is exactly the piece removed above.
 
 ### The receipt's own header still wins
 
 A recognised shop supplies a store name only when the receipt does not.
 
-*Why:* the receipt is direct evidence and the geofence is circumstantial. Someone
-can buy a coffee at the shop next door, or shop at two places in one trip. Where
-both are available the printed header is the better source, and the geofence is
-the fallback it never had.
+*Why:* the receipt is direct evidence and a position match is circumstantial.
+Someone can buy a coffee at the shop next door, or shop at two places in one
+trip. Where both are available the printed header is the better source, and
+the position match is the fallback it never had.
 
 ## Risks / Trade-offs
 
@@ -107,16 +131,11 @@ asking in context rather than at launch, explaining before requesting, and
 degrading fully. It is still a real cost and the proposal weighs it explicitly
 rather than assuming the feature is worth it.
 
-**Geofence accuracy in dense retail** → shops next to each other will produce
-wrong matches, and a shopping centre may be one region. Accepted: both prompts
-are offers, so a wrong match costs a dismissed prompt. This is the reason
-neither prompt acts.
-
-**Battery and background execution** → region monitoring is cheap; a mistake in
-how it is registered is not. Measured in the tasks rather than assumed.
-
-**The cap on monitored regions** → a user with many shops exceeds it. Mitigation:
-monitor the nearest, and say so where shops are managed.
+**Position accuracy in dense retail** → shops next to each other, or a large
+shopping centre, can make the nearest-match wrong. Accepted: the check is a
+manual offer, so a wrong match costs a dismissed screen, not a silent bad
+decision — lower stakes than the original automatic-prompt design, since the
+user only sees a result when they asked for one.
 
 **Feature creep toward a shopping list** → "what you are out of" looks like a
 list and will invite editing, adding, ticking off. That is a separate change and
@@ -133,14 +152,11 @@ One forward-only migration creating `shops`. Additive; no existing table
 changes. `DROP_ALL` gains it, and *Delete all data* removes shop positions with
 everything else.
 
-Rollback removes the geofence registration; the app returns to today's
+Rollback removes the manual-check entry point; the app returns to today's
 behaviour and the table is inert.
 
 ## Open Questions
 
-- **Whether departure or arrival is the better capture prompt.** Departure is
-  argued here because the receipt is in hand and the shopping is not yet put
-  away. Arrival might catch the user with more patience. Measurable only in use.
 - **How long "shortly after being at a known shop" should be** for the receipt
   matching fallback. A named constant, and a guess until there is usage.
 - **Whether a shop should be learnable without a receipt** — a manual "remember

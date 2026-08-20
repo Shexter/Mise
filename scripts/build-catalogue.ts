@@ -67,6 +67,14 @@ export interface CatalogueEntry {
   folateMcgPer100?: number | null;
   vitaminAMcgPer100?: number | null;
   potassiumMgPer100?: number | null;
+  vitaminDMcgPer100?: number | null;
+  magnesiumMgPer100?: number | null;
+  zincMgPer100?: number | null;
+  sodiumMgPer100?: number | null;
+  vitaminEMgPer100?: number | null;
+  vitaminKMcgPer100?: number | null;
+  thiaminMgPer100?: number | null;
+  riboflavinMgPer100?: number | null;
   typicalUseQty?: number;
   typicalUseUnit?: MeasureUnit;
   typicalPkgQty?: number;
@@ -90,6 +98,14 @@ export interface CataloguePatch {
   folateMcgPer100?: number | null;
   vitaminAMcgPer100?: number | null;
   potassiumMgPer100?: number | null;
+  vitaminDMcgPer100?: number | null;
+  magnesiumMgPer100?: number | null;
+  zincMgPer100?: number | null;
+  sodiumMgPer100?: number | null;
+  vitaminEMgPer100?: number | null;
+  vitaminKMcgPer100?: number | null;
+  thiaminMgPer100?: number | null;
+  riboflavinMgPer100?: number | null;
 }
 
 export interface BuildIssue {
@@ -327,6 +343,14 @@ function initialSources(entry: CatalogueEntry): Partial<Record<string, SourceId>
     'folateMcgPer100',
     'vitaminAMcgPer100',
     'potassiumMgPer100',
+    'vitaminDMcgPer100',
+    'magnesiumMgPer100',
+    'zincMgPer100',
+    'sodiumMgPer100',
+    'vitaminEMgPer100',
+    'vitaminKMcgPer100',
+    'thiaminMgPer100',
+    'riboflavinMgPer100',
     'typicalUseQty',
     'typicalUseUnit',
     'typicalPkgQty',
@@ -409,6 +433,14 @@ export function mergeCataloguePatch(
   apply('folateMcgPer100', patch.folateMcgPer100);
   apply('vitaminAMcgPer100', patch.vitaminAMcgPer100);
   apply('potassiumMgPer100', patch.potassiumMgPer100);
+  apply('vitaminDMcgPer100', patch.vitaminDMcgPer100);
+  apply('magnesiumMgPer100', patch.magnesiumMgPer100);
+  apply('zincMgPer100', patch.zincMgPer100);
+  apply('sodiumMgPer100', patch.sodiumMgPer100);
+  apply('vitaminEMgPer100', patch.vitaminEMgPer100);
+  apply('vitaminKMcgPer100', patch.vitaminKMcgPer100);
+  apply('thiaminMgPer100', patch.thiaminMgPer100);
+  apply('riboflavinMgPer100', patch.riboflavinMgPer100);
   return entry;
 }
 
@@ -554,12 +586,36 @@ export function nutritionFromFdc(food: FdcFood): CataloguePatch {
     folateMcgPer100: nutrientValue(food, 1177, /folate, total/i),
     vitaminAMcgPer100: nutrientValue(food, 1106, /vitamin a, rae/i),
     potassiumMgPer100: nutrientValue(food, 1092, /^potassium, k$/i),
+    // FDC carries three vitamin D entries: 1114 "Vitamin D (D2 + D3)" in mcg,
+    // 1110 the same figure in IU, and 1112/1111 the D2 and D3 components
+    // separately. 1114 is the combined total in the unit the app stores.
+    //
+    // Anchored, like B12 below: the IU row is named "Vitamin D (D2 + D3),
+    // International Units", so an unanchored pattern matches it on any food
+    // where the ID lookup misses — storing an IU figure as micrograms, a
+    // silent 40x error.
+    vitaminDMcgPer100: nutrientValue(food, 1114, /^vitamin d \(d2 \+ d3\)$/i),
+    magnesiumMgPer100: nutrientValue(food, 1090, /^magnesium, mg$/i),
+    zincMgPer100: nutrientValue(food, 1095, /^zinc, zn$/i),
+    sodiumMgPer100: nutrientValue(food, 1093, /^sodium, na$/i),
+    // Alpha-tocopherol specifically, not the beta/gamma/delta tocopherols FDC
+    // also lists (1125–1128): 1109 is the form vitamin E activity is defined
+    // by, and the one a per-100g figure is expected to mean.
+    // Anchored for the same reason as vitamin D: FDC lists "Vitamin E
+    // (alpha-tocopherol), added" (1242) as the fortification-only portion.
+    vitaminEMgPer100: nutrientValue(food, 1109, /^vitamin e \(alpha-tocopherol\)$/i),
+    // Phylloquinone (K1). FDC keeps menaquinone-4 (1183) and dihydro-
+    // phylloquinone (1184) as separate IDs; K1 is the dietary majority and
+    // the figure a single "vitamin K" number refers to.
+    vitaminKMcgPer100: nutrientValue(food, 1185, /^vitamin k \(phylloquinone\)$/i),
+    thiaminMgPer100: nutrientValue(food, 1165, /^thiamin$/i),
+    riboflavinMgPer100: nutrientValue(food, 1166, /^riboflavin$/i),
   };
 }
 
 /**
  * Whether a food has at least one of the 4 core macros — deliberately
- * narrower than all 12 fields `nutritionFromFdc()` now extracts, since a
+ * narrower than all 20 fields `nutritionFromFdc()` now extracts, since a
  * food with only a micronutrient value (e.g. fibre) and no macro data is
  * too thin a record to accept as a match; it should fall through to
  * `unmatched` for manual review rather than being silently selected.

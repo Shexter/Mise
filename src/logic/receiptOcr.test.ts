@@ -6,6 +6,7 @@ import {
   isWrappedContinuation,
   ocrConfidenceBand,
   orderedOcrLines,
+  parseOcrLinesLocally,
   shouldFallbackToCloud,
   type OcrModelEvent,
 } from '@/logic/receiptOcr';
@@ -160,5 +161,120 @@ describe('wrapped-line grouping', () => {
     const first = box({ x: 0, y: 0, width: 50, height: 20 });
     const second = box({ x: 60, y: 5, width: 50, height: 20 });
     expect(isWrappedContinuation(first, second)).toBe(false);
+  });
+});
+
+describe('parseOcrLinesLocally', () => {
+  const receiptLine = (
+    text: string,
+    order: number,
+    overrides: Partial<OcrBoundingBox> = {},
+  ): OcrLine => line({
+    text,
+    order,
+    boundingBox: box({ x: 10, y: order * 25, width: 180, height: 18, ...overrides }),
+  });
+
+  test('parses a simple grocery receipt without inventing missing quantities', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('MISE MARKET', 0),
+      receiptLine('2026-08-20', 1),
+      receiptLine('MILK $3.99', 2),
+      receiptLine('BANANAS 500g 1.49', 3),
+      receiptLine('TOTAL $5.48', 4),
+    ]);
+
+    expect(parsed.storeName).toBe('MISE MARKET');
+    expect(parsed.date).toBe('2026-08-20');
+    expect(parsed.items).toEqual([
+      { rawName: 'MILK', quantity: null, unit: null, lineTotalCents: 399, isFood: true },
+      { rawName: 'BANANAS', quantity: 500, unit: 'g', lineTotalCents: 149, isFood: true },
+    ]);
+    expect(parsed.totalCents).toBe(548);
+  });
+
+  test('pairs description and price tokens by vertical geometry, not input order', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('$4.25', 9, { x: 310, y: 81, width: 55 }),
+      receiptLine('APPLES', 2, { x: 10, y: 51, width: 100 }),
+      receiptLine('$2.99', 8, { x: 310, y: 52, width: 55 }),
+      receiptLine('BREAD', 3, { x: 10, y: 80, width: 100 }),
+      receiptLine('COLUMN MARKET', 0, { y: 0, width: 170 }),
+    ]);
+
+    expect(parsed.items).toEqual([
+      { rawName: 'APPLES', quantity: null, unit: null, lineTotalCents: 299, isFood: true },
+      { rawName: 'BREAD', quantity: null, unit: null, lineTotalCents: 425, isFood: true },
+    ]);
+  });
+
+  test('reads subtotal, tax, and total when labels and amounts are separate OCR boxes', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('TOTALS MARKET', 0),
+      receiptLine('RICE', 1, { y: 40, width: 100 }),
+      receiptLine('$10.00', 6, { x: 300, y: 41, width: 60 }),
+      receiptLine('SUBTOTAL', 2, { y: 80, width: 100 }),
+      receiptLine('10.00', 7, { x: 300, y: 81, width: 60 }),
+      receiptLine('GST', 3, { y: 105, width: 100 }),
+      receiptLine('0.50', 8, { x: 300, y: 106, width: 60 }),
+      receiptLine('TOTAL', 4, { y: 130, width: 100 }),
+      receiptLine('$10.50', 9, { x: 300, y: 131, width: 60 }),
+    ]);
+
+    expect(parsed.subtotalCents).toBe(1000);
+    expect(parsed.taxCents).toBe(50);
+    expect(parsed.totalCents).toBe(1050);
+    expect(parsed.items.map((item) => item.rawName)).toEqual(['RICE']);
+  });
+
+  test('joins a wrapped ingredient name and reads kg and count quantities', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('WRAP MARKET', 0),
+      receiptLine('ORGANIC EXTRA VIRGIN', 1, { y: 40, width: 190, height: 16 }),
+      receiptLine('OLIVE OIL 500g', 2, { x: 20, y: 58, width: 130, height: 16 }),
+      receiptLine('$8.99', 8, { x: 300, y: 59, width: 55, height: 16 }),
+      receiptLine('JASMINE RICE 1.2kg $12.00', 3, { y: 90, width: 280 }),
+      receiptLine('CANNED BEANS 2 @ $3.50 $7.00', 4, { y: 120, width: 300 }),
+    ]);
+
+    expect(parsed.items).toEqual([
+      { rawName: 'ORGANIC EXTRA VIRGIN OLIVE OIL', quantity: 500, unit: 'g', lineTotalCents: 899, isFood: true },
+      { rawName: 'JASMINE RICE', quantity: 1200, unit: 'g', lineTotalCents: 1200, isFood: true },
+      { rawName: 'CANNED BEANS', quantity: 2, unit: 'piece', lineTotalCents: 700, isFood: true },
+    ]);
+  });
+
+  test('flags clear non-food purchases but keeps ambiguous merchandise visible as food', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('MIXED MARKET', 0),
+      receiptLine('PAPER TOWELS 6.99', 1),
+      receiptLine('DISH SOAP $3.49', 2),
+      receiptLine('MYSTERY CRISPS 2.00', 3),
+    ]);
+
+    expect(parsed.items.map((item) => item.isFood)).toEqual([false, false, true]);
+  });
+
+  test('does not treat an @ unit price as a line total when no total is printed', () => {
+    const parsed = parseOcrLinesLocally([
+      receiptLine('COUNT MARKET', 0),
+      receiptLine('BEANS 2 @ $3.50', 1),
+    ]);
+    expect(parsed.items).toEqual([]);
+  });
+
+  test('returns only null headers and no items for empty or unparseable lines', () => {
+    expect(parseOcrLinesLocally([])).toEqual({
+      items: [], storeName: null, totalCents: null,
+      subtotalCents: null, taxCents: null, date: null,
+    });
+    expect(parseOcrLinesLocally([
+      receiptLine('   ', 0),
+      receiptLine('THANK YOU', 1),
+      receiptLine('123456789', 2),
+    ])).toEqual({
+      items: [], storeName: null, totalCents: null,
+      subtotalCents: null, taxCents: null, date: null,
+    });
   });
 });

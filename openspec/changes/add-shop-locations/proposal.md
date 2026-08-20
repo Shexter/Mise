@@ -34,13 +34,18 @@ the conclusion can be different, and saying that out loud is the point.
 
 Three things keep decision 5 intact rather than merely traded away:
 
-- **Position never leaves the device.** Geofencing is an OS service; there is no
-  server to send it to and this change does not add one.
+- **Position never leaves the device.** Every position read stays on-device;
+  there is no server to send it to and this change does not add one.
 - **No location history is stored.** The app stores *where a shop is*, not where
   the user has been. Those are different databases and only one of them is a
   liability.
 - **The permission is optional and everything works without it.** Every feature
   here has a manual equivalent that already exists.
+- **The permission is foreground-only.** No background location, no continuous
+  tracking. Every position read is a one-shot request triggered by the user or
+  by an in-progress receipt import — this is the app's least invasive location
+  ask, not its most. (Automatic arrival/departure detection was considered and
+  dropped for exactly this reason — see `design.md`'s Decisions.)
 
 What it does **not** do is reopen venue inference. Once the permission exists,
 "is this meal being eaten at a restaurant" becomes answerable from position, and
@@ -51,14 +56,13 @@ rather than inherited because the permission happens to be there.
 
 - **The app learns your shops from your receipts**, not from a downloaded
   database. Import a receipt with location granted, and the shop is remembered.
-- **Arriving at a known shop surfaces what you are out of** — running low and
-  out, from stock the app already tracks.
-- **Leaving a known shop offers to capture the shop**, routing to the existing
-  capture surface.
+- **Checking a known shop surfaces what you are out of** — running low and out,
+  from stock the app already tracks. A one-tap, foreground-only check; nothing
+  runs in the background.
 - **A recognised shop names itself to receipt matching**, so store-brand prefix
   stripping works without a legible header.
-- **Nothing is automatic.** The app prompts; it never adds, decrements, or
-  captures on its own.
+- **Nothing is automatic.** The app answers when asked; it never adds,
+  decrements, or captures on its own.
 
 ## Capabilities
 
@@ -66,8 +70,8 @@ rather than inherited because the permission happens to be there.
 
 - `shop-locations`: Knowing when the user is at a shop they use. Covers learning
   shops from receipts rather than a database, what is stored and what is
-  refused, arrival and departure prompts, feeding store identity to receipt
-  matching, and working fully without the permission.
+  refused, a manual shop check, feeding store identity to receipt matching, and
+  working fully without the permission.
 
 ### Modified Capabilities
 
@@ -82,9 +86,12 @@ None. `openspec/specs/` is empty — nothing has been archived yet.
 - **A downloaded points-of-interest database.** Self-populating from the user's
   own receipts, per decision 60's spirit — and it avoids a licensing question,
   since the obvious source is ODbL (see decision 144).
+- **Background location.** Every position read is a one-shot foreground request
+  the user or a receipt import triggers — never continuous tracking, never a
+  background task.
 - **Background capture, or automatic anything.** No silent stock changes, no
   automatic receipt import, no notifications the user did not ask for beyond the
-  two prompts described.
+  manual check described.
 - **Venue inference from position.** Explicitly out of scope. See above.
 - **Shopping list management.** "What you are out of" is computed from stock the
   app already has. A curated, editable list is a different change.
@@ -101,10 +108,11 @@ link to the store name receipts use.
 - `src/db/queries.ts` — shop CRUD, and the running-low-or-out query.
 - `src/logic/receiptService.ts` — record the shop on import when granted.
 - `src/logic/normalise.ts` — no change; it already takes a store.
-- A permission request, a settings surface, and the two prompts.
+- A permission request, a settings surface, and the manual shop-check action.
 
-**Dependencies.** `expo-location`, for geofencing. The first new runtime
-dependency in several changes, and the reason the trade above is written out.
+**Dependencies.** `expo-location`, for a one-shot foreground position read. The
+first new runtime dependency in several changes, and the reason the trade above
+is written out.
 
 **Depends on** `add-receipt-import` (merged) for the shop-learning path and for
 the store-aware normalisation this feeds.

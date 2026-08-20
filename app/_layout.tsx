@@ -106,6 +106,7 @@ export default function RootLayout() {
             <Stack.Screen name="meal/[id]" />
             <Stack.Screen name="analytics" />
             <Stack.Screen name="fasting" />
+            <Stack.Screen name="shops" />
             <Stack.Screen name="match-queue" options={{ presentation: 'modal' }} />
             <Stack.Screen name="locations" options={{ presentation: 'modal' }} />
             <Stack.Screen name="nutrient-search" options={{ presentation: 'modal' }} />

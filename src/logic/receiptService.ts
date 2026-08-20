@@ -26,10 +26,17 @@ import {
 import { localDateString } from '@/logic/dates';
 import { deletePhoto, photoBase64 } from '@/media/photos';
 import { confirmMatch, resolveIngredientReferences } from '@/logic/resolution';
+import {
+  noteShopForReceipt,
+  recentlyRecognisedShop,
+  storeForReceipt,
+} from '@/logic/shopService';
 import { planReceiptApply, referencesFromLines } from '@/logic/receipt';
+import type { OcrExtractedReceipt } from '@/logic/receiptOcr';
 import type {
   CanonicalItem,
   Receipt,
+  ReceiptExtractionSource,
   ReceiptLineKind,
   ReceiptType,
   ReceiptWithLines,
@@ -76,6 +83,21 @@ export async function captureExtractedReceipt(
   const [frame] = await getReceiptFrames(receipt.id);
   if (!frame) return receipt;
   return attachAndResolveReceipt(receipt.id, frame.id, extracted);
+}
+
+/**
+ * Attaches an extraction produced from on-device OCR to one frame, keeping
+ * the provenance and each line's recognition confidence. Everything after
+ * this point — resolution, review, accept — is the ordinary receipt path;
+ * how the text was read changes what review *shows*, never what it does.
+ */
+export async function attachOcrExtraction(
+  receiptId: string,
+  frameId: string,
+  extracted: OcrExtractedReceipt,
+  source: ReceiptExtractionSource,
+): Promise<ReceiptWithLines> {
+  return attachAndResolveReceipt(receiptId, frameId, extracted, source);
 }
 
 /** Adds one further receipt photo and extracts only that durable frame. */
@@ -185,9 +207,11 @@ async function tryExtractFrame(
 async function attachAndResolveReceipt(
   receiptId: string,
   frameId: string,
-  extracted: ExtractedReceipt,
+  extracted: ExtractedReceipt | OcrExtractedReceipt,
+  source: ReceiptExtractionSource = 'cloud_vision',
 ): Promise<ReceiptWithLines> {
   await recordReceiptFrameExtraction(frameId, {
+    extractionSource: source,
     store: extracted.store,
     purchasedAt: extracted.purchasedAt,
     receiptType: extracted.receiptType,
@@ -203,10 +227,15 @@ async function attachAndResolveReceipt(
       lineTotalCents: line.lineTotalCents,
       unitPriceCents: line.unitPriceCents,
       appliesToText: line.appliesToText,
+      ocrConfidence: 'ocrConfidence' in line ? line.ocrConfidence : null,
     })),
   });
 
-  return resolveReceiptLines(receiptId, extracted.store);
+  // Learn the shop from the receipt that names it, and — where the header is
+  // unreadable — let a recognised shop supply the store name instead. Does
+  // nothing without the location permission; the import is unchanged.
+  const recognised = await noteShopForReceipt(extracted.store);
+  return resolveReceiptLines(receiptId, storeForReceipt(extracted.store, recognised));
 }
 
 /**
@@ -277,7 +306,12 @@ export async function reclassifyReceiptLine(
     return updated;
   }
   const receipt = await getReceipt(receiptId);
-  return resolveReceiptLines(receiptId, receipt?.store ?? null);
+  // Re-resolving reuses whatever the import already established: the printed
+  // header first, and a shop recognised shortly beforehand as the fallback.
+  return resolveReceiptLines(
+    receiptId,
+    storeForReceipt(receipt?.store ?? null, recentlyRecognisedShop()),
+  );
 }
 
 export interface AcceptSummary {

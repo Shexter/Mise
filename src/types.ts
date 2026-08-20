@@ -90,6 +90,35 @@ export interface Fast {
   createdAt: string;
 }
 
+/**
+ * A shop the user buys from, learned from a receipt they imported there.
+ *
+ * Five fields, and the absence of a sixth is the point: there is no timestamp
+ * anywhere on this record, and no visit history beside it. The app knows where
+ * a shop is; it does not know — and must never be able to reconstruct — when
+ * the user was there. Coordinates are coarse, at building-level precision.
+ */
+export interface Shop {
+  id: string;
+  /** The user-facing name, renameable. Seeded from the receipt's store name. */
+  name: string;
+  /** The store name receipt normalisation uses for brand-prefix stripping. */
+  storeName: string;
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * An ingredient worth buying: identity and status only. Never a quantity —
+ * decision 15. "Running low on soy sauce" is defensible standing in an aisle;
+ * "you have 40 ml left" is a number the app cannot justify.
+ */
+export interface NeededIngredient {
+  canonicalId: string;
+  displayName: string;
+  status: Extract<StockStatus, 'running_low' | 'out'>;
+}
+
 export interface Profile {
   sex: Sex | null;
   age: number | null;
@@ -405,6 +434,19 @@ export interface CanonicalItem {
   folateMcgPer100: number | null;
   vitaminAMcgPer100: number | null;
   potassiumMgPer100: number | null;
+  /**
+   * The eight nutrients `scripts/build-catalogue.ts` extracts from FoodData
+   * Central beyond the first micronutrient set, persisted by migration 31.
+   * Null means not known — never 0.
+   */
+  vitaminDMcgPer100: number | null;
+  magnesiumMgPer100: number | null;
+  zincMgPer100: number | null;
+  sodiumMgPer100: number | null;
+  vitaminEMgPer100: number | null;
+  vitaminKMcgPer100: number | null;
+  thiaminMgPer100: number | null;
+  riboflavinMgPer100: number | null;
   typicalUseQty: number | null;
   typicalUseUnit: MeasureUnit | null;
   typicalPkgQty: number | null;
@@ -930,6 +972,13 @@ export interface ReceiptLine {
   pantryItemId: string | null;
   /** The user excluded this line during review. */
   excluded: boolean;
+  /**
+   * The on-device engine's recognition confidence (0-1) for the text this
+   * line was read from, when local OCR produced it. Null for any line that
+   * came from a cloud vision pass. Never used to drop or reorder a line —
+   * review surfaces it so a smudged line is easy to find and correct.
+   */
+  ocrConfidence: number | null;
   createdAt: string;
 }
 
@@ -947,9 +996,24 @@ export interface ReceiptFrame {
   sortOrder: number;
   status: ReceiptFrameStatus;
   lastErrorKind: string | null;
+  /** How this frame's lines were produced. Null for frames extracted before provenance was recorded. */
+  extractionSource: ReceiptExtractionSource | null;
   createdAt: string;
   extractedAt: string | null;
 }
+
+/**
+ * How a frame's lines were produced, in order of how much left the device:
+ * `local_ocr` sent nothing, `cloud_text` sent the recognised text only (the
+ * photograph never leaves), `cloud_vision` sent the photograph itself.
+ */
+export type ReceiptExtractionSource = 'local_ocr' | 'cloud_text' | 'cloud_vision';
+
+export const RECEIPT_EXTRACTION_SOURCES: readonly ReceiptExtractionSource[] = [
+  'local_ocr',
+  'cloud_text',
+  'cloud_vision',
+];
 
 /* -------------------------------------------------------------------------- */
 /* On-device receipt OCR                                                      */
@@ -1028,6 +1092,15 @@ export interface OcrResult {
   script: OcrScript;
   lines: readonly OcrLine[];
   recognizedAt: string;
+}
+
+/**
+ * The one on-device-OCR preference. Off by default: local recognition is
+ * the whole point, and the text-only cloud pass is something the user opts
+ * into knowingly.
+ */
+export interface ReceiptOcrPreference {
+  cloudTextEnhancement: boolean;
 }
 
 /** A camera image retained until it can be interpreted and reviewed. */

@@ -1,8 +1,8 @@
 ## Purpose
 
-Knowing when the user is at a shop they use, so the app can be useful at the one
-moment it currently cannot reach them — and doing it without learning where they
-have been.
+Recognising a shop the user is checking in with, so the app can be useful at
+the one moment it currently cannot reach them — and doing it without learning
+where they have been, and without watching in the background.
 
 ## ADDED Requirements
 
@@ -44,7 +44,7 @@ either.
 
 #### Scenario: No position is sent
 
-- **WHEN** the app determines it is at a shop
+- **WHEN** a position read is matched to a known shop
 - **THEN** no request carrying a position is made
 
 #### Scenario: Extraction requests carry no position
@@ -62,10 +62,10 @@ the user's presence at it or anywhere else.
 - **WHEN** a shop is learned
 - **THEN** its position is stored
 
-#### Scenario: Arrivals are not recorded
+#### Scenario: Checks are not recorded
 
-- **WHEN** the user arrives at and leaves a known shop
-- **THEN** no record of that visit is stored
+- **WHEN** the user checks a known shop, at receipt import or on demand
+- **THEN** no record of that check — or when it happened — is stored
 
 #### Scenario: The stored data cannot reconstruct movement
 
@@ -93,7 +93,7 @@ source.
 #### Scenario: An unknown shop is simply unknown
 
 - **GIVEN** a shop no receipt has been imported from
-- **WHEN** the user is there
+- **WHEN** the user checks it
 - **THEN** nothing is surfaced
 
 #### Scenario: A learned shop is editable
@@ -101,21 +101,23 @@ source.
 - **WHEN** the user views their known shops
 - **THEN** they can rename or remove any of them
 
-### Requirement: Arriving at a known shop surfaces what is needed
+### Requirement: Checking a known shop surfaces what is needed
 
-Where the user arrives at a known shop, the system SHALL make available the
-ingredients currently running low or out.
+Where the user checks a known shop, the system SHALL make available the
+ingredients currently running low or out. The system MUST NOT determine this
+automatically from arrival or departure — checking is a user-initiated action,
+using a one-shot foreground position read.
 
-#### Scenario: Arrival surfaces low stock
+#### Scenario: Checking surfaces low stock
 
 - **GIVEN** a known shop and stock that is running low or out
-- **WHEN** the user arrives
+- **WHEN** the user checks that shop
 - **THEN** those ingredients are made available to them
 
 #### Scenario: Nothing needed surfaces nothing
 
 - **GIVEN** no stock is running low or out
-- **WHEN** the user arrives at a known shop
+- **WHEN** the user checks a known shop
 - **THEN** nothing is surfaced
 
 #### Scenario: No quantity is claimed
@@ -124,25 +126,10 @@ ingredients currently running low or out.
 - **THEN** it is described by its status
 - **AND** no estimated remaining amount is shown
 
-### Requirement: Leaving a known shop offers capture
+#### Scenario: Checking never changes anything
 
-Where the user leaves a known shop, the system SHALL offer to capture what was
-bought, and MUST NOT capture, import, or alter stock on its own.
-
-#### Scenario: Departure offers capture
-
-- **WHEN** the user leaves a known shop
-- **THEN** they are offered to capture what they bought
-
-#### Scenario: Nothing happens without the user
-
-- **WHEN** the user ignores the offer
+- **WHEN** the user checks a shop, with or without results
 - **THEN** no pantry item, receipt, or stock change is created
-
-#### Scenario: The offer reaches the existing capture surface
-
-- **WHEN** the user accepts the offer
-- **THEN** the existing capture surface opens
 
 ### Requirement: A recognised shop informs receipt matching
 

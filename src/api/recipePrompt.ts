@@ -25,5 +25,9 @@ Rules:
 - Preserve useful method steps when present, but do not invent them.
 - A caption made only of hashtags, emoji, promotion, or a link is not a recipe.`;
 
-export const RECIPE_USER_PROMPT = (text: string) =>
-  `Extract only the recipe contained in this user-supplied text:\n\n${text}`;
+export function buildRecipePrompt(text: string): string {
+  return `Extract only the recipe contained in this user-supplied text:\n\n${text}`;
+}
+
+/** Compatibility name used by the provider facade. */
+export const RECIPE_USER_PROMPT = buildRecipePrompt;

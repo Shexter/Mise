@@ -48,6 +48,7 @@ function line(overrides: Partial<ReceiptLine> & { canonicalId: string | null }):
     quantityKind: null,
     lineTotalCents: 100,
     unitPriceCents: null,
+    ocrConfidence: null,
     appliesToLineId: null,
     pantryItemId: null,
     excluded: false,

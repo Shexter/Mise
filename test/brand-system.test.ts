@@ -109,7 +109,11 @@ describe('brand asset and component contracts', () => {
 
     expect(welcome).toContain('Cook from what you have, tracked as you go.');
     expect(welcome).toContain('no Mise account or server');
-    expect(welcome).toContain('sends only the photo you choose');
+    // The welcome copy was rewritten around the daily target
+    // (improve-onboarding-cohesion-and-scan-intake, task 7.1). The boundary it
+    // has to draw is unchanged: the diary is local, and only something the
+    // person chooses to analyse is sent to their own provider.
+    expect(welcome).toContain('you choose to analyse is sent to the provider');
     expect(settings).toContain('stored on this device');
     expect(settings).toContain('configured provider');
     expect(`${welcome}\n${settings}`).not.toContain('Everything stays on this phone');

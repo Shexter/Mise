@@ -1,7 +1,24 @@
 import { create } from 'zustand';
 
+import type { VisionErrorKind } from '@/api/errors';
+import type {
+  BodyCompositionExtraction,
+  BodyCompositionIssue,
+} from '@/logic/bodyCompositionParser';
 import { DEFAULT_SPLIT } from '@/logic/macros';
 import type { ActivityLevel, Goal, Sex, TargetSource, Units } from '@/types';
+
+export type BodyCompositionScanPhase = 'selected' | 'extracting' | 'review' | 'error';
+
+/** Transient report evidence. It is never persisted or exported. */
+export interface BodyCompositionScanDraft {
+  phase: BodyCompositionScanPhase;
+  photoUri: string;
+  extraction: BodyCompositionExtraction | null;
+  confidence: BodyCompositionExtraction['confidence'] | null;
+  issues: readonly BodyCompositionIssue[];
+  errorKind: VisionErrorKind | null;
+}
 
 /**
  * The onboarding draft. Held in memory only — nothing is written to the database
@@ -24,7 +41,13 @@ interface OnboardingDraft {
 }
 
 interface OnboardingState extends OnboardingDraft {
+  scanDraft: BodyCompositionScanDraft | null;
   set: (patch: Partial<OnboardingDraft>) => void;
+  selectScanPhoto: (photoUri: string) => void;
+  startScanExtraction: () => void;
+  receiveScanExtraction: (extraction: BodyCompositionExtraction) => void;
+  failScanExtraction: (errorKind: VisionErrorKind) => void;
+  clearScanDraft: () => void;
   reset: () => void;
 }
 
@@ -44,8 +67,59 @@ const EMPTY: OnboardingDraft = {
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
   ...EMPTY,
-  set: (patch) => set(patch),
-  reset: () => set(EMPTY),
+  scanDraft: null,
+  set: (patch) => set((state) => {
+    const nextSource = patch.targetSource;
+    if (nextSource === undefined || nextSource === state.targetSource) return patch;
+
+    const reviewedProvider = state.scanDraft?.extraction?.provider;
+    const keepReviewedDraft = reviewedProvider === 'dexa' || reviewedProvider === 'inbody'
+      ? nextSource === reviewedProvider
+      : false;
+    return keepReviewedDraft ? patch : { ...patch, scanDraft: null };
+  }),
+  selectScanPhoto: (photoUri) => set({
+    scanDraft: {
+      phase: 'selected',
+      photoUri,
+      extraction: null,
+      confidence: null,
+      issues: [],
+      errorKind: null,
+    },
+  }),
+  startScanExtraction: () => set((state) => state.scanDraft === null
+    ? state
+    : {
+        scanDraft: {
+          ...state.scanDraft,
+          phase: 'extracting',
+          errorKind: null,
+        },
+      }),
+  receiveScanExtraction: (extraction) => set((state) => state.scanDraft === null
+    ? state
+    : {
+        scanDraft: {
+          ...state.scanDraft,
+          phase: 'review',
+          extraction,
+          confidence: extraction.confidence,
+          issues: extraction.issues,
+          errorKind: null,
+        },
+      }),
+  failScanExtraction: (errorKind) => set((state) => state.scanDraft === null
+    ? state
+    : {
+        scanDraft: {
+          ...state.scanDraft,
+          phase: 'error',
+          errorKind,
+        },
+      }),
+  clearScanDraft: () => set({ scanDraft: null }),
+  reset: () => set({ ...EMPTY, scanDraft: null }),
 }));
 
 export const ONBOARDING_SPLIT = DEFAULT_SPLIT;

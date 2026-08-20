@@ -1,10 +1,7 @@
-import { completeVisionWithAnthropic } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
-import { getApiKey, getOpenAIEndpoint, providerForKey } from '@/api/keyStore';
-import { completeVisionWithOpenAI } from '@/api/openai';
 import { extractJsonObject } from '@/api/parse';
-import { completeVisionWithGemini } from '@/api/gemini';
 import { RECEIPT_SYSTEM_PROMPT, RECEIPT_USER_PROMPT } from '@/api/receiptPrompt';
+import { completeVision } from '@/api/transport';
 import {
   MEASURE_UNITS,
   QUANTITY_KINDS,
@@ -60,41 +57,12 @@ export async function extractReceipt(
   captureDate: string,
   signal?: AbortSignal,
 ): Promise<ExtractedReceipt> {
-  const apiKey = await getApiKey();
-  if (!apiKey) {
-    throw new VisionError('no_key', 'No API key is set.');
-  }
-  const provider = providerForKey(apiKey);
-
-  let raw: string;
-  if (provider === 'anthropic') {
-    raw = await completeVisionWithAnthropic(
-      apiKey,
-      RECEIPT_SYSTEM_PROMPT,
-      RECEIPT_USER_PROMPT,
-      base64Jpeg,
-      signal,
-    );
-  } else if (provider === 'openai') {
-    raw = await completeVisionWithOpenAI(
-      apiKey,
-      RECEIPT_SYSTEM_PROMPT,
-      RECEIPT_USER_PROMPT,
-      base64Jpeg,
-      signal,
-      await getOpenAIEndpoint(),
-    );
-  } else if (provider === 'gemini') {
-    raw = await completeVisionWithGemini(
-      apiKey,
-      RECEIPT_SYSTEM_PROMPT,
-      RECEIPT_USER_PROMPT,
-      base64Jpeg,
-      signal,
-    );
-  } else {
-    throw new VisionError('no_key', 'The saved API key is not recognised.');
-  }
+  const raw = await completeVision(
+    base64Jpeg,
+    RECEIPT_SYSTEM_PROMPT,
+    RECEIPT_USER_PROMPT,
+    signal,
+  );
 
   return parseReceiptResponse(raw, captureDate);
 }
