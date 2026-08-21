@@ -12,17 +12,17 @@ interface Props {
 }
 
 /**
- * The Mifflin-St Jeor constant, asked for as what it is.
+ * Sex as the Mifflin-St Jeor equation asks for it.
  *
- * The equation carries a different constant for each of two cases, and that
- * is the entire reason this question exists. It is not a question about
- * gender identity, so the copy names the formula rather than the person, and
- * nothing is preselected — an inferred answer here would be a guess about
- * someone presented back to them as their own input.
+ * The equation carries a different term for each of two cases, and that is
+ * the entire reason this question exists. It is not a question about gender
+ * identity, so the copy names the formula rather than the person, and nothing
+ * is preselected — an inferred answer here would be a guess about someone
+ * presented back to them as their own input.
  */
 export function FormulaSexControl({ value, onChange }: Props) {
   return (
-    <View style={styles.root} accessibilityRole="radiogroup" accessibilityLabel="Formula constant">
+    <View style={styles.root} accessibilityRole="radiogroup" accessibilityLabel="Sex, for the metabolic rate formula">
       <ChoiceList options={OPTIONS} value={value} onChange={onChange} />
       <FieldGuidance field="formula-sex" />
     </View>
@@ -30,8 +30,8 @@ export function FormulaSexControl({ value, onChange }: Props) {
 }
 
 const OPTIONS: ChoiceOption<Sex>[] = [
-  { value: 'male', label: 'Male', detail: 'Uses the +5 constant' },
-  { value: 'female', label: 'Female', detail: 'Uses the −161 constant' },
+  { value: 'male', label: 'Male', detail: 'For the Mifflin-St Jeor equation' },
+  { value: 'female', label: 'Female', detail: 'For the Mifflin-St Jeor equation' },
 ];
 
 const styles = StyleSheet.create({

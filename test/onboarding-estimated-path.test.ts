@@ -91,7 +91,9 @@ describe('the birth date never becomes stored data', () => {
     // The route holds one number, and the picker hands back one number.
     expect(age.match(/useState</g) ?? []).toHaveLength(1);
     expect(age).toContain('useState<number | null>(stored ?? null)');
-    expect(age).toContain('<BirthdayPicker onConfirm={setAge} />');
+    // The step owns the confirming action, so the picker reports its live
+    // selection — still one number, never a date.
+    expect(age).toContain('onConfirm={setAge} onAgeChange={setAge} showConfirm={false}');
   });
 
   test('Settings does not reconstruct a birthday from the saved age', () => {

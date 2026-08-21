@@ -46,6 +46,7 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={inactive}
+      hitSlop={space.xs}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint ?? detail}

@@ -6,6 +6,7 @@ import type {
   BodyCompositionIssue,
 } from '@/logic/bodyCompositionParser';
 import { DEFAULT_SPLIT } from '@/logic/macros';
+import type { SportId } from '@/constants/sports';
 import type { ActivityLevel, Goal, Sex, TargetSource, Units } from '@/types';
 
 export type BodyCompositionScanPhase = 'selected' | 'extracting' | 'review' | 'error';
@@ -35,6 +36,8 @@ interface OnboardingDraft {
   heightCm: number | null;
   weightKg: number | null;
   activityLevel: ActivityLevel | null;
+  /** Optional refinement on the activity step. Empty means "not volunteered". */
+  sports: readonly SportId[];
   goal: Goal | null;
   units: Units;
   /** True when the user chose to skip the API key step. */
@@ -67,6 +70,7 @@ const EMPTY: OnboardingDraft = {
   heightCm: null,
   weightKg: null,
   activityLevel: null,
+  sports: [],
   goal: null,
   units: 'metric',
   skippedKey: false,

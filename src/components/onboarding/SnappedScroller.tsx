@@ -61,21 +61,38 @@ export function SnappedScroller({
   style,
 }: Props) {
   const listRef = useRef<FlatList<ScrollerItem>>(null);
+  const readyRef = useRef(false);
+  const ignoreNextMomentumRef = useRef(false);
   const reduceMotion = useReducedMotion();
   const horizontal = orientation === 'horizontal';
   const tick = horizontal ? TICK_HORIZONTAL : TICK_VERTICAL;
   const extent = tick * (visibleTicks * 2 + 1);
   const selected = items[selectedIndex];
 
+  const contentPadding = tick * visibleTicks;
+
+  /**
+   * The first row starts after `contentPadding`, but the caret is also that
+   * far from the viewport edge. Consequently item n is centred at scroll
+   * offset n*tick (the padding cancels on both sides). Keeping this conversion
+   * in one place prevents the padding from being counted twice.
+   */
+  const centeredOffset = useCallback(
+    (index: number) => Math.max(0, index * tick),
+    [tick],
+  );
+
   /** Keeps the list under the caret when the value changes from elsewhere. */
   useEffect(() => {
-    if (selectedIndex < 0 || selectedIndex >= items.length) return;
-    listRef.current?.scrollToIndex({
-      index: selectedIndex,
+    if (!readyRef.current || selectedIndex < 0 || selectedIndex >= items.length) return;
+    // An animated programmatic jump emits momentum; an immediate jump does
+    // not, so there is no event to suppress in reduced-motion mode.
+    ignoreNextMomentumRef.current = !reduceMotion;
+    listRef.current?.scrollToOffset({
+      offset: centeredOffset(selectedIndex),
       animated: !reduceMotion,
-      viewPosition: 0.5,
     });
-  }, [items.length, reduceMotion, selectedIndex]);
+  }, [centeredOffset, items.length, reduceMotion, selectedIndex]);
 
   const step = useCallback(
     (delta: number) => {
@@ -95,13 +112,24 @@ export function SnappedScroller({
 
   const onSettled = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!readyRef.current) return;
+      if (ignoreNextMomentumRef.current) {
+        ignoreNextMomentumRef.current = false;
+        return;
+      }
       const offset = horizontal
         ? event.nativeEvent.contentOffset.x
         : event.nativeEvent.contentOffset.y;
-      const index = Math.round(offset / tick);
-      if (index >= 0 && index < items.length && index !== selectedIndex) onSelectIndex(index);
+      // contentOffset is measured from the padded content origin. Expressing
+      // the calculation via the caret centre makes that contract explicit and
+      // avoids treating the leading padding as an extra item.
+      const viewportCenter = contentPadding + extent / 2;
+      const contentCenter = offset + viewportCenter;
+      const index = Math.round((contentCenter - contentPadding - tick / 2) / tick);
+      const boundedIndex = Math.min(items.length - 1, Math.max(0, index));
+      if (boundedIndex !== selectedIndex) onSelectIndex(boundedIndex);
     },
-    [horizontal, items.length, onSelectIndex, selectedIndex, tick],
+    [contentPadding, extent, horizontal, items.length, onSelectIndex, selectedIndex, tick],
   );
 
   return (
@@ -125,21 +153,33 @@ export function SnappedScroller({
         snapToInterval={tick}
         decelerationRate="fast"
         disableIntervalMomentum
-        initialScrollIndex={Math.max(0, selectedIndex)}
-        getItemLayout={(_, index) => ({ length: tick, offset: tick * index, index })}
+        getItemLayout={(_, index) => ({ length: tick, offset: contentPadding + tick * index, index })}
         onMomentumScrollEnd={onSettled}
+        onScrollBeginDrag={() => {
+          // A real gesture owns the next settle event, even if an earlier
+          // animated state sync has not finished dispatching its callback.
+          ignoreNextMomentumRef.current = false;
+        }}
         onScrollToIndexFailed={() => undefined}
+        onLayout={() => {
+          if (readyRef.current) return;
+          readyRef.current = true;
+          listRef.current?.scrollToOffset({
+            offset: centeredOffset(selectedIndex),
+            animated: false,
+          });
+        }}
         importantForAccessibility="no-hide-descendants"
         contentContainerStyle={
           horizontal
-            ? { paddingHorizontal: tick * visibleTicks }
-            : { paddingVertical: tick * visibleTicks }
+            ? { paddingHorizontal: contentPadding }
+            : { paddingVertical: contentPadding }
         }
         renderItem={({ item, index }) => (
           <Pressable
             onPress={() => onSelectIndex(index)}
             style={({ pressed }) => [
-              horizontal ? { width: tick } : { height: tick },
+              horizontal ? { width: tick, height: TICK_HORIZONTAL } : { width: '100%', height: tick },
               styles.tick,
               pressed && { opacity: opacity.pressed },
             ]}

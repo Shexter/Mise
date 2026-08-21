@@ -156,11 +156,29 @@ export function MeasurementPicker({
     settle(adjustMeasurement(state, toCanonical(display, kind, unit)));
   };
 
+  const displayBounds = useMemo(
+    () => ({ min: toDisplay(range.min, kind, unit), max: toDisplay(range.max, kind, unit) }),
+    [kind, range.max, range.min, unit],
+  );
+
+  /**
+   * Typing is an answer the moment it becomes a usable one.
+   *
+   * Waiting for the keyboard's return key stranded a perfectly good number in
+   * the field while the caller's Continue stayed dark. Every keystroke that
+   * parses inside the range settles through the same path a scroll does;
+   * anything else only updates the text, because half a typed number is not a
+   * mistake. `submitTyped` remains the place a finished entry is explained
+   * and refused, and the range boundaries are the same ones either way.
+   */
+  const typeInto = (text: string) => {
+    setTyped(text);
+    setTypedError(null);
+    const parsed = parseDecimalString(text, displayBounds);
+    if (parsed.ok) settle(adjustMeasurement(state, toCanonical(parsed.value, kind, unit)));
+  };
+
   const submitTyped = () => {
-    const displayBounds = {
-      min: toDisplay(range.min, kind, unit),
-      max: toDisplay(range.max, kind, unit),
-    };
     const parsed = parseDecimalString(typed, displayBounds);
     if (parsed.ok) {
       settle(adjustMeasurement(state, toCanonical(parsed.value, kind, unit)));
@@ -224,7 +242,7 @@ export function MeasurementPicker({
       <Field
         label={`Or type it in (${units})`}
         value={typed}
-        onChangeText={setTyped}
+        onChangeText={typeInto}
         keyboardType="decimal-pad"
         placeholder={formatDisplay(positionDisplay, kind, unit)}
         suffix={units}

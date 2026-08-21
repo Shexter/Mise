@@ -1,7 +1,7 @@
 import { nextSunday } from 'date-fns';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -10,6 +10,7 @@ import { Segmented } from '@/components/Choice';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { MealSwipeDeck } from '@/components/suggestions/MealSwipeDeck';
+import { MealSuggestionSkeleton } from '@/components/skeleton/SkeletonLayouts';
 import { SuggestionPreferenceSheet } from '@/components/suggestions/PreferenceSheet';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { addShoppingListSource, getAllCanonicals, insertShoppingListItem, listShoppingItems, clearSuggestionPreference, saveSuggestionPreference } from '@/db/queries';
@@ -220,7 +221,7 @@ export default function DinnerScreen() {
       >
         {outcome.status === 'loading' ? (
           <View style={styles.centered} accessibilityLiveRegion="polite">
-            <ActivityIndicator color={color.ink} />
+            <MealSuggestionSkeleton />
             <Caption muted accessibilityRole="alert">Finding ideas from your pantry…</Caption>
           </View>
         ) : outcome.status === 'no_key' ? (

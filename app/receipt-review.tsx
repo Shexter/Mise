@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -10,6 +10,7 @@ import { CollapsibleEditorRow, nextExpandedId } from '@/components/CollapsibleEd
 import { Segmented } from '@/components/Choice';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { LineEditSheet } from '@/components/receipt/LineEditSheet';
+import { ReceiptReviewSkeleton } from '@/components/skeleton/SkeletonLayouts';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
@@ -118,7 +119,7 @@ export default function ReceiptReviewScreen() {
   if (!receipt) {
     return (
       <View style={[styles.root, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator color={color.ink} />
+        <ReceiptReviewSkeleton />
       </View>
     );
   }

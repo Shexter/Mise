@@ -4,6 +4,7 @@ import {
   goalAdjustment,
   rateGoalAdjustment,
 } from '@/constants/activityLevels';
+import { sportsDailyBurn, type SportId } from '@/constants/sports';
 import type { ActivityLevel, Goal, Sex } from '@/types';
 
 export interface BmrInput {
@@ -40,6 +41,20 @@ export function totalDailyEnergyExpenditure(
   activityLevel: ActivityLevel,
 ): number {
   return basalMetabolicRate(input) * activityMultiplier(activityLevel);
+}
+
+/**
+ * TDEE with an optional sport refinement. The activity level remains the
+ * baseline frequency estimate; selected sports add their net session burn
+ * averaged over the week. With no sports this is exactly the legacy TDEE.
+ */
+export function totalDailyEnergyExpenditureWithSports(
+  input: BmrInput,
+  activityLevel: ActivityLevel,
+  sports: readonly SportId[] = [],
+): number {
+  return totalDailyEnergyExpenditure(input, activityLevel)
+    + sportsDailyBurn(sports, activityLevel, input.weightKg);
 }
 
 export interface EnergyTargets {

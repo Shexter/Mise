@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { BirthdayPicker } from '@/components/onboarding/BirthdayPicker';
 import { FieldGuidance } from '@/components/onboarding/FieldGuidance';
 import { StepShell } from '@/components/StepShell';
-import { Caption } from '@/components/Type';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
 export default function AgeStep() {
@@ -30,10 +29,12 @@ export default function AgeStep() {
         router.push('/onboarding/height');
       }}
     >
-      <BirthdayPicker onConfirm={setAge} />
-      {age === null ? null : (
-        <Caption accessibilityLiveRegion="polite">Using age {age}.</Caption>
-      )}
+      {/*
+        The step's own Continue is the confirming action, so the picker does
+        not offer a second one — a supported date on the dials is enough to
+        move on. The picker restates the age it arrives at as it changes.
+      */}
+      <BirthdayPicker onConfirm={setAge} onAgeChange={setAge} showConfirm={false} />
       <FieldGuidance field="birthday" />
     </StepShell>
   );

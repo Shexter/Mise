@@ -94,6 +94,14 @@ describe('birthday confirmation', () => {
     expect(birthday).not.toMatch(/onConfirm\(birthday/);
   });
 
+  test('the live report is an age too, and an untouched picker stays silent', () => {
+    expect(birthday).toContain('onAgeChange?: (age: number | null) => void');
+    expect(birthday).toContain('if (!touched) return;');
+    expect(birthday).toContain('onAgeChange?.(valid ? age : null);');
+    // Same contract as onConfirm: a number leaves, a date never does.
+    expect(birthday).not.toMatch(/onAgeChange\?\.\((?!valid \? age)/);
+  });
+
   test('nothing is emitted until Confirm, and never on cancel', () => {
     expect(birthday).toContain('onCancel?: () => void');
     const cancel = birthday.slice(birthday.indexOf('onCancel ?'));
@@ -148,6 +156,18 @@ describe('measurement picker anchoring', () => {
     expect(measurement).toContain('if (next.confirmed && next.value !== null) onConfirm(next.value, outOfRange);');
     // Exactly one emission path in the whole file.
     expect(measurement.match(/onConfirm\(/g) ?? []).toHaveLength(1);
+  });
+
+  test('a typed value answers as it is typed, against the same bounds', () => {
+    // The field commits through settle() rather than waiting for the return
+    // key, so the caller's Continue lights up while the keyboard is still up.
+    expect(measurement).toContain('onChangeText={typeInto}');
+    expect(measurement).toContain('if (parsed.ok) settle(adjustMeasurement(state, toCanonical(parsed.value, kind, unit)));');
+    // One set of bounds for typing and for submitting — never two.
+    expect(measurement.match(/parseDecimalString\((?:text|typed), displayBounds\)/g) ?? []).toHaveLength(2);
+    expect(measurement).toContain('min: toDisplay(range.min, kind, unit), max: toDisplay(range.max, kind, unit)');
+    // A half-typed number is not yet an error.
+    expect(measurement).toContain('setTypedError(null);');
   });
 
   test('the explicit confirm action is offered only while unanswered', () => {

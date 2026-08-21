@@ -22,7 +22,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
-import { ProcessingIndicator } from '@/components/ProcessingIndicator';
+import { ReviewSkeleton } from '@/components/skeleton/SkeletonLayouts';
 import { HiddenIngredientSheet } from '@/components/review/HiddenIngredientSheet';
 import { ItemRow } from '@/components/review/ItemRow';
 import { QuantitySheet } from '@/components/review/QuantitySheet';
@@ -312,11 +312,11 @@ export default function ReviewScreen() {
           <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
         <View style={styles.analyzing}>
-          <ProcessingIndicator
+          <ReviewSkeleton
+            onDark
             label={phase.retryDelayMs
               ? 'The provider asked Mise to wait a moment before retrying…'
               : 'Reading your plate…'}
-            onDark
           />
           <Button
             label="Cancel"

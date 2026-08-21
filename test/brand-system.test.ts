@@ -43,8 +43,10 @@ describe('brand asset and component contracts', () => {
       'app/pantry-capture.tsx',
     ]) {
       const source = readFileSync(route, 'utf8');
-      expect(source).toContain('<ProcessingIndicator');
-      expect(source).not.toContain('<ActivityIndicator');
+      // Either shared primitive is fine — both announce themselves as busy
+      // and both honour reduced motion. A bare ActivityIndicator does neither.
+      expect(source, route).toMatch(/<(ProcessingIndicator|ReviewSkeleton|ReceiptReviewSkeleton|MealSuggestionSkeleton)/);
+      expect(source, route).not.toContain('<ActivityIndicator');
     }
   });
 

@@ -12,7 +12,7 @@ import { Card } from '@/components/Card';
 import { ChoiceList, Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { ApiKeyExplainer } from '@/components/onboarding/ApiKeyExplainer';
-import { ProcessingIndicator } from '@/components/ProcessingIndicator';
+import { ReviewSkeleton } from '@/components/skeleton/SkeletonLayouts';
 import { StepShell } from '@/components/StepShell';
 import { Body, Caption, SectionLabel } from '@/components/Type';
 import { ACTIVITY_LEVELS, GOALS } from '@/constants/activityLevels';
@@ -387,7 +387,7 @@ export default function EnergySourceStep() {
 
               {scan.phase === 'extracting' ? (
                 <View style={styles.actions}>
-                  <ProcessingIndicator label="Reading your report…" />
+                  <ReviewSkeleton label="Reading your report…" />
                   <Button label="Stop" variant="ghost" onPress={cancelAnalysis} />
                 </View>
               ) : null}

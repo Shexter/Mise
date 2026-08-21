@@ -1,5 +1,5 @@
 // @react-native-community/datetimepicker resolved by Expo to 8.4.4.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -20,6 +20,16 @@ import { AGE_RANGE } from '@/logic/onboardingDomain';
 interface Props {
   /** Emitted only on the explicit confirm action, and only ever the age. */
   onConfirm: (age: number) => void;
+  /**
+   * Live selection, for a caller that owns the confirming action itself —
+   * the onboarding step, whose own Continue button should light up the
+   * moment a supported date is on the dials rather than waiting for a
+   * second tap in here. An unsupported date reports null, not a clamp.
+   * Like `onConfirm`, it emits an age and never a date.
+   */
+  onAgeChange?: (age: number | null) => void;
+  /** Hidden when the caller confirms with a button of its own. */
+  showConfirm?: boolean;
   onCancel?: () => void;
   /** Overridable for tests; defaults to the device's local calendar date. */
   today?: CalendarDate;
@@ -34,15 +44,21 @@ const MONTH_NAMES = [
  * Year, month, and day selection that yields an age and nothing else.
  *
  * The birth date lives in this component's state and leaves it only as an
- * integer: `onConfirm` takes an age. Nothing is emitted until the person taps
- * Confirm, so scrolling past an unsupported date never becomes an answer, and
- * a date outside the supported age range is explained and refused rather than
- * silently replaced.
+ * integer: both `onConfirm` and `onAgeChange` take an age. Scrolling past an
+ * unsupported date never becomes an answer — it is explained and refused
+ * rather than silently replaced — and an untouched picker emits nothing at
+ * all, so its anchor never passes for a choice.
  *
  * The platform picker dependency is pinned for the eventual native adapter;
  * these accessible columns preserve the explicit age-only confirmation contract.
  */
-export function BirthdayPicker({ onConfirm, onCancel, today = todayCalendarDate() }: Props) {
+export function BirthdayPicker({
+  onConfirm,
+  onAgeChange,
+  showConfirm = true,
+  onCancel,
+  today = todayCalendarDate(),
+}: Props) {
   const bounds = useMemo(() => supportedBirthdayRange(today), [today]);
   const [year, setYear] = useState(bounds.latest.year);
   const [month, setMonth] = useState(1);
@@ -79,6 +95,14 @@ export function BirthdayPicker({ onConfirm, onCancel, today = todayCalendarDate(
   const birthday: CalendarDate = { year, month, day: clampedDay };
   const age = computeAge(year, month, clampedDay, today);
   const valid = isValidCalendarDate(birthday) && validateAge(age);
+
+  // Silent until the dials are touched: an untouched picker is showing its
+  // anchor, not an answer, and reporting that would overwrite a value the
+  // caller already holds.
+  useEffect(() => {
+    if (!touched) return;
+    onAgeChange?.(valid ? age : null);
+  }, [age, onAgeChange, touched, valid]);
 
   return (
     <View style={styles.root}>
@@ -129,13 +153,15 @@ export function BirthdayPicker({ onConfirm, onCancel, today = todayCalendarDate(
         </Caption>
       ) : null}
 
-      <Button
-        label="Confirm"
-        disabled={!valid}
-        onPress={() => {
-          if (valid) onConfirm(age);
-        }}
-      />
+      {showConfirm ? (
+        <Button
+          label="Confirm"
+          disabled={!valid}
+          onPress={() => {
+            if (valid) onConfirm(age);
+          }}
+        />
+      ) : null}
       {onCancel ? <Button label="Cancel" variant="ghost" onPress={onCancel} /> : null}
     </View>
   );
