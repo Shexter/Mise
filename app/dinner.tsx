@@ -1,17 +1,15 @@
 import { nextSunday } from 'date-fns';
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Segmented } from '@/components/Choice';
-import { Sheet } from '@/components/Sheet';
-import { Stepper } from '@/components/Stepper';
-import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
+import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
+import { MealSwipeDeck } from '@/components/suggestions/MealSwipeDeck';
 import { SuggestionPreferenceSheet } from '@/components/suggestions/PreferenceSheet';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { addShoppingListSource, getAllCanonicals, insertShoppingListItem, listShoppingItems, clearSuggestionPreference, saveSuggestionPreference } from '@/db/queries';
@@ -56,6 +54,7 @@ export default function DinnerScreen() {
   const addMeal = useDayStore((state) => state.addMeal);
   const refresh = useDayStore((state) => state.refresh);
   const pantryRevision = usePantryStore((state) => state.revision);
+  const pantryGroups = usePantryStore((state) => state.groups);
   const remaining = target && consumed.calories !== null
     ? target.targetCalories - roundCalories(consumed.calories)
     : null;
@@ -65,9 +64,6 @@ export default function DinnerScreen() {
     status: 'loading',
   });
   const [canonicals, setCanonicals] = useState<Map<string, CanonicalItem>>(new Map());
-  const [cooking, setCooking] = useState<Suggestion | null>(null);
-  const [servingsMade, setServingsMade] = useState(1);
-  const [saving, setSaving] = useState(false);
   const [tuning, setTuning] = useState(false);
   const [tonightPreference, setTonightPreference] = useState<TonightSuggestionPreference | null>(null);
   const [recommendedIntent, setRecommendedIntent] = useState<SuggestionBaseIntent>('balanced');
@@ -102,25 +98,21 @@ export default function DinnerScreen() {
     void getRecommendedTonightBaseIntent().then(setRecommendedIntent);
   }, []);
 
-  const startCooking = (suggestion: Suggestion) => {
-    setCooking(suggestion);
-    setServingsMade(suggestion.servings);
-  };
-
-  const confirmCooked = async () => {
-    if (!cooking) return;
-    setSaving(true);
+  const confirmCooked = async (
+    cooking: Suggestion,
+    servingsMade: number,
+    servingsEaten: number,
+  ) => {
     const meal = mealFromSuggestion({
       suggestion: cooking,
       servingsMade,
+      servingsEaten,
       localDate: localDateString(),
       canonicals,
     });
     const stored = await addMeal(meal);
     await refresh();
-    setSaving(false);
-    setCooking(null);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await usePantryStore.getState().refresh();
     const depleted = useDayStore.getState().lastDepletion;
     toast.show({
       kind: 'success',
@@ -154,6 +146,15 @@ export default function DinnerScreen() {
         ? (outcome.set.stretch?.dinners ?? [])
         : outcome.set.suggestions
       : [];
+  // Provider/scorer order already incorporates the remaining budget. Keeping
+  // this array identity stable prevents a diary refresh after cooking from
+  // rebuilding the deck and resurrecting the just-saved card.
+  const deckSuggestions = suggestions;
+  const onHandCanonicalIds = useMemo(() => new Set(
+    pantryGroups
+      .filter((group) => group.entries.some((entry) => entry.status !== 'out'))
+      .map((group) => group.canonicalId),
+  ), [pantryGroups]);
   const shortfall = outcome.status === 'ready' ? (outcome.set.stretch?.shortfall ?? null) : null;
   const droppedForConstraint =
     outcome.status === 'ready' ? outcome.set.droppedForConstraint : 0;
@@ -213,6 +214,7 @@ export default function DinnerScreen() {
       ) : null}
 
       <ScrollView
+        scrollEnabled={mode === 'stretch'}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space.xxxl }]}
         showsVerticalScrollIndicator={false}
       >
@@ -288,15 +290,22 @@ export default function DinnerScreen() {
                   : `${droppedForDiet} ideas were dropped for what you avoid.`}
               </Caption>
             ) : null}
-            {suggestions.map((suggestion, index) => (
-              <SuggestionCard
-                key={`${suggestion.dish}-${index}`}
-                suggestion={suggestion}
-                remaining={remaining}
-                onCook={() => startCooking(suggestion)}
-                onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)}
+            {mode === 'stretch' ? suggestions.map((suggestion, index) => (
+              <SuggestionCard key={`${suggestion.dish}-${index}`} suggestion={suggestion} remaining={remaining} onCook={() => void confirmCooked(suggestion, suggestion.servings, 1)} onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)} />
+            )) : (
+              <MealSwipeDeck
+                meals={deckSuggestions}
+                targetCalories={target?.targetCalories ?? null}
+                consumedCalories={consumed.calories}
+                canonicals={canonicals}
+                onHandCanonicalIds={onHandCanonicalIds}
+                onCook={confirmCooked}
+                onPass={() => undefined}
+                onUndo={() => undefined}
+                onRefresh={() => void load(mode, true)}
+                onManual={() => router.push('/manual')}
               />
-            ))}
+            )}
           </>
         )}
 
@@ -326,41 +335,6 @@ export default function DinnerScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
-
-      <Sheet
-        visible={cooking !== null}
-        onClose={() => setCooking(null)}
-        title="I cooked this"
-        footer={
-          <Button label="Save meal" onPress={() => void confirmCooked()} loading={saving} />
-        }
-      >
-        {cooking ? (
-          <View style={styles.sheetBody}>
-            <RowTitle>{cooking.dish}</RowTitle>
-            <View style={styles.sheetStepper}>
-              <SectionLabel muted>Servings this made</SectionLabel>
-              <Stepper
-                value={servingsMade}
-                onChange={setServingsMade}
-                step={1}
-                min={1}
-                max={20}
-                label="Servings this made"
-              />
-            </View>
-            <Caption muted>
-              Logs {roundCalories(cooking.kcalPerServing)} kcal for one serving eaten now. The
-              pantry loses the whole batch.
-            </Caption>
-            {cooking.estimatedNutritionPerServing ? (
-              <Caption muted>
-                Nutrition beyond the catalogue is from the initial provider estimate.
-              </Caption>
-            ) : null}
-          </View>
-        ) : null}
-      </Sheet>
 
       {tonightPreference ? (
         <SuggestionPreferenceSheet
@@ -494,6 +468,4 @@ const styles = StyleSheet.create({
   methodStep: {},
   cookButton: { marginTop: space.base },
   refresh: { alignItems: 'center', paddingVertical: space.base },
-  sheetBody: { gap: space.base },
-  sheetStepper: { gap: space.sm },
 });

@@ -427,6 +427,21 @@ describe('mealFromSuggestion — "I cooked this"', () => {
     expect(meal.servingsMult).toBe(2);
   });
 
+  test('servings eaten scales diary nutrition without changing pantry batch depletion', () => {
+    const meal = mealFromSuggestion({
+      suggestion: FAKE_SUGGESTION,
+      servingsMade: FAKE_SUGGESTION.servings * 2,
+      servingsEaten: 1.5,
+      localDate: '2026-06-01',
+      canonicals,
+    });
+    const perServing = nutritionFromSuggestion(FAKE_SUGGESTION, canonicals);
+    const dishItem = meal.items.find((item) => !item.canonicalId);
+    expect(meal.servingsMult).toBe(2);
+    expect(dishItem?.quantity).toBe(1.5);
+    expect(dishItem?.calories).toBe((perServing.calories ?? 0) * 1.5);
+  });
+
   test('carries the suggestion\'s amounts and canonical ids into the items', () => {
     const meal = mealFromSuggestion({
       suggestion: FAKE_SUGGESTION,

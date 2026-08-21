@@ -327,6 +327,8 @@ export interface CookSuggestionInput {
   suggestion: Suggestion;
   /** Servings the cooking made, defaulting to the suggestion's own figure. */
   servingsMade: number;
+  /** Servings logged to the diary; independent from the cooked batch. */
+  servingsEaten?: number;
   localDate: string;
   mealType?: MealType;
   canonicals: ReadonlyMap<string, CanonicalItem>;
@@ -404,15 +406,16 @@ export function mealFromSuggestion(input: CookSuggestionInput): NewMeal {
     Math.max(1, input.servingsMade) / Math.max(1, input.suggestion.servings);
 
   const nutrition = nutritionFromSuggestion(input.suggestion, input.canonicals);
+  const servingsEaten = Math.max(0.25, input.servingsEaten ?? 1);
   const items: NewMealItem[] = [
     {
       name: input.suggestion.dish,
-      quantity: 1,
+      quantity: servingsEaten,
       unit: 'serving',
-      calories: nutrition.calories,
-      proteinG: nutrition.proteinG,
-      carbsG: nutrition.carbsG,
-      fatG: nutrition.fatG,
+      calories: nutrition.calories === null ? null : nutrition.calories * servingsEaten,
+      proteinG: nutrition.proteinG === null ? null : nutrition.proteinG * servingsEaten,
+      carbsG: nutrition.carbsG === null ? null : nutrition.carbsG * servingsEaten,
+      fatG: nutrition.fatG === null ? null : nutrition.fatG * servingsEaten,
       fibreG: nutrition.fibreG,
       isManualAddition: false,
     },

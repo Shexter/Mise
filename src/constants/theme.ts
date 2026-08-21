@@ -1,6 +1,8 @@
 import { readThemePreference } from '@/constants/themePreference';
+import { readableOn } from '@/logic/contrast';
 import { themePalettes } from '@/constants/themePalettes';
 import type { DailyNutritionMetric } from '@/logic/dailyNutritionSummary';
+import type { ViewStyle } from 'react-native';
 
 /**
  * The single source of truth for colour, type, space, shape and motion.
@@ -198,3 +200,86 @@ export const opacity = {
   disabled: 0.4,
   pressed: 0.7,
 } as const;
+
+/**
+ * The chart and spice colours are mid-luminance: they were chosen to sit
+ * beside each other in a chart, not to carry text. On several of them neither
+ * `onAction` nor `ink` reaches the 4.5:1 body-text ratio, so a filled badge
+ * needs a text colour drawn from beyond the palette's own range.
+ *
+ * These two are the only such values, and they exist for exactly this reason.
+ * Whichever reads more clearly on a given fill wins, measured rather than
+ * assumed — the palettes run from cream to near-black, so the answer differs
+ * per theme. `test/swipe-deck-ui.test.ts` holds every fill in every theme to
+ * 4.5:1, so a new palette cannot land below AA unnoticed.
+ */
+export const badgeTextCandidates = ['#0B0A09', '#FFFFFF'] as const;
+
+function badgeText(fill: string): string {
+  return readableOn(fill, badgeTextCandidates);
+}
+
+/** The swipe-deck visual and motion contract. Components consume no raw values. */
+export const swipeTokens = {
+  card: {
+    borderRadius: 20,
+    titleFontSize: 22,
+    titleLineHeight: 26,
+    shadowAmbientColor: color.ink,
+    shadowKeyColor: color.ink,
+    shadowAmbientRadius: 8,
+    shadowKeyRadius: 20,
+    shadowKeyOffsetY: 6,
+  },
+  overlay: {
+    cookColor: color.chart3,
+    passColor: color.paprika,
+    stampFontSize: 36,
+    stampFontWeight: '800' as const,
+    stampLetterSpacing: 0.14,
+  },
+  badge: {
+    exactFitBg: color.chart3,
+    fitsBudgetBg: color.chart5,
+    overBudgetBg: color.paprika,
+    estimatedBg: color.wheat,
+    /** @deprecated Use the per-fill text tokens below — see `badgeText`. */
+    textColor: color.onAction,
+    exactFitText: badgeText(color.chart3),
+    fitsBudgetText: badgeText(color.chart5),
+    overBudgetText: badgeText(color.paprika),
+    estimatedText: badgeText(color.wheat),
+    /** For the neutral fill used when no daily target has been set. */
+    neutralText: badgeText(color.line),
+  },
+  motion: {
+    exitDurationMs: 300,
+    exitRotationDeg: 15,
+    scaleFrom: 0.95,
+    scaleTo: 1,
+    springStiffness: 220,
+    springDamping: 22,
+    reducedFadeDurationMs: 150,
+  },
+  a11y: {
+    minTouchTargetDp: 44,
+    focusRingWidth: 2,
+    focusRingColor: color.action,
+  },
+} as const;
+
+export function cardShadowStyle(level: 1 | 2 | 3): ViewStyle {
+  // Lazy loading keeps this token module usable by pure Node tests while the
+  // helper still delegates native selection to React Native at render time.
+  const { Platform } = require('react-native') as typeof import('react-native');
+  return Platform.select<ViewStyle>({
+    ios: {
+      shadowColor: swipeTokens.card.shadowKeyColor,
+      shadowOffset: { width: 0, height: level * 2 },
+      shadowOpacity: 0.12 + level * 0.04,
+      shadowRadius: level * 6,
+    },
+    android: { elevation: level * 4 },
+    default: {},
+  }) ?? {};
+}

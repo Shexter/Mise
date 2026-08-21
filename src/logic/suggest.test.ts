@@ -14,9 +14,59 @@ import {
   urgency,
   USE_FIRST_DAYS,
   USE_SOON_DAYS,
+  evaluateMealBudget,
+  nutritionProvenanceForSuggestion,
+  sortSuggestionsByBudget,
 } from '@/logic/suggest';
+import type { Suggestion } from '@/types';
 
 const TODAY = '2026-06-10';
+
+function suggestion(dish: string, kcalPerServing: number): Suggestion {
+  return { dish, kcalPerServing, servings: 1, effortMinutes: 20, reasons: [], uses: [], missing: [], method: [] };
+}
+
+describe('swipe deck budget evaluation', () => {
+  test('calculates remaining calories and all three classifications at the inclusive boundary', () => {
+    expect(evaluateMealBudget(2_000, 1_400, 675)).toMatchObject({ remainingCalories: 600, deltaCalories: 75, classification: 'exact-fit' });
+    expect(evaluateMealBudget(2_000, 1_400, 300)?.classification).toBe('fits-budget');
+    expect(evaluateMealBudget(2_000, 1_400, 700)?.classification).toBe('over-budget');
+  });
+
+  test('a negative remaining budget does not disguise a positive meal as an exact fit', () => {
+    expect(evaluateMealBudget(1_800, 2_000, 100)?.classification).toBe('over-budget');
+  });
+
+  test('rejects non-finite input instead of manufacturing a classification', () => {
+    expect(evaluateMealBudget(2_000, Number.NaN, 500)).toBeNull();
+  });
+
+  test('sorts exact fits before fits-budget and over-budget, stably within ties', () => {
+    const meals = [suggestion('over', 800), suggestion('low', 300), suggestion('exact', 625), suggestion('low tie', 300)];
+    expect(sortSuggestionsByBudget(meals, 2_000, 1_400).map((meal) => meal.dish))
+      .toEqual(['exact', 'low', 'low tie', 'over']);
+  });
+});
+
+describe('suggestion nutrition provenance', () => {
+  const complete = canonical({ id: 'complete', displayName: 'Complete', kcalPer100: 100, proteinPer100: 10, carbsPer100: 10, fatPer100: 2 });
+  const incomplete = canonical({ id: 'incomplete', displayName: 'Incomplete', kcalPer100: null });
+
+  test('marks fully catalogued ingredients as catalogue nutrition', () => {
+    const meal = { ...suggestion('Known', 400), uses: [{ canonicalId: 'complete', qty: 100, unit: 'g' as const }] };
+    expect(nutritionProvenanceForSuggestion(meal, new Map([['complete', complete]]))).toEqual({ provenance: 'catalogue', estimated: false, missingCatalogueCanonicalIds: [] });
+  });
+
+  test('flags provider fallback when an ingredient lacks catalogue nutrition', () => {
+    const meal = { ...suggestion('Estimated', 400), uses: [{ canonicalId: 'incomplete', qty: 100, unit: 'g' as const }], estimatedNutritionPerServing: { calories: 400, proteinG: 20, carbsG: 30, fatG: 10, source: 'provider' as const } };
+    expect(nutritionProvenanceForSuggestion(meal, new Map([['incomplete', incomplete]]))).toEqual({ provenance: 'provider-estimate', estimated: true, missingCatalogueCanonicalIds: ['incomplete'] });
+  });
+
+  test('missing recipe items stay incomplete without inventing a provider source', () => {
+    const meal = { ...suggestion('Gap', 400), missing: [{ canonicalId: null, name: 'Herbs', note: null }] };
+    expect(nutritionProvenanceForSuggestion(meal, new Map()).provenance).toBe('incomplete');
+  });
+});
 
 describe('bucketFor', () => {
   test('follows decision 34\'s table', () => {

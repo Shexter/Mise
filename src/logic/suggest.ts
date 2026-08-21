@@ -8,8 +8,103 @@ import type {
   FoodClass,
   MealWithItems,
   PantryItem,
+  Suggestion,
   UrgencyBucket,
 } from '@/types';
+
+/** Named tolerance from the swipe-meal decision contract. */
+export const EXACT_FIT_TOLERANCE_KCAL = 75;
+
+export type MealBudgetClassification = 'exact-fit' | 'fits-budget' | 'over-budget';
+
+export interface MealBudgetEvaluation {
+  remainingCalories: number;
+  mealCalories: number;
+  deltaCalories: number;
+  classification: MealBudgetClassification;
+}
+
+/** Pure view-time budget evaluation. Calories remain context, never a filter. */
+export function evaluateMealBudget(
+  targetCalories: number,
+  consumedCalories: number,
+  mealCalories: number,
+): MealBudgetEvaluation | null {
+  if (![targetCalories, consumedCalories, mealCalories].every(Number.isFinite)) return null;
+  const remainingCalories = targetCalories - consumedCalories;
+  const deltaCalories = mealCalories - remainingCalories;
+  return {
+    remainingCalories,
+    mealCalories,
+    deltaCalories,
+    classification: Math.abs(deltaCalories) <= EXACT_FIT_TOLERANCE_KCAL
+      ? 'exact-fit'
+      : deltaCalories <= 0
+        ? 'fits-budget'
+        : 'over-budget',
+  };
+}
+
+export type NutritionProvenance = 'catalogue' | 'provider-estimate' | 'incomplete';
+
+export interface SuggestionNutritionProvenance {
+  provenance: NutritionProvenance;
+  estimated: boolean;
+  missingCatalogueCanonicalIds: string[];
+}
+
+/** Reports nutrition certainty without deriving or filling any nutrient value. */
+export function nutritionProvenanceForSuggestion(
+  suggestion: Suggestion,
+  canonicals: ReadonlyMap<string, CanonicalItem>,
+): SuggestionNutritionProvenance {
+  const missingCatalogueCanonicalIds = suggestion.uses
+    .filter((use) => {
+      const canonical = canonicals.get(use.canonicalId);
+      return !canonical || [
+        canonical.kcalPer100,
+        canonical.proteinPer100,
+        canonical.carbsPer100,
+        canonical.fatPer100,
+      ].some((value) => value === null || !Number.isFinite(value));
+    })
+    .map((use) => use.canonicalId);
+  const incomplete = missingCatalogueCanonicalIds.length > 0 || suggestion.missing.length > 0;
+  return {
+    provenance: incomplete
+      ? suggestion.estimatedNutritionPerServing ? 'provider-estimate' : 'incomplete'
+      : 'catalogue',
+    estimated: incomplete,
+    missingCatalogueCanonicalIds: [...new Set(missingCatalogueCanonicalIds)],
+  };
+}
+
+const BUDGET_ORDER: Record<MealBudgetClassification, number> = {
+  'exact-fit': 0,
+  'fits-budget': 1,
+  'over-budget': 2,
+};
+
+/** Stable ranking: exact fit, then within budget, then over; closest delta wins. */
+export function sortSuggestionsByBudget(
+  suggestions: readonly Suggestion[],
+  targetCalories: number,
+  consumedCalories: number,
+): Suggestion[] {
+  return suggestions
+    .map((suggestion, index) => ({
+      suggestion,
+      index,
+      budget: evaluateMealBudget(targetCalories, consumedCalories, suggestion.kcalPerServing),
+    }))
+    .sort((a, b) => {
+      if (!a.budget || !b.budget) return a.budget ? -1 : b.budget ? 1 : a.index - b.index;
+      return BUDGET_ORDER[a.budget.classification] - BUDGET_ORDER[b.budget.classification]
+        || Math.abs(a.budget.deltaCalories) - Math.abs(b.budget.deltaCalories)
+        || a.index - b.index;
+    })
+    .map(({ suggestion }) => suggestion);
+}
 
 /**
  * The dinner decision's pure core (decisions 33–41). Urgency scoring,
