@@ -180,15 +180,9 @@ export default function ReviewScreen() {
       if (visionError.kind !== 'cancelled') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       }
-      // A malformed estimate is not worth stranding the user on — drop straight
-      // into manual entry with the photo attached.
-      if (visionError.kind === 'malformed') {
-        router.replace('/manual');
-        return;
-      }
       setPhase({ kind: 'error', error: visionError });
     }
-  }, [base64, router]);
+  }, [base64]);
 
   useEffect(() => {
     if (!estimate) void runEstimate();

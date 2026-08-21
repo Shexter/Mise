@@ -181,7 +181,7 @@ async function post(
   }
 }
 
-/** The lite model has the generous AI Studio quota; fall back if it is throttled. */
+/** The lite model has the generous AI Studio quota; fall back if it is throttled or unavailable. */
 async function postWithFallback(
   apiKey: string,
   body: unknown,
@@ -198,7 +198,13 @@ async function postWithFallback(
       return await post(`${endpointFor(model)}?key=${apiKey}`, body, signal);
     } catch (error) {
       lastError = error;
-      if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
+      // Fall through on rate limits, server 5xx, or model 404s to give other models a chance
+      if (
+        !(error instanceof VisionError) ||
+        !['rate_limited', 'server', 'malformed'].includes(error.kind)
+      ) {
+        throw error;
+      }
     }
   }
   throw lastError;
@@ -218,19 +224,22 @@ async function errorForResponse(response: Response): Promise<VisionError> {
     // No JSON body; fall back to status alone.
   }
 
+  const isQuota =
+    status === 429 ||
+    /quota|resource_exhausted|rate.?limit|limit reached/i.test(apiMessage);
+
+  if (isQuota) {
+    return new VisionError(
+      'rate_limited',
+      'This key has hit its Gemini free-tier quota limit. Wait a minute or check usage in Google AI Studio.',
+      retryAfterMs(response.headers),
+    );
+  }
   if (status === 400 && /api key not valid|invalid.*key/i.test(apiMessage)) {
     return new VisionError('unauthorized', 'Your API key was rejected.');
   }
   if (status === 401 || status === 403) {
     return new VisionError('unauthorized', 'Your API key was rejected.');
-  }
-  if (status === 429) {
-    // Gemini's free tier reports rate and daily limits here.
-    return new VisionError(
-      'rate_limited',
-      'This key has hit its Gemini free-tier limit. Try again later.',
-      retryAfterMs(response.headers),
-    );
   }
   if (status >= 500) {
     return new VisionError('server', 'The service is unavailable.');
