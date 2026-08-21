@@ -9,6 +9,11 @@ import { DEFAULT_SPLIT } from '@/logic/macros';
 import type { ActivityLevel, Goal, Sex, TargetSource, Units } from '@/types';
 
 export type BodyCompositionScanPhase = 'selected' | 'extracting' | 'review' | 'error';
+export type MeasuredFlowOrigin = 'onboarding' | 'settings';
+export type ApiKeyReturnIntent =
+  | { kind: 'default-onboarding' }
+  | { kind: 'energy-onboarding'; source: 'dexa' | 'inbody' }
+  | { kind: 'energy-settings'; source: 'dexa' | 'inbody' };
 
 /** Transient report evidence. It is never persisted or exported. */
 export interface BodyCompositionScanDraft {
@@ -42,12 +47,17 @@ interface OnboardingDraft {
 
 interface OnboardingState extends OnboardingDraft {
   scanDraft: BodyCompositionScanDraft | null;
+  returnIntent: ApiKeyReturnIntent;
+  measuredFlowOrigin: MeasuredFlowOrigin;
   set: (patch: Partial<OnboardingDraft>) => void;
   selectScanPhoto: (photoUri: string) => void;
   startScanExtraction: () => void;
   receiveScanExtraction: (extraction: BodyCompositionExtraction) => void;
   failScanExtraction: (errorKind: VisionErrorKind) => void;
   clearScanDraft: () => void;
+  setReturnIntent: (intent: ApiKeyReturnIntent) => void;
+  consumeReturnIntent: () => ApiKeyReturnIntent;
+  setMeasuredFlowOrigin: (origin: MeasuredFlowOrigin) => void;
   reset: () => void;
 }
 
@@ -65,9 +75,11 @@ const EMPTY: OnboardingDraft = {
   weightGoalRateKgPerWeek: null,
 };
 
-export const useOnboardingStore = create<OnboardingState>((set) => ({
+export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   ...EMPTY,
   scanDraft: null,
+  returnIntent: { kind: 'default-onboarding' },
+  measuredFlowOrigin: 'onboarding',
   set: (patch) => set((state) => {
     const nextSource = patch.targetSource;
     if (nextSource === undefined || nextSource === state.targetSource) return patch;
@@ -119,8 +131,26 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
         },
       }),
   clearScanDraft: () => set({ scanDraft: null }),
-  reset: () => set({ ...EMPTY, scanDraft: null }),
+  setReturnIntent: (returnIntent) => set({ returnIntent }),
+  consumeReturnIntent: () => {
+    const intent = get().returnIntent;
+    set({ returnIntent: { kind: 'default-onboarding' } });
+    return intent;
+  },
+  setMeasuredFlowOrigin: (measuredFlowOrigin) => set({ measuredFlowOrigin }),
+  reset: () => set({ ...EMPTY, scanDraft: null, returnIntent: { kind: 'default-onboarding' }, measuredFlowOrigin: 'onboarding' }),
 }));
+
+export function resolveApiKeyReturnIntent(value: unknown): ApiKeyReturnIntent {
+  if (!value || typeof value !== 'object') return { kind: 'default-onboarding' };
+  const record = value as Record<string, unknown>;
+  if (record.kind === 'default-onboarding') return { kind: 'default-onboarding' };
+  if ((record.kind === 'energy-onboarding' || record.kind === 'energy-settings')
+    && (record.source === 'dexa' || record.source === 'inbody')) {
+    return { kind: record.kind, source: record.source };
+  }
+  return { kind: 'default-onboarding' };
+}
 
 export const ONBOARDING_SPLIT = DEFAULT_SPLIT;
 

@@ -23,18 +23,36 @@ export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (opening) return opening;
 
   opening = (async () => {
-    const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
-    await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-    await migrate(db);
-    database = db;
-    // Idempotent, so running it on every launch is safe — and it is how a
-    // seed-version bump reaches an existing install.
-    await loadSeedData();
-    opening = null;
-    return db;
+    let handle: SQLite.SQLiteDatabase | null = null;
+    try {
+      handle = await SQLite.openDatabaseAsync(DATABASE_NAME);
+      await handle.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+      await migrate(handle);
+      await loadSeedData(handle);
+      // Nothing outside this attempt can observe a partially migrated or
+      // partially seeded handle. Publication is the final successful step.
+      database = handle;
+      return handle;
+    } catch (error) {
+      database = null;
+      if (handle) {
+        try { await handle.closeAsync(); } catch { /* invalidation is authoritative */ }
+      }
+      throw error;
+    } finally {
+      opening = null;
+    }
   })();
 
   return opening;
+}
+
+/** Test-only lifecycle boundary; production code never calls this. */
+export async function __resetDatabaseLifecycleForTests(): Promise<void> {
+  const handle = database;
+  database = null;
+  opening = null;
+  if (handle) await handle.closeAsync();
 }
 
 /**

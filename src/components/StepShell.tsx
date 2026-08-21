@@ -41,6 +41,7 @@ interface Props {
   onSecondary?: () => void;
   /** Hides the back chevron on the first step. */
   showBack?: boolean;
+  onBack?: () => void;
 }
 
 /** One question per screen, with a progress indicator and back navigation. */
@@ -57,6 +58,7 @@ export function StepShell({
   secondaryLabel,
   onSecondary,
   showBack = true,
+  onBack,
 }: Props) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -102,7 +104,7 @@ export function StepShell({
       <View style={[styles.header, styles.column]}>
         {showBack && router.canGoBack() ? (
           <Pressable
-            onPress={() => router.back()}
+            onPress={onBack ?? (() => router.back())}
             accessibilityRole="button"
             accessibilityLabel="Go back"
             style={({ pressed }) => [

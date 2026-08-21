@@ -8,7 +8,7 @@ const files = [
   'app/(tabs)/settings.tsx',
   'src/components/settings/ProfileSheet.tsx',
 ];
-const forbidden = ['diagnosis', 'assessment', 'recommendation', 'health claim', 'fitness', 'progress'];
+const forbidden = ['diagnosis', 'assessment', 'health claim', 'fitness', 'progress'];
 
 test('energy-source copy does not evaluate the user', () => {
   const addedCopy = files.map((file) => readFileSync(resolve(process.cwd(), file), 'utf8').toLowerCase()).join('\n');

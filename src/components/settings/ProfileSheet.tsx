@@ -3,24 +3,26 @@ import { useState } from 'react';
 
 import { ChoiceList, Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
+import { BirthdayPicker } from '@/components/onboarding/BirthdayPicker';
+import { FieldGuidance } from '@/components/onboarding/FieldGuidance';
+import { FormulaSexControl } from '@/components/onboarding/FormulaSexControl';
+import { MeasurementPicker } from '@/components/onboarding/MeasurementPicker';
 import { Sheet } from '@/components/Sheet';
 import { Button } from '@/components/Button';
 import { Stepper } from '@/components/Stepper';
 import { Caption, SectionLabel } from '@/components/Type';
 import {
   ACTIVITY_LEVELS,
-  AGE_RANGE,
   GOALS,
   WEIGHT_GOAL_RATE_RANGE,
 } from '@/constants/activityLevels';
 import {
+  HEIGHT_ANCHOR_CM,
   HEIGHT_RANGE_CM,
+  WEIGHT_ANCHOR_KG,
   WEIGHT_RANGE_KG,
-  cmToFeetInches,
-  feetInchesToCm,
-  kgToLb,
-  lbToKg,
-} from '@/logic/units';
+} from '@/logic/onboardingDomain';
+import { kgToLb, lbToKg } from '@/logic/units';
 import { weightGoalForecast } from '@/logic/weightGoalPacing';
 import type { ActivityLevel, Goal, Profile, Sex, Units } from '@/types';
 
@@ -90,39 +92,66 @@ interface EditorProps {
   onClose: () => void;
 }
 
+/**
+ * Settings seeds every control from what is actually saved, never from an
+ * onboarding anchor, and writes nothing until Save. Closing the sheet leaves
+ * the stored profile exactly as it was.
+ *
+ * Age is the exception worth explaining: Mise stores the integer age and
+ * discards the birth date, so there is no date to put back into the picker.
+ * Rather than reconstruct one — which would invent a birthday the person
+ * never gave — the editor shows the saved age and asks for the birthday again
+ * only if they want to change it.
+ */
 function FormulaEditor({ profile, onSave, onClose }: EditorProps) {
-  const [sex, setSex] = useState<Sex>(profile.sex ?? 'female');
-  const [ageText, setAgeText] = useState(profile.age === null ? '' : String(profile.age));
-  const [heightText, setHeightText] = useState(profile.heightCm === null ? '' : String(Math.round(profile.heightCm)));
-  const age = Number.parseInt(ageText, 10);
-  const heightCm = Number.parseFloat(heightText);
-  const valid = Number.isFinite(age) && age >= AGE_RANGE.min && age <= AGE_RANGE.max
-    && Number.isFinite(heightCm) && heightCm >= HEIGHT_RANGE_CM.min && heightCm <= HEIGHT_RANGE_CM.max;
+  const [sex, setSex] = useState<Sex | null>(profile.sex);
+  const [age, setAge] = useState<number | null>(profile.age);
+  const [heightCm, setHeightCm] = useState<number | null>(profile.heightCm);
+  const valid = sex !== null && age !== null && heightCm !== null;
+
   return (
     <>
-      <ChoiceList options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]} value={sex} onChange={setSex} />
-      <Field value={ageText} onChangeText={setAgeText} keyboardType="number-pad" suffix="years" numeric />
-      <Field value={heightText} onChangeText={setHeightText} keyboardType="number-pad" suffix="cm" numeric />
-      <Button label="Use formula" disabled={!valid} onPress={() => { onSave({ sex, age, heightCm }); onClose(); }} />
+      <SectionLabel muted>Formula constant</SectionLabel>
+      <FormulaSexControl value={sex} onChange={setSex} />
+
+      <SectionLabel muted>Age</SectionLabel>
+      <AgeRestatement age={age} />
+      <BirthdayPicker onConfirm={setAge} />
+
+      <SectionLabel muted>Height</SectionLabel>
+      <MeasurementPicker
+        value={profile.heightCm}
+        anchor={HEIGHT_ANCHOR_CM}
+        range={HEIGHT_RANGE_CM}
+        kind="height"
+        unit={profile.units}
+        label="Height"
+        onConfirm={setHeightCm}
+      />
+
+      <Button
+        label="Use formula"
+        disabled={!valid}
+        onPress={() => {
+          if (!valid) return;
+          onSave({ sex, age, heightCm });
+          onClose();
+        }}
+      />
     </>
   );
 }
 
 function SexEditor({ profile, onSave, onClose }: EditorProps) {
-  const [sex, setSex] = useState<Sex>(profile.sex ?? 'female');
+  const [sex, setSex] = useState<Sex | null>(profile.sex);
   return (
     <>
-      <ChoiceList
-        options={[
-          { value: 'male', label: 'Male' },
-          { value: 'female', label: 'Female' },
-        ]}
-        value={sex}
-        onChange={setSex}
-      />
+      <FormulaSexControl value={sex} onChange={setSex} />
       <Button
         label="Save"
+        disabled={sex === null}
         onPress={() => {
+          if (sex === null) return;
           onSave({ sex });
           onClose();
         }}
@@ -132,25 +161,18 @@ function SexEditor({ profile, onSave, onClose }: EditorProps) {
 }
 
 function AgeEditor({ profile, onSave, onClose }: EditorProps) {
-  const [value, setValue] = useState(profile.age === null ? '' : String(profile.age));
-  const age = Number.parseInt(value, 10);
-  const valid =
-    Number.isFinite(age) && age >= AGE_RANGE.min && age <= AGE_RANGE.max;
+  const [age, setAge] = useState<number | null>(profile.age);
+  const changed = age !== null && age !== profile.age;
   return (
     <>
-      <Field
-        value={value}
-        onChangeText={setValue}
-        keyboardType="number-pad"
-        suffix="years"
-        numeric
-        autoFocus
-        maxLength={3}
-      />
+      <AgeRestatement age={profile.age} />
+      <BirthdayPicker onConfirm={setAge} />
+      <FieldGuidance field="birthday" />
       <Button
         label="Save"
-        disabled={!valid}
+        disabled={!changed}
         onPress={() => {
+          if (age === null) return;
           onSave({ age });
           onClose();
         }}
@@ -159,48 +181,39 @@ function AgeEditor({ profile, onSave, onClose }: EditorProps) {
   );
 }
 
+/** Says plainly why the picker cannot open on the person's own birthday. */
+function AgeRestatement({ age }: { age: number | null }) {
+  return (
+    <Caption muted>
+      {age === null
+        ? 'No age saved yet.'
+        : `Currently ${age}. Mise keeps the age and not the date, so pick your birthday again to change it.`}
+    </Caption>
+  );
+}
+
 function HeightEditor({ profile, onSave, onClose }: EditorProps) {
   const [units, setUnits] = useState<Units>(profile.units);
-  const start = cmToFeetInches(profile.heightCm ?? 0);
-  const [cm, setCm] = useState(profile.heightCm === null ? '' : String(Math.round(profile.heightCm)));
-  const [feet, setFeet] = useState(String(start.feet));
-  const [inches, setInches] = useState(String(start.inches));
-
-  const resolved =
-    units === 'metric'
-      ? Number.parseFloat(cm)
-      : feetInchesToCm({
-          feet: Number.parseInt(feet, 10) || 0,
-          inches: Number.parseInt(inches, 10) || 0,
-        });
-  const valid =
-    Number.isFinite(resolved) &&
-    resolved >= HEIGHT_RANGE_CM.min &&
-    resolved <= HEIGHT_RANGE_CM.max;
-
+  const [heightCm, setHeightCm] = useState<number | null>(profile.heightCm);
   return (
     <>
-      <Segmented
-        options={[
-          { value: 'metric', label: 'cm' },
-          { value: 'imperial', label: 'ft / in' },
-        ]}
-        value={units}
-        onChange={setUnits}
+      <MeasurementPicker
+        value={profile.heightCm}
+        anchor={HEIGHT_ANCHOR_CM}
+        range={HEIGHT_RANGE_CM}
+        kind="height"
+        unit={units}
+        label="Height"
+        onConfirm={setHeightCm}
+        onUnitChange={setUnits}
       />
-      {units === 'metric' ? (
-        <Field value={cm} onChangeText={setCm} keyboardType="number-pad" suffix="cm" numeric maxLength={3} />
-      ) : (
-        <>
-          <Field value={feet} onChangeText={setFeet} keyboardType="number-pad" suffix="ft" numeric maxLength={1} />
-          <Field value={inches} onChangeText={setInches} keyboardType="number-pad" suffix="in" numeric maxLength={2} />
-        </>
-      )}
+      <FieldGuidance field="height" />
       <Button
         label="Save"
-        disabled={!valid}
+        disabled={heightCm === null}
         onPress={() => {
-          onSave({ heightCm: resolved });
+          if (heightCm === null) return;
+          onSave({ heightCm });
           onClose();
         }}
       />
@@ -210,53 +223,26 @@ function HeightEditor({ profile, onSave, onClose }: EditorProps) {
 
 function WeightEditor({ profile, onSave, onClose }: EditorProps) {
   const [units, setUnits] = useState<Units>(profile.units);
-  const [value, setValue] = useState(
-    units === 'metric'
-      ? String(Math.round(profile.weightKg))
-      : String(kgToLb(profile.weightKg)),
-  );
-
-  const entered = Number.parseFloat(value);
-  const kg = Number.isFinite(entered)
-    ? units === 'metric'
-      ? entered
-      : lbToKg(entered)
-    : NaN;
-  const valid = kg >= WEIGHT_RANGE_KG.min && kg <= WEIGHT_RANGE_KG.max;
-
+  const [weightKg, setWeightKg] = useState<number | null>(profile.weightKg);
   return (
     <>
-      <Segmented
-        options={[
-          { value: 'metric', label: 'kg' },
-          { value: 'imperial', label: 'lb' },
-        ]}
-        value={units}
-        onChange={(next) => {
-          const parsed = Number.parseFloat(value);
-          if (Number.isFinite(parsed)) {
-            setValue(
-              next === 'metric'
-                ? String(Math.round(lbToKg(parsed)))
-                : String(kgToLb(parsed)),
-            );
-          }
-          setUnits(next);
-        }}
+      <MeasurementPicker
+        value={profile.weightKg}
+        anchor={WEIGHT_ANCHOR_KG}
+        range={WEIGHT_RANGE_KG}
+        kind="weight"
+        unit={units}
+        label="Weight"
+        onConfirm={setWeightKg}
+        onUnitChange={setUnits}
       />
-      <Field
-        value={value}
-        onChangeText={setValue}
-        keyboardType="decimal-pad"
-        suffix={units === 'metric' ? 'kg' : 'lb'}
-        numeric
-        maxLength={5}
-      />
+      <FieldGuidance field="weight" />
       <Button
         label="Save"
-        disabled={!valid}
+        disabled={weightKg === null}
         onPress={() => {
-          onSave({ weightKg: kg });
+          if (weightKg === null) return;
+          onSave({ weightKg });
           onClose();
         }}
       />

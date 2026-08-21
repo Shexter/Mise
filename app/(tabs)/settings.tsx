@@ -17,6 +17,7 @@ import { space, themeId } from '@/constants/theme';
 import { themeOptions } from '@/constants/themePalettes';
 import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
+import { useDbReadiness } from '@/db/readiness';
 import { populateDemoData } from '@/db/demoData';
 import {
   getBodyMeasurements,
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
   const updateProfile = useProfileStore((state) => state.update);
   const refreshDay = useDayStore((state) => state.refresh);
   const setCaptureReview = usePantryCaptureStore((state) => state.set);
+  const dbReadiness = useDbReadiness();
 
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [profileField, setProfileField] = useState<ProfileField | null>(null);
@@ -128,9 +130,13 @@ export default function SettingsScreen() {
       return {
         text: `Add ${targetSourceLabel(source)} inputs`,
         onPress: () => {
+          if (dbReadiness.phase !== 'ready') return;
           if (source === 'estimated') {
             setProfileField('formula');
             return;
+          }
+          if (source === 'dexa' || source === 'inbody') {
+            useOnboardingStore.getState().setMeasuredFlowOrigin('settings');
           }
           useOnboardingStore.getState().set({ targetSource: source });
           router.push('/onboarding/energy');

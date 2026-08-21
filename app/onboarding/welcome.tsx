@@ -24,8 +24,10 @@ import type { TargetSource } from '@/types';
 export default function Welcome() {
   const router = useRouter();
   const set = useOnboardingStore((state) => state.set);
+  const setMeasuredFlowOrigin = useOnboardingStore((state) => state.setMeasuredFlowOrigin);
 
   const start = (targetSource: TargetSource) => {
+    if (targetSource === 'dexa' || targetSource === 'inbody') setMeasuredFlowOrigin('onboarding');
     set({ targetSource });
     router.push(ONBOARDING_ENTRY_ROUTES[targetSource]);
   };

@@ -14,16 +14,34 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 export default function ApiKeyStep() {
   const router = useRouter();
   const set = useOnboardingStore((state) => state.set);
+  const consumeReturnIntent = useOnboardingStore((state) => state.consumeReturnIntent);
   const [existingKey, setExistingKey] = useState<boolean | null>(null);
 
   useEffect(() => {
     void hasApiKey().then(setExistingKey);
   }, []);
 
-  const advance = (skipped: boolean) => {
+  const finish = (skipped: boolean) => {
     set({ skippedKey: skipped });
-    router.push('/onboarding/dietary');
+    const intent = consumeReturnIntent();
+    switch (intent.kind) {
+      case 'default-onboarding':
+        router.replace('/onboarding/dietary');
+        return;
+      case 'energy-onboarding':
+        useOnboardingStore.getState().setMeasuredFlowOrigin('onboarding');
+        set({ targetSource: intent.source });
+        router.replace('/onboarding/energy');
+        return;
+      case 'energy-settings':
+        useOnboardingStore.getState().setMeasuredFlowOrigin('settings');
+        set({ targetSource: intent.source });
+        router.replace('/onboarding/energy');
+        return;
+    }
   };
+
+  const back = () => finish(true);
 
   if (existingKey === null) {
     return <Screen />;
@@ -38,7 +56,8 @@ export default function ApiKeyStep() {
         title="Your key is already set."
         detail="Mise found a key in this phone’s keychain. You can replace or remove it in Settings."
         primaryLabel="Continue"
-        onPrimary={() => advance(false)}
+        onPrimary={() => finish(false)}
+        onBack={back}
       />
     );
   }
@@ -49,13 +68,13 @@ export default function ApiKeyStep() {
         title="Add an API key."
         detail="Mise has no server of its own. Photo estimates go straight from this phone to the provider your key belongs to."
     >
-      <ApiKeyForm onSaved={() => advance(false)} saveLabel="Save and continue" />
+      <ApiKeyForm onSaved={() => finish(false)} saveLabel="Save and continue" />
 
       <View style={styles.skip}>
         <Button
           label="Skip for now"
           variant="ghost"
-          onPress={() => advance(true)}
+          onPress={() => finish(true)}
         />
         <Caption muted style={styles.skipDetail}>
           Without a key, Mise works as a manual food diary. Add one in Settings

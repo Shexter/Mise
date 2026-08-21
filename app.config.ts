@@ -89,6 +89,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    '@react-native-community/datetimepicker',
     [
       'expo-location',
       {

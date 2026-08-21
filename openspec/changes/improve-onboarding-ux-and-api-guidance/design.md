@@ -221,7 +221,7 @@ Install Expo SDK 54's supported
 SDK 54 documentation currently recommends 8.4.4 and includes it in Expo Go.
 Wrap it so route code does not depend on platform-specific event details. The
 wrapper presents year/month/day selection in the platform's accessible date
-UI and constrains dates to those producing `AGE_RANGE` 13-100.
+UI and constrains dates to those producing `AGE_RANGE` 15-99.
 
 Add pure helpers under `src/logic/age.ts`:
 

@@ -1,4 +1,5 @@
 import type { Units } from '@/types';
+export { HEIGHT_RANGE_CM, WEIGHT_RANGE_KG } from '@/logic/onboardingDomain';
 
 const CM_PER_INCH = 2.54;
 const INCHES_PER_FOOT = 12;
@@ -43,6 +44,3 @@ export function formatHeight(cm: number, units: Units): string {
 export function formatWeight(kg: number, units: Units): string {
   return units === 'metric' ? `${Math.round(kg)} kg` : `${kgToLb(kg)} lb`;
 }
-
-export const HEIGHT_RANGE_CM = { min: 120, max: 230 } as const;
-export const WEIGHT_RANGE_KG = { min: 30, max: 300 } as const;

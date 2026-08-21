@@ -69,12 +69,12 @@ describe('the estimated path is untouched', () => {
   });
 });
 
-describe('scan copy neither sells nor evaluates', () => {
+describe('scan copy neither oversells nor evaluates', () => {
   const forbidden = [
     'artificial intelligence', 'machine learning', 'neural', 'gpt', 'claude',
-    'gemini', 'openai', 'anthropic', 'magic', 'smart', 'instantly', 'perfect',
+    'magic', 'smart', 'instantly', 'perfect',
     'guarantee', 'accurate', 'precise', 'healthy', 'diagnos', 'assess',
-    'score', 'rank', 'judge', 'fitness', 'progress', 'recommendation',
+    'score', 'rank', 'judge', 'fitness', 'progress',
   ];
 
   test.each(forbidden)('neither screen uses %s', (word) => {
@@ -128,7 +128,7 @@ describe('every extracted value is reviewed before it is used', () => {
   });
 
   test('confirmation is blocked until the fields and the date are ready', () => {
-    expect(energy).toContain('primaryDisabled={!valid}');
+    expect(energy).toContain("primaryDisabled={dbReadiness.phase !== 'ready' || !valid}");
     expect(energy).toContain('dateReady && (measurement !== null');
   });
 

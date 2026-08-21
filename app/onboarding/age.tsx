@@ -1,52 +1,40 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
-import { Field } from '@/components/Field';
+import { BirthdayPicker } from '@/components/onboarding/BirthdayPicker';
+import { FieldGuidance } from '@/components/onboarding/FieldGuidance';
 import { StepShell } from '@/components/StepShell';
-import { AGE_RANGE } from '@/constants/activityLevels';
+import { Caption } from '@/components/Type';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
 export default function AgeStep() {
   const router = useRouter();
   const stored = useOnboardingStore((state) => state.age);
   const set = useOnboardingStore((state) => state.set);
-  const [value, setValue] = useState(stored ? String(stored) : '');
-
-  const age = Number.parseInt(value, 10);
-  const valid =
-    Number.isFinite(age) && age >= AGE_RANGE.min && age <= AGE_RANGE.max;
-  const showError = value.length > 0 && !valid;
-
-  const advance = () => {
-    if (!valid) return;
-    set({ age });
-    router.push('/onboarding/height');
-  };
+  /**
+   * The confirmed age, and only the age. The year/month/day tuple never
+   * leaves `BirthdayPicker`'s own state, so unmounting this route is all it
+   * takes for the birth date to be gone.
+   */
+  const [age, setAge] = useState<number | null>(stored ?? null);
 
   return (
     <StepShell
       step="age"
-      title="How old are you?"
+      title="When were you born?"
       primaryLabel="Continue"
-      primaryDisabled={!valid}
-      onPrimary={advance}
+      primaryDisabled={age === null}
+      onPrimary={() => {
+        if (age === null) return;
+        set({ age });
+        router.push('/onboarding/height');
+      }}
     >
-      <Field
-        value={value}
-        onChangeText={setValue}
-        keyboardType="number-pad"
-        placeholder="30"
-        suffix="years"
-        numeric
-        autoFocus
-        maxLength={3}
-        onSubmitEditing={advance}
-        error={
-          showError
-            ? `Enter an age between ${AGE_RANGE.min} and ${AGE_RANGE.max}.`
-            : undefined
-        }
-      />
+      <BirthdayPicker onConfirm={setAge} />
+      {age === null ? null : (
+        <Caption accessibilityLiveRegion="polite">Using age {age}.</Caption>
+      )}
+      <FieldGuidance field="birthday" />
     </StepShell>
   );
 }

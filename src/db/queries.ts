@@ -1,5 +1,6 @@
 import { subDays } from 'date-fns';
 import { randomUUID } from 'expo-crypto';
+import type { SQLiteDatabase } from 'expo-sqlite';
 
 import canonicalSeed from '../../assets/canonical-items.json';
 import derivativeSeed from '../../assets/canonical-derivatives.json';
@@ -1440,13 +1441,13 @@ interface DerivativeSeedEntry {
  * install needs to pick up new edges. Each canonical's display name is also
  * registered as an alias so the display name itself always resolves.
  */
-export async function loadSeedData(): Promise<void> {
+export async function loadSeedData(handle: SQLiteDatabase = db()): Promise<void> {
   const now = new Date().toISOString();
   const canonicals = canonicalSeed as CanonicalSeedEntry[];
   const aliases = aliasSeed as AliasSeedEntry[];
   const derivatives = derivativeSeed as DerivativeSeedEntry[];
 
-  await db().withExclusiveTransactionAsync(async (txn) => {
+  await handle.withExclusiveTransactionAsync(async (txn) => {
     for (const entry of canonicals) {
       await txn.runAsync(
         `INSERT INTO canonical_items

@@ -19,4 +19,19 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// Support wasm files on web for expo-sqlite wa-sqlite worker
+config.resolver.assetExts = [...config.resolver.assetExts, 'wasm'];
+
+// Provide COOP/COEP headers on web so Web Workers have SharedArrayBuffer and OPFS access for SQLite
+config.server = {
+  ...config.server,
+  enhanceMiddleware: (metroMiddleware) => {
+    return (req, res, next) => {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+      return metroMiddleware(req, res, next);
+    };
+  },
+};
+
 module.exports = config;

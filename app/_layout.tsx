@@ -11,14 +11,16 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { seedFromEnvironment } from '@/api/keyStore';
 import { ToastProvider } from '@/components/Toast';
+import { StorageUnavailable } from '@/components/StorageUnavailable';
 import { color } from '@/constants/theme';
 import { openDatabase } from '@/db';
+import { databaseReadiness, useDbReadiness } from '@/db/readiness';
 import { useProfileStore } from '@/store/profileStore';
 
 // The splash stays up until fonts and the database are both ready, so the first
@@ -33,40 +35,27 @@ export default function RootLayout() {
     Archivo_500Medium,
     Archivo_600SemiBold,
   });
-  const [dataReady, setDataReady] = useState(false);
   const loadProfile = useProfileStore((state) => state.load);
+  const readiness = useDbReadiness();
+
+  const startStorage = useCallback(() => databaseReadiness.initialise(async () => {
+    await openDatabase();
+    await seedFromEnvironment();
+    await loadProfile();
+  }), [loadProfile]);
+
+  const retryStorage = useCallback(() => databaseReadiness.retry(async () => {
+    await openDatabase();
+    await seedFromEnvironment();
+    await loadProfile();
+  }), [loadProfile]);
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      // Storage must never leave the app stuck on the splash. On a real device
-      // this resolves in milliseconds; the timeout only matters for the web
-      // preview, where the SQLite worker never initialises and the open would
-      // otherwise hang forever. Past the timeout the app renders without
-      // persistence.
-      const startup = (async () => {
-        await openDatabase();
-        await seedFromEnvironment();
-        await loadProfile();
-      })();
-      try {
-        await Promise.race([
-          startup,
-          new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error('storage timeout')), 3000),
-          ),
-        ]);
-      } catch (error) {
-        console.warn('Startup: on-device storage is unavailable.', error);
-      }
-      if (active) setDataReady(true);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [loadProfile]);
+    void startStorage();
+  }, [startStorage]);
 
-  const ready = (fontsLoaded || fontError !== null) && dataReady;
+  const fontsReady = fontsLoaded || fontError !== null;
+  const ready = fontsReady && readiness.phase !== 'opening';
 
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
@@ -79,6 +68,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ToastProvider>
           <StatusBar style="dark" />
+          {readiness.phase === 'unavailable' ? (
+            <StorageUnavailable readiness={readiness} onRetry={() => void retryStorage()} />
+          ) : (
           <Stack
             screenOptions={{
               headerShown: false,
@@ -116,6 +108,7 @@ export default function RootLayout() {
             <Stack.Screen name="recipe/[id]" />
             <Stack.Screen name="debug/tokens" options={{ presentation: 'modal' }} />
           </Stack>
+          )}
         </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

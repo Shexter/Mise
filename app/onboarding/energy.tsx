@@ -1,25 +1,30 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
 import { extractBodyComposition } from '@/api/bodyComposition';
 import { VisionError, type VisionErrorKind } from '@/api/errors';
+import { hasApiKey } from '@/api/keyStore';
 import { copyForError } from '@/api/vision';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { ChoiceList, Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
+import { ApiKeyExplainer } from '@/components/onboarding/ApiKeyExplainer';
 import { ProcessingIndicator } from '@/components/ProcessingIndicator';
 import { StepShell } from '@/components/StepShell';
 import { Body, Caption, SectionLabel } from '@/components/Type';
 import { ACTIVITY_LEVELS, GOALS } from '@/constants/activityLevels';
 import { color, layout, radius, space } from '@/constants/theme';
+import { useDbReadiness } from '@/db/readiness';
 import { getBodyMeasurements, saveBodyMeasurement } from '@/db/queries';
 import { dexaFatFreeMass, energyInputWarnings, resolveTarget } from '@/logic/bodyComposition';
 import type { BodyCompositionExtraction } from '@/logic/bodyCompositionParser';
 import { localDateString } from '@/logic/dates';
+import { INITIAL_KEY_READINESS, keyReadinessReducer } from '@/logic/keyReadiness';
 import { DEFAULT_FIBRE_TARGET_G } from '@/logic/macros';
+import { createMeasuredIntakeState, measuredIntakeReducer } from '@/logic/onboardingStages';
 import { ONBOARDING_SPLIT, useOnboardingStore } from '@/store/onboardingStore';
 import { useProfileStore } from '@/store/profileStore';
 import type {
@@ -70,9 +75,11 @@ export default function EnergySourceStep() {
   const receiveScanExtraction = useOnboardingStore((state) => state.receiveScanExtraction);
   const failScanExtraction = useOnboardingStore((state) => state.failScanExtraction);
   const clearScanDraft = useOnboardingStore((state) => state.clearScanDraft);
+  const setReturnIntent = useOnboardingStore((state) => state.setReturnIntent);
   const create = useProfileStore((state) => state.create);
   const existingProfile = useProfileStore((state) => state.profile);
   const update = useProfileStore((state) => state.update);
+  const dbReadiness = useDbReadiness();
 
   const [weight, setWeight] = useState('');
   const [bodyFat, setBodyFat] = useState('');
@@ -86,6 +93,8 @@ export default function EnergySourceStep() {
   const [measuredOn, setMeasuredOn] = useState(localDateString());
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [manualOnly, setManualOnly] = useState(false);
+  const [keyReadiness, dispatchKeyReadiness] = useReducer(keyReadinessReducer, INITIAL_KEY_READINESS);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(existingProfile?.activityLevel ?? 'moderate');
   const [goal, setGoal] = useState<Goal>(existingProfile?.goal ?? 'maintain');
 
@@ -93,13 +102,38 @@ export default function EnergySourceStep() {
   const source = draft.targetSource;
   const scan = draft.scanDraft;
   const measured = source === 'dexa' || source === 'inbody';
+  const [measuredFlow, dispatchMeasuredFlow] = useReducer(
+    measuredIntakeReducer,
+    undefined,
+    () => {
+      let state = createMeasuredIntakeState(draft.measuredFlowOrigin);
+      if (measured) {
+        state = measuredIntakeReducer(state, { type: 'SET_FIELD', field: 'source', value: source });
+        state = measuredIntakeReducer(state, { type: 'NEXT' });
+      }
+      return state;
+    },
+  );
+
+  useEffect(() => {
+    if (!measured) return;
+    let active = true;
+    void hasApiKey()
+      .then((present) => {
+        if (active) dispatchKeyReadiness({ type: 'RESOLVED', present });
+      })
+      .catch((error: unknown) => {
+        if (active) dispatchKeyReadiness({ type: 'REJECTED', error });
+      });
+    return () => { active = false; };
+  }, [keyReadiness.attempt, measured]);
 
   // Settings re-entry seeds the fields from the measurement already saved for
   // this provider, so an edit starts from what is stored rather than blank.
   // A scan draft already under way owns the fields instead and is not overwritten.
   const seededFor = useRef<TargetSource | null>(null);
   useEffect(() => {
-    if (!measured || seededFor.current === source || scan !== null) return;
+    if (dbReadiness.phase !== 'ready' || !measured || seededFor.current === source || scan !== null) return;
     seededFor.current = source;
     void getBodyMeasurements().then((saved) => {
       const current = saved.find((item) => item.provider === source);
@@ -114,7 +148,7 @@ export default function EnergySourceStep() {
         setFatFreeMass(String(current.fatFreeMassKg));
       }
     });
-  }, [measured, source, scan]);
+  }, [dbReadiness.phase, measured, source, scan]);
 
   /* ----------------------------- Report intake ---------------------------- */
 
@@ -189,7 +223,16 @@ export default function EnergySourceStep() {
   const changeSource = (next: 'dexa' | 'inbody') => {
     if (next === source) return;
     seededFor.current = null;
+    dispatchMeasuredFlow({ type: 'SET_FIELD', field: 'source', value: next });
     setDraft({ targetSource: next });
+  };
+
+  const openKeySetup = () => {
+    setReturnIntent({
+      kind: measuredFlow.origin === 'settings' ? 'energy-settings' : 'energy-onboarding',
+      source: source === 'inbody' ? 'inbody' : 'dexa',
+    });
+    router.push('/onboarding/api-key');
   };
 
   /* ------------------------------ Calculation ----------------------------- */
@@ -257,7 +300,7 @@ export default function EnergySourceStep() {
   const warnings = valid ? energyInputWarnings(preview, measurement ?? undefined) : [];
 
   const save = useCallback(async () => {
-    if (!valid || saving) return;
+    if (dbReadiness.phase !== 'ready' || !valid || saving) return;
     setSaving(true);
     try {
       const target = resolveTarget(preview, measurement ? [measurement] : []);
@@ -283,7 +326,7 @@ export default function EnergySourceStep() {
     } finally {
       setSaving(false);
     }
-  }, [valid, saving, preview, measurement, existingProfile, update, create, clearScanDraft, router]);
+  }, [dbReadiness.phase, valid, saving, preview, measurement, existingProfile, update, create, clearScanDraft, router]);
 
   const extraction = scan?.extraction ?? null;
   const mismatch = extraction
@@ -298,7 +341,7 @@ export default function EnergySourceStep() {
       title={source === 'dexa' ? 'Your DEXA inputs' : source === 'inbody' ? 'Your InBody inputs' : 'Your known figure'}
       detail="These are inputs to a calorie calculation. You can change them in Settings."
       primaryLabel="Use this figure"
-      primaryDisabled={!valid}
+      primaryDisabled={dbReadiness.phase !== 'ready' || !valid}
       primaryLoading={saving}
       onPrimary={() => void save()}
     >
@@ -306,7 +349,14 @@ export default function EnergySourceStep() {
         <>
           <Segmented options={MEASURED_SOURCES} value={source} onChange={changeSource} />
 
-          {scan === null ? (
+          {scan === null ? (!manualOnly && keyReadiness.phase !== 'present' ? (
+            <ApiKeyExplainer
+              status={keyReadiness.phase}
+              onSetUpKey={openKeySetup}
+              onEnterManually={() => setManualOnly(true)}
+              onRetry={() => dispatchKeyReadiness({ type: 'RETRY' })}
+            />
+          ) : !manualOnly ? (
             <Card>
               <SectionLabel muted>From your report</SectionLabel>
               <Body>Read the figures off a photo of your report instead of typing them.</Body>
@@ -320,7 +370,7 @@ export default function EnergySourceStep() {
               </View>
               {pickerError ? <Caption style={styles.problem}>{pickerError}</Caption> : null}
             </Card>
-          ) : (
+          ) : null) : (
             <Card>
               <ReportPreview uri={scan.photoUri} />
               {scan.phase === 'selected' ? (
@@ -348,7 +398,7 @@ export default function EnergySourceStep() {
                   onRetry={() => void analyse()}
                   onReplace={() => void selectImage('library')}
                   onManual={discardReport}
-                  onKeySettings={() => router.push('/onboarding/api-key')}
+                  onKeySettings={openKeySetup}
                 />
               ) : null}
 

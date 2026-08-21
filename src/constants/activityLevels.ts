@@ -101,4 +101,4 @@ export function rateGoalAdjustment(
   return (direction * Math.abs(rateKgPerWeek) * KCAL_PER_KG) / 7;
 }
 
-export const AGE_RANGE = { min: 13, max: 100 } as const;
+export { AGE_RANGE } from '@/logic/onboardingDomain';
