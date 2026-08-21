@@ -34,7 +34,7 @@ describe('logged meal edit navigation', () => {
   test('manual photo entries use the same re-estimate flow', () => {
     expect(manual).toContain('photoBase64(photoUri)');
     expect(manual).toContain('setCapture({ photoUri, base64, estimate: null })');
-    expect(manual).toContain("router.replace('/review')");
+    expect(manual).toContain("router.push('/review')");
     expect(manual).toContain('Estimate with AI');
   });
 });

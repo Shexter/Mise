@@ -1,5 +1,12 @@
 import { retryAfterMs, VisionError } from '@/api/errors';
+import {
+  GEMINI_MODELS,
+  getGeminiModelPreference,
+  type GeminiModel,
+} from '@/api/keyStore';
 import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
+
+export { GEMINI_MODELS } from '@/api/keyStore';
 
 /**
  * Google Gemini transport.
@@ -12,10 +19,8 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
  * object, which the shared parser then reads.
  */
 
+/** Public compatibility constant; requests resolve the stored preference at call time. */
 export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-const FALLBACK_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent`;
 const MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const VISION_TIMEOUT_MS = 45_000;
 
@@ -182,12 +187,25 @@ async function postWithFallback(
   body: unknown,
   signal?: AbortSignal,
 ): Promise<GeminiResponse> {
-  try {
-    return await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
-  } catch (error) {
-    if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
-    return post(`${FALLBACK_ENDPOINT}?key=${apiKey}`, body, signal);
+  const selected = await getGeminiModelPreference();
+  const models = [
+    selected,
+    ...GEMINI_MODELS.map((model) => model.id).filter((model) => model !== selected),
+  ];
+  let lastError: unknown;
+  for (const model of models) {
+    try {
+      return await post(`${endpointFor(model)}?key=${apiKey}`, body, signal);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
+    }
   }
+  throw lastError;
+}
+
+function endpointFor(model: GeminiModel): string {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 }
 
 async function errorForResponse(response: Response): Promise<VisionError> {

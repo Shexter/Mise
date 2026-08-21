@@ -1,13 +1,23 @@
 import Constants from 'expo-constants';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { clearApiKey, maskedApiKey } from '@/api/keyStore';
+import {
+  clearApiKey,
+  getConfiguredProvider,
+  getGeminiModelPreference,
+  GEMINI_MODELS,
+  maskedApiKey,
+  setGeminiModelPreference,
+  type GeminiModel,
+} from '@/api/keyStore';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
 import { ApiKeySheet } from '@/components/settings/ApiKeySheet';
 import { MacroSplitSheet } from '@/components/settings/MacroSplitSheet';
+import { ModelSheet } from '@/components/settings/ModelSheet';
 import { ProfileSheet } from '@/components/settings/ProfileSheet';
 import { SettingsRow, SettingsToggleRow } from '@/components/settings/Row';
 import { ThemeSheet } from '@/components/settings/ThemeSheet';
@@ -55,13 +65,18 @@ export default function SettingsScreen() {
   const [profileField, setProfileField] = useState<ProfileField | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [modelOpen, setModelOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [ocrCloudText, setOcrCloudText] = useState(false);
+  const [configuredProvider, setConfiguredProvider] = useState<string | null>(null);
+  const [geminiModel, setGeminiModel] = useState<GeminiModel>('gemini-2.5-flash-lite');
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
+    void getConfiguredProvider().then(setConfiguredProvider);
+    void getGeminiModelPreference().then(setGeminiModel);
   }, []);
 
   const releasePendingCaptures = async () => {
@@ -158,6 +173,23 @@ export default function SettingsScreen() {
       setOcrCloudText(!next);
       toast.show({ kind: 'recoverable-error', message: 'That preference could not be saved.' });
     });
+  };
+
+  // Optimistic, like the OCR toggle above: the row reflects the pick the
+  // instant it's tapped, then reconciles if the write fails.
+  const chooseGeminiModel = (model: GeminiModel) => {
+    const previous = geminiModel;
+    setGeminiModel(model);
+    void Haptics.selectionAsync();
+    void setGeminiModelPreference(model)
+      .then(() => {
+        const label = GEMINI_MODELS.find((option) => option.id === model)?.label ?? model;
+        toast.show({ message: `Now using ${label} for new estimates.` });
+      })
+      .catch(() => {
+        setGeminiModel(previous);
+        toast.show({ kind: 'recoverable-error', message: 'That model could not be saved.' });
+      });
   };
 
   const removeKey = () => {
@@ -395,6 +427,13 @@ export default function SettingsScreen() {
           {maskedKey ? (
             <SettingsRow label="Remove key" destructive onPress={removeKey} />
           ) : null}
+          {configuredProvider === 'gemini' ? (
+            <SettingsRow
+              label="Model"
+              value={modelRowValue(geminiModel)}
+              onPress={() => setModelOpen(true)}
+            />
+          ) : null}
         </Card>
 
         <Card title="Ingredients" padded={false}>
@@ -469,6 +508,13 @@ export default function SettingsScreen() {
         onSaved={releasePendingCaptures}
       />
 
+      <ModelSheet
+        visible={modelOpen}
+        activeModel={geminiModel}
+        onClose={() => setModelOpen(false)}
+        onSelect={chooseGeminiModel}
+      />
+
       <ThemeSheet
         visible={themeOpen}
         activeTheme={themeId}
@@ -485,6 +531,11 @@ const styles = StyleSheet.create({
   about: { paddingHorizontal: space.xs, paddingTop: space.sm },
   stale: { paddingHorizontal: space.base, paddingBottom: space.base },
 });
+
+function modelRowValue(model: GeminiModel): string {
+  const option = GEMINI_MODELS.find((candidate) => candidate.id === model);
+  return option ? `${option.label} · ${option.quotaBadge}` : model;
+}
 
 function targetSourceLabel(source: Profile['targetSource']): string {
   return source === 'dexa' ? 'DEXA scan' : source === 'inbody' ? 'InBody result' : source === 'stated' ? 'Known figure' : 'Formula';

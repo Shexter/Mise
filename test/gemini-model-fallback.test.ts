@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest';
 
 import {
-  GEMINI_FALLBACK_MODEL,
   GEMINI_MODEL,
   estimateWithGemini,
 } from '../src/api/gemini';
+import { GEMINI_MODELS } from '../src/api/keyStore';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -26,5 +26,5 @@ test('uses the high-quota lite model and falls back after a rate limit', async (
 
   await expect(estimateWithGemini('key', 'base64')).resolves.toContain('Rice');
   expect(urls[0]).toContain(`/models/${GEMINI_MODEL}:generateContent`);
-  expect(urls[1]).toContain(`/models/${GEMINI_FALLBACK_MODEL}:generateContent`);
+  expect(urls[1]).toContain(`/models/${GEMINI_MODELS[1].id}:generateContent`);
 });

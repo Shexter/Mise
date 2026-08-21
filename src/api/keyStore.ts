@@ -24,11 +24,36 @@ const STORAGE_KEY = 'provider_api_key';
 const LEGACY_STORAGE_KEY = 'anthropic_api_key';
 const SEEDED_FLAG = 'anthropic_api_key_seeded';
 const OPENAI_ENDPOINT_KEY = 'openai_endpoint';
+const GEMINI_MODEL_PREFERENCE_KEY = 'gemini_model_preference';
 
 /** Base URL for OpenAI-compatible chat and model endpoints. */
 export const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1';
 
 export type Provider = 'anthropic' | 'gemini' | 'openai';
+
+export const GEMINI_MODELS = [
+  {
+    id: 'gemini-2.5-flash-lite',
+    label: 'Gemini 2.5 Flash Lite',
+    benefit: 'Fast · up to 1,500 requests/day',
+    quotaBadge: '1,500 RPD',
+  },
+  {
+    id: 'gemini-2.0-flash',
+    label: 'Gemini 2.0 Flash',
+    benefit: 'Balanced · up to 1,500 requests/day',
+    quotaBadge: '1,500 RPD',
+  },
+  {
+    id: 'gemma-2-27b-it',
+    label: 'Gemma 2 27B',
+    benefit: 'Massive quota · up to 14,400 requests/day',
+    quotaBadge: '14.4k RPD',
+  },
+] as const;
+
+export type GeminiModel = typeof GEMINI_MODELS[number]['id'];
+export const DEFAULT_GEMINI_MODEL: GeminiModel = 'gemini-2.5-flash-lite';
 
 export interface ProviderMeta {
   displayName: string;
@@ -127,6 +152,23 @@ export async function setOpenAIEndpoint(value: string): Promise<void> {
 
 export async function clearOpenAIEndpoint(): Promise<void> {
   await SecureStore.deleteItemAsync(OPENAI_ENDPOINT_KEY);
+}
+
+export async function getGeminiModelPreference(): Promise<GeminiModel> {
+  const stored = await SecureStore.getItemAsync(GEMINI_MODEL_PREFERENCE_KEY);
+  return GEMINI_MODELS.some((model) => model.id === stored)
+    ? stored as GeminiModel
+    : DEFAULT_GEMINI_MODEL;
+}
+
+export async function setGeminiModelPreference(model: GeminiModel): Promise<void> {
+  if (!GEMINI_MODELS.some((option) => option.id === model)) return;
+  await SecureStore.setItemAsync(GEMINI_MODEL_PREFERENCE_KEY, model);
+}
+
+export async function getConfiguredProvider(): Promise<Provider | null> {
+  const key = await getApiKey();
+  return key ? providerForKey(key) : null;
 }
 
 /** `sk-ant-…4f2a` — enough to recognise a key, not enough to use one. */

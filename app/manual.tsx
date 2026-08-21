@@ -60,7 +60,8 @@ export default function ManualScreen() {
 
   // A photo is only present when manual entry was reached from a failed
   // estimate. A meal entered from the FAB has none.
-  const { photoUri, set: setCapture, clear } = useCaptureStore();
+  const { photoUri, clear } = useCaptureStore();
+  const setCapture = useCaptureStore((state) => state.set);
   const addMeal = useDayStore((state) => state.addMeal);
 
   const [name, setName] = useState('');
@@ -131,7 +132,7 @@ export default function ManualScreen() {
     try {
       const base64 = await photoBase64(photoUri);
       setCapture({ photoUri, base64, estimate: null });
-      router.replace('/review');
+      router.push('/review');
     } catch {
       toast.show({ kind: 'recoverable-error', message: 'Could not read the meal photo. Try again.' });
     } finally {
