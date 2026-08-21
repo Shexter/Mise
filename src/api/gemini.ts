@@ -15,7 +15,7 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 const MODEL = 'gemini-flash-latest';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
-const TIMEOUT_MS = 30_000;
+export const VISION_TIMEOUT_MS = 45_000;
 
 interface GeminiResponse {
   candidates?: {
@@ -114,7 +114,7 @@ export async function completeWithGemini(
  */
 export async function verifyGeminiKey(apiKey: string): Promise<void> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(`${MODELS_ENDPOINT}?key=${apiKey}`, {
@@ -138,7 +138,7 @@ async function post(
   signal: AbortSignal | undefined,
 ): Promise<GeminiResponse> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   const onExternalAbort = () => controller.abort();
   signal?.addEventListener('abort', onExternalAbort);
 

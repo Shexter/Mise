@@ -22,7 +22,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
-import { ReviewSkeleton } from '@/components/skeleton/SkeletonLayouts';
+import { Skeleton, SkeletonLine, SkeletonText } from '@/components/Skeleton';
 import { HiddenIngredientSheet } from '@/components/review/HiddenIngredientSheet';
 import { ItemRow } from '@/components/review/ItemRow';
 import { QuantitySheet } from '@/components/review/QuantitySheet';
@@ -35,9 +35,7 @@ import {
 } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import {
-  camera,
   color,
-  fillParent,
   layout,
   opacity,
   radius,
@@ -306,30 +304,10 @@ export default function ReviewScreen() {
   /* ----------------------------- Analyzing ----------------------------- */
 
   if (phase.kind === 'analyzing') {
-    return (
-      <View style={styles.root}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        ) : null}
-        <View style={styles.analyzing}>
-          <ReviewSkeleton
-            onDark
-            label={phase.retryDelayMs
-              ? 'The provider asked Mise to wait a moment before retrying…'
-              : 'Reading your plate…'}
-          />
-          <Button
-            label="Cancel"
-            variant="ghost"
-            block={false}
-            onPress={() => {
-              abortRef.current?.abort();
-              discard();
-            }}
-          />
-        </View>
-      </View>
-    );
+    return <ReviewLoadingScreen photoUri={photoUri} retrying={phase.retryDelayMs !== undefined} onCancel={() => {
+      abortRef.current?.abort();
+      discard();
+    }} />;
   }
 
   /* ------------------------------- Error ------------------------------- */
@@ -501,12 +479,12 @@ export default function ReviewScreen() {
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
           <Button
-            label="Save meal"
+            label="Save changes"
             onPress={() => void save()}
             disabled={items.length === 0}
             loading={saving}
           />
-          <Button label="Discard" variant="ghost" onPress={discard} />
+          <Button label="Cancel" variant="secondary" onPress={discard} />
         </View>
       </KeyboardAvoidingView>
 
@@ -542,16 +520,59 @@ function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {
   };
 }
 
+function ReviewLoadingScreen({
+  photoUri,
+  retrying,
+  onCancel,
+}: {
+  photoUri: string | null;
+  retrying: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <View style={styles.reviewRoot}>
+      <ScrollView contentContainerStyle={styles.loadingContent} showsVerticalScrollIndicator={false}>
+         {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} resizeMode="cover" /> : null}
+         {/* <ReviewSkeleton /> is represented here by the structured fields so the photo stays visible. */}
+         <View accessible accessibilityRole="progressbar" accessibilityLabel={retrying ? 'Retrying meal estimate' : 'Reading your plate…'} accessibilityState={{ busy: true }} style={styles.loadingFields}>
+          <SectionLabel muted>Name</SectionLabel>
+          <Skeleton width="100%" height={56} />
+
+          <SectionLabel muted>Meal</SectionLabel>
+          <Skeleton width="100%" height={52} />
+
+          <SectionLabel muted>Where from</SectionLabel>
+          <Skeleton width="100%" height={52} />
+
+          <Card title="Current total">
+            <Skeleton width={150} height={36} />
+            <SkeletonLine width="78%" />
+          </Card>
+
+          <View style={styles.loadingItemsHeader}>
+            <SectionLabel muted>Items</SectionLabel>
+            <SkeletonText width={88} />
+          </View>
+          <Card padded={false}>
+            {[0, 1, 2].map((row) => (
+              <View key={row} style={styles.loadingItemRow}>
+                <SkeletonText width={row === 1 ? '58%' : '72%'} />
+                <Skeleton width={18} height={18} radius={radius.full} />
+              </View>
+            ))}
+          </Card>
+        </View>
+      </ScrollView>
+      <View style={styles.loadingFooter}>
+        <Button label="Cancel" variant="secondary" onPress={onCancel} />
+        <Button label="Save changes" disabled onPress={() => undefined} />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ink },
-  analyzing: {
-    ...fillParent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: camera.analyzingScrim,
-    gap: space.base,
-  },
-
   errorRoot: { backgroundColor: color.ground },
   errorContent: {
     padding: layout.screenGutter,
@@ -573,6 +594,40 @@ const styles = StyleSheet.create({
     paddingTop: space.base,
     paddingBottom: space.xxxl,
     gap: space.base,
+  },
+  loadingContent: {
+    paddingHorizontal: layout.screenGutter,
+    paddingTop: space.base,
+    paddingBottom: 140,
+    gap: space.base,
+  },
+  loadingFields: { gap: space.sm },
+  loadingItemsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: space.sm,
+  },
+  loadingItemRow: {
+    minHeight: layout.minRowHeight,
+    paddingHorizontal: layout.cardPadding,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: color.line,
+  },
+  loadingFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: layout.screenGutter,
+    paddingVertical: space.sm,
+    gap: space.sm,
+    backgroundColor: color.ground,
+    borderTopWidth: 1,
+    borderTopColor: color.line,
   },
   thumb: {
     width: '100%',

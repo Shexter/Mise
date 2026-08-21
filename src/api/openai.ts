@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 
 /** Kept local so changing an OpenAI-compatible deployment is one setting. */
 export const OPENAI_MODEL = 'gpt-4.1-mini';
-const TIMEOUT_MS = 30_000;
+export const VISION_TIMEOUT_MS = 45_000;
 
 interface OpenAIResponse {
   choices?: { message?: { content?: string | null } }[];
@@ -74,7 +74,7 @@ async function complete(
 
 async function request(url: string, apiKey: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   const abort = () => controller.abort();
   signal?.addEventListener('abort', abort);
   try {

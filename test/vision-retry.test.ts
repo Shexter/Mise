@@ -3,7 +3,9 @@ import { expect, test } from 'vitest';
 import { VisionError } from '../src/api/errors';
 import {
   DEFAULT_RATE_LIMIT_RETRY_MS,
+  DEFAULT_TRANSIENT_RETRY_MS,
   retryRateLimitedOnce,
+  retryTransientOnce,
 } from '../src/api/vision';
 
 test('retries a rate-limited request once after its stated delay', async () => {
@@ -67,5 +69,31 @@ test('cancelling during the wait makes no retry request', async () => {
   );
   controller.abort();
   await expect(pending).rejects.toMatchObject({ kind: 'cancelled' });
+  expect(calls).toBe(1);
+});
+
+test('retries one transient network failure with a bounded delay', async () => {
+  let calls = 0;
+  const waits: number[] = [];
+  await expect(retryTransientOnce(
+    async () => {
+      calls += 1;
+      if (calls === 1) throw new VisionError('network', 'offline');
+      return 'ok';
+    },
+    undefined,
+    undefined,
+    async (delay) => { waits.push(delay); },
+  )).resolves.toBe('ok');
+  expect(calls).toBe(2);
+  expect(waits).toEqual([DEFAULT_TRANSIENT_RETRY_MS]);
+});
+
+test('does not retry billing or malformed failures', async () => {
+  let calls = 0;
+  await expect(retryTransientOnce(async () => {
+    calls += 1;
+    throw new VisionError('billing', 'no credits');
+  })).rejects.toMatchObject({ kind: 'billing' });
   expect(calls).toBe(1);
 });

@@ -13,7 +13,8 @@ const MEALS_DIRECTORY = 'meals';
 const RECEIPTS_DIRECTORY = 'receipts';
 const PANTRY_CAPTURES_DIRECTORY = 'pantry-captures';
 const RECIPES_DIRECTORY = 'recipes';
-const MAX_EDGE = 1024;
+/** Meal photos are detail-rich at this size while keeping mobile requests small. */
+export const MAX_EDGE = 800;
 const JPEG_QUALITY = 0.7;
 
 export type PhotoKind = 'meals' | 'receipts' | 'pantry-captures' | 'recipes';
@@ -52,7 +53,7 @@ function photoDirectory(kind: PhotoKind): Directory {
   return directory;
 }
 
-/** Longest edge capped at 1024px, preserving aspect ratio. */
+/** Longest edge capped at 800px, preserving aspect ratio. */
 function resizeTarget({ width, height }: SourceImage): {
   width?: number;
   height?: number;

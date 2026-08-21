@@ -16,7 +16,9 @@ export type { VisionErrorKind } from '@/api/errors';
 export {
   completeVision,
   DEFAULT_RATE_LIMIT_RETRY_MS,
+  DEFAULT_TRANSIENT_RETRY_MS,
   retryRateLimitedOnce,
+  retryTransientOnce,
   TRANSPORTS,
   waitForRetry,
 } from '@/api/transport';

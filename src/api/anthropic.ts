@@ -12,7 +12,7 @@ const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 1500;
-const TIMEOUT_MS = 30_000;
+export const VISION_TIMEOUT_MS = 45_000;
 
 interface AnthropicTextBlock {
   type: string;
@@ -145,7 +145,7 @@ async function post(
   signal: AbortSignal | undefined,
 ): Promise<AnthropicResponse> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   const onExternalAbort = () => controller.abort();
   signal?.addEventListener('abort', onExternalAbort);
 

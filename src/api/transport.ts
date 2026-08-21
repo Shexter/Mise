@@ -68,6 +68,7 @@ export interface ResolvedTransport {
 }
 
 export const DEFAULT_RATE_LIMIT_RETRY_MS = 2_000;
+export const DEFAULT_TRANSIENT_RETRY_MS = 750;
 
 export async function waitForRetry(delayMs: number, signal?: AbortSignal): Promise<void> {
   throwIfCancelled(signal);
@@ -103,6 +104,25 @@ export async function retryRateLimitedOnce<T>(
   }
 }
 
+/** Mobile networks regularly drop one request; retry transient failures once. */
+export async function retryTransientOnce<T>(
+  request: () => Promise<T>,
+  signal?: AbortSignal,
+  onRetryWait?: (delayMs: number) => void,
+  wait: (delayMs: number, signal?: AbortSignal) => Promise<void> = waitForRetry,
+): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    if (!(error instanceof VisionError) || !['network', 'server', 'timeout'].includes(error.kind)) {
+      throw error;
+    }
+    onRetryWait?.(DEFAULT_TRANSIENT_RETRY_MS);
+    await wait(DEFAULT_TRANSIENT_RETRY_MS, signal);
+    return request();
+  }
+}
+
 /** Resolves the stored key exactly once for one provider request. */
 export async function resolveTransport(signal?: AbortSignal): Promise<ResolvedTransport> {
   throwIfCancelled(signal);
@@ -126,8 +146,8 @@ export async function withResolvedTransport<T>(
 ): Promise<T> {
   const resolved = await resolveTransport(signal);
   try {
-    return await retryRateLimitedOnce(
-      () => request(resolved),
+    return await retryTransientOnce(
+      () => retryRateLimitedOnce(() => request(resolved), signal, onRetryWait),
       signal,
       onRetryWait,
     );
