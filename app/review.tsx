@@ -11,6 +11,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -36,12 +37,14 @@ import {
 import { useToast } from '@/components/Toast';
 import {
   color,
+  duration,
   layout,
   opacity,
   radius,
   space,
 } from '@/constants/theme';
 import { matchSuggestion } from '@/constants/hiddenIngredients';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
@@ -90,6 +93,7 @@ const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
 export default function ReviewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   const toast = useToast();
 
   const { photoUri, base64, estimate, clear } = useCaptureStore();
@@ -344,7 +348,10 @@ export default function ReviewScreen() {
   /* ------------------------------- Review ------------------------------ */
 
   return (
-    <View style={[styles.reviewRoot, { paddingTop: insets.top }]}>
+    <Animated.View
+      entering={reduceMotion ? undefined : FadeIn.duration(duration.quick)}
+      style={[styles.reviewRoot, { paddingTop: insets.top }]}
+    >
       <KeyboardAvoidingView
         style={styles.keyboardArea}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -498,7 +505,7 @@ export default function ReviewScreen() {
         onClose={() => setHiddenOpen(false)}
         onAdd={addItem}
       />
-    </View>
+    </Animated.View>
   );
 }
 

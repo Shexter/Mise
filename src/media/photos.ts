@@ -15,7 +15,7 @@ const PANTRY_CAPTURES_DIRECTORY = 'pantry-captures';
 const RECIPES_DIRECTORY = 'recipes';
 /** Meal photos are detail-rich at this size while keeping mobile requests small. */
 export const MAX_EDGE = 800;
-const JPEG_QUALITY = 0.7;
+const JPEG_QUALITY = 0.65;
 
 export type PhotoKind = 'meals' | 'receipts' | 'pantry-captures' | 'recipes';
 
