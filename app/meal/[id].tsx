@@ -13,7 +13,7 @@ import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, MealCalories, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
-import { color, opacity, space } from '@/constants/theme';
+import { color, opacity, radius, space } from '@/constants/theme';
 import { getMeal } from '@/db/queries';
 import { photoBase64 } from '@/media/photos';
 import {
@@ -188,6 +188,9 @@ export default function MealEditorScreen() {
           />
           <Button
             label="Estimate with AI"
+            detail="Re-send this photo for a fresh estimate"
+            variant="secondary"
+            style={styles.estimateButton}
             onPress={() => void estimatePhoto()}
             loading={estimating}
             disabled={estimating}
@@ -362,7 +365,8 @@ const styles = StyleSheet.create({
   content: { gap: space.lg, paddingTop: space.sm },
   header: { paddingBottom: space.sm },
   photoSection: { gap: space.sm },
-  photo: { width: '100%', height: 200, borderRadius: 16 },
+  photo: { width: '100%', height: 200, borderRadius: radius.card },
+  estimateButton: { borderColor: color.action },
   section: { gap: space.sm },
   footer: { gap: space.sm },
   footerButtons: { flexDirection: 'row', gap: space.sm },
