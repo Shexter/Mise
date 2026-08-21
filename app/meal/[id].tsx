@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -15,6 +15,7 @@ import { Body, Caption, MealCalories, ScreenTitle, SectionLabel } from '@/compon
 import { useToast } from '@/components/Toast';
 import { color, opacity, space } from '@/constants/theme';
 import { getMeal } from '@/db/queries';
+import { photoBase64 } from '@/media/photos';
 import {
   hasMealEditErrors,
   isMealDraftDirty,
@@ -27,6 +28,7 @@ import {
 import { catalogueNutrition } from '@/logic/nutrition';
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { useDayStore } from '@/store/dayStore';
+import { useCaptureStore } from '@/store/captureStore';
 import {
   MEAL_TYPES,
   MEAL_VENUES,
@@ -53,12 +55,14 @@ export default function MealEditorScreen() {
   const navigation = useNavigation();
   const toast = useToast();
   const updateMeal = useDayStore((state) => state.updateMeal);
+  const setCapture = useCaptureStore((state) => state.set);
   const [draft, setDraft] = useState<MealEditDraft | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pickingItemId, setPickingItemId] = useState<string | null>(null);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [estimating, setEstimating] = useState(false);
   const allowLeave = useRef(false);
 
   useEffect(() => {
@@ -120,6 +124,22 @@ export default function MealEditorScreen() {
     }
   };
 
+  const estimatePhoto = async () => {
+    const photoUri = draft?.original.photoUri;
+    if (!photoUri || estimating) return;
+    setEstimating(true);
+    setSaveError(null);
+    try {
+      const base64 = await photoBase64(photoUri);
+      setCapture({ photoUri, base64, estimate: null });
+      router.push('/review');
+    } catch {
+      setSaveError('Could not read the meal photo. Try again or continue editing by hand.');
+    } finally {
+      setEstimating(false);
+    }
+  };
+
   if (notFound) {
     return (
       <Screen contentStyle={styles.center}>
@@ -157,6 +177,23 @@ export default function MealEditorScreen() {
       <View style={styles.header}>
         <ScreenTitle>Edit meal</ScreenTitle>
       </View>
+
+      {draft.original.photoUri ? (
+        <View style={styles.photoSection}>
+          <Image
+            source={{ uri: draft.original.photoUri }}
+            style={styles.photo}
+            resizeMode="cover"
+            accessibilityLabel="Attached meal photo"
+          />
+          <Button
+            label="Estimate with AI"
+            onPress={() => void estimatePhoto()}
+            loading={estimating}
+            disabled={estimating}
+          />
+        </View>
+      ) : null}
 
       <Field
         label="Name" value={draft.name} onChangeText={(name) => patchDraft({ name })}
@@ -324,6 +361,8 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { gap: space.lg, paddingTop: space.sm },
   header: { paddingBottom: space.sm },
+  photoSection: { gap: space.sm },
+  photo: { width: '100%', height: 200, borderRadius: 16 },
   section: { gap: space.sm },
   footer: { gap: space.sm },
   footerButtons: { flexDirection: 'row', gap: space.sm },

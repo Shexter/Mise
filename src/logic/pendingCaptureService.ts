@@ -26,7 +26,7 @@ export type PendingCaptureResult =
  */
 export async function retryPendingCapture(id: string): Promise<PendingCaptureResult | null> {
   const capture = await getPendingCapture(id);
-  if (!capture || capture.status === 'failed') return null;
+  if (!capture) return null;
 
   try {
     const extraction = await extractCapture(await photoBase64(capture.imageUri));

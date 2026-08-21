@@ -93,21 +93,20 @@ export default function PendingCapturesScreen() {
                 <RowTitle>{capture.status === 'failed' ? 'Could not read capture' : 'Waiting to be read'}</RowTitle>
                 <Caption muted>
                   {capture.status === 'failed'
-                    ? 'Try a new photo or add the item manually.'
+                    ? `Could not be read after ${capture.retryCount} attempt${capture.retryCount === 1 ? '' : 's'}. Re-send it once you have a connection and key.`
                     : capture.retryCount > 0
                     ? `${capture.retryCount} attempt${capture.retryCount === 1 ? '' : 's'} so far`
                     : 'No retry attempted yet'}
                 </Caption>
               </View>
             </View>
-            {capture.status === 'pending' ? (
-              <Button
-                label="Read and review"
-                onPress={() => void retry(capture.id)}
-                loading={retrying === capture.id}
-                disabled={retrying !== null || discarding !== null}
-              />
-            ) : null}
+            <Button
+              label={capture.status === 'failed' ? 'Re-send to AI' : 'Read and review'}
+              variant={capture.status === 'failed' ? 'secondary' : 'primary'}
+              onPress={() => void retry(capture.id)}
+              loading={retrying === capture.id}
+              disabled={retrying !== null || discarding !== null}
+            />
             <Button
               label="Discard photo"
               variant="ghost"

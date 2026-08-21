@@ -22,6 +22,7 @@ import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { MEASURE_UNITS, MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { localDateString, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
+import { photoBase64 } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
@@ -59,7 +60,7 @@ export default function ManualScreen() {
 
   // A photo is only present when manual entry was reached from a failed
   // estimate. A meal entered from the FAB has none.
-  const { photoUri, clear } = useCaptureStore();
+  const { photoUri, set: setCapture, clear } = useCaptureStore();
   const addMeal = useDayStore((state) => state.addMeal);
 
   const [name, setName] = useState('');
@@ -72,6 +73,7 @@ export default function ManualScreen() {
   const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
   const [venue, setVenue] = useState<MealVenue>('home');
   const [saving, setSaving] = useState(false);
+  const [estimating, setEstimating] = useState(false);
   const [canonical, setCanonical] = useState<CanonicalItem | null>(null);
   const [pickingCanonical, setPickingCanonical] = useState(false);
   const venueChangedRef = useRef(false);
@@ -120,6 +122,22 @@ export default function ManualScreen() {
   const displayedNutrition = canonical
     ? catalogueNutrition(canonical, num(quantity), unit)
     : null;
+
+  // Rehydrates the stored photo into the shared review flow so it gets the
+  // same skeleton, retry, and error recovery experience as a new capture.
+  const estimateWithAI = async () => {
+    if (!photoUri || estimating) return;
+    setEstimating(true);
+    try {
+      const base64 = await photoBase64(photoUri);
+      setCapture({ photoUri, base64, estimate: null });
+      router.replace('/review');
+    } catch {
+      toast.show({ kind: 'recoverable-error', message: 'Could not read the meal photo. Try again.' });
+    } finally {
+      setEstimating(false);
+    }
+  };
 
   const save = async () => {
     if (!valid) return;
@@ -188,7 +206,17 @@ export default function ManualScreen() {
           showsVerticalScrollIndicator={false}
         >
         {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.photo} />
+          <View style={styles.photoBlock}>
+            <Image source={{ uri: photoUri }} style={styles.photo} />
+            <Button
+              label="Estimate with AI"
+              detail="Re-send this photo for a fresh estimate"
+              variant="secondary"
+              style={styles.estimateButton}
+              onPress={() => void estimateWithAI()}
+              loading={estimating}
+            />
+          </View>
         ) : null}
 
         <Field
@@ -332,11 +360,13 @@ const styles = StyleSheet.create({
     paddingBottom: space.xl,
     gap: space.base,
   },
+  photoBlock: { gap: space.sm },
   photo: {
     width: '100%',
     height: 160,
     borderRadius: radius.card,
   },
+  estimateButton: { borderColor: color.action },
   unitLabel: { marginBottom: space.sm, marginLeft: space.xs },
   units: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   unitChip: {

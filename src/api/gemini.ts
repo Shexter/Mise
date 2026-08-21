@@ -5,15 +5,17 @@ import { SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
  * Google Gemini transport.
  *
  * Uses the Generative Language API with the key as a query parameter (the AI
- * Studio style). `gemini-flash-latest` is chosen because it has vision and
- * carries a free-tier quota, so the app works without a funded account. The
- * task prompt goes in `systemInstruction`; the image and the per-request ask go
- * in `contents`. `responseMimeType: application/json` makes the model return a
- * bare JSON object, which the shared parser then reads.
+ * Studio style). The lite model is preferred for its generous quota, with a
+ * flash fallback when the primary model is rate-limited. The task prompt goes
+ * in `systemInstruction`; the image and per-request ask go in `contents`.
+ * `responseMimeType: application/json` makes the model return a bare JSON
+ * object, which the shared parser then reads.
  */
 
-const MODEL = 'gemini-flash-latest';
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
+const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const FALLBACK_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FALLBACK_MODEL}:generateContent`;
 const MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const VISION_TIMEOUT_MS = 45_000;
 
@@ -43,7 +45,7 @@ export async function estimateWithGemini(
     generationConfig: { responseMimeType: 'application/json' },
   };
 
-  const response = await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
+  const response = await postWithFallback(apiKey, body, signal);
   const text = firstPartText(response);
   if (!text) {
     throw new VisionError('malformed', 'The estimate came back empty.');
@@ -77,7 +79,7 @@ export async function completeVisionWithGemini(
     generationConfig: { responseMimeType: 'application/json' },
   };
 
-  const response = await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
+  const response = await postWithFallback(apiKey, body, signal);
   const text = firstPartText(response);
   if (!text) {
     throw new VisionError('malformed', 'The response came back empty.');
@@ -100,7 +102,7 @@ export async function completeWithGemini(
     contents: [{ role: 'user', parts: [{ text: user }] }],
     generationConfig: { responseMimeType: 'application/json' },
   };
-  const response = await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
+  const response = await postWithFallback(apiKey, body, signal);
   const text = firstPartText(response);
   if (!text) {
     throw new VisionError('malformed', 'The response came back empty.');
@@ -171,6 +173,20 @@ async function post(
     return (await response.json()) as GeminiResponse;
   } catch {
     throw new VisionError('malformed', 'The estimate could not be read.');
+  }
+}
+
+/** The lite model has the generous AI Studio quota; fall back if it is throttled. */
+async function postWithFallback(
+  apiKey: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<GeminiResponse> {
+  try {
+    return await post(`${ENDPOINT}?key=${apiKey}`, body, signal);
+  } catch (error) {
+    if (!(error instanceof VisionError) || error.kind !== 'rate_limited') throw error;
+    return post(`${FALLBACK_ENDPOINT}?key=${apiKey}`, body, signal);
   }
 }
 
