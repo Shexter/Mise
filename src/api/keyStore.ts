@@ -33,27 +33,27 @@ export type Provider = 'anthropic' | 'gemini' | 'openai';
 
 export const GEMINI_MODELS = [
   {
-    id: 'gemini-2.5-flash-lite',
-    label: 'Gemini 2.5 Flash Lite',
-    benefit: 'Fast · up to 1,500 requests/day',
-    quotaBadge: '1,500 RPD',
+    id: 'gemini-3.1-flash-lite',
+    label: 'Gemini 3.1 Flash Lite',
+    benefit: 'Fast · up to 500 requests/day',
+    quotaBadge: '500 RPD',
   },
   {
-    id: 'gemini-2.0-flash',
-    label: 'Gemini 2.0 Flash',
-    benefit: 'Balanced · up to 1,500 requests/day',
-    quotaBadge: '1,500 RPD',
+    id: 'gemini-3.5-flash-lite',
+    label: 'Gemini 3.5 Flash Lite',
+    benefit: 'Balanced · up to 500 requests/day',
+    quotaBadge: '500 RPD',
   },
   {
-    id: 'gemma-2-27b-it',
-    label: 'Gemma 2 27B',
+    id: 'gemma-4-31b',
+    label: 'Gemma 4 31B',
     benefit: 'Massive quota · up to 14,400 requests/day',
     quotaBadge: '14.4k RPD',
   },
 ] as const;
 
 export type GeminiModel = typeof GEMINI_MODELS[number]['id'];
-export const DEFAULT_GEMINI_MODEL: GeminiModel = 'gemini-2.5-flash-lite';
+export const DEFAULT_GEMINI_MODEL: GeminiModel = 'gemini-3.1-flash-lite';
 
 export interface ProviderMeta {
   displayName: string;

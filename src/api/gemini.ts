@@ -20,7 +20,7 @@ export { GEMINI_MODELS } from '@/api/keyStore';
  */
 
 /** Public compatibility constant; requests resolve the stored preference at call time. */
-export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+export const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 const MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const VISION_TIMEOUT_MS = 45_000;
 

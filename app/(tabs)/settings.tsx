@@ -6,6 +6,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import {
   clearApiKey,
+  DEFAULT_GEMINI_MODEL,
   getConfiguredProvider,
   getGeminiModelPreference,
   GEMINI_MODELS,
@@ -71,7 +72,7 @@ export default function SettingsScreen() {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [ocrCloudText, setOcrCloudText] = useState(false);
   const [configuredProvider, setConfiguredProvider] = useState<string | null>(null);
-  const [geminiModel, setGeminiModel] = useState<GeminiModel>('gemini-2.5-flash-lite');
+  const [geminiModel, setGeminiModel] = useState<GeminiModel>(DEFAULT_GEMINI_MODEL);
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
