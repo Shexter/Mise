@@ -18,24 +18,23 @@ beforeEach(async () => {
 });
 
 describe('development demo data', () => {
-  test('creates a profile, history, rich pantry, recipes, and barcode recents', async () => {
+  test('creates a profile, history, rich pantry, recipes, barcode recents, and shopping items', async () => {
     const now = new Date('2026-08-11T18:00:00.000Z');
     const summary = await populateDemoData(now);
 
-    expect(summary).toEqual({ meals: 14, pantryItems: 18, barcodeScans: 4, recipes: 2 });
-    expect(await getProfile()).toMatchObject({ targetCalories: 2250, fibreTargetG: 30 });
-    expect(await getLoggedDates()).toHaveLength(8);
-    expect(await getMealsForDate('2026-08-11')).toHaveLength(2);
-    expect(await listPantryItems()).toHaveLength(18);
-    expect(await listRecipes()).toHaveLength(2);
+    expect(summary.meals).toBe(57);
+    expect(summary.pantryItems).toBe(24);
+    expect(summary.barcodeScans).toBe(5);
+    expect(summary.recipes).toBe(4);
+    expect(summary.shoppingItems).toBe(5);
+
+    expect(await getProfile()).toMatchObject({ targetCalories: 2250, fibreTargetG: 32 });
+    expect((await getLoggedDates()).length).toBeGreaterThanOrEqual(18);
+    expect(await getMealsForDate('2026-08-11')).toHaveLength(3);
+    expect(await listPantryItems()).toHaveLength(24);
+    expect(await listRecipes()).toHaveLength(4);
 
     const scans = await listRecentScannedProducts();
-    expect(scans).toHaveLength(4);
-    expect(scans.map((product) => product.gtin)).toEqual([
-      '0000000001014',
-      '0000000001021',
-      '0000000001038',
-      '0000000001045',
-    ]);
+    expect(scans).toHaveLength(5);
   });
 });

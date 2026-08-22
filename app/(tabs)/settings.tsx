@@ -253,12 +253,12 @@ export default function SettingsScreen() {
 
   const onLoadDemoData = () => {
     Alert.alert(
-      'Replace with demo data?',
-      'This removes the current local profile, meals, pantry, recipes, and photos. It then loads a testing profile with 14 meals, 18 pantry items, two recipes, and four recent barcode scans.',
+      'Replace with rich demo data?',
+      'This replaces your current local profile with 57 meals across 28 days (with accurate calories, macros, and fibre trends), 24 pantry items across fridge/freezer/pantry/counter, recipes, categorized shopping list, and body composition data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Replace data',
+          text: 'Load demo dataset',
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -280,7 +280,7 @@ export default function SettingsScreen() {
                 });
                 await useDayStore.getState().refresh();
                 router.replace('/(tabs)');
-                toast.show({ message: `Demo loaded: ${summary.meals} meals, ${summary.pantryItems} pantry items, and ${summary.barcodeScans} barcode scans.` });
+                toast.show({ message: `Demo loaded: ${summary.meals} meals, ${summary.pantryItems} pantry items, ${summary.recipes} recipes, and ${summary.shoppingItems} shopping items.` });
               } catch (error) {
                 console.warn('Demo data load failed.', error);
                 const detail = error instanceof Error ? error.message : String(error);
@@ -464,16 +464,14 @@ export default function SettingsScreen() {
           <SettingsRow label="Delete all data" destructive onPress={onDeleteAll} />
         </Card>
 
-        {__DEV__ ? (
-          <Card title="Developer" padded={false}>
-            <SettingsRow
-              label={demoLoading ? 'Loading demo data…' : 'Replace with demo data'}
-              value="14 meals · 18 pantry · 4 scans"
-              onPress={demoLoading ? undefined : onLoadDemoData}
-              showChevron={!demoLoading}
-            />
-          </Card>
-        ) : null}
+        <Card title="Developer & Testing" padded={false}>
+          <SettingsRow
+            label={demoLoading ? 'Loading rich demo data…' : 'Load complete demo dataset'}
+            value="30 days food · 24 pantry · recipes · shopping list"
+            onPress={demoLoading ? undefined : onLoadDemoData}
+            showChevron={!demoLoading}
+          />
+        </Card>
 
         <View style={styles.about}>
           <Caption muted>
