@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Image,
@@ -15,12 +15,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
+import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { MEASURE_UNITS, MEAL_TYPES, MEAL_VENUES } from '@/types';
-import { localDateString, mealTypeForTime } from '@/logic/dates';
+import { localDateString, friendlyDate, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
 import { photoBase64 } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
@@ -55,11 +56,18 @@ const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
 
 export default function ManualScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ targetDate?: string }>();
   const insets = useSafeAreaInsets();
   const toast = useToast();
 
-  // A photo is only present when manual entry was reached from a failed
-  // estimate. A meal entered from the FAB has none.
+  const initialDate = params.targetDate || useDayStore.getState().selectedDate || localDateString();
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const loggedDateSet = useDayStore((state) => state.loggedDateSet);
+  const earliestLoggedDate = useDayStore((state) => state.earliestLoggedDate);
+  const loadMonthSummaries = useDayStore((state) => state.loadMonthSummaries);
+
   const { photoUri, clear } = useCaptureStore();
   const setCapture = useCaptureStore((state) => state.set);
   const addMeal = useDayStore((state) => state.addMeal);
@@ -143,7 +151,7 @@ export default function ManualScreen() {
   const save = async () => {
     if (!valid) return;
     setSaving(true);
-    const localDate = localDateString();
+    const localDate = selectedDate;
     const meal: NewMeal = {
       loggedAt: new Date().toISOString(),
       localDate,
@@ -219,6 +227,15 @@ export default function ManualScreen() {
             />
           </View>
         ) : null}
+
+        <View style={styles.section}>
+          <SectionLabel muted>Date</SectionLabel>
+          <Button
+            label={friendlyDate(selectedDate)}
+            variant="secondary"
+            onPress={() => setCalendarOpen(true)}
+          />
+        </View>
 
         <Field
           value={name}
@@ -339,6 +356,19 @@ export default function ManualScreen() {
         }}
         onClose={() => setPickingCanonical(false)}
       />
+
+      <HistoryCalendarSheet
+        visible={calendarOpen}
+        selectedDate={selectedDate}
+        loggedDates={loggedDateSet}
+        earliestLoggedDate={earliestLoggedDate}
+        loadSummaries={loadMonthSummaries}
+        onSelect={(date) => {
+          setSelectedDate(date);
+          setCalendarOpen(false);
+        }}
+        onClose={() => setCalendarOpen(false)}
+      />
     </View>
   );
 }
@@ -353,6 +383,7 @@ const styles = StyleSheet.create({
     paddingRight: space.sm,
     paddingTop: space.sm,
   },
+  section: { gap: space.sm },
   keyboardArea: { flex: 1 },
   body: { flex: 1 },
   bodyContent: {

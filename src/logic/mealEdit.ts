@@ -19,10 +19,10 @@ export interface MealItemDraft {
   canonicalId: string | null;
 }
 
-/** A local edit buffer. Immutable provenance stays in `original`. */
 export interface MealEditDraft {
   original: MealWithItems;
   name: string;
+  localDate: string;
   mealType: MealType;
   venue: MealVenue;
   servingsMult: string;
@@ -40,6 +40,7 @@ export function mealToDraft(meal: MealWithItems): MealEditDraft {
   return {
     original: meal,
     name: meal.name,
+    localDate: meal.localDate,
     mealType: meal.mealType,
     venue: meal.venue,
     servingsMult: String(meal.servingsMult),
@@ -125,6 +126,7 @@ export function normaliseMealDraft(draft: MealEditDraft): MealWithItems {
   return {
     ...draft.original,
     name: draft.name.trim(),
+    localDate: draft.localDate,
     mealType: draft.mealType,
     venue,
     servingsMult,
@@ -135,6 +137,7 @@ export function normaliseMealDraft(draft: MealEditDraft): MealWithItems {
 function editableShape(meal: MealWithItems): unknown {
   return {
     name: meal.name.trim(),
+    localDate: meal.localDate,
     mealType: meal.mealType,
     venue: meal.venue,
     servingsMult: meal.venue === 'home' ? meal.servingsMult : 1,

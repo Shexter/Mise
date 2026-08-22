@@ -9,6 +9,7 @@ import { CollapsibleEditorRow, nextExpandedId } from '@/components/CollapsibleEd
 import { Segmented } from '@/components/Choice';
 import { EmptyState } from '@/components/EmptyState';
 import { Field } from '@/components/Field';
+import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, MealCalories, ScreenTitle, SectionLabel } from '@/components/Type';
@@ -16,6 +17,7 @@ import { useToast } from '@/components/Toast';
 import { color, opacity, radius, space } from '@/constants/theme';
 import { getMeal } from '@/db/queries';
 import { photoBase64 } from '@/media/photos';
+import { friendlyDate } from '@/logic/dates';
 import {
   hasMealEditErrors,
   isMealDraftDirty,
@@ -55,13 +57,20 @@ export default function MealEditorScreen() {
   const navigation = useNavigation();
   const toast = useToast();
   const updateMeal = useDayStore((state) => state.updateMeal);
+  const removeMeal = useDayStore((state) => state.removeMeal);
+  const undoRemove = useDayStore((state) => state.undoRemove);
+  const loggedDateSet = useDayStore((state) => state.loggedDateSet);
+  const earliestLoggedDate = useDayStore((state) => state.earliestLoggedDate);
+  const loadMonthSummaries = useDayStore((state) => state.loadMonthSummaries);
   const setCapture = useCaptureStore((state) => state.set);
   const [draft, setDraft] = useState<MealEditDraft | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pickingItemId, setPickingItemId] = useState<string | null>(null);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [estimating, setEstimating] = useState(false);
   const allowLeave = useRef(false);
 
@@ -121,6 +130,43 @@ export default function MealEditorScreen() {
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'Could not save the meal.');
       setSaving(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!draft || deleting) return;
+    Alert.alert(
+      'Delete this meal?',
+      'This will remove it from your daily log and restore any depleted pantry items.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => void executeDelete(),
+        },
+      ],
+    );
+  };
+
+  const executeDelete = async () => {
+    if (!draft) return;
+    setDeleting(true);
+    setSaveError(null);
+    try {
+      allowLeave.current = true;
+      await removeMeal(draft.original.id);
+      toast.show({
+        kind: 'success',
+        message: 'Meal removed.',
+        actionLabel: 'Undo',
+        onAction: () => void undoRemove(),
+        durationMs: 5_000,
+      });
+      router.back();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Could not delete the meal.');
+      setDeleting(false);
     }
   };
 
@@ -202,6 +248,15 @@ export default function MealEditorScreen() {
         label="Name" value={draft.name} onChangeText={(name) => patchDraft({ name })}
         error={errors?.name}
       />
+
+      <View style={styles.section}>
+        <SectionLabel muted>Date</SectionLabel>
+        <Button
+          label={friendlyDate(draft.localDate)}
+          variant="secondary"
+          onPress={() => setCalendarOpen(true)}
+        />
+      </View>
 
       <View style={styles.section}>
         <SectionLabel muted>Meal</SectionLabel>
@@ -312,6 +367,16 @@ export default function MealEditorScreen() {
         );
       })}
 
+      <View style={styles.deleteSection}>
+        <Button
+          label="Delete meal"
+          variant="destructive"
+          onPress={confirmDelete}
+          loading={deleting}
+          disabled={deleting || saving}
+        />
+      </View>
+
       <CanonicalPickerSheet
         visible={pickingItemId !== null}
         title="Catalogue ingredient"
@@ -320,6 +385,19 @@ export default function MealEditorScreen() {
           setPickingItemId(null);
         }}
         onClose={() => setPickingItemId(null)}
+      />
+
+      <HistoryCalendarSheet
+        visible={calendarOpen}
+        selectedDate={draft.localDate}
+        loggedDates={loggedDateSet}
+        earliestLoggedDate={earliestLoggedDate}
+        loadSummaries={loadMonthSummaries}
+        onSelect={(date) => {
+          patchDraft({ localDate: date });
+          setCalendarOpen(false);
+        }}
+        onClose={() => setCalendarOpen(false)}
       />
     </Screen>
   );
@@ -368,6 +446,7 @@ const styles = StyleSheet.create({
   photo: { width: '100%', height: 200, borderRadius: radius.card },
   estimateButton: { borderColor: color.action },
   section: { gap: space.sm },
+  deleteSection: { marginTop: space.base, paddingTop: space.base, borderTopWidth: 1, borderTopColor: color.line },
   footer: { gap: space.sm },
   footerButtons: { flexDirection: 'row', gap: space.sm },
   button: { flex: 1 },

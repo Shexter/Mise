@@ -936,9 +936,9 @@ export async function updateMealWithDepletion(
 
     await txn.runAsync(
       `UPDATE meals
-         SET meal_type = ?, name = ?, venue = ?, servings_mult = ?
+         SET meal_type = ?, name = ?, venue = ?, servings_mult = ?, local_date = ?
        WHERE id = ?`,
-      [edited.mealType, edited.name, venue, servingsMult, edited.id],
+      [edited.mealType, edited.name, venue, servingsMult, edited.localDate, edited.id],
     );
     if (options.failAt === 'meal') throw new Error('Injected meal edit failure.');
 

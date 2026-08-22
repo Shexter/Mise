@@ -25,6 +25,7 @@ import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { Skeleton, SkeletonLine, SkeletonText } from '@/components/Skeleton';
 import { HiddenIngredientSheet } from '@/components/review/HiddenIngredientSheet';
+import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { ItemRow } from '@/components/review/ItemRow';
 import { QuantitySheet } from '@/components/review/QuantitySheet';
 import {
@@ -46,7 +47,7 @@ import {
 import { matchSuggestion } from '@/constants/hiddenIngredients';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { MEAL_TYPES, MEAL_VENUES } from '@/types';
-import { localDateString, mealTypeForTime } from '@/logic/dates';
+import { friendlyDate, localDateString, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
@@ -95,6 +96,15 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const toast = useToast();
+
+  const [selectedDate, setSelectedDate] = useState(
+    () => useDayStore.getState().selectedDate || localDateString(),
+  );
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const loggedDateSet = useDayStore((state) => state.loggedDateSet);
+  const earliestLoggedDate = useDayStore((state) => state.earliestLoggedDate);
+  const loadMonthSummaries = useDayStore((state) => state.loadMonthSummaries);
 
   const { photoUri, base64, estimate, clear } = useCaptureStore();
   const addMeal = useDayStore((state) => state.addMeal);
@@ -242,7 +252,7 @@ export default function ReviewScreen() {
   const save = async () => {
     if (items.length === 0) return;
     setSaving(true);
-    const localDate = localDateString();
+    const localDate = selectedDate;
     const resolvedItems = await Promise.all(items.map(async (item) => {
       const outcome = item.canonicalId
         ? { status: 'resolved' as const, canonicalId: item.canonicalId }
@@ -361,6 +371,15 @@ export default function ReviewScreen() {
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.thumb} />
         ) : null}
+
+        <View style={styles.section}>
+          <SectionLabel muted>Date</SectionLabel>
+          <Button
+            label={friendlyDate(selectedDate)}
+            variant="secondary"
+            onPress={() => setCalendarOpen(true)}
+          />
+        </View>
 
         <Field value={mealName} onChangeText={setMealName} label="Meal" />
 
@@ -499,6 +518,18 @@ export default function ReviewScreen() {
         onClose={() => setHiddenOpen(false)}
         onAdd={addItem}
       />
+      <HistoryCalendarSheet
+        visible={calendarOpen}
+        selectedDate={selectedDate}
+        loggedDates={loggedDateSet}
+        earliestLoggedDate={earliestLoggedDate}
+        loadSummaries={loadMonthSummaries}
+        onSelect={(date) => {
+          setSelectedDate(date);
+          setCalendarOpen(false);
+        }}
+        onClose={() => setCalendarOpen(false)}
+      />
     </Animated.View>
   );
 }
@@ -590,6 +621,7 @@ const styles = StyleSheet.create({
   reviewRoot: { flex: 1, backgroundColor: color.ground },
   keyboardArea: { flex: 1 },
   reviewScroll: { flex: 1 },
+  section: { gap: space.sm },
   reviewContent: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.base,
