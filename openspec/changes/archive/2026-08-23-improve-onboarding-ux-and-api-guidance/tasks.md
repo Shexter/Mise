@@ -31,12 +31,12 @@
 ## 4. Shared Accessible Input Controls
 
 - [x] 4.1 Install the Expo SDK 54-compatible `@react-native-community/datetimepicker` version with `npx expo install`, record the resolved version, and run `npx expo-doctor` before using it.
-- [ ] 4.2 Build a `BirthdayPicker` adapter with year/month/day ergonomics, min/max dates derived from `AGE_RANGE`, explicit confirm/cancel, screen-reader labels, dynamic text support, and component-level state tests.
+- [x] 4.2 Build a `BirthdayPicker` adapter with year/month/day ergonomics, min/max dates derived from `AGE_RANGE`, explicit confirm/cancel, screen-reader labels, dynamic text support, and component-level state tests.
 - [x] 4.3 Build `MeasurementPicker` with a canonical metric value, snapped scrolling, explicit anchor confirmation, increment/decrement accessibility actions, direct decimal entry, unit conversion, and reduced-motion behavior.
 - [x] 4.4 Add measurement-picker tests for metric/imperial parity, repeated unit switches without drift, range boundaries, direct-entry decimals, unconfirmed anchors, saved/extracted seeds, and no silent clamping.
 - [x] 4.5 Build `FormulaSexControl` with no initial selection and copy that identifies the Mifflin-St Jeor formula input without presenting it as gender identity.
 - [x] 4.6 Build `FieldGuidance` using theme tokens and structured purpose/range/vocabulary copy; add tests that each supported field has guidance and no forbidden evaluative language.
-- [ ] 4.7 Verify all shared controls at maximum supported text size, with screen-reader focus/actions, keyboard/direct entry, reduced motion, no haptics, and touch targets from the existing accessibility contract.
+- [x] 4.7 Verify all shared controls at maximum supported text size, with screen-reader focus/actions, keyboard/direct entry, reduced motion, no haptics, and touch targets from the existing accessibility contract.
 
 ## 5. Estimated Onboarding Ergonomics
 
@@ -49,26 +49,26 @@
 
 ## 6. Progressive DEXA and InBody Intake
 
-- [ ] 6.1 Refactor `app/onboarding/energy.tsx` into the tested stage reducer plus focused child stages while retaining the current resolver, warnings, persistence functions, transient scan draft, and explicit final save boundary.
-- [ ] 6.2 Implement the DEXA manual sequence for measurement date, weight, and the explicit body-fat versus lean-tissue-plus-BMC path; exclude every unused estimated/InBody field.
-- [ ] 6.3 Implement DEXA body-fat adjustment with the documented unconfirmed anchor, 3-60 quick range, precise decimal entry, neutral helper copy, and existing warn-without-clamp handling for typed outliers.
-- [ ] 6.4 Implement the InBody manual sequence for measurement date, weight, printed Fat Free Mass, and the existing optional printed-BMR choice; exclude formula sex, age, height, body fat, and DEXA fields.
-- [ ] 6.5 Adapt scan review so report evidence, provider mismatch, confidence, issues, and candidates appear first, then each unconfirmed or missing required field is reviewed progressively.
-- [ ] 6.6 Add an editable summary stage that shows only source-relevant confirmed inputs, routes edits back to the focused field, and performs no profile/measurement/target write before final Save.
-- [ ] 6.7 Add DEXA integration tests for manual-only completion, partial/full extraction, either valid derivation path, source mismatch, outlier confirmation, cancellation, and failed-save rollback.
-- [ ] 6.8 Add InBody integration tests for manual-only completion, partial/full extraction, Fat Free Mass vocabulary, optional printed BMR mapping to the existing stated-resting path, cancellation, and failed-save rollback.
+- [x] 6.1 Refactor `app/onboarding/energy.tsx` into the tested stage reducer plus focused child stages while retaining the current resolver, warnings, persistence functions, transient scan draft, and explicit final save boundary.
+- [x] 6.2 Implement the DEXA manual sequence for measurement date, weight, and the explicit body-fat versus lean-tissue-plus-BMC path; exclude every unused estimated/InBody field.
+- [x] 6.3 Implement DEXA body-fat adjustment with the documented unconfirmed anchor, 3-60 quick range, precise decimal entry, neutral helper copy, and existing warn-without-clamp handling for typed outliers.
+- [x] 6.4 Implement the InBody manual sequence for measurement date, weight, printed Fat Free Mass, and the existing optional printed-BMR choice; exclude formula sex, age, height, body fat, and DEXA fields.
+- [x] 6.5 Adapt scan review so report evidence, provider mismatch, confidence, issues, and candidates appear first, then each unconfirmed or missing required field is reviewed progressively.
+- [x] 6.6 Add an editable summary stage that shows only source-relevant confirmed inputs, routes edits back to the focused field, and performs no profile/measurement/target write before final Save.
+- [x] 6.7 Add DEXA integration tests for manual-only completion, partial/full extraction, either valid derivation path, source mismatch, outlier confirmation, cancellation, and failed-save rollback.
+- [x] 6.8 Add InBody integration tests for manual-only completion, partial/full extraction, Fat Free Mass vocabulary, optional printed BMR mapping to the existing stated-resting path, cancellation, and failed-save rollback.
 
 ## 7. First-Run and Settings Parity
 
 - [x] 7.1 Update the welcome DEXA/InBody entrances to set the measured-flow onboarding origin without adding any screen or tap to the visually primary estimated path.
 - [x] 7.2 Update the Settings source chooser to set Settings origin, await DB readiness, and enter the same measured reducer rather than a duplicated editor.
-- [ ] 7.3 Add Settings tests proving saved provider values seed controls instead of anchors, cancel writes nothing, successful save returns to Settings, and DEXA/InBody records survive source switching.
-- [ ] 7.4 Add navigation tests proving key save/cancel/back returns to the initiating first-run or Settings flow once, and absent/stale intents use the safe ordinary-onboarding fallback.
-- [ ] 7.5 Verify onboarding reset and successful measured save clear transient flow/key intent/report state while leaving the other provider's persisted measurement untouched.
+- [x] 7.3 Add Settings tests proving saved provider values seed controls instead of anchors, cancel writes nothing, successful save returns to Settings, and DEXA/InBody records survive source switching.
+- [x] 7.4 Add navigation tests proving key save/cancel/back returns to the initiating first-run or Settings flow once, and absent/stale intents use the safe ordinary-onboarding fallback.
+- [x] 7.5 Verify onboarding reset and successful measured save clear transient flow/key intent/report state while leaving the other provider's persisted measurement untouched.
 
 ## 8. Privacy, Copy, and Regression Verification
 
-- [ ] 8.1 Centralise provider-guidance source metadata and audit the release copy against current Gemini getting-started, pricing, and data-use terms; keep setup time and free-tier wording qualified and linkable.
+- [x] 8.1 Centralise provider-guidance source metadata and audit the release copy against current Gemini getting-started, pricing, and data-use terms; keep setup time and free-tier wording qualified and linkable.
 - [x] 8.2 Add privacy regression tests proving API keys remain confined to `src/api/keyStore.ts` and no full birthday, unconfirmed anchor, raw provider response, confidence, issue, report URI, or partial measurement enters SQLite, export, analytics, or logs.
 - [x] 8.3 Run the copy audit across onboarding and Settings for direct-to-provider disclosure, manual availability, formula-only sex framing, source vocabulary, and forbidden diagnostic/evaluative body language.
 - [x] 8.4 Run `npm run typecheck`, `npm test`, `npx expo-doctor`, `npx openspec validate improve-onboarding-ux-and-api-guidance --strict`, and `git diff --check`; record exact pass/fail counts and unrelated pre-existing failures.
