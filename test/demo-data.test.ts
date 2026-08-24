@@ -8,8 +8,10 @@ import {
   listPantryItems,
   listRecentScannedProducts,
   listRecipes,
+  listShoppingItems,
   loadSeedData,
 } from '@/db/queries';
+import { groupShoppingItems } from '@/logic/shoppingList';
 import { openTestDatabase } from './stubs/db';
 
 beforeEach(async () => {
@@ -36,5 +38,8 @@ describe('development demo data', () => {
 
     const scans = await listRecentScannedProducts();
     expect(scans).toHaveLength(5);
+
+    const shoppingItems = await listShoppingItems(true);
+    expect(() => groupShoppingItems(shoppingItems)).not.toThrow();
   });
 });

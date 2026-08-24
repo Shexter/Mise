@@ -165,6 +165,14 @@ describe('shopping list merging, grouping, and receipt matching', () => {
     expect(canAutoMatchReceipt(items[1]!, 'brown-rice')).toBe(false);
   });
 
+  test('groups a persisted unknown category under Other instead of crashing', () => {
+    const legacy = item({ category: 'bakery' as ShoppingListItem['category'] });
+
+    expect(groupShoppingItems([legacy])).toMatchObject([
+      { category: 'other', label: 'Other', items: [legacy] },
+    ]);
+  });
+
   test('undo is one-shot and restores the prior status', () => {
     expect(undoReceiptMatch({ previousStatus: 'open', undoneAt: null }, 'now')).toEqual({ status: 'open', undoneAt: 'now' });
     expect(undoReceiptMatch({ previousStatus: 'open', undoneAt: 'earlier' }, 'now')).toBeNull();

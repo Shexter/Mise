@@ -406,9 +406,13 @@ export function groupShoppingItems(items: readonly ShoppingListItem[]): Shopping
   const groups = new Map<ShoppingListCategory, ShoppingListItem[]>();
   for (const item of items) {
     if (item.status !== 'open') continue;
-    const list = groups.get(item.category) ?? [];
+    // Older development/demo data could persist categories outside the
+    // supported FoodClass union. Treat those rows as Other so opening Shop is
+    // recoverable instead of looking up an undefined label and crashing.
+    const category = SHOPPING_CATEGORY_LABELS[item.category] ? item.category : 'other';
+    const list = groups.get(category) ?? [];
     list.push(item);
-    groups.set(item.category, list);
+    groups.set(category, list);
   }
   return [...groups.entries()]
     .sort(([a], [b]) => SHOPPING_CATEGORY_LABELS[a].localeCompare(SHOPPING_CATEGORY_LABELS[b]))

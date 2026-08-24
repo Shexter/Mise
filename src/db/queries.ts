@@ -33,7 +33,7 @@ import { normalise } from '@/logic/normalise';
 import { coarsen, defaultShopName } from '@/logic/shops';
 import { bigrams, dominantScript } from '@/logic/similarity';
 import type { PantryChange } from '@/logic/receipt';
-import { RECEIPT_EXTRACTION_SOURCES } from '@/types';
+import { FOOD_CLASSES, RECEIPT_EXTRACTION_SOURCES } from '@/types';
 import type {
   CanonicalItem,
   BodyMeasurement,
@@ -3125,6 +3125,9 @@ export interface NewShoppingListSource {
 }
 
 function toShoppingListItem(row: ShoppingListItemRow, sources: ShoppingListSource[]): ShoppingListItem {
+  const category = row.category === 'other' || FOOD_CLASSES.includes(row.category as FoodClass)
+    ? row.category as ShoppingListCategory
+    : 'other';
   return {
     id: row.id,
     canonicalId: row.canonical_id,
@@ -3134,7 +3137,7 @@ function toShoppingListItem(row: ShoppingListItemRow, sources: ShoppingListSourc
     requestedQty: row.requested_qty,
     requestedUnit: row.requested_unit as MeasureUnit | null,
     note: row.note,
-    category: row.category as ShoppingListCategory,
+    category,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

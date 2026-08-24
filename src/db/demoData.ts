@@ -298,11 +298,11 @@ export async function populateDemoData(now: Date = new Date()): Promise<DemoData
 
   // Shopping List Items with categories & sources
   const shoppingItems = [
-    { displayName: 'Sourdough Bread', normalizedName: 'sourdough bread', requestedQty: 1, requestedUnit: 'piece' as const, category: 'bakery' as const, note: 'From local artisan bakery' },
-    { displayName: 'Almond Butter', normalizedName: 'almond butter', requestedQty: 1, requestedUnit: 'jar' as const, category: 'pantry' as const, note: 'Smooth, unsalted' },
+    { displayName: 'Sourdough Bread', normalizedName: 'sourdough bread', requestedQty: 1, requestedUnit: 'piece' as const, category: 'staple' as const, note: 'From local artisan bakery' },
+    { displayName: 'Almond Butter', normalizedName: 'almond butter', requestedQty: 1, requestedUnit: 'piece' as const, category: 'condiment' as const, note: 'Smooth, unsalted' },
     { displayName: 'Baby Spinach', normalizedName: 'baby spinach', requestedQty: 300, requestedUnit: 'g' as const, category: 'produce' as const, note: 'For morning omelettes' },
-    { displayName: 'Chia Seeds', normalizedName: 'chia seeds', requestedQty: 250, requestedUnit: 'g' as const, category: 'pantry' as const, canonicalId: 'oats' },
-    { displayName: 'Olive Oil', normalizedName: 'olive oil', requestedQty: 1, requestedUnit: 'bottle' as const, category: 'pantry' as const, canonicalId: 'olive-oil', status: 'purchased' as const },
+    { displayName: 'Chia Seeds', normalizedName: 'chia seeds', requestedQty: 250, requestedUnit: 'g' as const, category: 'staple' as const, canonicalId: 'oats' },
+    { displayName: 'Olive Oil', normalizedName: 'olive oil', requestedQty: 750, requestedUnit: 'ml' as const, category: 'staple' as const, canonicalId: 'olive-oil', status: 'purchased' as const },
   ];
 
   for (const shopItem of shoppingItems) {
@@ -328,4 +328,3 @@ export async function populateDemoData(now: Date = new Date()): Promise<DemoData
     shoppingItems: shoppingItems.length,
   };
 }
-

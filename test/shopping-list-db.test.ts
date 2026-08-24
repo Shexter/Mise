@@ -46,6 +46,14 @@ describe('shopping list persistence', () => {
     expect(updated?.sources[0]?.kind).toBe('manual');
   });
 
+  test('coerces an unsupported persisted category to other on read', async () => {
+    const database = openTestDatabase();
+    const item = await insertShoppingListItem({ displayName: 'Bread', normalizedName: 'bread' });
+    await database.runAsync('UPDATE shopping_list_items SET category = ? WHERE id = ?', ['bakery', item.id]);
+
+    expect((await listShoppingItems(true)).find((entry) => entry.id === item.id)?.category).toBe('other');
+  });
+
   test('can attach a canonical to a manual item and later clear it back to unresolved free text', async () => {
     await insertCanonicalItem({
       id: 'scallion', displayName: 'Scallion', foodClass: 'produce', defaultLocation: 'fridge',
