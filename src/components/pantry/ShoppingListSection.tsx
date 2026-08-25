@@ -29,6 +29,7 @@ import {
   itemKey,
   manualEntryDraft,
   mergeShoppingSources,
+  normalizeShoppingListCategory,
   orphanedOpenItemIds,
   planCanonicalReassignment,
   quantityLabel,
@@ -65,63 +66,73 @@ export function ShoppingListSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [existing, pantry, recipes, canonicals] = await Promise.all([
-      listShoppingItems(true),
-      listPantryItems(),
-      listRecipes(),
-      getAllCanonicals(),
-    ]);
-    const recipeDetails = await Promise.all(recipes.map(async (recipe) => {
-      return getRecipe(recipe.id);
-    }));
-    const resolvedRecipes = recipeDetails.filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== null);
-    setRecipeTitles(new Map(resolvedRecipes.map((recipe) => [recipe.id, recipe.title])));
+    try {
+      const [existing, pantry, recipes, canonicals] = await Promise.all([
+        listShoppingItems(true),
+        listPantryItems(),
+        listRecipes(),
+        getAllCanonicals(),
+      ]);
+      const recipeDetails = await Promise.all(recipes.map(async (recipe) => {
+        return getRecipe(recipe.id);
+      }));
+      const resolvedRecipes = recipeDetails.filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== null);
+      setRecipeTitles(new Map(resolvedRecipes.flatMap((recipe) => {
+        const title = recipe.title?.trim();
+        return title ? [[recipe.id, title]] : [];
+      })));
 
-    const plan = buildRefreshPlan({
-      existingItems: existing,
-      pantry,
-      recipes: resolvedRecipes,
-      suggestions: [],
-      canonicals: new Map(canonicals.map((canonical) => [canonical.id, canonical])),
-    });
+      const plan = buildRefreshPlan({
+        existingItems: existing,
+        pantry,
+        recipes: resolvedRecipes,
+        suggestions: [],
+        canonicals: new Map(canonicals.map((canonical) => [canonical.id, canonical])),
+      });
 
-    const merged = mergeShoppingSources(existing, plan.additions);
-    for (const candidate of merged) {
-      let stored = existing.find((item) => itemKey(item) === itemKey(candidate));
-      if (!stored) {
-        stored = await insertShoppingListItem({
-          canonicalId: candidate.canonicalId,
-          displayName: candidate.displayName,
-          normalizedName: candidate.normalizedName,
-          requestedQty: candidate.requestedQty,
-          requestedUnit: candidate.requestedUnit,
-          category: candidate.category,
-          sortOrder: candidate.sortOrder,
-        });
+      const merged = mergeShoppingSources(existing, plan.additions);
+      for (const candidate of merged) {
+        let stored = existing.find((item) => itemKey(item) === itemKey(candidate));
+        if (!stored) {
+          stored = await insertShoppingListItem({
+            canonicalId: candidate.canonicalId,
+            displayName: candidate.displayName,
+            normalizedName: candidate.normalizedName,
+            requestedQty: candidate.requestedQty,
+            requestedUnit: candidate.requestedUnit,
+            category: candidate.category,
+            sortOrder: candidate.sortOrder,
+          });
+        }
+        for (const source of candidate.sources ?? []) {
+          await addShoppingListSource({
+            shoppingItemId: stored.id,
+            kind: source.kind,
+            sourceId: source.sourceId,
+            recipeId: source.recipeId,
+            suggestionId: source.suggestionId,
+          });
+        }
       }
-      for (const source of candidate.sources) {
-        await addShoppingListSource({
-          shoppingItemId: stored.id,
-          kind: source.kind,
-          sourceId: source.sourceId,
-          recipeId: source.recipeId,
-          suggestionId: source.suggestionId,
-        });
+
+      for (const stale of plan.staleAutomaticSources) {
+        await removeShoppingListSource(stale.shoppingItemId, stale);
       }
-    }
 
-    for (const stale of plan.staleAutomaticSources) {
-      await removeShoppingListSource(stale.shoppingItemId, stale);
-    }
+      const afterRefresh = await listShoppingItems(true);
+      for (const orphanId of orphanedOpenItemIds(afterRefresh)) {
+        await deleteShoppingListItem(orphanId);
+      }
 
-    const afterRefresh = await listShoppingItems(true);
-    for (const orphanId of orphanedOpenItemIds(afterRefresh)) {
-      await deleteShoppingListItem(orphanId);
+      setItems(await listShoppingItems(true));
+    } catch {
+      setItems([]);
+      setRecipeTitles(new Map());
+      toast.show({ kind: 'recoverable-error', message: 'Your grocery list could not be refreshed. Try again in a moment.' });
+    } finally {
+      setLoading(false);
     }
-
-    setItems(await listShoppingItems(true));
-    setLoading(false);
-  }, [pantryRevision]);
+  }, [pantryRevision, toast]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -254,29 +265,33 @@ function ShoppingSection({ section, recipeTitles, onStatus, onEdit }: {
   onEdit: (item: ShoppingListItem) => void;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const sectionLabel = section.label?.trim() || SHOPPING_CATEGORY_LABELS[normalizeShoppingListCategory(section.category)];
   return <Card padded={false}>
-    <SectionLabel muted style={styles.sectionLabel}>{section.label}</SectionLabel>
-    {section.items.map((item, index) => <View key={item.id}>
+    <SectionLabel muted style={styles.sectionLabel}>{sectionLabel}</SectionLabel>
+    {(section.items ?? []).filter(Boolean).map((item, index) => {
+      const displayName = item.displayName?.trim() || 'Unnamed item';
+      return <View key={item.id}>
       {index > 0 ? <Divider /> : null}
       <CollapsibleEditorRow
-        title={item.displayName}
-        subtitle={`${quantityLabel(item)} · ${sourceExplanations(item.sources, recipeTitles).join(' · ')}`}
+        title={displayName}
+        subtitle={`${quantityLabel(item)} · ${sourceExplanations(item.sources ?? [], recipeTitles).join(' · ')}`}
         expanded={expandedId === item.id}
         onToggle={() => setExpandedId((current) => nextExpandedId(current, item.id))}
       >
         <View style={styles.detail}>
-          <Pressable onPress={() => onStatus(item, 'purchased')} accessibilityRole="button" accessibilityLabel={`Mark purchased ${item.displayName}`} style={styles.complete}>
+          <Pressable onPress={() => onStatus(item, 'purchased')} accessibilityRole="button" accessibilityLabel={`Mark purchased ${displayName}`} style={styles.complete}>
             <View style={styles.check}><Feather name="check" size={14} color={color.onAction} /></View>
             <Body>Mark purchased</Body>
           </Pressable>
           <View style={styles.actions}>
-            <Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${item.displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Later</Caption></Pressable>
-            <Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${item.displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Remove</Caption></Pressable>
-            <Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${item.displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Edit</Caption></Pressable>
+            <Pressable onPress={() => onStatus(item, 'snoozed')} accessibilityRole="button" accessibilityLabel={`Snooze ${displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Later</Caption></Pressable>
+            <Pressable onPress={() => onStatus(item, 'dismissed')} accessibilityRole="button" accessibilityLabel={`Dismiss ${displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Remove</Caption></Pressable>
+            <Pressable onPress={() => onEdit(item)} accessibilityRole="button" accessibilityLabel={`Edit ${displayName}`} hitSlop={space.sm} style={styles.textAction}><Caption muted>Edit</Caption></Pressable>
           </View>
         </View>
       </CollapsibleEditorRow>
-    </View>)}
+    </View>;
+    })}
   </Card>;
 }
 
@@ -292,18 +307,22 @@ function ShoppingHistory({ items, recipeTitles, onRestore }: {
   onRestore: (item: ShoppingListItem) => void;
 }) {
   return <Card padded={false}>
-    {items.map((item, index) => <View key={item.id}>
+    {items.filter(Boolean).map((item, index) => {
+      const displayName = item.displayName?.trim() || 'Unnamed item';
+      const statusLabel = HISTORY_STATUS_LABEL[item.status] ?? 'Updated';
+      return <View key={item.id}>
       {index > 0 ? <Divider /> : null}
       <View style={styles.row}>
         <View style={styles.text}>
-          <RowTitle>{item.displayName}</RowTitle>
-          <Caption muted>{HISTORY_STATUS_LABEL[item.status] ?? item.status} · {sourceExplanations(item.sources, recipeTitles).join(' · ')}</Caption>
+          <RowTitle>{displayName}</RowTitle>
+          <Caption muted>{statusLabel} · {sourceExplanations(item.sources ?? [], recipeTitles).join(' · ')}</Caption>
         </View>
-        <Pressable onPress={() => onRestore(item)} accessibilityRole="button" accessibilityLabel={`Restore ${item.displayName} to your list`} hitSlop={space.sm} style={styles.textAction}>
+        <Pressable onPress={() => onRestore(item)} accessibilityRole="button" accessibilityLabel={`Restore ${displayName} to your list`} hitSlop={space.sm} style={styles.textAction}>
           <Caption>Restore</Caption>
         </Pressable>
       </View>
-    </View>)}
+    </View>;
+    })}
   </Card>;
 }
 
@@ -329,14 +348,16 @@ function ManualShoppingItemSheet({ item, visible, onClose, onSave }: {
     setQuantity(item?.requestedQty == null ? '' : String(item.requestedQty));
     setUnit(item?.requestedUnit ?? null);
     setQuantityError(null);
-    setManualCategory(item && item.category !== 'other' ? item.category : 'other');
+    setManualCategory(normalizeShoppingListCategory(item?.category));
     setCanonical(null);
     if (item?.canonicalId) {
       const canonicalId = item.canonicalId;
-      void getAllCanonicals().then((all) => {
-        const match = all.find((candidate) => candidate.id === canonicalId);
-        if (match) setCanonical(match);
-      });
+      void getAllCanonicals()
+        .then((all) => {
+          const match = all.find((candidate) => candidate.id === canonicalId);
+          if (match) setCanonical(match);
+        })
+        .catch(() => setCanonical(null));
     }
   }, [visible, item]);
 
@@ -385,7 +406,7 @@ function ManualShoppingItemSheet({ item, visible, onClose, onSave }: {
         <>
           <SectionLabel muted>Category</SectionLabel>
           <ChoiceList
-            options={SHOPPING_LIST_CATEGORIES.map((category) => ({ value: category, label: SHOPPING_CATEGORY_LABELS[category] }))}
+            options={SHOPPING_LIST_CATEGORIES.map((category) => ({ value: category, label: SHOPPING_CATEGORY_LABELS[category] ?? SHOPPING_CATEGORY_LABELS.other }))}
             value={manualCategory}
             onChange={setManualCategory}
           />

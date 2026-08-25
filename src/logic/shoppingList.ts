@@ -279,7 +279,7 @@ const SOURCE_LABELS: Record<ShoppingListSourceKind, string> = {
 };
 
 export function sourceLabel(kind: ShoppingListSourceKind): string {
-  return SOURCE_LABELS[kind];
+  return SOURCE_LABELS[kind] ?? 'Added to your grocery list';
 }
 
 /**
@@ -289,14 +289,16 @@ export function sourceLabel(kind: ShoppingListSourceKind): string {
  * two distinct explanations rather than collapsing into one generic label.
  */
 export function sourceExplanations(
-  sources: readonly (Pick<ShoppingListSource, 'kind'> & { recipeId?: string | null })[],
+  sources: readonly ((Pick<ShoppingListSource, 'kind'> & { recipeId?: string | null }) | null | undefined)[],
   recipeTitles?: ReadonlyMap<string, string>,
 ): string[] {
   const seen = new Set<string>();
   const labels: string[] = [];
   for (const source of sources) {
+    if (!source) continue;
+    const recipeTitle = source.recipeId ? recipeTitles?.get(source.recipeId)?.trim() : undefined;
     const label = source.kind === 'recipe_missing'
-      ? `Missing for ${(source.recipeId && recipeTitles?.get(source.recipeId)) ?? 'a saved recipe'}`
+      ? `Missing for ${recipeTitle || 'a saved recipe'}`
       : sourceLabel(source.kind);
     if (seen.has(label)) continue;
     seen.add(label);
@@ -318,6 +320,12 @@ export const SHOPPING_CATEGORY_LABELS: Record<ShoppingListCategory, string> = {
   beverage: 'Beverages',
   other: 'Other',
 };
+
+export function normalizeShoppingListCategory(category: unknown): ShoppingListCategory {
+  return SHOPPING_LIST_CATEGORIES.includes(category as ShoppingListCategory)
+    ? category as ShoppingListCategory
+    : 'other';
+}
 
 export interface QuantityValidation {
   quantity: number | null;
@@ -402,14 +410,14 @@ export function closedShoppingItems(items: readonly ShoppingListItem[]): Shoppin
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export function groupShoppingItems(items: readonly ShoppingListItem[]): ShoppingListSection[] {
+export function groupShoppingItems(items: readonly (ShoppingListItem | null | undefined)[]): ShoppingListSection[] {
   const groups = new Map<ShoppingListCategory, ShoppingListItem[]>();
   for (const item of items) {
-    if (item.status !== 'open') continue;
+    if (!item || item.status !== 'open') continue;
     // Older development/demo data could persist categories outside the
     // supported FoodClass union. Treat those rows as Other so opening Shop is
     // recoverable instead of looking up an undefined label and crashing.
-    const category = SHOPPING_CATEGORY_LABELS[item.category] ? item.category : 'other';
+    const category = normalizeShoppingListCategory(item.category);
     const list = groups.get(category) ?? [];
     list.push(item);
     groups.set(category, list);
@@ -419,7 +427,7 @@ export function groupShoppingItems(items: readonly ShoppingListItem[]): Shopping
     .map(([category, grouped]) => ({
       category,
       label: SHOPPING_CATEGORY_LABELS[category],
-      items: [...grouped].sort((a, b) => a.sortOrder - b.sortOrder || a.displayName.localeCompare(b.displayName)),
+      items: [...grouped].sort((a, b) => a.sortOrder - b.sortOrder || (a.displayName ?? '').localeCompare(b.displayName ?? '')),
     }));
 }
 

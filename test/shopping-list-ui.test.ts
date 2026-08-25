@@ -2,6 +2,9 @@ import { describe, expect, test } from 'vitest';
 
 import fs from 'node:fs';
 
+import { groupShoppingItems, sourceExplanations } from '@/logic/shoppingList';
+import type { ShoppingListItem } from '@/types';
+
 describe('shopping list UI contract', () => {
   test('Pantry exposes Shop while Today stays free of shopping UI', () => {
     const pantry = fs.readFileSync('app/(tabs)/pantry.tsx', 'utf8');
@@ -27,7 +30,7 @@ describe('shopping list UI contract', () => {
       'planCanonicalReassignment',
       'manualEntryDraft',
       'validateShoppingQuantity',
-      'sourceExplanations(item.sources, recipeTitles)',
+      'sourceExplanations(item.sources ?? [], recipeTitles)',
     ]) {
       expect(section).toContain(symbol);
     }
@@ -53,5 +56,36 @@ describe('shopping list UI contract', () => {
   test('quantity errors are shown on the field, not swallowed', () => {
     const section = fs.readFileSync('src/components/pantry/ShoppingListSection.tsx', 'utf8');
     expect(section).toContain('error={quantityError ?? undefined}');
+  });
+
+  test('corrupt categories and missing recipe titles render with safe fallbacks', () => {
+    const corruptItem = {
+      id: 'legacy-item',
+      displayName: 'Mystery item',
+      status: 'open',
+      category: '__proto__',
+      sortOrder: 0,
+    } as unknown as ShoppingListItem;
+
+    expect(groupShoppingItems([null, corruptItem])).toMatchObject([
+      { category: 'other', label: 'Other', items: [corruptItem] },
+    ]);
+    expect(sourceExplanations([{ kind: 'recipe_missing', recipeId: 'missing-recipe' }], new Map())).toEqual([
+      'Missing for a saved recipe',
+    ]);
+  });
+
+  test('the asynchronous load cycle catches failures and always resolves loading state', () => {
+    const section = fs.readFileSync('src/components/pantry/ShoppingListSection.tsx', 'utf8');
+    const loadStart = section.indexOf('const load = useCallback(async () => {');
+    const loadEnd = section.indexOf('useEffect(() => { void load(); }, [load]);');
+    const loadCycle = section.slice(loadStart, loadEnd);
+
+    expect(loadCycle).toContain('try {');
+    expect(loadCycle).toContain('} catch {');
+    expect(loadCycle).toContain('setItems([]);');
+    expect(loadCycle).toContain("kind: 'recoverable-error'");
+    expect(loadCycle).toContain('} finally {');
+    expect(loadCycle).toContain('setLoading(false);');
   });
 });
