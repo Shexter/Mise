@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   AppState,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { hasApiKey } from '@/api/keyStore';
+import { hasApiKey, maskedApiKey } from '@/api/keyStore';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { CountingNumber } from '@/components/CountingNumber';
@@ -31,10 +32,22 @@ import {
   radius,
   space,
 } from '@/constants/theme';
-import { friendlyDate, isToday } from '@/logic/dates';
+import { resetDatabase } from '@/db';
+import { populateDemoData } from '@/db/demoData';
+import {
+  getBodyMeasurements,
+  getLoggedDates,
+  listPendingCaptures,
+  listPantryItems,
+  listRecipes,
+  listReceipts,
+} from '@/db/queries';
+import { friendlyDate, isToday, localDateString } from '@/logic/dates';
 import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
 import { roundCalories } from '@/logic/scaling';
+import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
+import { useProfileStore } from '@/store/profileStore';
 import type { SuggestionTargetMacro } from '@/types';
 
 export default function TodayScreen() {
@@ -61,8 +74,10 @@ export default function TodayScreen() {
   } = useDayStore();
 
   const [keyMissing, setKeyMissing] = useState(false);
+  const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   // The Today tab opens on today: sync (which resets `selectedDate` only
   // when `following` is true) before refreshing, so a day chosen earlier in
@@ -72,7 +87,11 @@ export default function TodayScreen() {
   useFocusEffect(
     useCallback(() => {
       void syncToToday().then(() => refresh());
-      void hasApiKey().then((present) => setKeyMissing(!present));
+      void (async () => {
+        const keyPresent = await hasApiKey();
+        setKeyMissing(!keyPresent);
+        setMaskedKey(await maskedApiKey());
+      })();
       return () => resumeFollowing();
     }, [syncToToday, refresh, resumeFollowing]),
   );
@@ -123,6 +142,102 @@ export default function TodayScreen() {
 
   const onMacroRequest = (macro: SuggestionTargetMacro) =>
     router.push({ pathname: '/dinner', params: { macro } });
+
+  const onLoadDemoData = () => {
+    Alert.alert(
+      'Replace with rich demo data?',
+      'This replaces your current local profile with 57 meals across 28 days (with accurate calories, macros, and fibre trends), 24 pantry items across fridge/freezer/pantry/counter, recipes, categorized shopping list, and body composition data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Load demo dataset',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDemoLoading(true);
+              try {
+                deleteAllPhotos('meals');
+                deleteAllPhotos('receipts');
+                deleteAllPhotos('pantry-captures');
+                deleteAllPhotos('recipes');
+                await resetDatabase();
+                const summary = await populateDemoData();
+                await useProfileStore.getState().load();
+                useDayStore.setState({
+                  selectedDate: localDateString(),
+                  following: true,
+                  monthSummaries: {},
+                  pendingUndo: null,
+                  lastDepletion: null,
+                });
+                await useDayStore.getState().refresh();
+                router.replace('/(tabs)');
+                toast.show({ message: `Demo loaded: ${summary.meals} meals, ${summary.pantryItems} pantry items, ${summary.recipes} recipes, and ${summary.shoppingItems} shopping items.` });
+              } catch (error) {
+                console.warn('Demo data load failed.', error);
+                const detail = error instanceof Error ? error.message : String(error);
+                toast.show({ kind: 'recoverable-error', message: `Demo data could not be loaded: ${detail}` });
+              } finally {
+                setDemoLoading(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const onConfirmDemoData = () => {
+    Alert.alert(
+      'Replace your logged data with demo data?',
+      'You already have meals, pantry items, or saved recipes on this device. Loading the demo dataset will replace them — your existing records cannot be recovered from this action.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace with demo',
+          style: 'destructive',
+          onPress: () => void onLoadDemoData(),
+        },
+      ],
+    );
+  };
+
+  const hasExistingUserRecords = async () => {
+    try {
+      const loggedDates = await getLoggedDates();
+      if (loggedDates.length > 0) return true;
+
+      const pantryItems = await listPantryItems();
+      if (pantryItems.length > 0) return true;
+
+      const recipes = await listRecipes();
+      if (recipes.length > 0) return true;
+
+      const receipts = await listReceipts();
+      if (receipts.length > 0) return true;
+
+      const pendingCaptures = await listPendingCaptures();
+      if (pendingCaptures.length > 0) return true;
+
+      const bodyMeasurements = await getBodyMeasurements();
+      if (bodyMeasurements.length > 0) return true;
+
+      return false;
+    } catch (error) {
+      console.warn('Failed to check for existing user records:', error);
+      return true;
+    }
+  };
+
+  const onDemoCardPress = () => {
+    void (async () => {
+      if (await hasExistingUserRecords()) {
+        onConfirmDemoData();
+      } else {
+        onLoadDemoData();
+      }
+    })();
+  };
 
   return (
     <View style={styles.root}>
@@ -210,6 +325,21 @@ export default function TodayScreen() {
           <Body>What's for dinner?</Body>
           <Caption muted>Ideas from what's already in your pantry.</Caption>
         </Pressable>
+
+        {maskedKey === null ? (
+          <Pressable
+            onPress={onDemoCardPress}
+            accessibilityRole="button"
+            accessibilityLabel="Discover demo data"
+            style={({ pressed }) => [
+              styles.banner,
+              pressed && { opacity: opacity.pressed },
+              { backgroundColor: color.olive, borderColor: color.olive }]}
+          >
+            <Body>First time here? Try a quick demo.</Body>
+            <Caption>Load a rich dataset with meals, pantry, recipes, and more — no entry required.</Caption>
+          </Pressable>
+        ) : null}
 
         {keyMissing ? (
           <Pressable

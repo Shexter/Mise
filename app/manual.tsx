@@ -13,45 +13,34 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
+import { MealModifierControls } from '@/components/review/MealModifierControls';
 import { Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
-import { MEASURE_UNITS, MEAL_TYPES, MEAL_VENUES } from '@/types';
+import { MEASURE_UNITS } from '@/types';
 import { localDateString, friendlyDate, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
+import {
+  createMealModifierState,
+  transitionMealVenue,
+  transitionServingsMultiplier,
+} from '@/logic/mealModifiers';
 import { photoBase64 } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
 import { useCaptureStore } from '@/store/captureStore';
 import { useDayStore } from '@/store/dayStore';
-import { saveDishVenueDefault } from '@/db/queries';
+import { lastServingsForDish, saveDishVenueDefault } from '@/db/queries';
 import {
   CATALOGUE_NUTRITION_UNAVAILABLE,
   catalogueNutrition,
   hasCatalogueNutrition,
   nutritionSourceLabel,
 } from '@/logic/nutrition';
-import type { CanonicalItem, MeasureUnit, MealType, MealVenue } from '@/types';
+import type { CanonicalItem, MeasureUnit } from '@/types';
 import { inferVenueForDraft } from '@/logic/venueService';
-
-const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
-  value: type,
-  label: type.charAt(0).toUpperCase() + type.slice(1),
-}));
-
-const VENUE_LABELS: Record<MealVenue, string> = {
-  home: 'Cooked in',
-  out: 'Ate out',
-  leftovers: 'Leftovers',
-};
-
-const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
-  value: venue,
-  label: VENUE_LABELS[venue],
-}));
 
 
 export default function ManualScreen() {
@@ -79,8 +68,9 @@ export default function ManualScreen() {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
-  const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
-  const [venue, setVenue] = useState<MealVenue>('home');
+  const [modifiers, setModifiers] = useState(() =>
+    createMealModifierState(mealTypeForTime()),
+  );
   const [saving, setSaving] = useState(false);
   const [estimating, setEstimating] = useState(false);
   const [canonical, setCanonical] = useState<CanonicalItem | null>(null);
@@ -98,7 +88,9 @@ export default function ManualScreen() {
         null,
       ).then((inferred) => {
         if (!active) return;
-        if (!venueChangedRef.current) setVenue(inferred);
+        if (!venueChangedRef.current) {
+          setModifiers((current) => transitionMealVenue(current, inferred));
+        }
       });
     }, 250);
     return () => {
@@ -106,6 +98,22 @@ export default function ManualScreen() {
       clearTimeout(timer);
     };
   }, [canonical?.id, name]);
+
+  useEffect(() => {
+    const dish = name.trim();
+    if (!dish) return;
+    let active = true;
+    void lastServingsForDish(dish).then((remembered) => {
+      if (active && remembered) {
+        setModifiers((current) =>
+          transitionServingsMultiplier(current, remembered),
+        );
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [name]);
 
   useEffect(() => {
     if (!canonical) return;
@@ -155,12 +163,13 @@ export default function ManualScreen() {
     const meal: NewMeal = {
       loggedAt: new Date().toISOString(),
       localDate,
-      mealType,
+      mealType: modifiers.mealType,
       name: name.trim(),
       photoUri,
       source: 'manual',
       confidence: null,
-      venue,
+      venue: modifiers.venue,
+      servingsMult: modifiers.servingsMult,
       items: [
         {
           name: name.trim(),
@@ -178,7 +187,7 @@ export default function ManualScreen() {
     const stored = await addMeal(meal);
     if (venueChangedRef.current) {
       try {
-        await saveDishVenueDefault(meal.name, venue);
+        await saveDishVenueDefault(meal.name, modifiers.venue);
       } catch {
         // Preference learning is best-effort; never turn a saved meal into an
         // apparent failure because this secondary write failed.
@@ -319,26 +328,13 @@ export default function ManualScreen() {
           <Caption muted>{CATALOGUE_NUTRITION_UNAVAILABLE}</Caption>
         ) : null}
 
-        <View style={styles.mealType}>
-          <SectionLabel muted style={styles.mealTypeLabel}>
-            Meal
-          </SectionLabel>
-          <Segmented options={MEAL_TYPE_OPTIONS} value={mealType} onChange={setMealType} />
-        </View>
-
-        <View style={styles.mealType}>
-          <SectionLabel muted style={styles.mealTypeLabel}>
-            Where from
-          </SectionLabel>
-          <Segmented
-            options={VENUE_OPTIONS}
-            value={venue}
-            onChange={(next) => {
-              if (next !== venue) venueChangedRef.current = true;
-              setVenue(next);
-            }}
-          />
-        </View>
+        <MealModifierControls
+          value={modifiers}
+          onChange={setModifiers}
+          onVenueChange={(next) => {
+            if (next !== modifiers.venue) venueChangedRef.current = true;
+          }}
+        />
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
@@ -415,8 +411,6 @@ const styles = StyleSheet.create({
   macrosLabel: { marginTop: space.xs },
   macros: { flexDirection: 'row', gap: space.sm },
   macroField: { flex: 1 },
-  mealType: { gap: space.sm, marginTop: space.xs },
-  mealTypeLabel: { marginLeft: space.xs },
   footer: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.sm,

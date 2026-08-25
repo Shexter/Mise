@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 
 const review = readFileSync('app/review.tsx', 'utf8');
 const manual = readFileSync('app/manual.tsx', 'utf8');
+const modifiers = readFileSync('src/components/review/MealModifierControls.tsx', 'utf8');
 const suggestion = readFileSync('src/logic/suggestionService.ts', 'utf8');
 
 describe('venue inference surfaces', () => {
@@ -15,12 +16,16 @@ describe('venue inference surfaces', () => {
   test('the visible segmented control remains one action and wins over async inference', () => {
     for (const source of [review, manual]) {
       expect(source).toContain('venueChangedRef.current = true');
-      expect(source).toContain('options={VENUE_OPTIONS}');
+      expect(source).toContain('<MealModifierControls');
     }
+    expect(modifiers).toContain('options={VENUE_OPTIONS}');
   });
 
   test('moving away from home clears the batch multiplier', () => {
-    expect(review).toContain("if (next !== 'home') setServings(1)");
+    for (const source of [review, manual]) {
+      expect(source).toContain('transitionMealVenue(current, inferred)');
+    }
+    expect(modifiers).toContain('transitionMealVenue(value, venue)');
   });
 
   test('the known suggestion path stays home and never enters inference or learning', () => {

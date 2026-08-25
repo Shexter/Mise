@@ -229,6 +229,7 @@ export default function DinnerScreen() {
             <Body>Add an API key to get ideas</Body>
             <Caption muted>Suggestions come from the same key photo estimates use. Your pantry and calorie tracking work fine without one.</Caption>
             <Button label="Open Settings" variant="secondary" block={false} onPress={() => router.push('/(tabs)/settings')} style={styles.emptyAction} />
+            <Button label="Enter manually" variant="secondary" block={false} onPress={() => router.push('/manual')} style={styles.emptyAction} />
           </Card>
         ) : outcome.status === 'error' ? (
           <Card>

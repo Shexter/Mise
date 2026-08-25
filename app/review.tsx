@@ -21,10 +21,10 @@ import {
 } from '@/api/vision';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { Segmented } from '@/components/Choice';
 import { Field } from '@/components/Field';
 import { Skeleton, SkeletonLine, SkeletonText } from '@/components/Skeleton';
 import { HiddenIngredientSheet } from '@/components/review/HiddenIngredientSheet';
+import { MealModifierControls } from '@/components/review/MealModifierControls';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { ItemRow } from '@/components/review/ItemRow';
 import { QuantitySheet } from '@/components/review/QuantitySheet';
@@ -46,9 +46,13 @@ import {
 } from '@/constants/theme';
 import { matchSuggestion } from '@/constants/hiddenIngredients';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { MEAL_TYPES, MEAL_VENUES } from '@/types';
 import { friendlyDate, localDateString, mealTypeForTime } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
+import {
+  createMealModifierState,
+  transitionMealVenue,
+  transitionServingsMultiplier,
+} from '@/logic/mealModifiers';
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
@@ -60,13 +64,10 @@ import { inferVenueForDraft } from '@/logic/venueService';
 import { deriveResolvedFibre } from '@/logic/nutrition';
 import { getCanonicalById } from '@/db/queries';
 import { resolveIngredientReferencesLocally } from '@/logic/resolution';
-import { Stepper } from '@/components/Stepper';
 import type {
   Confidence,
   EstimatedItem,
   MealItem,
-  MealType,
-  MealVenue,
   VenueAssessment,
 } from '@/types';
 
@@ -74,22 +75,6 @@ type Phase =
   | { kind: 'analyzing'; retryDelayMs?: number }
   | { kind: 'error'; error: VisionError }
   | { kind: 'review' };
-
-const MEAL_TYPE_OPTIONS = MEAL_TYPES.map((type) => ({
-  value: type,
-  label: type.charAt(0).toUpperCase() + type.slice(1),
-}));
-
-const VENUE_LABELS: Record<MealVenue, string> = {
-  home: 'Cooked in',
-  out: 'Ate out',
-  leftovers: 'Leftovers',
-};
-
-const VENUE_OPTIONS = MEAL_VENUES.map((venue) => ({
-  value: venue,
-  label: VENUE_LABELS[venue],
-}));
 
 export default function ReviewScreen() {
   const router = useRouter();
@@ -125,12 +110,13 @@ export default function ReviewScreen() {
   const [venueAssessment, setVenueAssessment] = useState<VenueAssessment | null>(
     estimate?.venueAssessment ?? null,
   );
-  const [mealType, setMealType] = useState<MealType>(mealTypeForTime());
-  const [venue, setVenue] = useState<MealVenue>('home');
-  const [servings, setServings] = useState(1);
+  const [modifiers, setModifiers] = useState(() =>
+    createMealModifierState(mealTypeForTime()),
+  );
 
   const [editing, setEditing] = useState<MealItem | null>(null);
   const [hiddenOpen, setHiddenOpen] = useState(false);
+  const [hiddenSuggestionsOpen, setHiddenSuggestionsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -143,7 +129,9 @@ export default function ReviewScreen() {
     let active = true;
     void inferVenueForDraft(mealName, items, venueAssessment).then((inferred) => {
       if (!active) return;
-      if (!venueChangedRef.current) setVenue(inferred);
+      if (!venueChangedRef.current) {
+        setModifiers((current) => transitionMealVenue(current, inferred));
+      }
     });
     return () => {
       active = false;
@@ -157,7 +145,11 @@ export default function ReviewScreen() {
     if (dish.length === 0) return;
     let active = true;
     void lastServingsForDish(dish).then((remembered) => {
-      if (active && remembered) setServings(remembered);
+      if (active && remembered) {
+        setModifiers((current) =>
+          transitionServingsMultiplier(current, remembered),
+        );
+      }
     });
     return () => {
       active = false;
@@ -265,13 +257,13 @@ export default function ReviewScreen() {
     const meal: NewMeal = {
       loggedAt: new Date().toISOString(),
       localDate,
-      mealType,
+      mealType: modifiers.mealType,
       name: mealName.trim() || 'Meal',
       photoUri,
       source: 'photo',
       confidence,
-      venue,
-      servingsMult: venue === 'home' ? servings : 1,
+      venue: modifiers.venue,
+      servingsMult: modifiers.servingsMult,
       items: resolvedItems.map((item) => ({
         name: item.name,
         quantity: item.quantity,
@@ -288,7 +280,7 @@ export default function ReviewScreen() {
     const stored = await addMeal(meal);
     if (venueChangedRef.current) {
       try {
-        await saveDishVenueDefault(meal.name, venue);
+        await saveDishVenueDefault(meal.name, modifiers.venue);
       } catch {
         // The meal is the authority. A failed preference write must not make a
         // successful food log look failed.
@@ -418,23 +410,37 @@ export default function ReviewScreen() {
 
         {suggestions.length > 0 ? (
           <View style={styles.suggestions}>
-            <SectionLabel muted>Might be in there too</SectionLabel>
-            <View style={styles.chips}>
-              {suggestions.map((suggestion) => (
-                <Pressable
-                  key={suggestion}
-                  onPress={() => addSuggestion(suggestion)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Add ${suggestion}`}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    pressed && { opacity: opacity.pressed },
-                  ]}
-                >
-                  <Caption>+ {suggestion}</Caption>
-                </Pressable>
-              ))}
-            </View>
+            <Pressable
+              onPress={() => setHiddenSuggestionsOpen((open) => !open)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: hiddenSuggestionsOpen }}
+              accessibilityLabel="Possible hidden ingredients"
+              style={({ pressed }) => [
+                styles.suggestionDisclosure,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <SectionLabel muted>Possible hidden ingredients</SectionLabel>
+              <Caption muted>{hiddenSuggestionsOpen ? 'Hide' : `Show ${suggestions.length}`}</Caption>
+            </Pressable>
+            {hiddenSuggestionsOpen ? (
+              <View style={styles.chips}>
+                {suggestions.map((suggestion) => (
+                  <Pressable
+                    key={suggestion}
+                    onPress={() => addSuggestion(suggestion)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Add ${suggestion}`}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      pressed && { opacity: opacity.pressed },
+                    ]}
+                  >
+                    <Caption>+ {suggestion}</Caption>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -444,57 +450,13 @@ export default function ReviewScreen() {
           onPress={() => setHiddenOpen(true)}
         />
 
-        <View style={styles.mealType}>
-          <SectionLabel muted style={styles.mealTypeLabel}>
-            Meal
-          </SectionLabel>
-          <Segmented
-            options={MEAL_TYPE_OPTIONS}
-            value={mealType}
-            onChange={setMealType}
-          />
-        </View>
-
-        <View style={styles.mealType}>
-          <SectionLabel muted style={styles.mealTypeLabel}>
-            Where from
-          </SectionLabel>
-          <Segmented
-            options={VENUE_OPTIONS}
-            value={venue}
-            onChange={(next) => {
-              if (next !== venue) venueChangedRef.current = true;
-              setVenue(next);
-              if (next !== 'home') setServings(1);
-            }}
-          />
-          <Caption muted style={styles.venueHint}>
-            {venue === 'home'
-              ? 'Cooking at home takes what you used out of the pantry.'
-              : venue === 'out'
-                ? 'Eating out leaves your pantry alone.'
-                : 'Leftovers were already taken out when you cooked the batch.'}
-          </Caption>
-        </View>
-
-        {venue === 'home' ? (
-          <View style={styles.mealType}>
-            <SectionLabel muted style={styles.mealTypeLabel}>
-              Servings this made
-            </SectionLabel>
-            <Stepper
-              value={servings}
-              onChange={setServings}
-              step={1}
-              min={1}
-              max={20}
-              label="Servings this made"
-            />
-            <Caption muted style={styles.venueHint}>
-              Cooked more than you ate? The pantry loses the whole batch.
-            </Caption>
-          </View>
-        ) : null}
+        <MealModifierControls
+          value={modifiers}
+          onChange={setModifiers}
+          onVenueChange={(next) => {
+            if (next !== modifiers.venue) venueChangedRef.current = true;
+          }}
+        />
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + space.sm }]}>
@@ -687,6 +649,12 @@ const styles = StyleSheet.create({
   },
   emptyItems: { padding: layout.cardPadding, alignItems: 'center' },
   suggestions: { gap: space.sm },
+  suggestionDisclosure: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: {
     minHeight: 36,
@@ -698,9 +666,6 @@ const styles = StyleSheet.create({
     borderColor: color.line,
     justifyContent: 'center',
   },
-  mealType: { gap: space.sm },
-  mealTypeLabel: { marginLeft: space.xs },
-  venueHint: { marginLeft: space.xs },
   footer: {
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.sm,
