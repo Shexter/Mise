@@ -82,64 +82,72 @@ export default function PantryScreen() {
     <Screen scroll>
       <View style={styles.header}>
         <ScreenTitle>Pantry</ScreenTitle>
-        {subsection === 'stock' ? <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => router.push('/locations')}
-            accessibilityRole="button"
-            accessibilityLabel="Storage locations"
-            hitSlop={space.sm}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <Feather name="map-pin" size={20} color={color.ink} />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/nutrient-search')}
-            accessibilityRole="button"
-            accessibilityLabel="Search by nutrient"
-            hitSlop={space.sm}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <Feather name="search" size={20} color={color.ink} />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/pantry-capture')}
-            accessibilityRole="button"
-            accessibilityLabel="Add to pantry with camera"
-            hitSlop={space.sm}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <Feather name="camera" size={20} color={color.ink} />
-          </Pressable>
-          <Pressable
-            onPress={() => setAdding(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Add an item"
-            hitSlop={space.sm}
-            style={({ pressed }) => [
-              styles.headerButton,
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <Feather name="plus" size={22} color={color.ink} />
-          </Pressable>
-        </View> : (
-          <Pressable
-            onPress={() => router.push('/recipe-intake')}
-            accessibilityRole="button"
-            accessibilityLabel="Save a recipe"
-            style={styles.headerButton}
-          >
-            <Feather name="plus" size={22} color={color.ink} />
-          </Pressable>
+        {subsection === 'stock' ? (
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/locations')}
+              accessibilityRole="button"
+              accessibilityLabel="Storage locations"
+              hitSlop={space.sm}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Feather name="map-pin" size={20} color={color.ink} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/nutrient-search')}
+              accessibilityRole="button"
+              accessibilityLabel="Search by nutrient"
+              hitSlop={space.sm}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Feather name="search" size={20} color={color.ink} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/pantry-capture')}
+              accessibilityRole="button"
+              accessibilityLabel="Add to pantry with camera"
+              hitSlop={space.sm}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Feather name="camera" size={20} color={color.ink} />
+            </Pressable>
+            <Pressable
+              onPress={() => setAdding(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Add an item"
+              hitSlop={space.sm}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Feather name="plus" size={20} color={color.ink} />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push('/recipe-intake')}
+              accessibilityRole="button"
+              accessibilityLabel="Save a recipe"
+              hitSlop={space.sm}
+              style={({ pressed }) => [
+                styles.headerButton,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Feather name="plus" size={20} color={color.ink} />
+            </Pressable>
+          </View>
         )}
       </View>
 

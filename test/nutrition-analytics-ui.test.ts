@@ -52,7 +52,7 @@ describe('Today nutrition disclosure boundaries', () => {
 
   test('keeps range reads local and preferences presentation-only', () => {
     const analytics = read('app/analytics.tsx');
-    const queries = read('src/db/queries.ts');
+    const queries = read('src/db/queries/analytics.ts');
     const preference = read('src/constants/nutritionAnalyticsPreference.ts');
     expect(analytics).toContain('getNutritionRangeBuckets');
     expect(queries).toContain('getNutritionDayValues');
