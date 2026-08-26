@@ -81,9 +81,11 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const toast = useToast();
+  const { photoUri, base64, estimate, mealDraft, clear } = useCaptureStore();
+  const draftSource = mealDraft?.source ?? 'photo';
 
   const [selectedDate, setSelectedDate] = useState(
-    () => useDayStore.getState().selectedDate || localDateString(),
+    () => mealDraft?.localDate || useDayStore.getState().selectedDate || localDateString(),
   );
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -91,27 +93,32 @@ export default function ReviewScreen() {
   const earliestLoggedDate = useDayStore((state) => state.earliestLoggedDate);
   const loadMonthSummaries = useDayStore((state) => state.loadMonthSummaries);
 
-  const { photoUri, base64, estimate, clear } = useCaptureStore();
   const addMeal = useDayStore((state) => state.addMeal);
 
   const [phase, setPhase] = useState<Phase>(
-    estimate ? { kind: 'review' } : { kind: 'analyzing' },
+    estimate || mealDraft ? { kind: 'review' } : { kind: 'analyzing' },
   );
-  const [mealName, setMealName] = useState(estimate?.mealName ?? 'Meal');
+  const [mealName, setMealName] = useState(mealDraft?.name ?? estimate?.mealName ?? 'Meal');
   const [items, setItems] = useState<MealItem[]>(() =>
-    estimate ? estimate.items.map((item) => toMealItem(item, false)) : [],
+    mealDraft
+      ? mealDraft.items.map(toDraftMealItem)
+      : estimate?.items.map((item) => toMealItem(item, false)) ?? [],
   );
   const [confidence, setConfidence] = useState<Confidence | null>(
-    estimate?.confidence ?? null,
+    mealDraft?.confidence ?? estimate?.confidence ?? null,
   );
   const [suggestions, setSuggestions] = useState<string[]>(
-    estimate?.likelyHiddenIngredients ?? [],
+    mealDraft ? [] : estimate?.likelyHiddenIngredients ?? [],
   );
   const [venueAssessment, setVenueAssessment] = useState<VenueAssessment | null>(
     estimate?.venueAssessment ?? null,
   );
   const [modifiers, setModifiers] = useState(() =>
-    createMealModifierState(mealTypeForTime()),
+    createMealModifierState(
+      mealDraft?.mealType ?? mealTypeForTime(),
+      mealDraft?.venue ?? 'home',
+      mealDraft?.servingsMult ?? 1,
+    ),
   );
 
   const [editing, setEditing] = useState<MealItem | null>(null);
@@ -125,7 +132,7 @@ export default function ReviewScreen() {
   // Combine the estimate with on-device stock, batch, and learned-dish
   // signals. A user's tap permanently takes precedence over later async work.
   useEffect(() => {
-    if (phase.kind !== 'review') return;
+    if (phase.kind !== 'review' || draftSource !== 'photo') return;
     let active = true;
     void inferVenueForDraft(mealName, items, venueAssessment).then((inferred) => {
       if (!active) return;
@@ -136,11 +143,12 @@ export default function ReviewScreen() {
     return () => {
       active = false;
     };
-  }, [items, mealName, phase.kind, venueAssessment]);
+  }, [draftSource, items, mealName, phase.kind, venueAssessment]);
 
   // A repeated dish remembers its yield, so the batch cook that made four
   // portions last time offers four again.
   useEffect(() => {
+    if (draftSource !== 'photo') return;
     const dish = mealName.trim();
     if (dish.length === 0) return;
     let active = true;
@@ -154,7 +162,7 @@ export default function ReviewScreen() {
     return () => {
       active = false;
     };
-  }, [mealName]);
+  }, [draftSource, mealName]);
 
   const runEstimate = useCallback(async () => {
     if (!base64) {
@@ -187,7 +195,7 @@ export default function ReviewScreen() {
   }, [base64]);
 
   useEffect(() => {
-    if (!estimate) void runEstimate();
+    if (!estimate && !mealDraft) void runEstimate();
     return () => abortRef.current?.abort();
     // Only on mount — estimate is a snapshot handed off from capture.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -248,7 +256,9 @@ export default function ReviewScreen() {
     const resolvedItems = await Promise.all(items.map(async (item) => {
       const outcome = item.canonicalId
         ? { status: 'resolved' as const, canonicalId: item.canonicalId }
-        : (await resolveIngredientReferencesLocally([{ raw: item.name }], 'vision'))[0];
+        : draftSource === 'recipe'
+          ? undefined
+          : (await resolveIngredientReferencesLocally([{ raw: item.name }], 'vision'))[0];
       const canonicalId = outcome?.status === 'resolved' ? outcome.canonicalId : item.canonicalId;
       const canonical = canonicalId ? await getCanonicalById(canonicalId) : null;
       const fibre = deriveResolvedFibre(null, canonical, item.quantity, item.unit);
@@ -259,8 +269,8 @@ export default function ReviewScreen() {
       localDate,
       mealType: modifiers.mealType,
       name: mealName.trim() || 'Meal',
-      photoUri,
-      source: 'photo',
+      photoUri: mealDraft?.photoUri ?? photoUri,
+      source: draftSource,
       confidence,
       venue: modifiers.venue,
       servingsMult: modifiers.servingsMult,
@@ -278,7 +288,7 @@ export default function ReviewScreen() {
       })),
     };
     const stored = await addMeal(meal);
-    if (venueChangedRef.current) {
+    if (draftSource === 'photo' && venueChangedRef.current) {
       try {
         await saveDishVenueDefault(meal.name, modifiers.venue);
       } catch {
@@ -511,6 +521,17 @@ function toMealItem(estimated: EstimatedItem, manual: boolean): MealItem {
     isManualAddition: manual,
     sortOrder: 0,
     canonicalId: null,
+  };
+}
+
+function toDraftMealItem(item: NewMeal['items'][number]): MealItem {
+  return {
+    id: randomUUID(),
+    mealId: '',
+    ...item,
+    fibreG: item.fibreG ?? null,
+    sortOrder: 0,
+    canonicalId: item.canonicalId ?? null,
   };
 }
 

@@ -6,12 +6,27 @@ import { groupShoppingItems, sourceExplanations } from '@/logic/shoppingList';
 import type { ShoppingListItem } from '@/types';
 
 describe('shopping list UI contract', () => {
-  test('Pantry exposes Shop while Today stays free of shopping UI', () => {
+  test('Shop is a dedicated tab while Pantry and Today stay free of shopping UI', () => {
+    const tabs = fs.readFileSync('app/(tabs)/_layout.tsx', 'utf8');
     const pantry = fs.readFileSync('app/(tabs)/pantry.tsx', 'utf8');
+    const shop = fs.readFileSync('app/(tabs)/shop.tsx', 'utf8');
     const today = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
-    expect(pantry).toContain("{ value: 'shop', label: 'Shop' }");
-    expect(pantry).toContain('<ShoppingListSection />');
+
+    expect(tabs).toContain('name="shop"');
+    expect(tabs).toContain('<Feather name="shopping-bag"');
+    expect(shop).toContain('<ShoppingListSection />');
+    expect(pantry).not.toContain('ShoppingListSection');
     expect(today).not.toContain('ShoppingListSection');
+  });
+
+  test('Shop exposes nearby stores, receipt capture, and receipt history directly', () => {
+    const shop = fs.readFileSync('app/(tabs)/shop.tsx', 'utf8');
+
+    expect(shop).toContain("router.push('/shops')");
+    expect(shop).toContain('accessibilityLabel="Check nearby shops"');
+    expect(shop).toContain('label="Scan a receipt"');
+    expect(shop).toContain("router.push('/receipt-capture')");
+    expect(shop).toContain("router.push('/receipt-history')");
   });
 
   test('recipe detail offers missing-ingredient capture', () => {
@@ -87,5 +102,22 @@ describe('shopping list UI contract', () => {
     expect(loadCycle).toContain("kind: 'recoverable-error'");
     expect(loadCycle).toContain('} finally {');
     expect(loadCycle).toContain('setLoading(false);');
+  });
+
+  test('canonical purchases offer restock and successful restocks offer full undo', () => {
+    const section = fs.readFileSync('src/components/pantry/ShoppingListSection.tsx', 'utf8');
+
+    expect(section).toContain("status === 'purchased' && item.canonicalId ? 'Restock in Pantry'");
+    expect(section).toContain('restockFromShoppingItem(');
+    expect(section).toContain('const undo = await restock(plan);');
+    expect(section).toContain("actionLabel: 'Undo'");
+    expect(section).toContain('undoRestock(undo, item.id, previousStatus)');
+  });
+
+  test('unresolved purchases retain purchase undo instead of creating pantry stock', () => {
+    const section = fs.readFileSync('src/components/pantry/ShoppingListSection.tsx', 'utf8');
+
+    expect(section).toContain("status === 'purchased' && item.canonicalId");
+    expect(section).toContain("status !== 'open' ? 'Undo' : undefined");
   });
 });

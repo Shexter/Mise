@@ -5,21 +5,26 @@ import { describe, expect, test } from 'vitest';
 
 const root = path.resolve(__dirname, '..');
 const pantry = fs.readFileSync(path.join(root, 'app/(tabs)/pantry.tsx'), 'utf8');
+const shop = fs.readFileSync(path.join(root, 'app/(tabs)/shop.tsx'), 'utf8');
 const recipes = fs.readFileSync(path.join(root, 'src/components/recipes/SavedRecipesSection.tsx'), 'utf8');
 
 describe('Pantry Stock and Recipes subsections', () => {
   test('defaults to Stock and switches only harmless presentation state', () => {
     expect(pantry).toContain("useState<PantrySubsection>('stock')");
     expect(pantry).toContain('<Segmented options={SUBSECTIONS} value={subsection} onChange={setSubsection}');
+    expect(pantry).toContain("type PantrySubsection = 'stock' | 'recipes'");
+    expect(pantry).not.toContain("{ value: 'shop', label: 'Shop' }");
+    expect(pantry).not.toContain("{ value: 'receipts', label: 'Receipts' }");
     expect(pantry).not.toMatch(/useEffect\([^)]*subsection[^)]*(insert|update|delete)/s);
   });
 
-  test('keeps pending work and stock controls inside Stock only', () => {
-    expect(pantry).toContain("subsection === 'stock' && pendingCount > 0");
+  test('keeps pantry capture work and stock controls inside Stock only', () => {
     expect(pantry).toContain("subsection === 'stock' && pendingCaptureCount > 0");
-    expect(pantry).toContain("subsection === 'stock' ? <View style={styles.headerActions}");
+    expect(pantry).toMatch(/subsection === 'stock' \? \(\s*<View style=\{styles\.headerActions\}>/);
     expect(pantry).toContain("router.push('/locations')");
     expect(pantry).toContain("router.push('/pantry-capture')");
+    expect(shop).toContain('pendingReceipts()');
+    expect(shop).toContain('await retryAllPending()');
   });
 
   test('reuses recipe intake and detail routes without treating recipes as stock', () => {
@@ -34,5 +39,12 @@ describe('Pantry Stock and Recipes subsections', () => {
     expect(pantry).toContain('void refresh()');
     expect(pantry).toContain('void listRecipes().then(setRecipes)');
     expect(pantry).not.toMatch(/onChange=.*listRecipes/);
+  });
+
+  test('keeps receipt and grocery rendering out of Pantry', () => {
+    expect(pantry).not.toContain('ShoppingListSection');
+    expect(pantry).not.toContain("router.push('/receipt-history')");
+    expect(pantry).not.toContain('listReceipts');
+    expect(shop).toContain('<ShoppingListSection />');
   });
 });

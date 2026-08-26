@@ -53,6 +53,16 @@ async function resolveIngredients(
   const needsMatching: { index: number; name: string }[] = [];
 
   for (const [index, item] of meal.items.entries()) {
+    // Cooked suggestions and saved recipes carry one dish-level nutrition row
+    // with no canonical id, followed by stated ingredients whose identities
+    // are already known. Re-resolving that dish name could debit it as though
+    // it were an ingredient and would discard the source's better evidence.
+    if (
+      (meal.source === 'suggestion' || meal.source === 'recipe')
+      && item.canonicalId === null
+    ) {
+      continue;
+    }
     if (item.canonicalId) {
       resolved[index] = {
         canonicalId: item.canonicalId,

@@ -17,20 +17,19 @@ import { localDateString } from '@/logic/dates';
 import { coverageForRecipe, mealFromRecipe, type RecipeCoverage } from '@/logic/recipe';
 import { itemKey } from '@/logic/shoppingList';
 import { confirmMatch, resolveIngredientReferencesLocally } from '@/logic/resolution';
-import { useDayStore } from '@/store/dayStore';
+import { useCaptureStore } from '@/store/captureStore';
 import type { RecipeIngredient, RecipeWithIngredients } from '@/types';
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
   const toast = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const addMeal = useDayStore((state) => state.addMeal);
+  const setMealDraft = useCaptureStore((state) => state.setMealDraft);
   const [recipe, setRecipe] = useState<RecipeWithIngredients | null>(null);
   const [coverage, setCoverage] = useState<RecipeCoverage | null>(null);
   const [canonicals, setCanonicals] = useState(new Map());
   const [confirmationMatches, setConfirmationMatches] = useState<PendingConfirmation[]>([]);
   const [confirming, setConfirming] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [editingIngredients, setEditingIngredients] = useState(false);
   const load = useCallback(() => {
     if (!id) return;
@@ -98,16 +97,10 @@ export default function RecipeDetailScreen() {
     toast.show({ kind: 'success', message: 'Recipe ingredients updated.' });
   };
 
-  const cook = async () => {
-    if (!recipe || saving) return;
-    setSaving(true);
-    try {
-      await addMeal(mealFromRecipe({ recipe, localDate: localDateString(), canonicals }));
-      toast.show({ kind: 'success', message: 'Meal logged. Stated ingredient amounts updated your pantry.' });
-      router.replace('/(tabs)');
-    } finally {
-      setSaving(false);
-    }
+  const cook = () => {
+    if (!recipe) return;
+    setMealDraft(mealFromRecipe({ recipe, localDate: localDateString(), canonicals }));
+    router.push('/review');
   };
 
   const addMissingToShoppingList = async () => {
@@ -152,7 +145,7 @@ export default function RecipeDetailScreen() {
   if (!recipe) return <Screen><EmptyState title="Recipe not found" actionLabel="Back to recipes" onAction={() => router.replace('/recipes')} /></Screen>;
 
   return (
-    <Screen scroll footer={recipe.status === 'ready' ? <Button label="I cooked this" loading={saving} onPress={() => void cook()} /> : undefined}>
+    <Screen scroll footer={recipe.status === 'ready' ? <Button label="Cook & Log Meal" onPress={cook} /> : undefined}>
       <View style={styles.header}>
         <ScreenTitle>{recipe.title}</ScreenTitle>
         <Button label="Close" variant="ghost" block={false} onPress={() => router.back()} />

@@ -14,6 +14,7 @@ import {
   addShoppingListSource,
   deleteShoppingListItem,
   getAllCanonicals,
+  getLocations,
   getRecipe,
   insertShoppingListItem,
   listPantryItems,
@@ -43,6 +44,8 @@ import { MEASURE_UNITS, type CanonicalItem, type MeasureUnit, type ShoppingListC
 import { usePantryStore } from '@/store/pantryStore';
 import { CollapsibleEditorRow } from '@/components/CollapsibleEditorRow';
 import { nextExpandedId } from '@/logic/collapsibleEditor';
+import { localDateString } from '@/logic/dates';
+import { restockFromShoppingItem } from '@/logic/stockRestock';
 
 interface ManualEntrySubmission {
   canonicalId: string | null;
@@ -63,6 +66,8 @@ export function ShoppingListSection() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'open' | 'history'>('open');
   const pantryRevision = usePantryStore((state) => state.revision);
+  const restock = usePantryStore((state) => state.restock);
+  const undoRestock = usePantryStore((state) => state.undoRestock);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -136,6 +141,48 @@ export function ShoppingListSection() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const restockPurchasedItem = async (
+    item: ShoppingListItem,
+    previousStatus: ShoppingListItem['status'],
+  ) => {
+    try {
+      const [pantry, canonicals, locations] = await Promise.all([
+        listPantryItems(),
+        getAllCanonicals(),
+        getLocations(),
+      ]);
+      const canonical = canonicals.find((candidate) => candidate.id === item.canonicalId) ?? null;
+      const plan = restockFromShoppingItem(
+        item,
+        pantry,
+        canonical,
+        locations,
+        localDateString(),
+      );
+      if (!plan) throw new Error('This grocery item cannot be placed in Pantry yet.');
+
+      const undo = await restock(plan);
+      toast.show({
+        kind: 'success',
+        message: `${item.displayName} added to Pantry.`,
+        actionLabel: 'Undo',
+        onAction: () => {
+          void undoRestock(undo, item.id, previousStatus)
+            .then(load)
+            .then(() => toast.show({ kind: 'success', message: `${item.displayName} restored.` }))
+            .catch(() => toast.show({ kind: 'recoverable-error', message: 'The restock could not be undone. Try again.' }));
+        },
+      });
+    } catch {
+      toast.show({
+        kind: 'recoverable-error',
+        message: `${item.displayName} could not be restocked.`,
+        actionLabel: 'Undo purchase',
+        onAction: () => void setStatus(item, previousStatus),
+      });
+    }
+  };
+
   const setStatus = async (item: ShoppingListItem, status: ShoppingListItem['status']) => {
     const previousStatus = item.status;
     await updateShoppingListItem(item.id, { status });
@@ -147,8 +194,11 @@ export function ShoppingListSection() {
     toast.show({
       kind: 'success',
       message,
-      actionLabel: status !== 'open' ? 'Undo' : undefined,
-      onAction: status !== 'open' ? () => void setStatus(item, previousStatus) : undefined,
+      actionLabel: status === 'purchased' && item.canonicalId ? 'Restock in Pantry'
+        : status !== 'open' ? 'Undo' : undefined,
+      onAction: status === 'purchased' && item.canonicalId
+        ? () => void restockPurchasedItem(item, previousStatus)
+        : status !== 'open' ? () => void setStatus(item, previousStatus) : undefined,
     });
   };
 

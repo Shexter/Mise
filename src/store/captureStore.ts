@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { NewMeal } from '@/db/queries';
 import type { MealEstimate } from '@/types';
 
 /**
@@ -14,7 +15,9 @@ interface CaptureState {
   photoUri: string | null;
   base64: string | null;
   estimate: MealEstimate | null;
-  set: (patch: Partial<CaptureState>) => void;
+  mealDraft: NewMeal | null;
+  set: (patch: Partial<Pick<CaptureState, 'photoUri' | 'base64' | 'estimate'>>) => void;
+  setMealDraft: (mealDraft: NewMeal) => void;
   clear: () => void;
 }
 
@@ -22,6 +25,13 @@ export const useCaptureStore = create<CaptureState>((set) => ({
   photoUri: null,
   base64: null,
   estimate: null,
-  set: (patch) => set(patch),
-  clear: () => set({ photoUri: null, base64: null, estimate: null }),
+  mealDraft: null,
+  set: (patch) => set({ ...patch, mealDraft: null }),
+  setMealDraft: (mealDraft) => set({
+    photoUri: null,
+    base64: null,
+    estimate: null,
+    mealDraft,
+  }),
+  clear: () => set({ photoUri: null, base64: null, estimate: null, mealDraft: null }),
 }));

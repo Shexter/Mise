@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import {
   getAllCanonicals,
@@ -11,6 +12,7 @@ import {
 import { depleteForMeal } from '@/logic/depletionService';
 import { mealFromRecipe } from '@/logic/recipe';
 import { mealFromSuggestion } from '@/logic/suggestionService';
+import { useCaptureStore } from '@/store/captureStore';
 import type { CanonicalItem, RecipeWithIngredients, Suggestion } from '@/types';
 import { openTestDatabase } from './stubs/db';
 
@@ -43,12 +45,41 @@ const recipe: RecipeWithIngredients = {
 };
 
 describe('cooking a saved recipe', () => {
-  test('depletes stated canonical quantities through the same path as a cooked suggestion', async () => {
-    const rice = await insertPantryItem({ canonicalId: 'jasmine-rice', locationId: 'pantry', qtyRemaining: 1000, qtyUnit: 'g' });
+  test('routes the prepared recipe draft into the shared review controls', () => {
+    const detail = readFileSync('app/recipe/[id].tsx', 'utf8');
+    const review = readFileSync('app/review.tsx', 'utf8');
+
+    expect(detail).toContain('label="Cook & Log Meal"');
+    expect(detail).toContain('setMealDraft(mealFromRecipe(');
+    expect(detail).toContain("router.push('/review')");
+    expect(review).toContain('mealDraft.items.map(toDraftMealItem)');
+    expect(review).toContain('source: draftSource');
+    expect(review).toContain('mealDraft?.mealType ?? mealTypeForTime()');
+    expect(review).toContain('mealDraft?.servingsMult ?? 1');
+    expect(review).toContain("draftSource === 'recipe'");
+  });
+
+  test('constructs a review draft with recipe provenance and known identities', () => {
+    const meal = mealFromRecipe({ recipe, localDate: '2026-08-11', canonicals });
+    useCaptureStore.getState().setMealDraft(meal);
+
+    expect(useCaptureStore.getState().mealDraft).toMatchObject({
+      name: 'Gochujang rice',
+      localDate: '2026-08-11',
+      source: 'recipe',
+      venue: 'home',
+      servingsMult: 1,
+    });
+    expect(useCaptureStore.getState().mealDraft?.items.map((item) => item.canonicalId))
+      .toEqual([undefined, 'jasmine-rice', 'gochujang']);
+  });
+
+  test.each([1, 2, 4] as const)('depletes stated quantities accurately at %sx', async (servingsMade) => {
+    const rice = await insertPantryItem({ canonicalId: 'jasmine-rice', locationId: 'pantry', qtyRemaining: 2000, qtyUnit: 'g' });
     const gochujang = await insertPantryItem({ canonicalId: 'gochujang', locationId: 'fridge' });
 
-    const recipeMeal = mealFromRecipe({ recipe, localDate: '2026-08-11', canonicals });
-    const suggestionMeal = mealFromSuggestion({ suggestion, localDate: '2026-08-11', servingsMade: 1, canonicals });
+    const recipeMeal = mealFromRecipe({ recipe, localDate: '2026-08-11', servingsMade, canonicals });
+    const suggestionMeal = mealFromSuggestion({ suggestion, localDate: '2026-08-11', servingsMade, canonicals });
 
     expect(recipeMeal).toMatchObject({ source: 'recipe', venue: 'home', servingsMult: suggestionMeal.servingsMult });
     expect(recipeMeal.items.map(({ quantity, unit, canonicalId }) => ({ quantity, unit, canonicalId })))
@@ -57,18 +88,45 @@ describe('cooking a saved recipe', () => {
     const stored = await insertMeal(recipeMeal);
     const summary = await depleteForMeal(stored);
 
+    expect(stored.source).toBe('recipe');
     expect([...summary.names].sort()).toEqual(['Gochujang', 'Jasmine rice']);
-    expect((await getPantryItem(rice.id))?.qtyRemaining).toBe(800);
-    // The canonical's typical use is half a tablespoon, so one stated
-    // tablespoon is two uses — identical to the cooked-suggestion path.
-    expect((await getPantryItem(gochujang.id))?.usesCount).toBe(2);
+    expect((await getPantryItem(rice.id))?.qtyRemaining).toBe(2000 - (200 * servingsMade));
+    // The stated tablespoon is counted once per batch multiplier. The
+    // dish-level "Gochujang rice" nutrition row must not count as another use.
+    expect((await getPantryItem(gochujang.id))?.usesCount).toBe(servingsMade);
     expect((await getConsumptionEvents(stored.id)).map((event) => event.canonicalId).sort()).toEqual([
-      'gochujang', 'gochujang', 'jasmine-rice',
+      'gochujang', 'jasmine-rice',
     ]);
   });
 
   test('does not guess or deplete an ingredient whose recipe states no amount', () => {
     const meal = mealFromRecipe({ recipe, localDate: '2026-08-11', canonicals });
     expect(meal.items.some((item) => item.canonicalId === 'spring-onion')).toBe(false);
+  });
+
+  test('does not resolve the dish-level nutrition row as another ingredient', async () => {
+    const rice = await insertPantryItem({
+      canonicalId: 'jasmine-rice',
+      locationId: 'pantry',
+      qtyRemaining: 1000,
+      qtyUnit: 'g',
+    });
+    const riceRecipe = {
+      ...recipe,
+      title: 'Jasmine rice',
+      ingredients: recipe.ingredients.filter((ingredient) => ingredient.canonicalId === 'jasmine-rice'),
+    };
+    const stored = await insertMeal(mealFromRecipe({
+      recipe: riceRecipe,
+      localDate: '2026-08-11',
+      canonicals,
+    }));
+
+    await depleteForMeal(stored);
+
+    expect((await getPantryItem(rice.id))?.qtyRemaining).toBe(800);
+    expect((await getConsumptionEvents(stored.id)).filter(
+      (event) => event.canonicalId === 'jasmine-rice',
+    )).toHaveLength(1);
   });
 });

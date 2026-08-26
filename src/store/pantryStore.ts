@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import {
   addLocation,
+  applyShoppingRestock,
   discardItem,
   freezeItem,
   getAllCanonicals,
@@ -15,10 +16,13 @@ import {
   removeLocation,
   renameLocation,
   setItemFullness,
+  undoShoppingRestock,
   type NewPantryItem,
+  type ShoppingRestockUndo,
 } from '@/db/queries';
 import { isFreezable } from '@/logic/expiry';
 import { shelfLifeKey } from '@/logic/expiry';
+import type { ShoppingRestockPlan } from '@/logic/stockRestock';
 import { daysUntil, stockStatusWithConfidence } from '@/logic/stockStatus';
 import type {
   CanonicalItem,
@@ -29,6 +33,7 @@ import type {
   PantryItem,
   SourceId,
   StockStatus,
+  ShoppingListStatus,
 } from '@/types';
 
 /**
@@ -99,13 +104,22 @@ interface PantryState {
   addLocation: (name: string, kind: LocationKind) => Promise<void>;
   renameLocation: (id: string, name: string) => Promise<void>;
   removeLocation: (id: string, destinationId: string) => Promise<void>;
+  restock: (plan: ShoppingRestockPlan) => Promise<ShoppingRestockUndo>;
+  undoRestock: (undo: ShoppingRestockUndo, shoppingItemId: string, previousStatus: ShoppingListStatus) => Promise<void>;
 }
 
 export const usePantryStore = create<PantryState>((set, get) => {
-  const act = async (work: () => Promise<unknown>) => {
+  const act = async (work: () => Promise<unknown>): Promise<void> => {
     await work();
     await get().refresh();
     set((state) => ({ revision: state.revision + 1 }));
+  };
+
+  const actWithResult = async <T>(work: () => Promise<T>): Promise<T> => {
+    const result = await work();
+    await get().refresh();
+    set((state) => ({ revision: state.revision + 1 }));
+    return result;
   };
 
   return {
@@ -146,6 +160,9 @@ export const usePantryStore = create<PantryState>((set, get) => {
     renameLocation: (id, name) => act(() => renameLocation(id, name)),
     removeLocation: (id, destinationId) =>
       act(() => removeLocation(id, destinationId)),
+    restock: (plan) => actWithResult(() => applyShoppingRestock(plan)),
+    undoRestock: (undo, shoppingItemId, previousStatus) =>
+      act(() => undoShoppingRestock(undo, shoppingItemId, previousStatus)),
   };
 });
 

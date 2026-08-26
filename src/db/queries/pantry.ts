@@ -2,7 +2,8 @@ import { randomUUID } from 'expo-crypto';
 import { db } from '@/db';
 import { localDateString } from '@/logic/dates';
 import { canRecomputeExpiry, freezeExpiry, predictExpiry } from '@/logic/expiry';
-import type { ExpirySource, Fullness, Location, LocationKind, MeasureUnit, PantryItem, QuantitySource } from '@/types';
+import type { ShoppingRestockPlan } from '@/logic/stockRestock';
+import type { ExpirySource, Fullness, Location, LocationKind, MeasureUnit, PantryItem, QuantitySource, ShoppingListStatus } from '@/types';
 import {
   CanonicalItemRow,
   toCanonicalItem,
@@ -112,6 +113,90 @@ export interface NewPantryItem {
   expirySource?: Exclude<ExpirySource, 'predicted'>;
   priceCents?: number | null;
   photoUri?: string | null;
+}
+
+export interface ShoppingRestockUndo {
+  createdItemId: string;
+  replacedItemIds: string[];
+}
+
+
+/** Applies one shopping-list restock as a new physical container. */
+export async function applyShoppingRestock(
+  plan: ShoppingRestockPlan,
+): Promise<ShoppingRestockUndo> {
+  const createdItemId = randomUUID();
+  const now = new Date().toISOString();
+  let replacedItemIds: string[] = [];
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const shoppingItem = await txn.getFirstAsync<{ status: string }>(
+      'SELECT status FROM shopping_list_items WHERE id = ?',
+      [plan.shoppingItemId],
+    );
+    if (shoppingItem?.status !== 'purchased') {
+      throw new Error('Shopping item is no longer marked purchased.');
+    }
+
+    if (plan.replacedItemIds.length > 0) {
+      const placeholders = plan.replacedItemIds.map(() => '?').join(',');
+      const replaceable = await txn.getAllAsync<{ id: string }>(
+        `SELECT id FROM pantry_items WHERE status = 'out' AND id IN (${placeholders})`,
+        plan.replacedItemIds,
+      );
+      replacedItemIds = replaceable.map((row) => row.id);
+    }
+
+    await txn.runAsync(
+      `INSERT INTO pantry_items
+         (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
+          qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
+          expiry_source, price_cents, photo_uri, status, created_at, updated_at)
+       VALUES (?, ?, NULL, ?, NULL, NULL, NULL, NULL, 0, ?, NULL, ?, ?, NULL, NULL, 'in_stock', ?, ?)`,
+      [
+        createdItemId,
+        plan.item.canonicalId,
+        plan.item.locationId,
+        plan.item.purchasedAt,
+        plan.item.expiresAt,
+        plan.item.expiresAt === null ? null : 'predicted',
+        now,
+        now,
+      ],
+    );
+
+    for (const id of replacedItemIds) {
+      await txn.runAsync(
+        "UPDATE pantry_items SET status = 'replaced', updated_at = ? WHERE id = ? AND status = 'out'",
+        [now, id],
+      );
+    }
+  });
+
+  return { createdItemId, replacedItemIds };
+}
+
+
+/** Reverses the toast-scoped restock and its purchase in one transaction. */
+export async function undoShoppingRestock(
+  undo: ShoppingRestockUndo,
+  shoppingItemId: string,
+  previousStatus: ShoppingListStatus,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync('DELETE FROM pantry_items WHERE id = ?', [undo.createdItemId]);
+    for (const id of undo.replacedItemIds) {
+      await txn.runAsync(
+        "UPDATE pantry_items SET status = 'out', updated_at = ? WHERE id = ? AND status = 'replaced'",
+        [now, id],
+      );
+    }
+    await txn.runAsync(
+      'UPDATE shopping_list_items SET status = ?, completed_at = NULL, updated_at = ? WHERE id = ?',
+      [previousStatus, now, shoppingItemId],
+    );
+  });
 }
 
 
