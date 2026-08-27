@@ -87,6 +87,7 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     confidence: meal.confidence,
     venue,
     servingsMult: venue === 'home' ? Math.max(1, meal.servingsMult ?? 1) : 1,
+    isFavorite: false,
     createdAt,
     items,
   };
@@ -107,8 +108,8 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
     await txn.runAsync(
       `INSERT INTO meals
          (id, logged_at, local_date, meal_type, name, photo_uri, source, confidence,
-          venue, servings_mult, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          venue, servings_mult, is_favorite, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         meal.id,
         meal.loggedAt,
@@ -120,6 +121,7 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
         meal.confidence,
         meal.venue,
         meal.servingsMult,
+        meal.isFavorite ? 1 : 0,
         meal.createdAt,
       ],
     );
@@ -191,6 +193,102 @@ export async function getMeal(id: string): Promise<MealWithItems | null> {
     [id],
   );
   return { ...toMeal(mealRow), items: itemRows.map(toMealItem) };
+}
+
+
+/** Toggles one stored meal's local quick-log pin and returns its new state. */
+export async function toggleMealFavorite(id: string): Promise<boolean> {
+  const row = await db().getFirstAsync<{ is_favorite: number }>(
+    'SELECT is_favorite FROM meals WHERE id = ?',
+    [id],
+  );
+  if (!row) throw new Error('Meal no longer exists.');
+  const next = row.is_favorite !== 1;
+  await db().runAsync(
+    'UPDATE meals SET is_favorite = ? WHERE id = ?',
+    [next ? 1 : 0, id],
+  );
+  return next;
+}
+
+
+export interface QuickRelogMeal {
+  meal: MealWithItems;
+  isFavorite: boolean;
+  timesLogged: number;
+}
+
+
+/**
+ * One representative per normalized dish from the recent window, plus every
+ * pinned dish even when it is older. Pinned dishes sort first, then frequency,
+ * then recency. The latest occurrence supplies the template ingredients.
+ */
+export async function getRecentAndFavoriteMeals(
+  days = 14,
+  limit = 20,
+): Promise<QuickRelogMeal[]> {
+  const windowDays = Math.max(1, Math.floor(days));
+  const since = localDateString(subDays(new Date(), windowDays - 1));
+  const rows = await db().getAllAsync<MealRow>(
+    `SELECT * FROM meals
+     WHERE is_favorite = 1 OR local_date >= ?
+     ORDER BY logged_at DESC`,
+    [since],
+  );
+  if (rows.length === 0) return [];
+
+  const grouped = new Map<string, {
+    representative: MealRow;
+    isFavorite: boolean;
+    timesLogged: number;
+  }>();
+  for (const row of rows) {
+    const key = normalise(row.name) || row.id;
+    const current = grouped.get(key);
+    if (!current) {
+      grouped.set(key, {
+        representative: row,
+        isFavorite: row.is_favorite === 1,
+        timesLogged: row.local_date >= since ? 1 : 0,
+      });
+      continue;
+    }
+    current.isFavorite ||= row.is_favorite === 1;
+    if (row.local_date >= since) current.timesLogged += 1;
+  }
+
+  const selected = [...grouped.values()]
+    .sort((left, right) =>
+      Number(right.isFavorite) - Number(left.isFavorite)
+      || right.timesLogged - left.timesLogged
+      || right.representative.logged_at.localeCompare(left.representative.logged_at),
+    )
+    .slice(0, Math.max(0, Math.floor(limit)));
+  if (selected.length === 0) return [];
+
+  const ids = selected.map((entry) => entry.representative.id);
+  const placeholders = ids.map(() => '?').join(', ');
+  const itemRows = await db().getAllAsync<MealItemRow>(
+    `SELECT * FROM meal_items WHERE meal_id IN (${placeholders})
+     ORDER BY sort_order ASC`,
+    ids,
+  );
+  const itemsByMeal = new Map<string, MealItem[]>();
+  for (const row of itemRows) {
+    const items = itemsByMeal.get(row.meal_id) ?? [];
+    items.push(toMealItem(row));
+    itemsByMeal.set(row.meal_id, items);
+  }
+
+  return selected.map((entry) => ({
+    meal: {
+      ...toMeal(entry.representative),
+      items: itemsByMeal.get(entry.representative.id) ?? [],
+    },
+    isFavorite: entry.isFavorite,
+    timesLogged: entry.timesLogged,
+  }));
 }
 
 

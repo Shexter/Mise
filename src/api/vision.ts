@@ -98,13 +98,13 @@ export function copyForError(error: unknown, provider?: Provider | null): Vision
       if (resolvedProvider === 'gemini') {
         return {
           title: 'Gemini free tier limit reached',
-          detail: 'The free tier allows a limited number of requests per minute and per day. Wait a minute and try again, or check your usage in Google AI Studio.',
+          detail: 'The free tier allows a limited number of requests per minute and per day. Wait a minute and try again, or enter the meal by hand.',
           action: 'retry',
         };
       }
       return {
         title: 'Rate limited',
-        detail: 'Your key is over its request limit. Try again in a moment.',
+        detail: 'Your key is over its request limit. Try again in a moment or enter the meal by hand.',
         action: 'retry',
       };
     case 'server':

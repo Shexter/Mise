@@ -34,6 +34,27 @@ const IDENTITY_TABLES = [
 const PANTRY_TABLES = ['locations', 'pantry_items'];
 
 describe('migrations', () => {
+  test('the quick-relog migration preserves meals and defaults favorites off', () => {
+    const db = new DatabaseSync(':memory:');
+    const quickRelogIndex = MIGRATIONS.findIndex((statement) =>
+      statement.includes('ADD COLUMN is_favorite'),
+    );
+    expect(quickRelogIndex).toBeGreaterThan(0);
+    migrate(db, 0, quickRelogIndex);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('before-quick-relog', '2026-08-25T12:00:00Z', '2026-08-25', 'lunch', 'Noodles', 'manual', '2026-08-25T12:00:00Z')`,
+    ).run();
+
+    migrate(db, quickRelogIndex, quickRelogIndex + 1);
+
+    expect(db.prepare("SELECT name, is_favorite FROM meals WHERE id = 'before-quick-relog'").get())
+      .toEqual({ name: 'Noodles', is_favorite: 0 });
+    const indexes = db.prepare("PRAGMA index_list('meals')").all() as { name: string }[];
+    expect(indexes.map((row) => row.name)).toContain('idx_meals_favorite');
+    db.close();
+  });
+
   test('the fasting migration upgrades its prior head without touching existing data', () => {
     const db = new DatabaseSync(':memory:');
     const fastingIndex = MIGRATIONS.findIndex((statement) => statement.includes('CREATE TABLE fasts'));

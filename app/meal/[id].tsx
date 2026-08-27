@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, View } from 'react-native';
@@ -14,8 +15,8 @@ import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, MealCalories, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
-import { color, opacity, radius, space } from '@/constants/theme';
-import { getMeal } from '@/db/queries';
+import { color, layout, opacity, radius, space } from '@/constants/theme';
+import { getMeal, toggleMealFavorite } from '@/db/queries';
 import { photoBase64 } from '@/media/photos';
 import { friendlyDate } from '@/logic/dates';
 import {
@@ -72,6 +73,7 @@ export default function MealEditorScreen() {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [estimating, setEstimating] = useState(false);
+  const [favoriting, setFavoriting] = useState(false);
   const allowLeave = useRef(false);
 
   useEffect(() => {
@@ -186,6 +188,23 @@ export default function MealEditorScreen() {
     }
   };
 
+  const toggleFavorite = async () => {
+    if (!draft || favoriting) return;
+    setFavoriting(true);
+    try {
+      const isFavorite = await toggleMealFavorite(draft.original.id);
+      setDraft((current) => current ? {
+        ...current,
+        original: { ...current.original, isFavorite },
+      } : current);
+      toast.show({ message: isFavorite ? 'Added to favorites.' : 'Removed from favorites.' });
+    } catch {
+      toast.show({ kind: 'recoverable-error', message: 'Favorite could not be updated.' });
+    } finally {
+      setFavoriting(false);
+    }
+  };
+
   if (notFound) {
     return (
       <Screen contentStyle={styles.center}>
@@ -222,6 +241,25 @@ export default function MealEditorScreen() {
     >
       <View style={styles.header}>
         <ScreenTitle>Edit meal</ScreenTitle>
+        <Pressable
+          onPress={() => void toggleFavorite()}
+          disabled={favoriting}
+          accessibilityRole="button"
+          accessibilityLabel={draft.original.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          accessibilityState={{ selected: draft.original.isFavorite ?? false, busy: favoriting }}
+          hitSlop={space.sm}
+          style={({ pressed }) => [
+            styles.favoriteButton,
+            pressed && { opacity: opacity.pressed },
+            favoriting && { opacity: opacity.disabled },
+          ]}
+        >
+          <Feather
+            name="star"
+            size={22}
+            color={draft.original.isFavorite ? color.action : color.muted}
+          />
+        </Pressable>
       </View>
 
       {draft.original.photoUri ? (
@@ -441,7 +479,18 @@ function applyCanonical(
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { gap: space.lg, paddingTop: space.sm },
-  header: { paddingBottom: space.sm },
+  header: {
+    paddingBottom: space.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  favoriteButton: {
+    width: layout.minTouchTarget,
+    height: layout.minTouchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoSection: { gap: space.sm },
   photo: { width: '100%', height: 200, borderRadius: radius.card },
   estimateButton: { borderColor: color.action },

@@ -7,15 +7,17 @@ import { color, elevation, opacity, radius, space } from '@/constants/theme';
 interface Props {
   onPress: () => void;
   onSecondary: () => void;
+  onLongPress?: () => void;
+  longPressHint?: string;
 }
 
 const SIZE = 64;
 
 /**
- * Camera on tap, manual entry on long-press or via the small secondary button.
+ * Camera on tap, with a caller-defined long press and manual-entry shortcut.
  * The FAB is the only pill-shaped thing in the app.
  */
-export function Fab({ onPress, onSecondary }: Props) {
+export function Fab({ onPress, onSecondary, onLongPress, longPressHint }: Props) {
   return (
     <View style={styles.group}>
       <Pressable
@@ -35,10 +37,10 @@ export function Fab({ onPress, onSecondary }: Props) {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onPress();
         }}
-        onLongPress={onSecondary}
+        onLongPress={onLongPress ?? onSecondary}
         accessibilityRole="button"
         accessibilityLabel="Photograph a meal"
-        accessibilityHint="Long press to enter a meal by hand"
+        accessibilityHint={longPressHint ?? 'Long press to enter a meal by hand'}
         style={({ pressed }) => [
           styles.fab,
           pressed && { opacity: opacity.pressed },

@@ -76,6 +76,7 @@ export interface MealRow {
   confidence: string | null;
   venue: string;
   servings_mult: number;
+  is_favorite: number;
   created_at: string;
 }
 
@@ -230,6 +231,7 @@ export function toMeal(row: MealRow): Meal {
     confidence: row.confidence as Confidence | null,
     venue: row.venue as MealVenue,
     servingsMult: row.servings_mult,
+    isFavorite: row.is_favorite === 1,
     createdAt: row.created_at,
   };
 }

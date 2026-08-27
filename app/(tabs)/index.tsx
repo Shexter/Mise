@@ -22,6 +22,7 @@ import { DayRail } from '@/components/DayRail';
 import { Fab } from '@/components/Fab';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { MealRow } from '@/components/MealRow';
+import { RecentMealsSheet } from '@/components/meals/RecentMealsSheet';
 import { Body, Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import {
@@ -45,10 +46,12 @@ import {
 import { friendlyDate, isToday, localDateString } from '@/logic/dates';
 import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
 import { roundCalories } from '@/logic/scaling';
+import { cloneMealForLogging, type QuickRelogVenue } from '@/logic/mealCloning';
 import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
+import { useCaptureStore } from '@/store/captureStore';
 import { useProfileStore } from '@/store/profileStore';
-import type { SuggestionTargetMacro } from '@/types';
+import type { MealWithItems, SuggestionTargetMacro } from '@/types';
 
 export default function TodayScreen() {
   const router = useRouter();
@@ -78,6 +81,8 @@ export default function TodayScreen() {
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [recentMealsOpen, setRecentMealsOpen] = useState(false);
+  const setMealDraft = useCaptureStore((state) => state.setMealDraft);
 
   // The Today tab opens on today: sync (which resets `selectedDate` only
   // when `following` is true) before refreshing, so a day chosen earlier in
@@ -142,6 +147,12 @@ export default function TodayScreen() {
 
   const onMacroRequest = (macro: SuggestionTargetMacro) =>
     router.push({ pathname: '/dinner', params: { macro } });
+
+  const onQuickRelog = (meal: MealWithItems, venue: QuickRelogVenue) => {
+    setMealDraft(cloneMealForLogging(meal, localDateString(), venue));
+    setRecentMealsOpen(false);
+    router.push('/review');
+  };
 
   const onLoadDemoData = () => {
     Alert.alert(
@@ -388,6 +399,8 @@ export default function TodayScreen() {
         <Fab
           onPress={() => router.push('/capture')}
           onSecondary={() => router.push('/manual')}
+          onLongPress={() => setRecentMealsOpen(true)}
+          longPressHint="Long press to repeat a recent or favorite meal"
         />
       </View>
 
@@ -399,6 +412,11 @@ export default function TodayScreen() {
         loadSummaries={loadMonthSummaries}
         onSelect={(date) => void selectDate(date)}
         onClose={() => setCalendarOpen(false)}
+      />
+      <RecentMealsSheet
+        visible={recentMealsOpen}
+        onClose={() => setRecentMealsOpen(false)}
+        onSelect={onQuickRelog}
       />
     </View>
   );

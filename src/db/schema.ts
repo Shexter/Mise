@@ -754,6 +754,12 @@ CREATE TABLE receipt_ocr_preferences (
 );
 `;
 
+/** Migration 34: locally pinned meal templates for quick re-logging. */
+const QUICK_RELOG = `
+ALTER TABLE meals ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX idx_meals_favorite ON meals(is_favorite);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -787,6 +793,7 @@ export const MIGRATIONS: readonly string[] = [
   SHOPS,
   EXTENDED_MICRONUTRIENT_TRACKING,
   RECEIPT_OCR,
+  QUICK_RELOG,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;

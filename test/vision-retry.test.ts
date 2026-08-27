@@ -97,3 +97,20 @@ test('does not retry billing or malformed failures', async () => {
   })).rejects.toMatchObject({ kind: 'billing' });
   expect(calls).toBe(1);
 });
+
+test('triggers onRetryWait callback with reported delayMs', async () => {
+  let calls = 0;
+  const reportedDelays: number[] = [];
+  const result = await retryRateLimitedOnce(
+    async () => {
+      calls += 1;
+      if (calls === 1) throw new VisionError('rate_limited', 'wait', 5000);
+      return 'done';
+    },
+    undefined,
+    (delayMs) => reportedDelays.push(delayMs),
+    async () => {},
+  );
+  expect(result).toBe('done');
+  expect(reportedDelays).toEqual([5000]);
+});

@@ -314,10 +314,20 @@ export default function ReviewScreen() {
   /* ----------------------------- Analyzing ----------------------------- */
 
   if (phase.kind === 'analyzing') {
-    return <ReviewLoadingScreen photoUri={photoUri} retrying={phase.retryDelayMs !== undefined} onCancel={() => {
-      abortRef.current?.abort();
-      discard();
-    }} />;
+    return (
+      <ReviewLoadingScreen
+        photoUri={photoUri}
+        retryDelayMs={phase.retryDelayMs}
+        onCancel={() => {
+          abortRef.current?.abort();
+          discard();
+        }}
+        onManual={() => {
+          abortRef.current?.abort();
+          router.replace('/manual');
+        }}
+      />
+    );
   }
 
   /* ------------------------------- Error ------------------------------- */
@@ -537,19 +547,49 @@ function toDraftMealItem(item: NewMeal['items'][number]): MealItem {
 
 function ReviewLoadingScreen({
   photoUri,
-  retrying,
+  retryDelayMs,
   onCancel,
+  onManual,
 }: {
   photoUri: string | null;
-  retrying: boolean;
+  retryDelayMs?: number;
   onCancel: () => void;
+  onManual: () => void;
 }) {
+  const [remainingSec, setRemainingSec] = useState<number | null>(
+    retryDelayMs ? Math.ceil(retryDelayMs / 1000) : null,
+  );
+
+  useEffect(() => {
+    if (!retryDelayMs) {
+      setRemainingSec(null);
+      return undefined;
+    }
+    setRemainingSec(Math.ceil(retryDelayMs / 1000));
+    const interval = setInterval(() => {
+      setRemainingSec((prev) => (prev && prev > 1 ? prev - 1 : 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [retryDelayMs]);
+
   return (
     <View style={styles.reviewRoot}>
       <ScrollView contentContainerStyle={styles.loadingContent} showsVerticalScrollIndicator={false}>
-         {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} resizeMode="cover" /> : null}
-         {/* <ReviewSkeleton /> is represented here by the structured fields so the photo stays visible. */}
-         <View accessible accessibilityRole="progressbar" accessibilityLabel={retrying ? 'Retrying meal estimate' : 'Reading your plate…'} accessibilityState={{ busy: true }} style={styles.loadingFields}>
+        {photoUri ? <Image source={{ uri: photoUri }} style={styles.thumb} resizeMode="cover" /> : null}
+
+        {retryDelayMs ? (
+          <View style={styles.countdownBanner}>
+            <Body>
+              Waiting {remainingSec ?? Math.ceil(retryDelayMs / 1000)}s for quota reset…
+            </Body>
+            <Caption muted>
+              The AI provider is temporarily rate limited. We'll automatically retry in a moment.
+            </Caption>
+          </View>
+        ) : null}
+
+        {/* <ReviewSkeleton /> is represented here by the structured fields so the photo stays visible. */}
+        <View accessible accessibilityRole="progressbar" accessibilityLabel={retryDelayMs ? `Waiting ${remainingSec ?? ''}s for quota reset` : 'Reading your plate…'} accessibilityState={{ busy: true }} style={styles.loadingFields}>
           <SectionLabel muted>Name</SectionLabel>
           <Skeleton width="100%" height={56} />
 
@@ -579,7 +619,11 @@ function ReviewLoadingScreen({
         </View>
       </ScrollView>
       <View style={styles.loadingFooter}>
-        <Button label="Cancel" variant="secondary" onPress={onCancel} />
+        {retryDelayMs ? (
+          <Button label="Cancel & Enter by hand" variant="secondary" onPress={onManual} />
+        ) : (
+          <Button label="Cancel" variant="secondary" onPress={onCancel} />
+        )}
         <Button label="Save changes" disabled onPress={() => undefined} />
       </View>
     </View>
@@ -616,6 +660,14 @@ const styles = StyleSheet.create({
     paddingTop: space.base,
     paddingBottom: 140,
     gap: space.base,
+  },
+  countdownBanner: {
+    backgroundColor: color.surface,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: color.line,
+    padding: layout.cardPadding,
+    gap: space.xs,
   },
   loadingFields: { gap: space.sm },
   loadingItemsHeader: {

@@ -180,6 +180,8 @@ export interface Meal {
   venue: MealVenue;
   /** How many servings the cooking produced. Always 1 for non-home venues. */
   servingsMult: number;
+  /** Locally pinned for the quick re-log list. Absent only in legacy fixtures. */
+  isFavorite?: boolean;
   createdAt: string;
 }
 

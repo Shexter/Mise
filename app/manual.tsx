@@ -16,6 +16,7 @@ import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
+import { RecentMealsSheet } from '@/components/meals/RecentMealsSheet';
 import { MealModifierControls } from '@/components/review/MealModifierControls';
 import { Caption, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
@@ -41,6 +42,8 @@ import {
 } from '@/logic/nutrition';
 import type { CanonicalItem, MeasureUnit } from '@/types';
 import { inferVenueForDraft } from '@/logic/venueService';
+import { cloneMealForLogging, type QuickRelogVenue } from '@/logic/mealCloning';
+import type { MealWithItems } from '@/types';
 
 
 export default function ManualScreen() {
@@ -52,6 +55,7 @@ export default function ManualScreen() {
   const initialDate = params.targetDate || useDayStore.getState().selectedDate || localDateString();
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [recentMealsOpen, setRecentMealsOpen] = useState(false);
 
   const loggedDateSet = useDayStore((state) => state.loggedDateSet);
   const earliestLoggedDate = useDayStore((state) => state.earliestLoggedDate);
@@ -59,6 +63,7 @@ export default function ManualScreen() {
 
   const { photoUri, clear } = useCaptureStore();
   const setCapture = useCaptureStore((state) => state.set);
+  const setMealDraft = useCaptureStore((state) => state.setMealDraft);
   const addMeal = useDayStore((state) => state.addMeal);
 
   const [name, setName] = useState('');
@@ -204,6 +209,12 @@ export default function ManualScreen() {
     router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
   };
 
+  const onQuickRelog = (meal: MealWithItems, venue: QuickRelogVenue) => {
+    setMealDraft(cloneMealForLogging(meal, localDateString(), venue));
+    setRecentMealsOpen(false);
+    router.push('/review');
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -236,6 +247,12 @@ export default function ManualScreen() {
             />
           </View>
         ) : null}
+
+        <Button
+          label="Pick from recent or favorites"
+          variant="secondary"
+          onPress={() => setRecentMealsOpen(true)}
+        />
 
         <View style={styles.section}>
           <SectionLabel muted>Date</SectionLabel>
@@ -364,6 +381,11 @@ export default function ManualScreen() {
           setCalendarOpen(false);
         }}
         onClose={() => setCalendarOpen(false)}
+      />
+      <RecentMealsSheet
+        visible={recentMealsOpen}
+        onClose={() => setRecentMealsOpen(false)}
+        onSelect={onQuickRelog}
       />
     </View>
   );
