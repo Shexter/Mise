@@ -35,6 +35,13 @@ const config: ExpoConfig = {
         'Mise reads photos you pick so it can estimate the calories of a meal.',
       NSLocationWhenInUseUsageDescription:
         "Mise uses your location, only while the app is open, to recognise shops you've bought from before and show what you're low on when you check one.",
+      NSMicrophoneUsageDescription:
+        'Mise uses the microphone only while you are speaking your pantry, so it can write down what you say. The recording is deleted as soon as it has been turned into text.',
+      // Required by `SFSpeechRecognizer` even though Mise always asks for
+      // on-device recognition. A device that cannot honour that is reported
+      // unavailable rather than quietly transcribing over the network.
+      NSSpeechRecognitionUsageDescription:
+        'Mise turns your speech into text on this device so you can name several pantry items at once. Nothing is sent anywhere.',
     },
     // The `mise` scheme above becomes this app's CFBundleURLTypes entry at
     // prebuild, so a `mise://` link opens the intake. Appearing in the iOS
@@ -54,6 +61,7 @@ const config: ExpoConfig = {
     permissions: [
       'android.permission.CAMERA',
       'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.RECORD_AUDIO',
     ],
     /**
      * Share-target registration (`add-recipe-links` task 3.1).
@@ -115,6 +123,31 @@ const config: ExpoConfig = {
       {
         cameraPermission:
           'Mise uses the camera to photograph your meals so it can estimate their calories.',
+      },
+    ],
+    [
+      /**
+       * Platform speech recognition — `SFSpeechRecognizer` on iOS, Android's
+       * `SpeechRecognizer`.
+       *
+       * The plugin's job on Android is the package-visibility entry: from
+       * Android 11 an app cannot see another app's services unless it declares
+       * them, and without `com.google.android.googlequicksearchbox` in
+       * `<queries>` the recogniser is invisible and every start fails with no
+       * useful error.
+       *
+       * `com.google.android.as` is the on-device Android System Intelligence
+       * service — the one that does offline recognition and language
+       * identification. Declaring it is what lets `requiresOnDeviceRecognition`
+       * actually find a local model instead of silently needing the network.
+       */
+      'expo-speech-recognition',
+      {
+        microphonePermission:
+          'Mise uses the microphone only while you are speaking your pantry, so it can write down what you say. The recording is deleted as soon as it has been turned into text.',
+        speechRecognitionPermission:
+          'Mise turns your speech into text on this device so you can name several pantry items at once. Nothing is sent anywhere.',
+        androidSpeechServicePackages: ['com.google.android.as'],
       },
     ],
     [

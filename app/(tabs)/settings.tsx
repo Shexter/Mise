@@ -28,6 +28,7 @@ import { space, themeId } from '@/constants/theme';
 import { themeOptions } from '@/constants/themePalettes';
 import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
+import { purgeAllAudio, removeAllSpeechModels } from '@/media/speech';
 import { useDbReadiness } from '@/db/readiness';
 import { populateDemoData } from '@/db/demoData';
 import {
@@ -45,6 +46,8 @@ import { retryPendingCapture } from '@/logic/pendingCaptureService';
 import { formatHeight, formatWeight } from '@/logic/units';
 import { goalSummaryLabel } from '@/logic/weightGoalPacing';
 import { deleteAllPhotos } from '@/media/photos';
+import { AppliancesSheet } from '@/components/settings/AppliancesSheet';
+import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import { useDayStore } from '@/store/dayStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
@@ -58,6 +61,8 @@ export default function SettingsScreen() {
   const toast = useToast();
   const profile = useProfileStore((state) => state.profile);
   const updateProfile = useProfileStore((state) => state.update);
+  const cookingPreferences = useCookingPreferencesStore((state) => state.cookingPreferences);
+  const ownedApplianceIds = useCookingPreferencesStore((state) => state.ownedApplianceIds);
   const refreshDay = useDayStore((state) => state.refresh);
   const setCaptureReview = usePantryCaptureStore((state) => state.set);
   const dbReadiness = useDbReadiness();
@@ -68,6 +73,7 @@ export default function SettingsScreen() {
   const [keyOpen, setKeyOpen] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [appliancesOpen, setAppliancesOpen] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [ocrCloudText, setOcrCloudText] = useState(false);
@@ -112,9 +118,8 @@ export default function SettingsScreen() {
     void getReceiptOcrPreference().then((preference) => setOcrCloudText(preference.cloudTextEnhancement));
   }, []);
 
-  if (!profile) return <Screen />;
-  const activeMeasurement = measurements.find((item) => item.provider === profile.targetSource);
-  const measurementIsStale = activeMeasurement ? isMeasurementStale(profile, activeMeasurement) : false;
+  const activeMeasurement = profile ? measurements.find((item) => item.provider === profile.targetSource) : undefined;
+  const measurementIsStale = profile && activeMeasurement ? isMeasurementStale(profile, activeMeasurement) : false;
 
   const applyPatch = async (patch: Partial<Profile>) => {
     await updateProfile(patch);
@@ -122,7 +127,7 @@ export default function SettingsScreen() {
   };
 
   const updateMeasurementWeight = async () => {
-    if (!activeMeasurement) return;
+    if (!activeMeasurement || !profile) return;
     const updated = {
       ...activeMeasurement,
       weightKg: profile.weightKg,
@@ -135,13 +140,14 @@ export default function SettingsScreen() {
   };
 
   const chooseTargetSource = () => {
+    if (!profile) return;
     const choices = TARGET_SOURCES.map((source) => {
       const target = resolveTarget({ ...profile, targetSource: source }, measurements);
       if (target !== null) {
         return {
-            text: `${targetSourceLabel(source)} — ${target} kcal`,
-            onPress: () => void applyPatch({ targetSource: source, targetCalories: target }),
-          };
+          text: `${targetSourceLabel(source)} — ${target} kcal`,
+          onPress: () => void applyPatch({ targetSource: source, targetCalories: target }),
+        };
       }
       return {
         text: `Add ${targetSourceLabel(source)} inputs`,
@@ -242,6 +248,11 @@ export default function SettingsScreen() {
             deleteAllPhotos('receipts');
             deleteAllPhotos('pantry-captures');
             deleteAllPhotos('recipes');
+            // Audio is already ephemeral, but a downloaded speech model is
+            // hundreds of megabytes of the user's storage and is theirs to
+            // reclaim along with everything else.
+            purgeAllAudio();
+            await removeAllSpeechModels();
             await resetDatabase();
             useProfileStore.setState({ profile: null });
             router.replace('/onboarding/welcome');
@@ -310,83 +321,114 @@ export default function SettingsScreen() {
           />
         </Card>
 
-        <Card title="Profile" padded={false}>
-          <SettingsRow
-            label="Formula"
-            value={profile.sex === null ? 'Not set' : profile.sex === 'male' ? 'Male' : 'Female'}
-            onPress={() => setProfileField('sex')}
-          />
-          <SettingsRow
-            label="Age"
-            value={profile.age === null ? 'Not set' : `${profile.age}`}
-            onPress={() => setProfileField('age')}
-          />
-          <SettingsRow
-            label="Height"
-            value={profile.heightCm === null ? 'Not set' : formatHeight(profile.heightCm, profile.units)}
-            onPress={() => setProfileField('height')}
-          />
-          <SettingsRow
-            label="Weight"
-            value={formatWeight(profile.weightKg, profile.units)}
-            onPress={() => setProfileField('weight')}
-          />
-          <SettingsRow
-            label="Activity"
-            value={activityLabel(profile.activityLevel)}
-            onPress={() => setProfileField('activity')}
-          />
-          <SettingsRow
-            label="Goal"
-            value={goalRowValue(profile)}
-            onPress={() => setProfileField('goal')}
-          />
-        </Card>
-
-        <Card title="Targets" padded={false}>
-          <SettingsRow
-            label="Target source"
-            value={targetSourceLabel(profile.targetSource)}
-            onPress={chooseTargetSource}
-          />
-          <SettingsRow
-            label="Daily target"
-            value={`${profile.targetCalories} kcal`}
-            showChevron={false}
-          />
-          <SettingsRow
-            label="Daily fibre target"
-            value={`${profile.fibreTargetG} g`}
-            onPress={() => setProfileField('fibre')}
-          />
-          {measurementIsStale ? (
-            <>
-              <Caption muted style={styles.stale}>
-                Your current weight differs from this measurement. This calculation stays active until you update it.
-              </Caption>
+        {profile ? (
+          <>
+            <Card title="Profile" padded={false}>
               <SettingsRow
-                label="Use current weight for measurement"
-                onPress={() => void updateMeasurementWeight()}
+                label="Formula"
+                value={profile.sex === null ? 'Not set' : profile.sex === 'male' ? 'Male' : 'Female'}
+                onPress={() => setProfileField('sex')}
               />
-            </>
-          ) : null}
+              <SettingsRow
+                label="Age"
+                value={profile.age === null ? 'Not set' : `${profile.age}`}
+                onPress={() => setProfileField('age')}
+              />
+              <SettingsRow
+                label="Height"
+                value={profile.heightCm === null ? 'Not set' : formatHeight(profile.heightCm, profile.units)}
+                onPress={() => setProfileField('height')}
+              />
+              <SettingsRow
+                label="Weight"
+                value={formatWeight(profile.weightKg, profile.units)}
+                onPress={() => setProfileField('weight')}
+              />
+              <SettingsRow
+                label="Activity"
+                value={activityLabel(profile.activityLevel)}
+                onPress={() => setProfileField('activity')}
+              />
+              <SettingsRow
+                label="Goal"
+                value={goalRowValue(profile)}
+                onPress={() => setProfileField('goal')}
+              />
+            </Card>
+
+            <Card title="Targets" padded={false}>
+              <SettingsRow
+                label="Target source"
+                value={targetSourceLabel(profile.targetSource)}
+                onPress={chooseTargetSource}
+              />
+              <SettingsRow
+                label="Daily target"
+                value={`${profile.targetCalories} kcal`}
+                showChevron={false}
+              />
+              <SettingsRow
+                label="Daily fibre target"
+                value={`${profile.fibreTargetG} g`}
+                onPress={() => setProfileField('fibre')}
+              />
+              {measurementIsStale ? (
+                <>
+                  <Caption muted style={styles.stale}>
+                    Your current weight differs from this measurement. This calculation stays active until you update it.
+                  </Caption>
+                  <SettingsRow
+                    label="Use current weight for measurement"
+                    onPress={() => void updateMeasurementWeight()}
+                  />
+                </>
+              ) : null}
+              <SettingsRow
+                label="Macro split"
+                value={`${Math.round(profile.proteinPct * 100)} / ${Math.round(
+                  profile.carbsPct * 100,
+                )} / ${Math.round(profile.fatPct * 100)}`}
+                onPress={() => setSplitOpen(true)}
+              />
+              <SettingsRow
+                label="Units"
+                value={profile.units === 'metric' ? 'Metric' : 'Imperial'}
+                onPress={() =>
+                  void applyPatch({
+                    units: (profile.units === 'metric'
+                      ? 'imperial'
+                      : 'metric') as Units,
+                  })
+                }
+              />
+            </Card>
+          </>
+        ) : (
+          <Card title="Calorie tracking" padded={false}>
+            <SettingsRow
+              label="Set up calorie tracking"
+              value="Not configured"
+              onPress={() => router.push('/onboarding/welcome')}
+            />
+          </Card>
+        )}
+
+        <Card title="Kitchen & Meal prep" padded={false}>
           <SettingsRow
-            label="Macro split"
-            value={`${Math.round(profile.proteinPct * 100)} / ${Math.round(
-              profile.carbsPct * 100,
-            )} / ${Math.round(profile.fatPct * 100)}`}
-            onPress={() => setSplitOpen(true)}
+            label="Kitchen appliances"
+            value={`${ownedApplianceIds.size} owned`}
+            onPress={() => setAppliancesOpen(true)}
           />
           <SettingsRow
-            label="Units"
-            value={profile.units === 'metric' ? 'Metric' : 'Imperial'}
-            onPress={() =>
-              void applyPatch({
-                units: (profile.units === 'metric'
-                  ? 'imperial'
-                  : 'metric') as Units,
-              })
+            label="Meal prep setup"
+            value={
+              cookingPreferences?.mealPrepStatus === 'completed'
+                ? 'Completed'
+                : cookingPreferences?.mealPrepStatus === 'deferred'
+                  ? 'Deferred'
+                  : 'Not started'
             }
+            onPress={() => router.push('/onboarding/appliances')}
           />
         </Card>
 
@@ -482,23 +524,32 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <ProfileSheet
-        visible={profileField !== null}
-        field={profileField}
-        profile={profile}
-        onClose={() => setProfileField(null)}
-        onSave={(patch) => void applyPatch(
-          profileField === 'formula' ? { ...patch, targetSource: 'estimated' } : patch,
-        )}
-      />
+      {profile ? (
+        <>
+          <ProfileSheet
+            visible={profileField !== null}
+            field={profileField}
+            profile={profile}
+            onClose={() => setProfileField(null)}
+            onSave={(patch) => void applyPatch(
+              profileField === 'formula' ? { ...patch, targetSource: 'estimated' } : patch,
+            )}
+          />
 
-      <MacroSplitSheet
-        visible={splitOpen}
-        onClose={() => setSplitOpen(false)}
-        proteinPct={profile.proteinPct}
-        carbsPct={profile.carbsPct}
-        fatPct={profile.fatPct}
-        onSave={(split) => void applyPatch(split)}
+          <MacroSplitSheet
+            visible={splitOpen}
+            onClose={() => setSplitOpen(false)}
+            proteinPct={profile.proteinPct}
+            carbsPct={profile.carbsPct}
+            fatPct={profile.fatPct}
+            onSave={(split) => void applyPatch(split)}
+          />
+        </>
+      ) : null}
+
+      <AppliancesSheet
+        visible={appliancesOpen}
+        onClose={() => setAppliancesOpen(false)}
       />
 
       <ApiKeySheet

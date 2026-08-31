@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { energyTargets } from '../src/logic/bmr';
 import { ONBOARDING_ENTRY_ROUTES, ONBOARDING_STEPS } from '../src/store/onboardingStore';
 
-test('the regular onboarding route order and calculation remain unchanged', () => {
+test('the calorie-first route order and calculation remain unchanged', () => {
   expect(ONBOARDING_STEPS).toEqual([
     'welcome', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'api-key', 'dietary', 'results',
   ]);

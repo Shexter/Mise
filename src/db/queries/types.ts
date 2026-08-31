@@ -1,6 +1,6 @@
 import { normalizeShoppingListCategory } from '@/logic/shoppingList';
-import { RECEIPT_EXTRACTION_SOURCES } from '@/types';
-import type { CanonicalItem, BodyMeasurement, Confidence, SuggestionBaseIntent, SuggestionPrepSpeed, SavedSuggestionPreference, ConsumptionEvent, ConsumptionKind, DailyTarget, DietaryRule, DietaryRuleKind, ExpirySource, Fast, FoodClass, Fullness, ItemAlias, Location, Shop, LocationKind, MeasureUnit, Meal, MealItem, MealSource, MealType, MealVenue, PantryItem, PendingCapture, PendingCaptureKind, Product, Profile, QuantitySource, QueuedMatch, Receipt, ReceiptExtractionSource, ReceiptLine, ReceiptLineKind, ReceiptType, QuantityKind, Recipe, RecipeIngredient, ReceiptFrame, ReferenceSource, StockStatus, StorageLocation, ShoppingListItem, ShoppingListReceiptMatch, ShoppingListSource, ShoppingListSourceKind, ShoppingListStatus } from '@/types';
+import { isApplianceId, ONBOARDING_INTENTS, RECEIPT_EXTRACTION_SOURCES } from '@/types';
+import type { ApplianceId, CanonicalItem, BodyMeasurement, Confidence, CookingPreferences, SuggestionBaseIntent, SuggestionPrepSpeed, SavedSuggestionPreference, ConsumptionEvent, ConsumptionKind, DailyTarget, DietaryRule, DietaryRuleKind, ExpirySource, Fast, FoodClass, Fullness, ItemAlias, Location, Shop, LocationKind, MealPrepStatus, MeasureUnit, Meal, MealItem, MealSource, MealType, MealVenue, OnboardingIntent, OwnedAppliance, PantryItem, PendingCapture, PendingCaptureKind, Product, Profile, QuantitySource, QueuedMatch, Receipt, ReceiptExtractionSource, ReceiptLine, ReceiptLineKind, ReceiptType, QuantityKind, Recipe, RecipeIngredient, ReceiptFrame, ReferenceSource, StockStatus, StorageLocation, ShoppingListItem, ShoppingListReceiptMatch, ShoppingListSource, ShoppingListSourceKind, ShoppingListStatus } from '@/types';
 
 
 
@@ -518,6 +518,7 @@ export interface PantryItemRow {
   fullness: string | null;
   uses_count: number;
   purchased_at: string;
+  acquired_at_known: number;
   opened_at: string | null;
   expires_at: string | null;
   expiry_source: string | null;
@@ -554,6 +555,7 @@ export function toPantryItem(row: PantryItemRow): PantryItem {
     fullness: row.fullness as Fullness | null,
     usesCount: row.uses_count,
     purchasedAt: row.purchased_at,
+    acquiredAtKnown: row.acquired_at_known !== 0,
     openedAt: row.opened_at,
     expiresAt: row.expires_at,
     expirySource: row.expiry_source as ExpirySource | null,
@@ -887,5 +889,55 @@ export function toShop(row: ShopRow): Shop {
     storeName: row.store_name,
     latitude: row.latitude,
     longitude: row.longitude,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cooking preferences & Owned appliances                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface CookingPreferencesRow {
+  intents: string;
+  meal_prep_status: string;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  deferred_at: string | null;
+}
+
+export function toCookingPreferences(row: CookingPreferencesRow): CookingPreferences {
+  let intents: OnboardingIntent[] = [];
+  try {
+    const parsed: unknown = JSON.parse(row.intents);
+    if (Array.isArray(parsed)) {
+      intents = parsed.filter((intent): intent is OnboardingIntent =>
+        (ONBOARDING_INTENTS as readonly string[]).includes(intent as string),
+      );
+    }
+  } catch {
+    intents = [];
+  }
+  return {
+    intents,
+    mealPrepStatus: row.meal_prep_status as MealPrepStatus,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at,
+    deferredAt: row.deferred_at,
+  };
+}
+
+export interface OwnedApplianceRow {
+  appliance_id: string;
+  owned: number;
+  updated_at: string;
+}
+
+export function toOwnedAppliance(row: OwnedApplianceRow): OwnedAppliance | null {
+  if (!isApplianceId(row.appliance_id)) return null;
+  return {
+    applianceId: row.appliance_id,
+    owned: row.owned === 1,
+    updatedAt: row.updated_at,
   };
 }

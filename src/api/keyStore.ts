@@ -94,6 +94,43 @@ function bundledDevKey(): string | null {
     : null;
 }
 
+const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
+
+async function secureGet(key: string): Promise<string | null> {
+  if (isWeb) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch {
+    return null;
+  }
+}
+
+async function secureSet(key: string, value: string): Promise<void> {
+  if (isWeb) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {}
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function secureDelete(key: string): Promise<void> {
+  if (isWeb) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {}
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
+
 /**
  * Syncs the `.env` key (`MISE_DEV_API_KEY`, via app.config.ts) into
  * secure storage. When present it is treated as authoritative and written on
@@ -110,18 +147,18 @@ export async function seedFromEnvironment(): Promise<void> {
 
   const existing = await getApiKey();
   if (existing !== devKey) {
-    await SecureStore.setItemAsync(STORAGE_KEY, devKey);
+    await secureSet(STORAGE_KEY, devKey);
   }
-  await SecureStore.setItemAsync(SEEDED_FLAG, 'true');
+  await secureSet(SEEDED_FLAG, 'true');
 }
 
 export async function getApiKey(): Promise<string | null> {
-  const key = await SecureStore.getItemAsync(STORAGE_KEY);
+  const key = await secureGet(STORAGE_KEY);
   if (key) return key;
-  const legacy = await SecureStore.getItemAsync(LEGACY_STORAGE_KEY);
+  const legacy = await secureGet(LEGACY_STORAGE_KEY);
   if (!legacy) return null;
-  await SecureStore.setItemAsync(STORAGE_KEY, legacy);
-  await SecureStore.deleteItemAsync(LEGACY_STORAGE_KEY);
+  await secureSet(STORAGE_KEY, legacy);
+  await secureDelete(LEGACY_STORAGE_KEY);
   return legacy;
 }
 
@@ -130,32 +167,32 @@ export async function hasApiKey(): Promise<boolean> {
 }
 
 export async function setApiKey(value: string): Promise<void> {
-  await SecureStore.setItemAsync(STORAGE_KEY, value.trim());
+  await secureSet(STORAGE_KEY, value.trim());
 }
 
 export async function clearApiKey(): Promise<void> {
-  await SecureStore.deleteItemAsync(STORAGE_KEY);
-  await SecureStore.deleteItemAsync(LEGACY_STORAGE_KEY);
+  await secureDelete(STORAGE_KEY);
+  await secureDelete(LEGACY_STORAGE_KEY);
 }
 
 /** An optional OpenAI-compatible endpoint. It stays in secure storage with the
  * key and is never persisted with app data. No request is made to validate it. */
 export async function getOpenAIEndpoint(): Promise<string> {
-  return (await SecureStore.getItemAsync(OPENAI_ENDPOINT_KEY)) ?? DEFAULT_OPENAI_ENDPOINT;
+  return (await secureGet(OPENAI_ENDPOINT_KEY)) ?? DEFAULT_OPENAI_ENDPOINT;
 }
 
 export async function setOpenAIEndpoint(value: string): Promise<void> {
   const endpoint = value.trim().replace(/\/+$/, '');
-  if (endpoint) await SecureStore.setItemAsync(OPENAI_ENDPOINT_KEY, endpoint);
-  else await SecureStore.deleteItemAsync(OPENAI_ENDPOINT_KEY);
+  if (endpoint) await secureSet(OPENAI_ENDPOINT_KEY, endpoint);
+  else await secureDelete(OPENAI_ENDPOINT_KEY);
 }
 
 export async function clearOpenAIEndpoint(): Promise<void> {
-  await SecureStore.deleteItemAsync(OPENAI_ENDPOINT_KEY);
+  await secureDelete(OPENAI_ENDPOINT_KEY);
 }
 
 export async function getGeminiModelPreference(): Promise<GeminiModel> {
-  const stored = await SecureStore.getItemAsync(GEMINI_MODEL_PREFERENCE_KEY);
+  const stored = await secureGet(GEMINI_MODEL_PREFERENCE_KEY);
   return GEMINI_MODELS.some((model) => model.id === stored)
     ? stored as GeminiModel
     : DEFAULT_GEMINI_MODEL;
@@ -163,7 +200,7 @@ export async function getGeminiModelPreference(): Promise<GeminiModel> {
 
 export async function setGeminiModelPreference(model: GeminiModel): Promise<void> {
   if (!GEMINI_MODELS.some((option) => option.id === model)) return;
-  await SecureStore.setItemAsync(GEMINI_MODEL_PREFERENCE_KEY, model);
+  await secureSet(GEMINI_MODEL_PREFERENCE_KEY, model);
 }
 
 export async function getConfiguredProvider(): Promise<Provider | null> {

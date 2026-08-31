@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mise.local/schemas/food-asset-manifest-1.json",
+  "title": "Mise curated food illustration manifest",
+  "description": "Provenance record for every food illustration shipped inside assets/food/. An asset that is not listed here is not approved for distribution.",
+  "type": "object",
+  "required": ["schemaVersion", "description", "assets"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "type": "string", "const": "2.0.0" },
+    "description": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "assets": {
+      "type": "object",
+      "description": "Keyed by canonical ingredient id. Empty until the owner accepts the core UI through native visual review.",
+      "additionalProperties": { "$ref": "#/definitions/asset" }
+    }
+  },
+  "definitions": {
+    "asset": {
+      "type": "object",
+      "required": [
+        "canonicalId",
+        "displayName",
+        "fileName",
+        "category",
+        "sourceModel",
+        "license",
+        "promptRecipe",
+        "seed",
+        "workflowVersion",
+        "reviewDate",
+        "reviewedBy",
+        "outputChecksum"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "canonicalId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Must equal this entry's key and match a canonical ingredient id."
+        },
+        "displayName": { "type": "string", "minLength": 1 },
+        "fileName": { "type": "string", "pattern": "^[a-z0-9-]+\\.(png|webp)$" },
+        "category": {
+          "type": "string",
+          "enum": ["staple", "produce", "protein", "dairy", "seasoning", "condiment", "frozen", "beverage"],
+          "description": "A FoodClass from src/types.ts. Not a free-text category."
+        },
+        "sourceModel": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The tool and model that actually produced the file. Never a description of a pipeline that did not run."
+        },
+        "license": { "type": "string", "minLength": 1 },
+        "promptRecipe": { "type": "string", "minLength": 1 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "workflowVersion": { "type": "string", "minLength": 1 },
+        "reviewDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "reviewedBy": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The human who accepted this asset. Required: approval is a person, not a timestamp."
+        },
+        "outputChecksum": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "Verified against the bytes on disk by test/food-visuals.test.ts."
+        }
+      }
+    }
+  }
+}

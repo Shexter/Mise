@@ -382,7 +382,9 @@ export type ReferenceSource =
   | 'meal_log'
   | 'user'
   | 'dietary'
-  | 'dataset';
+  | 'dataset'
+  /** Spoken by the user during a pantry sweep. */
+  | 'voice';
 
 export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'seed',
@@ -393,6 +395,7 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   'user',
   'dietary',
   'dataset',
+  'voice',
 ];
 
 /** Provenance for values committed into the shipped canonical catalogue. */
@@ -578,6 +581,12 @@ export interface PantryItem {
   usesCount: number;
   /** Local date (yyyy-MM-dd) the item was acquired. */
   purchasedAt: string;
+  /**
+   * Whether `purchasedAt` is evidence or just the day Mise learned about the
+   * item. False for stock catalogued from a first-inventory sweep, where no
+   * expiry may be predicted from it (see `src/logic/acquisition.ts`).
+   */
+  acquiredAtKnown: boolean;
   openedAt: string | null;
   expiresAt: string | null;
   expirySource: ExpirySource | null;
@@ -1118,4 +1127,299 @@ export interface PendingCapture {
   lastErrorKind: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Meal-prep onboarding, cooking preferences & appliances                     */
+/* -------------------------------------------------------------------------- */
+
+export type OnboardingIntent = 'calories' | 'meal_prep';
+
+export const ONBOARDING_INTENTS: readonly OnboardingIntent[] = [
+  'calories',
+  'meal_prep',
+];
+
+export type MealPrepStatus = 'not_started' | 'completed' | 'deferred';
+
+export const MEAL_PREP_STATUSES: readonly MealPrepStatus[] = [
+  'not_started',
+  'completed',
+  'deferred',
+];
+
+export type ApplianceId =
+  | 'cooktop'
+  | 'oven'
+  | 'microwave'
+  | 'air_fryer'
+  | 'rice_cooker'
+  | 'slow_cooker'
+  | 'blender';
+
+export const APPLIANCE_IDS: readonly ApplianceId[] = [
+  'cooktop',
+  'oven',
+  'microwave',
+  'air_fryer',
+  'rice_cooker',
+  'slow_cooker',
+  'blender',
+];
+
+export interface ApplianceInfo {
+  id: ApplianceId;
+  label: string;
+  detail: string;
+}
+
+export const APPLIANCE_CATALOGUE: readonly ApplianceInfo[] = [
+  { id: 'cooktop', label: 'Cooktop / Stovetop', detail: 'Gas, induction, or electric' },
+  { id: 'oven', label: 'Oven', detail: 'Baking, roasting & broiling' },
+  { id: 'microwave', label: 'Microwave', detail: 'Quick reheating & steaming' },
+  { id: 'air_fryer', label: 'Air fryer', detail: 'Crisping & quick batch cooking' },
+  { id: 'rice_cooker', label: 'Rice cooker', detail: 'Grains & one-pot steaming' },
+  { id: 'slow_cooker', label: 'Slow cooker / Pressure cooker', detail: 'Stews, broths & braising' },
+  { id: 'blender', label: 'Blender / Food processor', detail: 'Sauces, purees & smoothies' },
+];
+
+export function isApplianceId(value: unknown): value is ApplianceId {
+  return typeof value === 'string' && (APPLIANCE_IDS as readonly string[]).includes(value);
+}
+
+export interface CookingPreferences {
+  intents: readonly OnboardingIntent[];
+  mealPrepStatus: MealPrepStatus;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  deferredAt: string | null;
+}
+
+export interface OwnedAppliance {
+  applianceId: ApplianceId;
+  owned: boolean;
+  updatedAt: string;
+}
+
+export type CookingActionType = 'prep' | 'cook' | 'assemble' | 'store' | 'no_cook';
+
+export interface CookingGuideStep {
+  stepNumber: number;
+  instruction: string;
+  applianceId: ApplianceId | null;
+  actionType?: CookingActionType;
+  durationMinutes?: number | null;
+}
+
+export interface MealPrepIngredient {
+  name: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  canonicalId: string | null;
+}
+
+export interface MealPrepPlan {
+  id: string;
+  templateId: string;
+  title: string;
+  portions: number;
+  durationMinutes: number | null;
+  confirmedIngredients: readonly MealPrepIngredient[];
+  missingIngredients: readonly MealPrepIngredient[];
+  requiredAppliances: readonly ApplianceId[];
+  steps: readonly CookingGuideStep[];
+}
+
+export interface MealPrepTemplateIngredient {
+  canonicalId: string;
+  name: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  optional?: boolean;
+}
+
+export interface MealPrepTemplate {
+  id: string;
+  title: string;
+  portions: number;
+  durationMinutes: number | null;
+  requiredAppliances: readonly ApplianceId[];
+  ingredients: readonly MealPrepTemplateIngredient[];
+  steps: readonly CookingGuideStep[];
+  dietaryTags?: readonly string[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Source-neutral pantry intake                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One reviewable candidate for the pantry, before anything is written.
+ *
+ * The shape exists because `CaptureItemProposal` could not describe speech.
+ * That type assumes a photograph produced every field at once, at one
+ * confidence, and it has nowhere to put "the identity is certain but the
+ * amount is a guess" — which is the normal case for a sentence like "half a
+ * carton of milk and some butter".
+ *
+ * So identity, quantity, and location each carry their own evidence here, and
+ * every one of them can be unknown without blocking the others. The type is
+ * deliberately source-neutral: a photo, a receipt line, a barcode, a typed
+ * entry, and a spoken phrase all describe food with the same fields, and the
+ * review that follows should not care which one it is looking at.
+ */
+
+/** Which intake channel produced a proposal. */
+export type IntakeSource = 'voice' | 'photo' | 'receipt' | 'barcode' | 'manual';
+
+export const INTAKE_SOURCES: readonly IntakeSource[] = [
+  'voice',
+  'photo',
+  'receipt',
+  'barcode',
+  'manual',
+];
+
+/**
+ * How a single field came to hold its value.
+ *
+ * `stated` and `approximate` are the two the user supplied; the difference is
+ * whether they hedged. `inferred` is Mise filling in from context — a session
+ * location applied to an item that did not name one. `unknown` is the absence
+ * of a value, and it is a legitimate resting state, not an error.
+ */
+export type EvidenceStrength = 'stated' | 'approximate' | 'inferred' | 'unknown';
+
+/**
+ * How a transcript was produced. Ordered least to most exposing; only `cloud`
+ * sends anything off the device. See `src/logic/voiceConsent.ts`.
+ */
+export type TranscriptionMode = 'keyboard' | 'on_device' | 'local_model' | 'cloud';
+
+export const TRANSCRIPTION_MODES: readonly TranscriptionMode[] = [
+  'keyboard',
+  'on_device',
+  'local_model',
+  'cloud',
+];
+
+/**
+ * A quantity as it was stated, before it becomes pantry rows. The container
+ * count and the amount are separate because "two 400 g cans" and "800 g" are
+ * different facts about the kitchen. See `src/logic/materialisation.ts`.
+ */
+export interface StatedQuantity {
+  /** Physical containers named — two cans, one pack. Null if none was named. */
+  containerCount: number | null;
+  /** The amount in each container, or the loose count. Null when unknown. */
+  amount: number | null;
+  unit: MeasureUnit | null;
+  /** True when the amount is a hedge ("about half") rather than a measurement. */
+  approximate: boolean;
+}
+
+/**
+ * When an item entered the kitchen, and whether that is actually known.
+ * See `src/logic/acquisition.ts` for why the flag is separate from the date.
+ */
+export interface AcquisitionEvidence {
+  /** Local date (yyyy-MM-dd). Always real; not always meaningful. */
+  acquiredAt: string;
+  /** False when the date is only the day Mise learned of the item. */
+  known: boolean;
+}
+
+/** One canonical ingredient a proposal might mean. */
+export interface IntakeIdentityOption {
+  canonicalId: string;
+  displayName: string;
+  confidence: number;
+}
+
+/**
+ * Why a proposal is in the **Needs a look** group.
+ *
+ * `unknown_quantity` is deliberately in this list *and* deliberately
+ * non-blocking: the user should see that Mise does not know how much butter
+ * there is, and should still be able to add the butter.
+ */
+export type IntakeReviewReason =
+  | 'unresolved_identity'
+  | 'ambiguous_identity'
+  | 'unknown_quantity'
+  | 'approximate_quantity'
+  | 'no_location'
+  | 'duplicate_existing_stock'
+  | 'too_many_containers';
+
+/** One reviewable candidate, with the plain-language reason it needs a look. */
+export interface IntakeReviewNote {
+  reason: IntakeReviewReason;
+  /** Shown to the user verbatim. Never a code or a confidence number. */
+  message: string;
+  /** True when the proposal cannot be accepted until the user resolves it. */
+  blocking: boolean;
+}
+
+export interface PantryIntakeProposal {
+  /** Stable across re-parsing and re-resolution within one draft. */
+  id: string;
+  /** The draft this belongs to. Also the idempotency key when it commits. */
+  draftId: string;
+  source: IntakeSource;
+  /** Null for sources that involve no speech. */
+  transcriptionMode: TranscriptionMode | null;
+
+  /** The words this was read from, kept verbatim for review. */
+  sourceSpan: string | null;
+  /** The name as the user gave it, in its original script. Never romanised. */
+  statedName: string;
+
+  /** Identity, resolved through the existing cascade. Null when unresolved. */
+  canonicalId: string | null;
+  /** The resolved name, for display. Null when unresolved. */
+  canonicalName: string | null;
+  /**
+   * Confidence in the *identity* only. Kept apart from transcription
+   * confidence: a perfectly heard word can still name two different foods.
+   */
+  identityConfidence: number | null;
+  identityStrength: EvidenceStrength;
+  /** Other canonicals this could mean, when the match was not decisive. */
+  alternatives: readonly IntakeIdentityOption[];
+
+  quantity: StatedQuantity;
+  quantityStrength: EvidenceStrength;
+
+  locationId: string | null;
+  locationStrength: EvidenceStrength;
+
+  /** Stated fullness, e.g. "half a carton". Null when not stated. */
+  fullness: Fullness | null;
+  /** Stated opened state. Null when not stated — never inferred. */
+  opened: boolean | null;
+  /** Null when the user gave no acquisition evidence at all. */
+  acquisition: AcquisitionEvidence | null;
+
+  /** How confident the transcriber was, where it reports one. */
+  transcriptionConfidence: number | null;
+
+  notes: readonly IntakeReviewNote[];
+}
+
+/** One voice or typed intake session, held in memory until it commits. */
+export interface PantryIntakeDraft {
+  /** Stable for the life of the draft; the idempotency key for the commit. */
+  id: string;
+  source: IntakeSource;
+  transcriptionMode: TranscriptionMode | null;
+  /** The editable transcript. Empty for non-spoken sources. */
+  transcript: string;
+  /** The location every proposal inherits unless its own words override it. */
+  sessionLocationId: string | null;
+  proposals: readonly PantryIntakeProposal[];
+  /** Phrases that produced no proposal, kept so the user can see the gap. */
+  unusedPhrases: readonly string[];
+  createdAt: string;
 }

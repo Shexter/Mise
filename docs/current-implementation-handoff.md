@@ -1,5 +1,56 @@
 # Current implementation handoff
 
+## Voice pantry intake — 31 August 2026
+
+`add-voice-pantry-intake` is **33/35**. Everything implementable from a
+workstation is done; the two open tasks (7.5, 7.6) are real-device and
+real-kitchen measurement, and their checks are written out in
+`docs/owner-app-test-checklist.md` under "Voice pantry intake".
+
+- **All three transcription paths are wired.** `expo-speech-recognition@sdk-54`
+  and `react-native-sherpa-onnx` are now dependencies, so **a development build
+  is required** (`npx expo run:android` / `run:ios`). Both are reached through a
+  runtime probe rather than a static import: Expo Go, an un-prebuilt checkout,
+  and the Node test runner all have the package and none have the native module,
+  and the probe turns that into a fall to the keyboard instead of a crash.
+- **Parakeet TDT 0.6b v3 covers no Asian language.** It is the European download
+  (487 MB) and SenseVoice Small is the CJK one (166 MB), keyed by language in
+  `src/media/speech/models.ts`. Both sizes were read from the GitHub release
+  assets. Neither is bundled — they are fetched at runtime, the size is on the
+  button, downloads resume after a cancel, and "Delete all data" removes them.
+- **The ladder order changed** to native → downloaded model → keyboard. The
+  keyboard reports availability unconditionally, so with it second a model the
+  user waited 487 MB for could never be chosen (decision 189).
+- **No audio file is written on the downloaded-model path.** Native 16 kHz PCM
+  goes straight from the microphone into `transcribeSamples`, so the recording
+  is an in-memory buffer capped at ten minutes and nothing else.
+- **Unmeasured and release-gating: binary size.** The models are external but
+  sherpa-onnx and ONNX Runtime are linked in for everyone. Build the APK and
+  compare before shipping; if it is unacceptable, dropping the downloadable
+  model leaves the feature working on the keyboard path.
+- **Migration 36** adds `pantry_items.acquired_at_known` plus
+  `pantry_intake_batches` / `pantry_intake_batch_items`. Existing rows default to
+  a known date and are untouched. When the flag is 0, no expiry is predicted from
+  the date — including through a location change.
+- **The parser is measured, not asserted:** 51/55 candidate recall, 100% amount
+  accuracy, zero invented ingredients across a 34-utterance corpus, with the
+  whole shortfall being run-on speech with no punctuation (undecidable without a
+  food lexicon; it splits correctly when the catalogue's names are supplied,
+  which is how the app calls it). The floors are enforced in
+  `test/voice-parser-corpus.test.ts`.
+- **Cloud transcription is implemented as a refusal.** No provider in
+  `keyStore.ts` is configured for audio, so `createCloudAdapter` reports
+  unavailable after checking consent first and the key second. It is not in the
+  routing ladder at any position.
+- `npx expo-doctor` passes 18/18 with the new dependencies, and the plugin chain
+  resolves cleanly. `@dr.pogodin/react-native-fs` declares
+  `WRITE_EXTERNAL_STORAGE`, but `expo-image-picker` already did — the merged
+  Android permission list gains only `RECORD_AUDIO`.
+- Automated verification: `npm run typecheck`, **155 test files / 1644 tests**,
+  strict OpenSpec validation of the change, and `git diff --check` all pass.
+- No emulator or device work was performed, per standing owner direction.
+
+
 ## Live continuation update — 11 August 2026
 
 The repository has advanced substantially beyond the older snapshot below.

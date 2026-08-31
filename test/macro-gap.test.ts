@@ -16,7 +16,7 @@ const canonical = (id: string, overrides: Partial<CanonicalItem>): CanonicalItem
 
 const item = (id: string, canonicalId: string, qtyRemaining: number, expiresAt: string | null): PantryItem => ({
   id, canonicalId, productId: null, locationId: 'fridge', qtyRemaining, qtyUnit: 'g',
-  qtySource: 'estimate', fullness: null, usesCount: 0, purchasedAt: '2026-01-01',
+  qtySource: 'estimate', fullness: null, usesCount: 0, purchasedAt: '2026-01-01', acquiredAtKnown: true,
   openedAt: null, expiresAt, expirySource: 'predicted', status: 'in_stock',
   estimatedDecrementsSinceAnchor: 0, lastAnchorAt: null, priceCents: null,
   photoUri: null, replacementAsked: false, createdAt: '2026-01-01', updatedAt: '2026-01-01',

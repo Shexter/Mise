@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { DishVisual } from '@/components/DishVisual';
 import { Segmented } from '@/components/Choice';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
@@ -293,7 +294,7 @@ export default function DinnerScreen() {
               </Caption>
             ) : null}
             {mode === 'stretch' ? suggestions.map((suggestion, index) => (
-              <SuggestionCard key={`${suggestion.dish}-${index}`} suggestion={suggestion} remaining={remaining} onCook={() => void confirmCooked(suggestion, suggestion.servings, 1)} onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)} />
+              <SuggestionCard key={`${suggestion.dish}-${index}`} suggestion={suggestion} canonicals={canonicals} remaining={remaining} onCook={() => void confirmCooked(suggestion, suggestion.servings, 1)} onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)} />
             )) : (
               <MealSwipeDeck
                 meals={deckSuggestions}
@@ -354,21 +355,33 @@ export default function DinnerScreen() {
 
 function SuggestionCard({
   suggestion,
+  canonicals,
   remaining,
   onCook,
   onAddMissing,
 }: {
   suggestion: Suggestion;
+  canonicals: Map<string, CanonicalItem>;
   remaining: number | null;
   onCook: () => void;
   onAddMissing: () => void;
 }) {
   const kcal = roundCalories(suggestion.kcalPerServing);
   const overshoots = remaining !== null && kcal > remaining;
+  const foodClasses = suggestion.uses.map((use) => canonicals.get(use.canonicalId)?.foodClass ?? null);
 
   return (
     <Card>
-      <RowTitle>{suggestion.dish}</RowTitle>
+      <View style={styles.cardHeader}>
+        <DishVisual
+          dish={suggestion.dish}
+          foodClasses={foodClasses}
+          size="md"
+        />
+        <View style={styles.cardTitleWrap}>
+          <RowTitle>{suggestion.dish}</RowTitle>
+        </View>
+      </View>
 
       <View style={styles.chipRow}>
         <View style={styles.chip}>
@@ -447,6 +460,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenGutter,
     paddingTop: space.lg,
     gap: space.base,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    marginBottom: space.xs,
+  },
+  cardTitleWrap: {
+    flex: 1,
   },
   centered: { alignItems: 'center', paddingVertical: space.xxxl },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.sm },

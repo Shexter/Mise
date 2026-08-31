@@ -17,6 +17,7 @@ const recipe: RecipeWithIngredients = {
 const pantry = (canonicalId: string, status: PantryItem['status'] = 'in_stock'): PantryItem => ({
   id: canonicalId, canonicalId, productId: null, locationId: 'pantry', qtyRemaining: 1,
   qtyUnit: 'g', qtySource: 'user', fullness: null, usesCount: 0, purchasedAt: '2026-08-10',
+  acquiredAtKnown: true,
   openedAt: null, expiresAt: null, expirySource: null, priceCents: null, photoUri: null, status,
   estimatedDecrementsSinceAnchor: 0, lastAnchorAt: null, replacementAsked: false,
   createdAt: '2026-08-10T00:00:00Z', updatedAt: '2026-08-10T00:00:00Z',

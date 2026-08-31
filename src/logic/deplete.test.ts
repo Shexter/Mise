@@ -67,6 +67,7 @@ function pantryItem(overrides: Partial<PantryItem> & { id: string; canonicalId: 
   return {
     productId: null,
     locationId: 'pantry',
+    acquiredAtKnown: true,
     qtyRemaining: 1000,
     qtyUnit: 'g',
     qtySource: 'user',

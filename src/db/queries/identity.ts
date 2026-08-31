@@ -4,6 +4,8 @@ import canonicalSeed from '../../../assets/canonical-items.json';
 import derivativeSeed from '../../../assets/canonical-derivatives.json';
 import aliasSeed from '../../../assets/item-aliases.json';
 import { db } from '@/db';
+
+const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
 import { normalise } from '@/logic/normalise';
 import { bigrams, dominantScript } from '@/logic/similarity';
 import type { CanonicalItem, BarcodeMiss, FoodClass, ItemAlias, MeasureUnit, Product, QueuedMatch, ReferenceSource, SourceId, StorageLocation } from '@/types';
@@ -93,7 +95,7 @@ export async function loadSeedData(handle: SQLiteDatabase = db()): Promise<void>
   const aliases = aliasSeed as AliasSeedEntry[];
   const derivatives = derivativeSeed as DerivativeSeedEntry[];
 
-  await handle.withExclusiveTransactionAsync(async (txn) => {
+  const runSeed = async (txn: SQLiteDatabase | TransactionHandle) => {
     for (const entry of canonicals) {
       await txn.runAsync(
         `INSERT INTO canonical_items
@@ -226,7 +228,13 @@ export async function loadSeedData(handle: SQLiteDatabase = db()): Promise<void>
     for (const row of nonLatinAliases) {
       await ensureAliasBigrams(txn, row.id, row.alias_norm);
     }
-  });
+  };
+
+  if (!isWeb && typeof handle.withExclusiveTransactionAsync === 'function') {
+    await handle.withExclusiveTransactionAsync(runSeed);
+  } else {
+    await runSeed(handle);
+  }
 }
 
 

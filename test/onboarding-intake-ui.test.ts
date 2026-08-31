@@ -18,29 +18,29 @@ const exporter = readFileSync('src/logic/export.ts', 'utf8');
  * confirming it. These assert those promises against the sources.
  */
 
-describe('the welcome screen explains one setup outcome', () => {
-  test('the daily target is named as the thing the rest of the app works towards', () => {
-    expect(welcome).toContain('daily calorie and macro target');
-    expect(welcome.toLowerCase()).toContain('pantry');
-    expect(welcome.toLowerCase()).toContain('logged meals');
-    expect(welcome.toLowerCase()).toContain('recipes');
+describe('the welcome screen offers both starting points', () => {
+  test('the two product paths are first-class choices', () => {
+    expect(welcome).toContain('Where would you like to start?');
+    expect(welcome).toContain('Daily calorie & macro target');
+    expect(welcome).toContain('Kitchen & meal prep');
+    expect(welcome).toContain('testID={`starting-point-${intent}`}');
   });
 
-  test('the primary action is the basic setup and says what it calculates from', () => {
-    expect(welcome).toContain("primaryLabel=\"Let's do the basic setup\"");
-    expect(welcome).toContain('primaryDetail="Calculate from age, sex, height, weight & activity"');
+  test('each choice tracks its starting point and enters a distinct route', () => {
+    expect(welcome).toContain('selectStartingPoint(startingPoint)');
+    expect(welcome).toContain("setStartingPoint('calories')");
+    expect(welcome).toContain("setStartingPoint('meal_prep')");
+    expect(welcome).toContain("router.push('/onboarding/dietary')");
+    expect(welcome).toContain('router.push(ONBOARDING_ENTRY_ROUTES[targetSource])');
   });
 
-  test('the alternatives are grouped underneath, not offered as equals', () => {
-    expect(welcome).toContain('Already have a figure?');
-    expect(welcome).toContain('label="Scan or upload body composition report"');
-    expect(welcome).toContain('detail="DEXA or InBody scan"');
-    expect(welcome).toContain('label="I already know my calorie target"');
-    expect(welcome).toContain('detail="Enter an exact daily calorie goal or resting BMR"');
-    // Every alternative is a secondary button; only the shell's action is primary.
-    for (const variant of welcome.matchAll(/variant="(\w+)"/g)) {
-      expect(variant[1]).toBe('secondary');
-    }
+  test('DEXA, InBody, and known-figure options live in the calorie method sheet', () => {
+    expect(welcome).toContain('How should we set your target?');
+    expect(welcome).toContain('Scan a body composition report');
+    expect(welcome).toContain('detail="DEXA or InBody"');
+    expect(welcome).toContain('Enter a known calorie target');
+    expect(welcome).toContain('detail="Use an exact daily calorie goal or resting BMR"');
+    expect(welcome).not.toContain('Other ways to set a calorie target');
   });
 
   test('the local-versus-provider boundary is stated precisely', () => {
@@ -51,7 +51,7 @@ describe('the welcome screen explains one setup outcome', () => {
   });
 });
 
-describe('the estimated path is untouched', () => {
+describe('the estimated path remains direct', () => {
   test('route order, entry routes, and the calculation are identical', () => {
     expect(ONBOARDING_STEPS).toEqual([
       'welcome', 'sex', 'age', 'height', 'weight', 'activity', 'goal', 'api-key', 'dietary', 'results',
@@ -61,8 +61,9 @@ describe('the estimated path is untouched', () => {
       .toEqual({ maintenance: 2250, target: 2250 });
   });
 
-  test('the primary action still enters that route in one tap, with no routing screen', () => {
-    expect(welcome).toContain("onPrimary={() => start('estimated')}");
+  test('Continue enters the selected route with no extra routing screen', () => {
+    expect(welcome).toContain('primaryLabel="Continue"');
+    expect(welcome).toContain('onPrimary={continueSetup}');
     expect(welcome).toContain('router.push(ONBOARDING_ENTRY_ROUTES[targetSource])');
     // A chooser screen between welcome and the first question would show up here.
     expect(welcome).not.toContain('router.push(\'/onboarding/source');

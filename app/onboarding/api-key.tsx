@@ -15,6 +15,7 @@ export default function ApiKeyStep() {
   const router = useRouter();
   const set = useOnboardingStore((state) => state.set);
   const consumeReturnIntent = useOnboardingStore((state) => state.consumeReturnIntent);
+  const completedBranches = useOnboardingStore((state) => state.completedBranches);
   const [existingKey, setExistingKey] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -26,7 +27,9 @@ export default function ApiKeyStep() {
     const intent = consumeReturnIntent();
     switch (intent.kind) {
       case 'default-onboarding':
-        router.replace('/onboarding/dietary');
+        router.replace(completedBranches.includes('meal_prep')
+          ? '/onboarding/results'
+          : '/onboarding/dietary');
         return;
       case 'energy-onboarding':
         useOnboardingStore.getState().setMeasuredFlowOrigin('onboarding');

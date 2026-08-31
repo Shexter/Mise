@@ -17,6 +17,7 @@ import {
   useOnboardingStore,
 } from '@/store/onboardingStore';
 import { useProfileStore } from '@/store/profileStore';
+import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import type { Profile } from '@/types';
 
 export default function ResultsStep() {
@@ -25,6 +26,8 @@ export default function ResultsStep() {
   const draft = useOnboardingStore();
   const createProfile = useProfileStore((state) => state.create);
   const resetDraft = useOnboardingStore((state) => state.reset);
+  const completeBranch = useOnboardingStore((state) => state.completeBranch);
+  const savePreferences = useCookingPreferencesStore((state) => state.savePreferences);
 
   const computed = useMemo(() => {
     if (
@@ -71,7 +74,9 @@ export default function ResultsStep() {
 
   const { targets, macros } = computed;
 
-  const startTracking = async () => {
+  const mealPrepComplete = draft.completedBranches.includes('meal_prep');
+
+  const saveProfile = async () => {
     if (
       draft.sex === null ||
       draft.age === null ||
@@ -103,6 +108,21 @@ export default function ResultsStep() {
       weightGoalRateKgPerWeek: draft.weightGoalRateKgPerWeek,
     };
     await createProfile(profile);
+    completeBranch('calories');
+  };
+
+  const setUpKitchen = async () => {
+    await saveProfile();
+    useOnboardingStore.getState().set({ intents: ['calories', 'meal_prep'] });
+    router.push('/onboarding/appliances');
+  };
+
+  const headToApp = async () => {
+    await saveProfile();
+    await savePreferences({
+      intents: useOnboardingStore.getState().intents,
+      mealPrepStatus: mealPrepComplete ? 'completed' : 'deferred',
+    });
     resetDraft();
     router.replace('/(tabs)');
   };
@@ -118,7 +138,21 @@ export default function ResultsStep() {
   return (
     <Screen
       scroll
-      footer={<Button label="Start tracking" onPress={() => void startTracking()} />}
+      footer={
+        <View style={styles.footer}>
+          {!mealPrepComplete ? (
+            <Button
+              label="Set up kitchen & meal prep"
+              onPress={() => void setUpKitchen()}
+            />
+          ) : null}
+          <Button
+            label="Head straight to the app"
+            variant={mealPrepComplete ? 'primary' : 'ghost'}
+            onPress={() => void headToApp()}
+          />
+        </View>
+      }
     >
       <View style={styles.header}>
         <SectionLabel muted>Your daily target</SectionLabel>
@@ -190,4 +224,5 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   macroText: { flex: 1, gap: space.xs },
   note: { marginTop: space.lg },
+  footer: { gap: space.sm },
 });

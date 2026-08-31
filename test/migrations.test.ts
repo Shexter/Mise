@@ -34,6 +34,28 @@ const IDENTITY_TABLES = [
 const PANTRY_TABLES = ['locations', 'pantry_items'];
 
 describe('migrations', () => {
+  test('the cooking-preferences-and-appliances migration adds tables without touching existing data', () => {
+    const db = new DatabaseSync(':memory:');
+    const cookingPrefsIndex = MIGRATIONS.findIndex((statement) =>
+      statement.includes('CREATE TABLE cooking_preferences'),
+    );
+    expect(cookingPrefsIndex).toBeGreaterThan(0);
+    migrate(db, 0, cookingPrefsIndex);
+    db.prepare(
+      `INSERT INTO meals (id, logged_at, local_date, meal_type, name, source, created_at)
+       VALUES ('before-cooking-prefs', '2026-08-30T12:00:00Z', '2026-08-30', 'lunch', 'Rice bowl', 'manual', '2026-08-30T12:00:00Z')`,
+    ).run();
+
+    migrate(db, cookingPrefsIndex, cookingPrefsIndex + 1);
+
+    expect(tableNames(db)).toContain('cooking_preferences');
+    expect(tableNames(db)).toContain('owned_appliances');
+    expect(db.prepare("SELECT name FROM meals WHERE id = 'before-cooking-prefs'").get()).toEqual({
+      name: 'Rice bowl',
+    });
+    db.close();
+  });
+
   test('the quick-relog migration preserves meals and defaults favorites off', () => {
     const db = new DatabaseSync(':memory:');
     const quickRelogIndex = MIGRATIONS.findIndex((statement) =>
@@ -174,6 +196,8 @@ describe('migrations', () => {
     expect(tables).toContain('fasts');
     expect(tables).toContain('chart_preferences');
     expect(tables).toContain('shops');
+    expect(tables).toContain('cooking_preferences');
+    expect(tables).toContain('owned_appliances');
     const canonicalColumns = (
       db.prepare('PRAGMA table_info(canonical_items)').all() as { name: string }[]
     ).map((column) => column.name);

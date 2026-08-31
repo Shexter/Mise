@@ -1,6 +1,7 @@
 import type { CaptureItem } from '@/api/capture';
 import { getAllCanonicals, getLocations } from '@/db/queries';
 import { predictExpiry } from '@/logic/expiry';
+import { planIntakeProposals, type IntakeCandidate } from '@/logic/intakeProposals';
 import type { MatchOutcome } from '@/logic/match';
 import { resolveIngredientReferences } from '@/logic/resolution';
 import type { CanonicalItem, Location, ReceiptLine } from '@/types';
@@ -27,6 +28,12 @@ export function captureItemsFromReceiptLines(lines: readonly ReceiptLine[]): Cap
  * Pairs every captured item with its own matching outcome and a user-editable
  * default location. This is intentionally read-only: accepting the review is
  * the only later step allowed to create pantry rows.
+ *
+ * Identity and location now come from `planIntakeProposals`, shared with voice
+ * and manual intake, so the three channels cannot disagree about what an
+ * uncertain match means. The photo-shaped return type is kept: this screen's
+ * review reads `captured`, and changing it would be a rewrite of the camera
+ * path for no benefit to the camera path.
  */
 export function planCaptureItems(
   items: readonly CaptureItem[],
@@ -35,29 +42,48 @@ export function planCaptureItems(
   locations: readonly Location[],
   purchasedAt: string,
 ): CaptureItemProposal[] {
+  const candidates: IntakeCandidate[] = items.map((captured, index) => ({
+    id: `photo-${index}`,
+    statedName: captured.name,
+    quantity: {
+      containerCount: null,
+      amount: captured.quantity,
+      unit: captured.unit,
+      approximate: false,
+    },
+  }));
+
   const canonicalById = new Map(canonicals.map((canonical) => [canonical.id, canonical]));
-  return items.map((captured, index) => {
-    const outcome = outcomes[index] ?? {
-      status: 'unresolved' as const,
-      raw: captured.name,
-      norm: captured.name,
-      queued: false,
-    };
-    const canonical =
-      outcome.status === 'resolved' || outcome.status === 'needs_confirmation'
-        ? canonicalById.get(outcome.canonicalId) ?? null
-        : null;
-    const location = canonical
-      ? locations.find((candidate) => candidate.id === canonical.defaultLocation) ?? locations[0] ?? null
+  const locationById = new Map(locations.map((location) => [location.id, location]));
+
+  const proposals = planIntakeProposals(candidates, outcomes, {
+    draftId: 'photo-capture',
+    source: 'photo',
+    canonicals,
+    locations,
+  });
+
+  return proposals.map((proposal, index) => {
+    const canonical = proposal.canonicalId
+      ? canonicalById.get(proposal.canonicalId) ?? null
+      : null;
+    const location = proposal.locationId
+      ? locationById.get(proposal.locationId) ?? null
       : null;
     return {
-      captured,
-      outcome,
+      captured: items[index]!,
+      outcome: outcomes[index] ?? {
+        status: 'unresolved' as const,
+        raw: items[index]!.name,
+        norm: items[index]!.name,
+        queued: false,
+      },
       canonical,
       location,
-      predictedExpiry: canonical && location
-        ? predictExpiry(canonical, location.kind, purchasedAt, null)
-        : null,
+      predictedExpiry:
+        canonical && location
+          ? predictExpiry(canonical, location.kind, purchasedAt, null)
+          : null,
     };
   });
 }

@@ -1,6 +1,11 @@
 import { randomUUID } from 'expo-crypto';
 import { db } from '@/db';
 import { localDateString } from '@/logic/dates';
+import {
+  knownAcquisition,
+  predictExpiryFromAcquisition,
+  unknownAcquisition,
+} from '@/logic/acquisition';
 import { canRecomputeExpiry, freezeExpiry, predictExpiry } from '@/logic/expiry';
 import type { ShoppingRestockPlan } from '@/logic/stockRestock';
 import type { ExpirySource, Fullness, Location, LocationKind, MeasureUnit, PantryItem, QuantitySource, ShoppingListStatus } from '@/types';
@@ -97,6 +102,12 @@ export interface NewPantryItem {
   locationId: string;
   /** Local date (yyyy-MM-dd). Defaults to today. */
   purchasedAt?: string;
+  /**
+   * Defaults to true, matching every channel that has a real date: a receipt,
+   * a scan at the till, a date the user typed. First-inventory capture passes
+   * false, and then no expiry is predicted from `purchasedAt` at all.
+   */
+  acquiredAtKnown?: boolean;
   productId?: string | null;
   /** A quantity the user typed, echoable back to them. */
   qtyRemaining?: number | null;
@@ -222,6 +233,10 @@ export async function insertPantryItem(
   const id = randomUUID();
   const now = new Date().toISOString();
   const purchasedAt = input.purchasedAt ?? localDateString();
+  const acquiredAtKnown = input.acquiredAtKnown ?? true;
+  const acquisition = acquiredAtKnown
+    ? knownAcquisition(purchasedAt)
+    : unknownAcquisition(purchasedAt);
 
   let expiresAt: string | null;
   let expirySource: ExpirySource | null;
@@ -229,10 +244,10 @@ export async function insertPantryItem(
     expiresAt = input.expiresAt;
     expirySource = input.expirySource ?? 'user';
   } else {
-    expiresAt = predictExpiry(
+    expiresAt = predictExpiryFromAcquisition(
       canonical,
       location.kind as LocationKind,
-      purchasedAt,
+      acquisition,
       null,
     );
     expirySource = expiresAt != null ? 'predicted' : null;
@@ -241,9 +256,10 @@ export async function insertPantryItem(
   await db().runAsync(
     `INSERT INTO pantry_items
        (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
-        qty_source, fullness, uses_count, purchased_at, opened_at, expires_at,
-        expiry_source, price_cents, photo_uri, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, NULL, ?, ?, ?, ?, 'in_stock', ?, ?)`,
+        qty_source, fullness, uses_count, purchased_at, acquired_at_known,
+        opened_at, expires_at, expiry_source, price_cents, photo_uri, status,
+        created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0, ?, ?, NULL, ?, ?, ?, ?, 'in_stock', ?, ?)`,
     [
       id,
       input.canonicalId,
@@ -253,6 +269,7 @@ export async function insertPantryItem(
       input.qtyUnit ?? null,
       input.qtyRemaining != null ? (input.qtySource ?? 'user') : null,
       purchasedAt,
+      acquiredAtKnown ? 1 : 0,
       expiresAt,
       expirySource,
       input.priceCents ?? null,
@@ -297,6 +314,10 @@ export async function updatePantryItem(
     ? (input.expiresAt === existing.expiresAt ? existing.expirySource ?? 'user' : 'user')
     : null;
   if (input.expiresAt == null && canRecomputeExpiry(existing.expirySource)) {
+    // Editing the date in the sheet *is* the user supplying the acquisition
+    // date, so an unknown-acquisition row becomes a known one here and starts
+    // predicting. That is the only way back from unknown, and it is a date the
+    // user typed rather than one Mise assumed.
     expiresAt = predictExpiry(
       canonical,
       location.kind as LocationKind,
@@ -308,6 +329,7 @@ export async function updatePantryItem(
   await db().runAsync(
     `UPDATE pantry_items
      SET canonical_id = ?, location_id = ?, purchased_at = ?,
+         acquired_at_known = 1,
          qty_remaining = ?, qty_unit = ?, qty_source = ?,
          expires_at = ?, expiry_source = ?, updated_at = ?
      WHERE id = ?`,
@@ -425,10 +447,12 @@ async function recomputeExpiry(id: string): Promise<void> {
   );
   if (!canonical || !location) return;
 
-  const expiresAt = predictExpiry(
+  const expiresAt = predictExpiryFromAcquisition(
     canonical,
     location.kind as LocationKind,
-    item.purchasedAt,
+    item.acquiredAtKnown
+      ? knownAcquisition(item.purchasedAt)
+      : unknownAcquisition(item.purchasedAt),
     item.openedAt,
   );
   await touchPantryItem(id, 'expires_at = ?, expiry_source = ?', [
@@ -558,4 +582,186 @@ export async function markItemRunningLow(id: string): Promise<void> {
 /** Discarded, not consumed — the raw material for waste figures later. */
 export async function discardItem(id: string): Promise<void> {
   await touchPantryItem(id, "status = 'discarded'", []);
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Reviewed intake batches                                                     */
+/* -------------------------------------------------------------------------- */
+
+/** One accepted proposal, already reviewed, ready to become physical rows. */
+export interface IntakeBatchItem {
+  canonicalId: string;
+  locationId: string;
+  /** One entry per physical container the proposal creates. */
+  rows: readonly { qtyRemaining: number | null; qtyUnit: MeasureUnit | null }[];
+  /** False for first-inventory stock, which suppresses expiry prediction. */
+  acquiredAtKnown: boolean;
+  /** Local date. Defaults to today; only meaningful when known. */
+  acquiredAt?: string;
+  fullness?: Fullness | null;
+  /** A local date the user said the container was opened. */
+  openedAt?: string | null;
+}
+
+export interface IntakeBatchResult {
+  batchId: string;
+  createdItemIds: string[];
+  /** True when this draft had already been applied and nothing was written. */
+  alreadyApplied: boolean;
+}
+
+/**
+ * Writes one reviewed intake as a single transaction.
+ *
+ * Three properties the photo path does not have, each earned by a specific
+ * failure a voice batch makes likely:
+ *
+ *   - **Atomic.** The photo review inserts items with `Promise.all`, so a bad
+ *     canonical id halfway through leaves half a fridge in the pantry and no
+ *     record of which half. Eight items in one breath makes that both more
+ *     likely and much harder to unpick by hand.
+ *   - **Idempotent.** `draft_id` is unique, so a retried confirmation — a
+ *     double tap, a screen that remounts, a retry after a timeout the write
+ *     actually survived — returns the first batch instead of making a second
+ *     one.
+ *   - **Reversible.** The created ids are recorded against the batch, so Undo
+ *     deletes exactly those rows and nothing that merely looks like them.
+ *
+ * `qty_source` is `'user'`: every figure here was either spoken by the user or
+ * typed by them in review, and both are their own claim rather than an
+ * estimate (the distinction decision 74 draws).
+ */
+export async function applyPantryIntakeBatch(
+  draftId: string,
+  source: string,
+  items: readonly IntakeBatchItem[],
+): Promise<IntakeBatchResult> {
+  const existing = await db().getFirstAsync<{ id: string }>(
+    'SELECT id FROM pantry_intake_batches WHERE draft_id = ?',
+    [draftId],
+  );
+  if (existing) {
+    const rows = await db().getAllAsync<{ pantry_item_id: string }>(
+      'SELECT pantry_item_id FROM pantry_intake_batch_items WHERE batch_id = ?',
+      [existing.id],
+    );
+    return {
+      batchId: existing.id,
+      createdItemIds: rows.map((row) => row.pantry_item_id),
+      alreadyApplied: true,
+    };
+  }
+
+  const batchId = randomUUID();
+  const now = new Date().toISOString();
+  const today = localDateString();
+  const createdItemIds: string[] = [];
+
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    // Re-checked inside the transaction: two confirmations racing would both
+    // pass the read above, and only the unique index can actually decide.
+    await txn.runAsync(
+      `INSERT INTO pantry_intake_batches (id, draft_id, source, item_count, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [batchId, draftId, source, items.length, now],
+    );
+
+    for (const item of items) {
+      const canonical = await txn.getFirstAsync<CanonicalItemRow>(
+        'SELECT * FROM canonical_items WHERE id = ?',
+        [item.canonicalId],
+      );
+      const location = await txn.getFirstAsync<LocationRow>(
+        'SELECT * FROM locations WHERE id = ?',
+        [item.locationId],
+      );
+      if (!canonical || !location) {
+        throw new Error(
+          'A reviewed item no longer has a valid ingredient or location. Nothing was added.',
+        );
+      }
+
+      const acquiredAt = item.acquiredAt ?? today;
+      const acquisition = item.acquiredAtKnown
+        ? knownAcquisition(acquiredAt)
+        : unknownAcquisition(acquiredAt);
+      const openedAt = item.openedAt ?? null;
+      const expiresAt = predictExpiryFromAcquisition(
+        toCanonicalItem(canonical),
+        location.kind as LocationKind,
+        acquisition,
+        openedAt,
+      );
+
+      for (const row of item.rows) {
+        const id = randomUUID();
+        await txn.runAsync(
+          `INSERT INTO pantry_items
+             (id, canonical_id, product_id, location_id, qty_remaining, qty_unit,
+              qty_source, fullness, uses_count, purchased_at, acquired_at_known,
+              opened_at, expires_at, expiry_source, price_cents, photo_uri, status,
+              created_at, updated_at)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, NULL, NULL, 'in_stock', ?, ?)`,
+          [
+            id,
+            item.canonicalId,
+            item.locationId,
+            row.qtyRemaining ?? null,
+            row.qtyUnit ?? null,
+            row.qtyRemaining != null ? 'user' : null,
+            item.fullness ?? null,
+            acquiredAt,
+            item.acquiredAtKnown ? 1 : 0,
+            openedAt,
+            expiresAt,
+            expiresAt != null ? 'predicted' : null,
+            now,
+            now,
+          ],
+        );
+        await txn.runAsync(
+          'INSERT INTO pantry_intake_batch_items (batch_id, pantry_item_id) VALUES (?, ?)',
+          [batchId, id],
+        );
+        createdItemIds.push(id);
+      }
+    }
+  });
+
+  return { batchId, createdItemIds, alreadyApplied: false };
+}
+
+
+/**
+ * Removes exactly the rows one batch created.
+ *
+ * Deletes by recorded id rather than by any resemblance to the batch, so an
+ * item the user added by hand in between — same food, same shelf, same minute
+ * — survives. The batch is marked undone rather than deleted: the draft id
+ * must stay claimed, or re-confirming the same draft after an Undo would write
+ * the batch a second time.
+ */
+export async function undoPantryIntakeBatch(batchId: string): Promise<number> {
+  const rows = await db().getAllAsync<{ pantry_item_id: string }>(
+    'SELECT pantry_item_id FROM pantry_intake_batch_items WHERE batch_id = ?',
+    [batchId],
+  );
+  if (rows.length === 0) return 0;
+
+  const now = new Date().toISOString();
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    for (const row of rows) {
+      await txn.runAsync('DELETE FROM pantry_items WHERE id = ?', [row.pantry_item_id]);
+    }
+    await txn.runAsync(
+      'DELETE FROM pantry_intake_batch_items WHERE batch_id = ?',
+      [batchId],
+    );
+    await txn.runAsync(
+      'UPDATE pantry_intake_batches SET undone_at = ? WHERE id = ?',
+      [now, batchId],
+    );
+  });
+  return rows.length;
 }

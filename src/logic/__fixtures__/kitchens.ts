@@ -71,6 +71,7 @@ export function item(
     id: nextId('item'),
     productId: null,
     locationId: 'pantry',
+    acquiredAtKnown: true,
     qtyRemaining: null,
     qtyUnit: null,
     qtySource: null,

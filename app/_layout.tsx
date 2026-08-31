@@ -21,6 +21,7 @@ import { StorageUnavailable } from '@/components/StorageUnavailable';
 import { color } from '@/constants/theme';
 import { openDatabase } from '@/db';
 import { databaseReadiness, useDbReadiness } from '@/db/readiness';
+import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import { useProfileStore } from '@/store/profileStore';
 
 // The splash stays up until fonts and the database are both ready, so the first
@@ -36,19 +37,30 @@ export default function RootLayout() {
     Archivo_600SemiBold,
   });
   const loadProfile = useProfileStore((state) => state.load);
+  const loadCookingPreferences = useCookingPreferencesStore((state) => state.load);
   const readiness = useDbReadiness();
 
   const startStorage = useCallback(() => databaseReadiness.initialise(async () => {
-    await openDatabase();
-    await seedFromEnvironment();
-    await loadProfile();
-  }), [loadProfile]);
+    try {
+      await openDatabase();
+      await seedFromEnvironment();
+      await Promise.all([loadProfile(), loadCookingPreferences()]);
+    } catch (e) {
+      console.error('[DATABASE_START_ERROR]', e);
+      throw e;
+    }
+  }), [loadProfile, loadCookingPreferences]);
 
   const retryStorage = useCallback(() => databaseReadiness.retry(async () => {
-    await openDatabase();
-    await seedFromEnvironment();
-    await loadProfile();
-  }), [loadProfile]);
+    try {
+      await openDatabase();
+      await seedFromEnvironment();
+      await Promise.all([loadProfile(), loadCookingPreferences()]);
+    } catch (e) {
+      console.error('[DATABASE_RETRY_ERROR]', e);
+      throw e;
+    }
+  }), [loadProfile, loadCookingPreferences]);
 
   useEffect(() => {
     void startStorage();
@@ -86,6 +98,8 @@ export default function RootLayout() {
             />
             <Stack.Screen name="pantry-capture" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
             <Stack.Screen name="pantry-capture-review" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="pantry-voice" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="pantry-voice-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-review" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-fallback" options={{ presentation: 'modal' }} />
             <Stack.Screen name="barcode-history" options={{ presentation: 'modal' }} />

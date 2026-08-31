@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { FoodVisual } from '@/components/FoodVisual';
 import { Sheet } from '@/components/Sheet';
 import { Stepper } from '@/components/Stepper';
 import { Body, ButtonLabel, Caption, MealCalories, RowTitle, SectionLabel } from '@/components/Type';
@@ -104,6 +105,8 @@ export function MealDetailSheet({
             {meal.uses.map((use) => (
               <IngredientRow
                 key={use.canonicalId}
+                canonicalId={use.canonicalId}
+                category={canonicals?.get(use.canonicalId)?.foodClass}
                 name={canonicals?.get(use.canonicalId)?.displayName ?? use.canonicalId}
                 detail={`${formatQuantity(use.qty * servingsMade)} ${use.unit}`}
                 held
@@ -112,6 +115,8 @@ export function MealDetailSheet({
             {meal.missing.map((item, index) => (
               <IngredientRow
                 key={`${item.name}-${index}`}
+                canonicalId={item.canonicalId}
+                category={item.canonicalId ? canonicals?.get(item.canonicalId)?.foodClass : 'other'}
                 name={item.name}
                 detail={item.note}
                 held={false}
@@ -177,18 +182,28 @@ function IngredientRow({
   name,
   detail,
   held,
+  canonicalId,
+  category,
 }: {
   name: string;
   detail: string | null;
   held: boolean;
+  canonicalId?: string | null;
+  category?: string | null;
 }) {
   return (
     <View style={styles.ingredient} accessibilityLabel={`${name}${held ? '' : ', missing'}`}>
-      <View style={[styles.dot, held ? styles.dotHeld : styles.dotMissing]} />
-      <Body muted={!held} style={styles.ingredientName}>
-        {name}
-      </Body>
-      {detail ? <Caption muted>{detail}</Caption> : null}
+      <FoodVisual
+        canonicalId={canonicalId}
+        category={category}
+        size="sm"
+      />
+      <View style={styles.ingredientInfo}>
+        <Body muted={!held} style={styles.ingredientName}>
+          {name}
+        </Body>
+        {detail ? <Caption muted>{detail}</Caption> : null}
+      </View>
       {held ? null : <Caption style={styles.missing}>Missing</Caption>}
     </View>
   );
@@ -211,6 +226,7 @@ const styles = StyleSheet.create({
   field: { gap: space.sm },
   section: { gap: space.sm },
   ingredient: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  ingredientInfo: { flex: 1, gap: space.xs },
   ingredientName: { flexShrink: 1 },
   missing: { color: swipeTokens.overlay.passColor },
   steps: { gap: space.base },

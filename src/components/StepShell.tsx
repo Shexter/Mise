@@ -18,8 +18,9 @@ import {
 } from '@/constants/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import {
-  ONBOARDING_STEPS,
+  getOnboardingSteps,
   stepIndex,
+  useOnboardingStore,
   type OnboardingStep,
 } from '@/store/onboardingStore';
 
@@ -62,7 +63,11 @@ export function StepShell({
 }: Props) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
-  const index = stepIndex(step);
+  const intents = useOnboardingStore((state) => state.intents);
+  const startingPoint = useOnboardingStore((state) => state.startingPoint);
+  const completedBranches = useOnboardingStore((state) => state.completedBranches);
+  const activeSteps = getOnboardingSteps(intents, startingPoint, completedBranches);
+  const index = stepIndex(step, intents, startingPoint, completedBranches);
 
   // Reanimated's web layout-animation path throws on entering transitions
   // (a known upstream bug), so motion is native-only. The phone experience,
@@ -117,7 +122,7 @@ export function StepShell({
         ) : (
           <View style={styles.back} />
         )}
-        <Progress index={index} />
+        <Progress index={index} steps={activeSteps} />
       </View>
 
       <Animated.View entering={entering} style={[styles.body, styles.column]}>
@@ -133,17 +138,18 @@ export function StepShell({
   );
 }
 
-function Progress({ index }: { index: number }) {
+function Progress({ index, steps }: { index: number; steps: readonly OnboardingStep[] }) {
+  const safeIndex = index >= 0 ? index : 0;
   return (
     <View
       style={styles.progress}
       accessibilityRole="progressbar"
-      accessibilityLabel={`Step ${index + 1} of ${ONBOARDING_STEPS.length}`}
+      accessibilityLabel={`Step ${safeIndex + 1} of ${steps.length}`}
     >
-      {ONBOARDING_STEPS.map((name, position) => (
+      {steps.map((name, position) => (
         <View
           key={name}
-          style={[styles.tick, position <= index && styles.tickOn]}
+          style={[styles.tick, position <= safeIndex && styles.tickOn]}
         />
       ))}
     </View>

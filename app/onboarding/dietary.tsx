@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 
 import { DietaryRuleList } from '@/components/dietary/DietaryRuleList';
 import { StepShell } from '@/components/StepShell';
+import { useOnboardingStore } from '@/store/onboardingStore';
 
 /**
  * Dietary rules, asked during onboarding and skippable (task 7.1) — someone
@@ -11,6 +12,16 @@ import { StepShell } from '@/components/StepShell';
  */
 export default function DietaryStep() {
   const router = useRouter();
+  const intents = useOnboardingStore((state) => state.intents);
+  const hasCalories = intents.includes('calories');
+
+  const onContinue = () => {
+    if (hasCalories) {
+      router.push('/onboarding/results');
+    } else {
+      router.push('/onboarding/appliances');
+    }
+  };
 
   return (
     <StepShell
@@ -18,7 +29,7 @@ export default function DietaryStep() {
       title="Anything you avoid?"
       detail="Allergies and restrictions are filtered out of what Mise suggests. This is optional, and you can change it anytime in Settings."
       primaryLabel="Continue"
-      onPrimary={() => router.push('/onboarding/results')}
+      onPrimary={onContinue}
     >
       <DietaryRuleList />
     </StepShell>

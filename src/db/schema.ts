@@ -760,6 +760,63 @@ ALTER TABLE meals ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX idx_meals_favorite ON meals(is_favorite);
 `;
 
+/**
+ * Migration 35: local cooking preferences and owned appliances for meal prep.
+ * Allows meal-prep-only users to complete onboarding without a nutrition profile,
+ * records declared appliance ownership, and tracks completion/deferral state.
+ */
+const COOKING_PREFERENCES_AND_APPLIANCES = `
+CREATE TABLE cooking_preferences (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  intents TEXT NOT NULL,
+  meal_prep_status TEXT NOT NULL DEFAULT 'not_started',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  deferred_at TEXT
+);
+
+CREATE TABLE owned_appliances (
+  appliance_id TEXT PRIMARY KEY,
+  owned INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
+`;
+
+/**
+ * Migration 36: stock whose acquisition date is unknown, and the intake
+ * batches that create it.
+ *
+ * `purchased_at` stays `NOT NULL` — every row still sorts and anchors on a
+ * real date. `acquired_at_known` records whether that date is *evidence*.
+ * Existing rows all came from a receipt, a scan, or something the user typed,
+ * so they default to 1 and nothing about them changes.
+ *
+ * The batch tables exist so one reviewed intake can be applied exactly once
+ * and undone as a unit: `draft_id` is unique, which is what makes a repeated
+ * confirmation a no-op rather than a second pantry.
+ */
+const UNKNOWN_ACQUISITION_AND_INTAKE_BATCHES = `
+ALTER TABLE pantry_items ADD COLUMN acquired_at_known INTEGER NOT NULL DEFAULT 1;
+
+CREATE TABLE pantry_intake_batches (
+  id         TEXT PRIMARY KEY,
+  draft_id   TEXT NOT NULL UNIQUE,
+  source     TEXT NOT NULL,
+  item_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  undone_at  TEXT
+);
+
+CREATE TABLE pantry_intake_batch_items (
+  batch_id       TEXT NOT NULL REFERENCES pantry_intake_batches(id) ON DELETE CASCADE,
+  pantry_item_id TEXT NOT NULL REFERENCES pantry_items(id) ON DELETE CASCADE,
+  PRIMARY KEY (batch_id, pantry_item_id)
+);
+
+CREATE INDEX idx_intake_batch_items ON pantry_intake_batch_items(pantry_item_id);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -794,12 +851,18 @@ export const MIGRATIONS: readonly string[] = [
   EXTENDED_MICRONUTRIENT_TRACKING,
   RECEIPT_OCR,
   QUICK_RELOG,
+  COOKING_PREFERENCES_AND_APPLIANCES,
+  UNKNOWN_ACQUISITION_AND_INTAKE_BATCHES,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS pantry_intake_batch_items;
+DROP TABLE IF EXISTS pantry_intake_batches;
+DROP TABLE IF EXISTS owned_appliances;
+DROP TABLE IF EXISTS cooking_preferences;
 DROP TABLE IF EXISTS receipt_ocr_preferences;
 DROP TABLE IF EXISTS shops;
 DROP TABLE IF EXISTS chart_preferences;

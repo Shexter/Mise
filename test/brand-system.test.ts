@@ -109,7 +109,6 @@ describe('brand asset and component contracts', () => {
     const welcome = readFileSync('app/onboarding/welcome.tsx', 'utf8');
     const settings = readFileSync('app/(tabs)/settings.tsx', 'utf8');
 
-    expect(welcome).toContain('Cook from what you have, tracked as you go.');
     expect(welcome).toContain('no Mise account or server');
     // The welcome copy was rewritten around the daily target
     // (improve-onboarding-cohesion-and-scan-intake, task 7.1). The boundary it

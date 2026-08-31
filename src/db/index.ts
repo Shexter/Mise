@@ -3,6 +3,8 @@ import * as SQLite from 'expo-sqlite';
 import { loadSeedData } from '@/db/queries';
 import { DROP_ALL, LATEST_VERSION, MIGRATIONS } from '@/db/schema';
 
+const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
+
 /**
  * Kept as `snap.db` after the rename to Mise, deliberately. The filename is
  * internal — no user ever sees it — and changing it would make an existing
@@ -26,7 +28,20 @@ export function openDatabase(): Promise<SQLite.SQLiteDatabase> {
     let handle: SQLite.SQLiteDatabase | null = null;
     try {
       handle = await SQLite.openDatabaseAsync(DATABASE_NAME);
-      await handle.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+      if (typeof (handle as any).withExclusiveTransactionAsync !== 'function') {
+        (handle as any).withExclusiveTransactionAsync = async (callback: (txn: SQLite.SQLiteDatabase) => Promise<void>) => {
+          return await callback(handle!);
+        };
+      }
+      if (!isWeb) {
+        await handle.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+      } else {
+        try {
+          await handle.execAsync('PRAGMA foreign_keys = ON;');
+        } catch {
+          // Web SQLite implementation compatibility
+        }
+      }
       await migrate(handle);
       await loadSeedData(handle);
       // Nothing outside this attempt can observe a partially migrated or
@@ -77,9 +92,13 @@ async function migrate(handle: SQLite.SQLiteDatabase): Promise<void> {
   while (version < LATEST_VERSION) {
     const statement = MIGRATIONS[version];
     if (!statement) break;
-    await handle.withExclusiveTransactionAsync(async (txn) => {
-      await txn.execAsync(statement);
-    });
+    if (isWeb) {
+      await handle.execAsync(statement);
+    } else {
+      await handle.withExclusiveTransactionAsync(async (txn) => {
+        await txn.execAsync(statement);
+      });
+    }
     version += 1;
     await handle.execAsync(`PRAGMA user_version = ${version}`);
   }

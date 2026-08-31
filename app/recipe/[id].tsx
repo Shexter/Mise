@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
+import { FoodVisual } from '@/components/FoodVisual';
 import { ConfirmMatchSheet, type PendingConfirmation } from '@/components/match/ConfirmMatchSheet';
 import { RecipeIngredientEditor } from '@/components/recipes/RecipeIngredientEditor';
 import { Screen } from '@/components/Screen';
@@ -173,7 +174,21 @@ export default function RecipeDetailScreen() {
           </Card>
           <Card title="Ingredients">
             <Caption muted>Ingredients can be corrected at any time.</Caption>
-            <View style={styles.list}>{recipe.ingredients.map((ingredient) => <View key={ingredient.id} style={styles.ingredient}><Body>{ingredient.name}</Body><Caption muted>{ingredient.quantity === null ? 'No amount stated' : `${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`}</Caption></View>)}</View>
+            <View style={styles.list}>
+              {recipe.ingredients.map((ingredient) => (
+                <View key={ingredient.id} style={styles.ingredient}>
+                  <FoodVisual
+                    canonicalId={ingredient.canonicalId}
+                    category={ingredient.canonicalId ? canonicals.get(ingredient.canonicalId)?.foodClass : 'other'}
+                    size="sm"
+                  />
+                  <View style={styles.ingredientText}>
+                    <Body>{ingredient.name}</Body>
+                    <Caption muted>{ingredient.quantity === null ? 'No amount stated' : `${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`}</Caption>
+                  </View>
+                </View>
+              ))}
+            </View>
           </Card>
           {recipe.steps.length > 0 ? <Card title="Method"><Caption muted>The original method, kept for your own reference.</Caption><View style={styles.list}>{recipe.steps.map((step, index) => <Body key={`${step}-${index}`}>{index + 1}. {step}</Body>)}</View></Card> : null}
         </>}
@@ -206,5 +221,6 @@ const styles = StyleSheet.create({
   source: { gap: space.xs, paddingVertical: space.sm },
   coverage: { gap: space.xs, marginBottom: space.base },
   list: { gap: space.sm, marginTop: space.sm },
-  ingredient: { gap: space.xs },
+  ingredient: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  ingredientText: { flex: 1, gap: space.xs },
 });

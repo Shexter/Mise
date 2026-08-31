@@ -1,0 +1,6 @@
+{
+  "$schema": "./manifest.schema.json",
+  "schemaVersion": "2.0.0",
+  "description": "Mise curated food illustration manifest. Empty by design: the visual-food-identity-system spec gates production art generation on owner acceptance of the implemented core UI through native visual review. Until an entry appears here with verified provenance, every non-photographed food resolves to its reviewed category fallback badge.",
+  "assets": {}
+}

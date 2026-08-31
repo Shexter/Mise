@@ -2585,3 +2585,149 @@ item, no receipt, no stock change, and no record of the check. A printed
 receipt header always beats a position match when naming the store for
 normalisation — direct evidence over circumstantial, since someone can buy a
 coffee next door or shop at two places in one trip.
+
+## Voice pantry intake
+
+**180. Voice is a sibling of camera capture, not a mode inside it.** `SETTLED`
+Pantry gains a labelled microphone action next to the camera and the manual add.
+The camera surface keeps routing barcodes, receipts, and item photographs on its
+own (decision 56's unified-capture contract), and putting speech behind that
+routing would have made the fastest way to catalogue a fridge the hardest one to
+find. An empty pantry additionally offers the sweep as an invitation, and the
+starter-pantry onboarding step lists it beside camera and manual entry. None of
+those gate anything: "Skip for now" was already immediate and still is.
+
+**181. ~~The transcription ladder is native, keyboard, downloaded model.~~**
+`SUPERSEDED BY 189`
+The original order put the keyboard second because it always works. That was
+wrong once the downloaded model became real — see decision 189.
+
+**182. The downloadable model is a registry, because Parakeet v3 cannot serve
+Mise's differentiator.** `SETTLED`
+Parakeet TDT 0.6b v3 was the requested fallback and it is a good one — 600M
+parameters, CC-BY-4.0, fully offline. Its model card says 25 European languages
+and no Asian language at all. Deep Asian ingredient coverage is the thing this
+app is differentiated on (decision 31, and the reason aliases are stored in
+script), so offering Parakeet to someone naming their pantry in Cantonese would
+be offering a download that cannot help them. `src/media/speech/models.ts`
+therefore keys models by language: Parakeet for European speech, SenseVoice
+Small for Chinese, Cantonese, Japanese, Korean, and English. A language nothing
+covers returns null and says so, rather than transcribing with a model that has
+never heard it.
+
+**183. An unknown acquisition date is a stored fact, not a date to invent.**
+`SETTLED`
+`pantry_items.purchased_at` has been `NOT NULL` since migration 1, which was
+right for every channel that existed: a receipt has a printed date, a scan
+happens at the till, a manual add is typed. A first inventory has none. Writing
+today's date and predicting from it produces an expiry wrong by however long the
+food has already been sitting there — decision 15's failure mode wearing a
+date's clothes. Migration 36 adds `acquired_at_known`; when it is 0 no expiry is
+predicted at all, and a location change does not manufacture one either. Editing
+the date in the item sheet is the one way back, because that date came from the
+user.
+
+**184. A container makes a row; a loose count makes an amount.** `SETTLED`
+"One row is one physical container" needed an answer for speech, which is the
+first channel that can state a count without stating a container. Two cans of
+tomatoes is two rows. Three carrots is one row holding three pieces, because a
+carrot is not a container — three carrot rows would ask the user to open a
+carrot, and a half-used bag of carrots could not be expressed at all. The rule
+lives in `src/logic/materialisation.ts` and is shared by receipt, barcode,
+manual, and voice, so a receipt line reading "CARROTS 3" cannot disagree with
+someone saying "three carrots".
+
+**185. An approximate amount is never stored as a number.** `SETTLED`
+`qty_remaining` is a figure the UI may echo back to the user, and "about half a
+carton" is not one. The parser preserves the hedge, `materialise` drops the
+number, and the approximation survives in the proposal's evidence and in
+`fullness`, which is the field built for that claim. Measured against the
+34-utterance corpus this holds at 100% amount accuracy with zero invented
+ingredients.
+
+**186. A vision key is not speech consent, and speech consent is not text
+consent.** `SETTLED`
+Three payloads, three separate permissions, none implying another:
+photographs (already covered by the existing key), session audio, and the
+handful of unrecognised food words a second lookup would send. `mayLeaveDevice`
+checks consent *before* the key deliberately — checking the key first invites
+"and it is configured, so go ahead", which is exactly how a photo credential
+would become permission to record a room. Consent is per session and is not
+persisted.
+
+**187. Confirmation is one transaction, keyed by the draft.** `SETTLED`
+The photo path inserts with `Promise.all`, so a bad canonical id halfway
+through leaves half a fridge in the pantry. Eight items in one breath makes that
+both likelier and much harder to unpick. `applyPantryIntakeBatch` writes
+everything or nothing, records the created ids against a batch whose `draft_id`
+is unique — so a retried confirmation returns the first batch instead of making
+a second pantry — and Undo deletes exactly those ids, leaving an item the user
+added by hand in between untouched.
+
+**188. A bulk intake invalidates the suggestion cache explicitly.** `SETTLED`
+`computeFingerprint` covers *urgent* stock, which is what a normal day changes.
+A first inventory breaks that: newly catalogued food has no acquisition date, so
+no expiry, so nothing is urgent, so the fingerprint is unchanged and the cache
+would be reused as though the fridge were still empty. The batch writer's caller
+clears the cache once after commit and once after Undo.
+
+**189. The ladder is native, downloaded model, keyboard — and never cloud by
+fallback.** `SETTLED` *(supersedes 181)*
+`expo-speech-recognition@sdk-54` and `react-native-sherpa-onnx` are both
+dependencies now, so the ladder describes three real paths rather than two real
+ones and a promise.
+
+The order changed when the model became real. The keyboard adapter reports
+itself available *unconditionally* — it has to, because Mise cannot see which
+languages someone's keyboard handles — so with the keyboard second, a model the
+user had deliberately waited 487 MB for could never be selected. A verified
+match on the language beats an unverifiable one. The keyboard stays the floor
+and is still the answer whenever nothing above it can serve the language.
+
+Both native modules are still reached through a runtime probe rather than a
+static import. Being a dependency is not the same as having a native side: Expo
+Go, an un-prebuilt checkout, and the Node test runner all have the package and
+none of them have the module. The probe turns that into a skip down the ladder
+instead of a crash.
+
+Cloud is not at any position in the ladder. A fallback that ends in "your
+kitchen audio was uploaded" is not a fallback anyone agreed to; it is reachable
+only by a user who reads the disclosure and chooses it for one session.
+
+**190. The speech model is an external download, and its size is stated before
+the button.** `SETTLED`
+Nothing model-shaped ships inside Mise. Parakeet v3 int8 is 487 MB and
+SenseVoice Small int8 is 166 MB — both read from the release assets, not from a
+README — and both are fetched from the publishers' own releases only when the
+user taps. The size is *on the button* (`Download 487 MB`) rather than in prose
+beside it, with "separate download · not part of installing Mise" next to it,
+because a figure someone can skim past is not a disclosure. Downloads are
+resumable and cancellable, the archive is deleted after extraction, and "Delete
+all data" removes the models. `test/voice-intake-boundaries.test.ts` asserts
+that nothing model-shaped is in `assets/` and that no download starts on import.
+
+The honest counterweight, recorded because it is easy to miss: the *models* are
+external but the *runtime* is not. Linking sherpa-onnx and ONNX Runtime grows
+the binary for every user, including the ones who never download a model. That
+cost is unmeasured and is a release gate, not a detail — and if it turns out
+unacceptable, dropping option C entirely leaves the feature working on the
+keyboard path.
+
+**191. The downloaded models cannot show a live transcript, and say so.**
+`SETTLED`
+Parakeet v3 and SenseVoice are offline recognisers, not streaming ones, so text
+arrives when the user presses Finish rather than as they speak. The adapter
+declares `providesLiveTranscript: false` and the surface changes its own copy —
+"this model writes it all down when you press Finish, so nothing appears here
+until then". The alternative was an empty transcript box during recording, which
+reads as a dead microphone and would send people to the bug tracker. Capability
+is reported, never simulated — the same rule as `canStartProgrammatically` on
+the keyboard adapter.
+
+**192. On the downloaded-model path no audio is ever written to disk.**
+`SETTLED`
+`createPcmLiveStream` hands over 16 kHz mono float PCM, which is exactly what
+`transcribeSamples` consumes, so the recording lives only as an in-memory buffer
+— capped at ten minutes, about 38 MB — and is dropped when the session ends.
+This is stronger than decision 8's ephemeral-file rule rather than an exception
+to it: there is no `deleteAudio` call to forget, because there is no file.

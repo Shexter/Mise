@@ -164,3 +164,22 @@ export async function saveSuggestionCache(
     droppedForDiet,
   };
 }
+
+
+/**
+ * Drops every cached suggestion set, once, after the pantry changes in bulk.
+ *
+ * The fingerprint in `computeFingerprint` covers *urgent* stock — what is
+ * about to expire — because that is what a normal day changes. A reviewed
+ * intake batch breaks that assumption: eight newly catalogued ingredients with
+ * no acquisition date have no expiry, so none of them are urgent, so the
+ * fingerprint is unchanged and the cache would be reused as though the fridge
+ * were still empty.
+ *
+ * Deleting rather than recomputing keeps this cheap and keeps the decision in
+ * one place: the next open regenerates from whatever the pantry now holds.
+ * Called once after a batch commits and once after a batch is undone.
+ */
+export async function invalidatePantryDependentSuggestions(): Promise<void> {
+  await db().runAsync('DELETE FROM suggestion_cache');
+}

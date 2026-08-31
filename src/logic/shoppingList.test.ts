@@ -30,7 +30,7 @@ const canonical = (id: string, foodClass: CanonicalItem['foodClass'] = 'staple')
 const pantry = (canonicalId: string, status: PantryItem['status'], id = `${canonicalId}-pantry`): PantryItem => ({
   id, canonicalId, productId: null, locationId: 'pantry',
   qtyRemaining: null, qtyUnit: null, qtySource: null, fullness: null, usesCount: 0,
-  purchasedAt: '2026-01-01', openedAt: null, expiresAt: null, expirySource: null,
+  purchasedAt: '2026-01-01', acquiredAtKnown: true, openedAt: null, expiresAt: null, expirySource: null,
   priceCents: null, photoUri: null, status, estimatedDecrementsSinceAnchor: 0,
   lastAnchorAt: null, replacementAsked: false, createdAt: '2026-01-01', updatedAt: '2026-01-01',
 });

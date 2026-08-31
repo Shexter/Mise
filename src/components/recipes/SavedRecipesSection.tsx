@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card, Divider } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
+import { DishVisual } from '@/components/DishVisual';
 import { Caption, RowTitle } from '@/components/Type';
 import { color, layout, opacity, space } from '@/constants/theme';
 import type { Recipe } from '@/types';
@@ -50,9 +51,16 @@ export function SavedRecipesSection({ recipes, showHeaderAction = true }: Props)
                 accessibilityHint="Opens recipe details and pantry coverage."
                 style={({ pressed }) => [styles.row, pressed && { opacity: opacity.pressed }]}
               >
-                <View style={styles.text}>
-                  <RowTitle>{recipe.title}</RowTitle>
-                  <Caption muted>{recipe.status === 'awaiting_content' ? 'Needs ingredients' : recipe.sourceLink ? 'Source saved' : 'No source link'}</Caption>
+                <View style={styles.rowLeft}>
+                  <DishVisual
+                    photoUri={recipe.imageUri}
+                    dish={recipe.title}
+                    size="md"
+                  />
+                  <View style={styles.text}>
+                    <RowTitle>{recipe.title}</RowTitle>
+                    <Caption muted>{recipe.status === 'awaiting_content' ? 'Needs ingredients' : recipe.sourceLink ? 'Source saved' : 'No source link'}</Caption>
+                  </View>
                 </View>
                 <Feather name="chevron-right" size={18} color={color.muted} />
               </Pressable>
@@ -69,5 +77,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   add: { width: layout.minTouchTarget, height: layout.minTouchTarget, alignItems: 'center', justifyContent: 'center' },
   row: { minHeight: layout.minRowHeight, paddingHorizontal: layout.cardPadding, paddingVertical: space.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: space.md, flex: 1 },
   text: { flex: 1, gap: space.xs },
 });

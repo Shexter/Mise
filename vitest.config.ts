@@ -19,6 +19,16 @@ const root = dirname(fileURLToPath(import.meta.url));
  * imports from the app entry, and no app module imports a test file.
  */
 export default defineConfig({
+  plugins: [
+    {
+      name: 'png-loader',
+      load(id) {
+        if (/\.(png|jpg|webp)$/.test(id)) {
+          return 'export default 1; module.exports = 1;';
+        }
+      },
+    },
+  ],
   resolve: {
     alias: [
       { find: 'expo-crypto', replacement: join(root, 'test/stubs/expo-crypto.ts') },
@@ -33,6 +43,7 @@ export default defineConfig({
     ],
   },
   test: {
+    setupFiles: [join(root, 'test/setup.ts')],
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     environment: 'node',
   },

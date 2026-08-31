@@ -71,6 +71,8 @@ export interface PantryEntry {
   freezable: boolean;
   /** Uses-tracked items only; the user's own four-state setting. */
   fullness: Fullness | null;
+  /** Retained photo if user captured this item with camera */
+  photoUri: string | null;
   /** Set only when the user typed the figure themselves, e.g. "5000 g". */
   userEnteredQty: string | null;
 }
@@ -79,6 +81,8 @@ export interface PantryEntry {
 export interface PantryGroup {
   canonicalId: string;
   name: string;
+  foodClass: FoodClass;
+  photoUri: string | null;
   count: number;
   entries: PantryEntry[];
   /** The most urgent expiry across the group's items. */
@@ -192,6 +196,7 @@ function toEntry(
     opened: item.openedAt !== null,
     freezable: isFreezable(canonical) && location.kind !== 'freezer',
     fullness: item.fullness,
+    photoUri: item.photoUri,
     userEnteredQty:
       item.qtySource === 'user' && item.qtyRemaining !== null
         ? `${item.qtyRemaining} ${item.qtyUnit ?? ''}`.trim()
@@ -207,10 +212,15 @@ function groupByCanonical(entries: PantryEntry[]): PantryGroup[] {
     if (existing) {
       existing.entries.push(entry);
       existing.count += 1;
+      if (!existing.photoUri && entry.photoUri) {
+        existing.photoUri = entry.photoUri;
+      }
     } else {
       groups.set(entry.canonicalId, {
         canonicalId: entry.canonicalId,
         name: entry.name,
+        foodClass: entry.foodClass,
+        photoUri: entry.photoUri,
         count: 1,
         entries: [entry],
         soonestDaysLeft: entry.daysLeft,

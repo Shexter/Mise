@@ -336,3 +336,107 @@ For each failed or uncertain check, record:
 - Steps taken
 - Expected and actual result
 - Screenshot or log reference, with secrets removed
+
+## Voice pantry intake
+
+Tasks 7.5 and 7.6 of `add-voice-pantry-intake` cannot be completed from a
+workstation. Every check below needs a real device, a real kitchen, and in some
+cases a second phone to call yourself from. Record the device, OS, build commit,
+recognition language, and result for each.
+
+`expo-speech-recognition` and `react-native-sherpa-onnx` are both dependencies
+now, so **a development build is required** — `npx expo run:android` or
+`npx expo run:ios`. In Expo Go the native modules are absent, the ladder falls
+to the keyboard microphone, and the download offer reports that the build cannot
+run models. That is correct behaviour and worth confirming once, but it is not
+a test of the native paths.
+
+**Measure the binary first.** Build the APK and compare it against the previous
+release before anything else. sherpa-onnx and ONNX Runtime are linked in for
+every user whether or not they download a model, and if the growth is
+unacceptable the decision to make is dropping the downloadable-model path
+entirely — the feature works on the keyboard path without it.
+
+### The downloadable model
+
+- [ ] **The offer appears** when the native recogniser cannot serve the chosen
+      language. Confirm it names the model, publisher, licence, and size, and
+      that the size is on the button.
+- [ ] **Parakeet is not offered for Cantonese.** Switch the recognition language
+      to 廣東話 and confirm the offer is SenseVoice Small (166 MB), not Parakeet.
+- [ ] **Nothing is offered for Thai.** Confirm the message points at the
+      keyboard microphone rather than offering a download that cannot help.
+- [ ] **Download Parakeet v3 (487 MB) on Wi-Fi.** Record wall-clock time for the
+      download and for the unpack, on both platforms.
+- [ ] **Cancel mid-download**, then start again. Confirm it resumes rather than
+      restarting from zero.
+- [ ] **Background the app mid-download.** Confirm what happens and record it.
+- [ ] **After install, confirm the model is actually used** — the path line
+      should say the model, not the keyboard.
+- [ ] **No live transcript on this path.** Confirm the copy says text arrives at
+      Finish, and that the box does not look broken while recording.
+- [ ] **Recognition quality**, per model, on real kitchen speech. This is the
+      question the whole download exists to answer.
+- [ ] **First-run load time** for the recogniser, and transcription latency for
+      a 30-second sweep, on a mid-range Android.
+- [ ] **Delete all data** removes the model. Confirm the storage is actually
+      reclaimed in system settings, not just hidden.
+
+### Capture, per platform
+
+- [ ] **Quiet kitchen, Android:** name eight items in one breath. Record the
+      time from opening the sweep to the review appearing, and the number of
+      corrections needed before confirming.
+- [ ] **Quiet kitchen, iOS:** same utterance, same measurements.
+- [ ] **Noisy kitchen:** extractor fan or running tap. Confirm the transcript
+      degrades into editable text rather than into invented ingredients.
+- [ ] **Mixed-language speech:** name at least two ingredients in a non-Latin
+      script mid-sentence. Confirm the original script survives into review and
+      is never romanised.
+- [ ] **Session location:** start from Fridge, then say "in the freezer there
+      are two salmon fillets". Confirm earlier items stay in Fridge.
+
+### Interruptions and failures
+
+- [ ] **Incoming call:** call the device mid-sweep. Confirm capture stops, does
+      **not** resume when the call ends, and the partial transcript is offered.
+- [ ] **Backgrounding:** switch apps mid-sweep. Same expectations.
+- [ ] **Permission denied:** deny the microphone. Confirm the message names the
+      cause and that manual entry is still reachable.
+- [ ] **Permission revoked mid-session:** revoke in Settings while recording.
+- [ ] **Airplane mode:** run a whole sweep offline, end to end, and confirm it
+      completes.
+- [ ] **Process restart during review:** kill the app on the review screen.
+      Confirm the draft is gone and **no** pantry rows were created.
+
+### The mutation boundary
+
+- [ ] **Duplicate stock:** speak an item already in the pantry. Confirm the note
+      appears and does not block.
+- [ ] **Unknown quantity:** say "some butter". Confirm it can be added and that
+      no gram figure appears anywhere afterwards.
+- [ ] **Unknown date:** after confirming, open an item. Confirm no expiry is
+      claimed, and that entering a date starts the prediction.
+- [ ] **Double confirmation:** tap the final action twice quickly. Confirm the
+      pantry gains one batch, not two.
+- [ ] **Undo:** confirm a batch, add one item by hand, then Undo. Confirm only
+      the batch's rows disappear.
+
+### Accessibility
+
+- [ ] **TalkBack and VoiceOver:** confirm listening, paused, and the finish
+      summary are announced, and that the live transcript is *not* announced
+      continuously.
+- [ ] **200% font scale and largest iOS accessibility text:** confirm rows stack
+      and the final action stays reachable.
+- [ ] **Switch Control, Voice Control, external keyboard:** confirm every
+      control on both screens can be reached and activated.
+
+### Measurement for task 7.6
+
+Record, per platform and with the owner's consent only — no telemetry ships:
+
+- [ ] Median time from opening the sweep to a reviewed inventory.
+- [ ] Corrections made per sweep.
+- [ ] Proportion of spoken items left unresolved.
+- [ ] Completion rate, versus the same fridge catalogued by camera and by hand.

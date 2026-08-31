@@ -62,6 +62,7 @@ none is blocked on code. They are a parallel track, not a queue position.
 | `add-history-calendar` | 39/46 | Seven in-app history-navigation checks remain before archival. |
 | `add-venue-inference` | 26/38 | Twelve real-photo, provider, and in-app checks remain before archival. |
 | `add-app-wide-editing` | 18/22 | Capture correction and owner device checks remain. |
+| `add-voice-pantry-intake` | 33/35 | Device and kitchen measurement remain (tasks 7.5, 7.6). |
 
 Automated verification passed: typecheck, 526 tests, clean diffs, and strict
 OpenSpec validation. These changes remain open until the owner completes their
