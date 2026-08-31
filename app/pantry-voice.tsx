@@ -43,6 +43,7 @@ import {
   resolveTranscriptionRoute,
   statusLabel,
   voiceSessionReducer,
+  SpeechPermissionDeniedError,
   type DownloadProgress,
   type TranscriptionRoute,
 } from '@/media/speech';
@@ -198,11 +199,22 @@ export default function PantryVoiceScreen() {
       const { audioUri } = await adapter.start({
         language,
         onPartial: (text) => dispatch({ type: 'TRANSCRIPT', text }),
+        // A failure the native side reports mid-session (not one thrown by
+        // start()/stop() themselves) — surfaced immediately rather than left
+        // to make the screen look stuck on "Listening" with a dead microphone.
+        onError: (kind) => dispatch({ type: 'FAIL', kind }),
       });
       dispatch({ type: 'PERMISSION_GRANTED' });
       dispatch({ type: 'AUDIO_STARTED', audioUri });
-    } catch {
-      dispatch({ type: 'PERMISSION_DENIED' });
+    } catch (error) {
+      // Only a genuine permission refusal is reported as permission_denied —
+      // anything else (a missing module, a native error thrown from start())
+      // sent someone to check a Settings toggle that was never the problem.
+      if (error instanceof SpeechPermissionDeniedError) {
+        dispatch({ type: 'PERMISSION_DENIED' });
+      } else {
+        dispatch({ type: 'FAIL', kind: 'microphone_unavailable' });
+      }
     }
   };
 

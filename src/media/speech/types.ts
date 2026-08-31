@@ -69,9 +69,38 @@ export interface DrivenTranscriptionAdapter extends TranscriptionAdapter {
   start(options: {
     language: string;
     onPartial: (text: string) => void;
+    /**
+     * Called for a failure that arrives *while listening* — a native error
+     * event, a service dying mid-session — rather than one thrown from
+     * `start()` or `stop()` themselves.
+     *
+     * Without this, an adapter has nowhere to put a failure that is not the
+     * direct result of a call the screen made: the native side reports it on
+     * its own schedule, and if nothing is listening for that report it is
+     * dropped. A dropped error looks like a microphone that has silently
+     * stopped working, which is worse than any specific failure message.
+     */
+    onError?: (kind: VoiceFailureKind) => void;
   }): Promise<{ audioUri: string | null }>;
   stop(): Promise<TranscriptionResult>;
   cancel(): Promise<void>;
+}
+
+/**
+ * Thrown by a driven adapter's `start()` specifically when the *permission*
+ * was refused — as opposed to any other way starting can fail (a missing
+ * module, a native error, a locale the recogniser rejects).
+ *
+ * The distinction matters because the screen's failure copy is per-kind:
+ * `permission_denied` tells the user to open Settings, which is exactly the
+ * wrong instruction for a failure that has nothing to do with permission —
+ * and sends someone to check a toggle that was never the problem.
+ */
+export class SpeechPermissionDeniedError extends Error {
+  constructor(message = 'Microphone or speech-recognition permission was not granted.') {
+    super(message);
+    this.name = 'SpeechPermissionDeniedError';
+  }
 }
 
 export function isDriven(

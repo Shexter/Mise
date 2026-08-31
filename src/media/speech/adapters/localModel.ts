@@ -1,4 +1,4 @@
-import { modelForLanguage, primarySubtag, type SpeechModel } from '@/media/speech/models';
+import { modelForLanguage, type SpeechModel } from '@/media/speech/models';
 import { installedModelPath } from '@/media/speech/modelStore';
 import type {
   DrivenTranscriptionAdapter,
@@ -53,8 +53,21 @@ interface SttEngine {
 interface SherpaModule {
   createSTT(options: {
     modelPath: { type: 'file'; path: string };
-    modelType: SpeechModel['modelType'];
-    modelOptions?: Record<string, unknown>;
+    /**
+     * Left as `'auto'` deliberately. `react-native-sherpa-onnx`'s real
+     * `STTModelType` union is architecture-specific down to a level this app
+     * has no reliable way to state from the outside — a plain sherpa-onnx
+     * transducer and a NeMo-exported one (which Parakeet is) are two
+     * different values, and getting that one guess wrong would silently
+     * misconfigure decoding, the same way `'sensevoice'` here previously
+     * guessed wrong against the real `'sense_voice'`. `detectSttModel()`
+     * exists in the library specifically so callers do not have to know this;
+     * `'auto'` uses that detection.
+     */
+    modelType?: 'auto';
+    modelOptions?: {
+      senseVoice?: { language?: string; useItn?: boolean };
+    };
   }): Promise<SttEngine>;
 }
 
@@ -72,7 +85,11 @@ interface AudioModule {
   }): PcmStream;
 }
 
+let sherpaOverrideForTesting: SherpaModule | null | undefined;
+let audioOverrideForTesting: AudioModule | null | undefined;
+
 function loadSherpa(): SherpaModule | null {
+  if (sherpaOverrideForTesting !== undefined) return sherpaOverrideForTesting;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     return require('react-native-sherpa-onnx/stt') as SherpaModule;
@@ -87,6 +104,7 @@ function loadSherpa(): SherpaModule | null {
 }
 
 function loadAudio(): AudioModule | null {
+  if (audioOverrideForTesting !== undefined) return audioOverrideForTesting;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
     return require('react-native-sherpa-onnx/audio') as AudioModule;
@@ -97,6 +115,23 @@ function loadAudio(): AudioModule | null {
 
 export function hasLocalRuntime(): boolean {
   return loadSherpa() !== null && loadAudio() !== null;
+}
+
+/**
+ * Test-only seam, matching `__setNativeModuleForTesting` in `native.ts` and
+ * `__resetDatabaseLifecycleForTests` in `src/db/index.ts`: `vi.mock` cannot
+ * reliably intercept this file's runtime `require()` of an installed native
+ * package, so the adapter's real call shape — `createSTT`'s exact option
+ * keys, `createPcmLiveStream`'s subscription shape — is exercised here
+ * against a fake built from the package's own `.d.ts` rather than left
+ * unverified until a device finds the next wrong field name.
+ */
+export function __setSherpaModuleForTesting(module: SherpaModule | null | undefined): void {
+  sherpaOverrideForTesting = module;
+}
+
+export function __setAudioModuleForTesting(module: AudioModule | null | undefined): void {
+  audioOverrideForTesting = module;
 }
 
 /** What sherpa-onnx wants, and what these models were exported at. */
@@ -235,8 +270,16 @@ export function createLocalModelAdapter(
 
       const engine = await sherpa.createSTT({
         modelPath: { type: 'file', path },
-        modelType: model.modelType,
-        modelOptions: modelOptionsFor(model, primarySubtag('')),
+        // 'auto' rather than naming an architecture: see the SherpaModule
+        // interface above for why this app does not guess that value.
+        modelType: 'auto',
+        // Harmless to supply unconditionally — the native side documents
+        // that only the block matching the model actually loaded is read, so
+        // this has no effect when Parakeet (a transducer) is what auto-detect
+        // finds. `language: 'auto'` rather than the session's chosen tag
+        // because a kitchen sweep is exactly where someone code-switches
+        // mid-sentence, and forcing one language would drop the other half.
+        modelOptions: { senseVoice: { language: 'auto', useItn: true } },
       });
       try {
         const result = await engine.transcribeSamples(captured, SAMPLE_RATE);
@@ -257,24 +300,6 @@ export function createLocalModelAdapter(
       await teardown();
     },
   };
-}
-
-/**
- * Per-architecture options.
- *
- * SenseVoice takes a language hint and can also auto-detect; `auto` is passed
- * because a kitchen sweep is exactly where someone code-switches mid-sentence,
- * and forcing one language would drop the other half. Parakeet v3 does its own
- * language identification and takes nothing.
- */
-function modelOptionsFor(
-  model: SpeechModel,
-  _language: string,
-): Record<string, unknown> | undefined {
-  if (model.modelType === 'sensevoice') {
-    return { sensevoice: { language: 'auto', useInverseTextNormalization: true } };
-  }
-  return undefined;
 }
 
 export const localModelAdapter = createLocalModelAdapter();

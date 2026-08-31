@@ -41,8 +41,6 @@ export interface SpeechModel {
   url: string;
   /** The directory name the archive unpacks into. */
   directoryName: string;
-  /** `createSTT`'s `modelType` for this architecture. */
-  modelType: 'sensevoice' | 'transducer';
   /** One line on what it is good for. */
   summary: string;
 }
@@ -71,7 +69,6 @@ export const SPEECH_MODELS: readonly SpeechModel[] = [
     sizeMb: 487,
     url: `${RELEASE}/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2`,
     directoryName: 'sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8',
-    modelType: 'transducer',
     summary: '25 European languages, recognised entirely on this device.',
   },
   {
@@ -83,7 +80,6 @@ export const SPEECH_MODELS: readonly SpeechModel[] = [
     sizeMb: 166,
     url: `${RELEASE}/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2`,
     directoryName: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09',
-    modelType: 'sensevoice',
     summary: 'Chinese, Cantonese, Japanese, Korean, and English, on this device.',
   },
 ];
