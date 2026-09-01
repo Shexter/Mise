@@ -1,24 +1,30 @@
 import {
+  ANTHROPIC_MODEL,
+  completeWithAnthropic,
   completeVisionWithAnthropic,
   estimateWithAnthropic,
   verifyAnthropicKey,
 } from '@/api/anthropic';
 import { VisionError } from '@/api/errors';
 import {
+  completeWithGeminiModel,
   completeVisionWithGemini,
   estimateWithGemini,
   verifyGeminiKey,
 } from '@/api/gemini';
 import {
   getApiKey,
+  getGeminiModelPreference,
   getOpenAIEndpoint,
   providerForKey,
   type Provider,
 } from '@/api/keyStore';
 import {
+  completeWithOpenAI,
   completeVisionWithOpenAI,
   estimateWithOpenAI,
   verifyOpenAIKey,
+  OPENAI_MODEL,
 } from '@/api/openai';
 
 export interface Transport {
@@ -31,6 +37,14 @@ export interface Transport {
     signal?: AbortSignal,
   ) => Promise<string>;
   verify: (apiKey: string) => Promise<void>;
+  selectedModel: () => Promise<string>;
+  completeText: (
+    apiKey: string,
+    model: string,
+    system: string,
+    user: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }
 
 /** Exhaustive by design: adding a Provider requires a complete transport. */
@@ -39,11 +53,17 @@ export const TRANSPORTS = {
     estimate: estimateWithAnthropic,
     completeVision: completeVisionWithAnthropic,
     verify: verifyAnthropicKey,
+    selectedModel: async () => ANTHROPIC_MODEL,
+    completeText: (apiKey, _model, system, user, signal) =>
+      completeWithAnthropic(apiKey, system, user, signal),
   },
   gemini: {
     estimate: estimateWithGemini,
     completeVision: completeVisionWithGemini,
     verify: verifyGeminiKey,
+    selectedModel: getGeminiModelPreference,
+    completeText: (apiKey, model, system, user, signal) =>
+      completeWithGeminiModel(apiKey, model as Awaited<ReturnType<typeof getGeminiModelPreference>>, system, user, signal),
   },
   openai: {
     estimate: async (apiKey, base64Jpeg, signal) =>
@@ -58,6 +78,9 @@ export const TRANSPORTS = {
         await getOpenAIEndpoint(),
       ),
     verify: async (apiKey) => verifyOpenAIKey(apiKey, await getOpenAIEndpoint()),
+    selectedModel: async () => OPENAI_MODEL,
+    completeText: async (apiKey, _model, system, user, signal) =>
+      completeWithOpenAI(apiKey, system, user, signal, await getOpenAIEndpoint()),
   },
 } satisfies Record<Provider, Transport>;
 
@@ -65,6 +88,7 @@ export interface ResolvedTransport {
   apiKey: string;
   provider: Provider;
   transport: Transport;
+  model: string;
 }
 
 export const DEFAULT_RATE_LIMIT_RETRY_MS = 2_000;
@@ -132,7 +156,10 @@ export async function resolveTransport(signal?: AbortSignal): Promise<ResolvedTr
 
   const provider = providerForKey(apiKey);
   if (!provider) throw new VisionError('no_key', 'The saved API key is not recognised.');
-  return { apiKey, provider, transport: TRANSPORTS[provider] };
+  const transport = TRANSPORTS[provider];
+  const model = await transport.selectedModel();
+  throwIfCancelled(signal);
+  return { apiKey, provider, transport, model };
 }
 
 /**

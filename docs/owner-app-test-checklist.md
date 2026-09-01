@@ -361,7 +361,7 @@ entirely — the feature works on the keyboard path without it.
 
 - [ ] **The offer appears** when the native recogniser cannot serve the chosen
       language. Confirm it names the model, publisher, licence, and size, and
-      that the size is on the button.
+      that the size remains visible beside the model manager button.
 - [ ] **Parakeet is not offered for Cantonese.** Switch the recognition language
       to 廣東話 and confirm the offer is SenseVoice Small (166 MB), not Parakeet.
 - [ ] **Nothing is offered for Thai.** Confirm the message points at the
@@ -381,6 +381,42 @@ entirely — the feature works on the keyboard path without it.
       a 30-second sweep, on a mid-range Android.
 - [ ] **Delete all data** removes the model. Confirm the storage is actually
       reclaimed in system settings, not just hidden.
+
+### Samsung recognition and Android offline language
+
+- [ ] Select **Phone speech**. Confirm the active path says **Phone speech**.
+- [ ] Confirm no Samsung, Bixby, or Google claim appears without runtime proof.
+- [ ] Speak a short list. Confirm editable text appears before Pantry review.
+- [ ] Select **Offline only** with a missing language model.
+- [ ] Press **Install with Android**. Complete or cancel the Android flow.
+- [ ] Press **Recheck**. Confirm the status matches the installed language.
+- [ ] Cause a native recognition failure. Confirm safe partial text remains.
+- [ ] Confirm Retry, model manager, keyboard microphone, and Type remain reachable.
+
+### AI transcript parsing and local fallback
+
+- [ ] Configure one provider through Settings. Do not paste the key into a log.
+- [ ] Finish a Phone speech transcript with AI parsing disabled.
+- [ ] Confirm the app names the provider before it sends transcript text.
+- [ ] Decline. Confirm review says that parsing stayed local.
+- [ ] Accept once. Confirm later sessions remember the choice.
+- [ ] Turn off **AI transcript parsing** in Settings. Confirm the next parse is local.
+- [ ] Enable airplane mode. Confirm Finish keeps the transcript and parses locally.
+- [ ] Cause a provider timeout or authentication error. Confirm local review opens.
+- [ ] Edit the transcript during parsing. Confirm the old result cannot open review.
+- [ ] Press **Parse corrected transcript**. Confirm only the corrected revision appears.
+- [ ] Confirm review names the provider/model or says **Parsed locally**.
+
+### Speech diagnostics and deletion
+
+- [ ] Open **Settings > Speech diagnostics** after a failed speech attempt.
+- [ ] Confirm the report shows the active mode and failed boundary.
+- [ ] Press **Copy redacted report**. Inspect the copied text.
+- [ ] Confirm it has no transcript, audio path, key, Pantry data, or raw response.
+- [ ] Run **Delete all data** during a partial model download.
+- [ ] Confirm the notification stops and partial files disappear.
+- [ ] Confirm speech consent, model choice, diagnostics, and voice draft are empty.
+- [ ] Confirm the API key follows its separate **Remove key** setting.
 
 ### Capture, per platform
 

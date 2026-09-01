@@ -9,9 +9,16 @@ import type { ExpoConfig } from 'expo/config';
  * has the build. The app treats it as a one-time seed — on first launch it is copied
  * into the device Keychain (`expo-secure-store`) and read from there afterwards.
  *
- * Leave it unset when you publish. Users add their own key in Settings.
+ * Bundling now requires a second explicit opt-in, so merely having a personal
+ * key in `.env` cannot leak it through `expo config` or a release build.
  */
-const devApiKey = process.env.MISE_DEV_API_KEY ?? null;
+const devApiKey = process.env.MISE_BUNDLE_DEV_API_KEY === 'true'
+  ? process.env.MISE_DEV_API_KEY ?? null
+  : null;
+const sourceRevision =
+  process.env.MISE_SOURCE_REVISION ??
+  process.env.EAS_BUILD_GIT_COMMIT_HASH ??
+  'development';
 
 const config: ExpoConfig = {
   name: 'Mise',
@@ -37,11 +44,10 @@ const config: ExpoConfig = {
         "Mise uses your location, only while the app is open, to recognise shops you've bought from before and show what you're low on when you check one.",
       NSMicrophoneUsageDescription:
         'Mise uses the microphone only while you are speaking your pantry, so it can write down what you say. The recording is deleted as soon as it has been turned into text.',
-      // Required by `SFSpeechRecognizer` even though Mise always asks for
-      // on-device recognition. A device that cannot honour that is reported
-      // unavailable rather than quietly transcribing over the network.
+      // Required by `SFSpeechRecognizer`. Phone speech may use the platform's
+      // normal service; Offline only is a separate, explicitly chosen path.
       NSSpeechRecognitionUsageDescription:
-        'Mise turns your speech into text on this device so you can name several pantry items at once. Nothing is sent anywhere.',
+        'Mise asks your phone speech service to turn speech into text while you name pantry items.',
     },
     // The `mise` scheme above becomes this app's CFBundleURLTypes entry at
     // prebuild, so a `mise://` link opens the intake. Appearing in the iOS
@@ -136,18 +142,16 @@ const config: ExpoConfig = {
        * `<queries>` the recogniser is invisible and every start fails with no
        * useful error.
        *
-       * `com.google.android.as` is the on-device Android System Intelligence
-       * service — the one that does offline recognition and language
-       * identification. Declaring it is what lets `requiresOnDeviceRecognition`
-       * actually find a local model instead of silently needing the network.
+       * Mise does not force a service package. Phone speech uses Android's
+       * system default; Offline only asks Android for its generic on-device
+       * recognizer.
        */
       'expo-speech-recognition',
       {
         microphonePermission:
           'Mise uses the microphone only while you are speaking your pantry, so it can write down what you say. The recording is deleted as soon as it has been turned into text.',
         speechRecognitionPermission:
-          'Mise turns your speech into text on this device so you can name several pantry items at once. Nothing is sent anywhere.',
-        androidSpeechServicePackages: ['com.google.android.as'],
+          'Mise asks your phone speech service to turn speech into text while you name pantry items.',
       },
     ],
     [
@@ -160,6 +164,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     devApiKey,
+    sourceRevision,
   },
 };
 

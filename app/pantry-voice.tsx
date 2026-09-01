@@ -11,6 +11,7 @@ import {
 } from 'react';
 import {
   AccessibilityInfo,
+  Alert,
   Linking,
   Pressable,
   StyleSheet,
@@ -18,21 +19,24 @@ import {
   View,
 } from 'react-native';
 
+import { VisionError } from '@/api/errors';
+import { getConfiguredProvider, PROVIDERS } from '@/api/keyStore';
+import { getSelectedVoiceProviderIdentity } from '@/api/voiceIntake';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { MicButton } from '@/components/MicButton';
 import { Screen } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
+import { SpeechModelsSheet } from '@/components/settings/SpeechModelsSheet';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
 import { color, layout, opacity, radius, space, type } from '@/constants/theme';
-import { buildVoiceDraft } from '@/logic/voiceIntakeService';
+import { buildVoiceDraftWithTranscriptParsing } from '@/logic/voiceTranscriptParsing';
 import {
   KEYBOARD_START_HINT,
   RECOGNITION_LANGUAGES,
   announcementFor,
   deleteAudio,
   describeDownload,
-  downloadSpeechModel,
   elapsedLabel,
   failureLabel,
   hasSalvageableTranscript,
@@ -40,6 +44,8 @@ import {
   isDriven,
   keyboardDictationAdapter,
   languageName,
+  chosenModelForLanguage,
+  modelsForLanguage,
   owesAudioDeletion,
   purgeAllAudio,
   recoveryActions,
@@ -48,7 +54,15 @@ import {
   statusLabel,
   voiceSessionReducer,
   SpeechPermissionDeniedError,
-  type DownloadProgress,
+  NativeSpeechRecognitionError,
+  getAndroidOfflineLanguageStatus,
+  installAndroidOfflineLanguage,
+  readSpeechPreferences,
+  updateSpeechPreferences,
+  type OfflineLanguageInstallResult,
+  type OfflineLanguageStatus,
+  type SpeechPreferences,
+  type TranscriptionAdapter,
   type TranscriptionRoute,
 } from '@/media/speech';
 import { useVoiceInterruptions } from '@/media/speech/interruptions';
@@ -64,6 +78,17 @@ function joinTranscript(before: string, after: string): string {
   if (!a) return b;
   if (!b) return a;
   return `${a} ${b}`;
+}
+
+function offlineInstallCopy(result: OfflineLanguageInstallResult): string {
+  switch (result.status) {
+    case 'installed': return 'Android already has this offline language.';
+    case 'completed': return 'Android reported the download complete. Rechecking availability.';
+    case 'dialog_opened': return 'Android opened its language download. Finish there, then Recheck.';
+    case 'cancelled': return 'The Android language download was cancelled. You can retry or choose a model.';
+    case 'unsupported':
+    case 'failed': return result.message;
+  }
 }
 
 /**
@@ -98,9 +123,21 @@ export default function PantryVoiceScreen() {
   const [pickingLanguage, setPickingLanguage] = useState(false);
   const [pickingLocation, setPickingLocation] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [downloading, setDownloading] = useState<DownloadProgress | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
-  const downloadAbort = useRef<AbortController | null>(null);
+  const [parseStatus, setParseStatus] = useState<string | null>(null);
+  const [typedDirectly, setTypedDirectly] = useState(false);
+  const [speechModelsOpen, setSpeechModelsOpen] = useState(false);
+  const [speechPreferences, setSpeechPreferences] = useState<SpeechPreferences>(
+    readSpeechPreferences,
+  );
+  const preferredModelId = speechPreferences.preferredModelId;
+  const [offlineLanguageStatus, setOfflineLanguageStatus] =
+    useState<OfflineLanguageStatus | null>(null);
+  const [offlineInstallResult, setOfflineInstallResult] =
+    useState<OfflineLanguageInstallResult | null>(null);
+  const [installingOfflineLanguage, setInstallingOfflineLanguage] = useState(false);
+  const parseAbort = useRef<AbortController | null>(null);
+  const transcriptRef = useRef('');
+  const lastSubmittedTranscript = useRef<string | null>(null);
   /**
    * Set by the "Use the keyboard microphone" recovery action. The keyboard is
    * always available, so once the user picks it explicitly there is no
@@ -120,6 +157,10 @@ export default function PantryVoiceScreen() {
    * it. Set once, right before `adapter.start()` is called again.
    */
   const resumeBaseline = useRef('');
+
+  useEffect(() => {
+    transcriptRef.current = session.transcript;
+  }, [session.transcript]);
 
   const activeAdapter = forcedKeyboard ? keyboardDictationAdapter : route?.chosen ?? null;
   const driven = activeAdapter != null && isDriven(activeAdapter);
@@ -146,7 +187,13 @@ export default function PantryVoiceScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    void resolveTranscriptionRoute(language, languageName(language)).then((resolved) => {
+    void resolveTranscriptionRoute(
+      language,
+      languageName(language),
+      undefined,
+      preferredModelId,
+      speechPreferences.recognition,
+    ).then((resolved) => {
       if (cancelled) return;
       setRoute(resolved);
       if (resolved.mode) dispatch({ type: 'SET_MODE', mode: resolved.mode });
@@ -154,7 +201,20 @@ export default function PantryVoiceScreen() {
     return () => {
       cancelled = true;
     };
-  }, [language, installedStamp]);
+  }, [language, installedStamp, preferredModelId, speechPreferences.recognition]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (speechPreferences.recognition !== 'offline') {
+      setOfflineLanguageStatus(null);
+      setOfflineInstallResult(null);
+      return undefined;
+    }
+    void getAndroidOfflineLanguageStatus(language).then((status) => {
+      if (!cancelled) setOfflineLanguageStatus(status);
+    });
+    return () => { cancelled = true; };
+  }, [language, installedStamp, speechPreferences.recognition]);
 
   useEffect(() => {
     if (!sessionLocationId && locations.length > 0) {
@@ -212,9 +272,11 @@ export default function PantryVoiceScreen() {
     [session.audioUri],
   );
 
+  useEffect(() => () => parseAbort.current?.abort(), []);
+
   /* -- controls ---------------------------------------------------------- */
 
-  const startListening = async () => {
+  const beginListening = async () => {
     const adapter = activeAdapter;
     if (!adapter) return;
     dispatch({ type: 'START' });
@@ -223,6 +285,7 @@ export default function PantryVoiceScreen() {
       // thing Mise can do to help, and it brings up the keyboard whose
       // microphone key does the actual work.
       dispatch({ type: 'PERMISSION_GRANTED' });
+      setTypedDirectly(false);
       inputRef.current?.focus();
       return;
     }
@@ -233,7 +296,10 @@ export default function PantryVoiceScreen() {
         // A failure the native side reports mid-session (not one thrown by
         // start()/stop() themselves) — surfaced immediately rather than left
         // to make the screen look stuck on "Listening" with a dead microphone.
-        onError: (kind) => dispatch({ type: 'FAIL', kind }),
+        onError: (kind, partial) => {
+          if (partial?.trim()) dispatch({ type: 'TRANSCRIPT', text: partial });
+          dispatch({ type: 'FAIL', kind });
+        },
       });
       dispatch({ type: 'PERMISSION_GRANTED' });
       dispatch({ type: 'AUDIO_STARTED', audioUri });
@@ -247,6 +313,56 @@ export default function PantryVoiceScreen() {
         dispatch({ type: 'FAIL', kind: 'microphone_unavailable' });
       }
     }
+  };
+
+  const chooseRecognition = (recognition: SpeechPreferences['recognition']) => {
+    if (['listening', 'finishing', 'transcribing'].includes(session.status)) return;
+    setForcedKeyboard(false);
+    setTypedDirectly(false);
+    setSpeechPreferences(updateSpeechPreferences({ recognition }));
+    setOfflineInstallResult(null);
+    dispatch({ type: 'RESET' });
+  };
+
+  const startListening = async () => {
+    if (
+      speechPreferences.recognition === 'phone' &&
+      !forcedKeyboard &&
+      !speechPreferences.phoneSpeechDisclosureAccepted
+    ) {
+      Alert.alert(
+        'Use Phone speech?',
+        'Your phone speech provider turns audio into text and may process it off-device. Mise receives the transcript, not a recording. Offline only stays available.',
+        [
+          { text: 'Offline only', onPress: () => chooseRecognition('offline') },
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Use Phone speech',
+            onPress: () => {
+              setSpeechPreferences(updateSpeechPreferences({
+                phoneSpeechDisclosureAccepted: true,
+              }));
+              void beginListening();
+            },
+          },
+        ],
+      );
+      return;
+    }
+    await beginListening();
+  };
+
+  const installOfflineLanguage = async () => {
+    if (installingOfflineLanguage) return;
+    setInstallingOfflineLanguage(true);
+    const result = await installAndroidOfflineLanguage(language);
+    setOfflineInstallResult(result);
+    if (result.recheck) {
+      const status = await getAndroidOfflineLanguageStatus(language);
+      setOfflineLanguageStatus(status);
+      setInstalledStamp((value) => value + 1);
+    }
+    setInstallingOfflineLanguage(false);
   };
 
   /**
@@ -292,7 +408,15 @@ export default function PantryVoiceScreen() {
         language,
         onPartial: (text) =>
           dispatch({ type: 'TRANSCRIPT', text: joinTranscript(resumeBaseline.current, text) }),
-        onError: (kind) => dispatch({ type: 'FAIL', kind }),
+        onError: (kind, partial) => {
+          if (partial?.trim()) {
+            dispatch({
+              type: 'TRANSCRIPT',
+              text: joinTranscript(resumeBaseline.current, partial),
+            });
+          }
+          dispatch({ type: 'FAIL', kind });
+        },
       });
       dispatch({ type: 'AUDIO_STARTED', audioUri });
     } catch (error) {
@@ -304,8 +428,113 @@ export default function PantryVoiceScreen() {
     }
   };
 
+  const buildReviewDraft = async (transcript: string, useAi: boolean) => {
+    const controller = new AbortController();
+    parseAbort.current?.abort();
+    parseAbort.current = controller;
+    lastSubmittedTranscript.current = transcript;
+    setProcessing(true);
+    setParseStatus(useAi ? 'Parsing the transcript with your selected AI provider…' : 'Parsing locally on this device…');
+
+    let startingIdentity: Awaited<ReturnType<typeof getSelectedVoiceProviderIdentity>> | null = null;
+    if (useAi) {
+      try {
+        startingIdentity = await getSelectedVoiceProviderIdentity(controller.signal);
+      } catch {
+        // A key removed between disclosure and Finish becomes a truthful local fallback.
+      }
+    }
+
+    try {
+      const result = await buildVoiceDraftWithTranscriptParsing({
+        draftId: randomUUID(),
+        transcript,
+        transcriptionMode: session.mode,
+        sessionLocationId,
+        allowProviderResolution: false,
+        locale: language,
+        visibleLocations: locations.map(({ id, name }) => ({ id, name })),
+        aiTranscriptParsing: useAi,
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted || transcriptRef.current !== transcript) {
+        setParseStatus('Transcript changed. Tap Parse corrected transcript when it is ready.');
+        return;
+      }
+      if (startingIdentity) {
+        try {
+          const current = await getSelectedVoiceProviderIdentity(controller.signal);
+          if (current.provider !== startingIdentity.provider || current.model !== startingIdentity.model) {
+            setParseStatus('AI provider or model changed. Tap Parse corrected transcript to use the new choice.');
+            return;
+          }
+        } catch {
+          setParseStatus('AI provider changed. Tap Parse corrected transcript to continue.');
+          return;
+        }
+      }
+      setDraft(result.draft);
+      setParseStatus(
+        result.parserPath === 'local'
+          ? 'Parsed locally. Your transcript was preserved.'
+          : result.parserPath === 'mixed'
+            ? 'AI-separated items were checked locally; unsupported spans used the local parser.'
+            : 'AI-separated items were checked against your exact transcript.',
+      );
+      router.push('/pantry-voice-review');
+    } catch (error) {
+      if (error instanceof VisionError && error.kind === 'cancelled') {
+        if (transcriptRef.current !== transcript) {
+          setParseStatus('Transcript changed. Tap Parse corrected transcript when it is ready.');
+        }
+        return;
+      }
+      dispatch({ type: 'FAIL', kind: 'resolution_failed' });
+      setParseStatus('The local parser could not prepare review. Your transcript is still here.');
+    } finally {
+      if (parseAbort.current === controller) {
+        parseAbort.current = null;
+        setProcessing(false);
+      }
+    }
+  };
+
+  const chooseTranscriptParsing = async (transcript: string) => {
+    if (speechPreferences.recognition === 'offline') {
+      await buildReviewDraft(transcript, false);
+      return;
+    }
+    const provider = await getConfiguredProvider();
+    if (!provider) {
+      await buildReviewDraft(transcript, false);
+      return;
+    }
+    if (speechPreferences.aiTranscriptParsingConsent) {
+      await buildReviewDraft(transcript, true);
+      return;
+    }
+    const providerName = PROVIDERS[provider].displayName;
+    Alert.alert(
+      'AI transcript parsing',
+      `${providerName} can separate the items you said. Mise sends only this transcript, language, and the visible location names and ids—never audio, pantry contents, or your API key. You can revoke this in Settings.`,
+      [
+        { text: 'Parse locally', onPress: () => void buildReviewDraft(transcript, false) },
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Allow ${providerName}`,
+          onPress: () => {
+            const next = updateSpeechPreferences({ aiTranscriptParsingConsent: true });
+            setSpeechPreferences(next);
+            void buildReviewDraft(transcript, true);
+          },
+        },
+      ],
+    );
+  };
+
   const finish = async () => {
-    if (session.status === 'ready') {
+    if (processing) return;
+    if (session.status === 'ready' && useVoiceIntakeStore.getState().draft) {
       // Already finished — a stale re-press from a screen instance left
       // mounted under the review route (`router.push`, not `replace`). The
       // draft is already in the store; calling adapter.stop() again here
@@ -319,44 +548,38 @@ export default function PantryVoiceScreen() {
 
     // A `failed` session has nothing running to stop — this is a typed
     // recovery, so the transcript already on screen is the whole answer.
-    if (adapter && isDriven(adapter) && session.status !== 'failed') {
+    if (
+      adapter &&
+      isDriven(adapter) &&
+      ['listening', 'paused', 'interrupted'].includes(session.status)
+    ) {
       dispatch({ type: 'TRANSCRIBING' });
       try {
         transcript = (await adapter.stop()).text;
-      } catch {
-        dispatch({ type: 'FAIL', kind: 'transcription_failed' });
+      } catch (error) {
+        if (error instanceof NativeSpeechRecognitionError) {
+          transcript = joinTranscript(transcript, error.partialTranscript);
+          if (transcript.trim()) dispatch({ type: 'TRANSCRIBED', text: transcript });
+          dispatch({ type: 'FAIL', kind: error.kind });
+        } else {
+          dispatch({ type: 'FAIL', kind: 'transcription_failed' });
+        }
         return;
       }
     }
     dispatch({ type: 'TRANSCRIBED', text: transcript });
+    transcriptRef.current = transcript;
 
     if (transcript.trim().length === 0) {
       dispatch({ type: 'FAIL', kind: 'no_speech' });
       return;
     }
 
-    setProcessing(true);
-    try {
-      const draft = await buildVoiceDraft({
-        draftId: randomUUID(),
-        transcript,
-        transcriptionMode: session.mode,
-        sessionLocationId,
-        // Local cascade only. Sending an unrecognised word to a provider is a
-        // separate disclosure, offered in review where the user can see which
-        // words it would be.
-        allowProviderResolution: false,
-      });
-      setDraft(draft);
-      router.push('/pantry-voice-review');
-    } catch {
-      dispatch({ type: 'FAIL', kind: 'resolution_failed' });
-    } finally {
-      setProcessing(false);
-    }
+    await chooseTranscriptParsing(transcript);
   };
 
   const cancel = () => {
+    parseAbort.current?.abort();
     const adapter = activeAdapter;
     if (adapter && isDriven(adapter)) void adapter.cancel();
     dispatch({ type: 'CANCEL' });
@@ -366,61 +589,15 @@ export default function PantryVoiceScreen() {
   };
 
   const download = useMemo(
-    () => describeDownload(language, languageName(language)),
-    [language],
+    () => describeDownload(language, languageName(language), preferredModelId),
+    [language, preferredModelId],
   );
-
-  /**
-   * Fetches the model, then re-resolves the route so it is actually used.
-   *
-   * Cancellable, because 487 MB is long enough that someone will change their
-   * mind — and resumable on the next attempt, which is why cancelling is safe
-   * to offer rather than something to talk them out of.
-   */
-  const startDownload = async () => {
-    if (!download || downloading) return;
-    const controller = new AbortController();
-    downloadAbort.current = controller;
-    setDownloadError(null);
-    setDownloading({ percent: 0, phase: 'downloading' });
-    AccessibilityInfo.announceForAccessibility(
-      `Downloading ${download.model.name}, ${download.size}.`,
-    );
-    try {
-      const result = await downloadSpeechModel(
-        download.model.id,
-        setDownloading,
-        controller.signal,
-      );
-      if (result.status === 'installed') {
-        await refreshInstalledModels();
-        setInstalledStamp((n) => n + 1);
-        AccessibilityInfo.announceForAccessibility(
-          `${download.model.name} is ready. Mise will use it for ${languageName(language)}.`,
-        );
-      } else if (result.status === 'failed' && !controller.signal.aborted) {
-        // An abort resolves this the same way a genuine failure does (see
-        // `downloadSpeechModel`), so without this check, tapping "Stop the
-        // download" — which already cleared this state — was immediately
-        // followed by a "the download did not finish" error that had nothing
-        // to do with anything going wrong.
-        setDownloadError(result.message);
-      }
-    } finally {
-      setDownloading(null);
-      downloadAbort.current = null;
-    }
-  };
-
-  const cancelDownload = () => {
-    downloadAbort.current?.abort();
-    downloadAbort.current = null;
-    setDownloading(null);
-  };
+  const modelChoices = useMemo(() => modelsForLanguage(language), [language]);
 
   /** Bypasses whatever just failed and drops straight to the always-available path. */
   const forceKeyboardFallback = () => {
     setForcedKeyboard(true);
+    setTypedDirectly(false);
     dispatch({ type: 'RESET' });
     dispatch({ type: 'SET_MODE', mode: 'keyboard' });
   };
@@ -441,6 +618,11 @@ export default function PantryVoiceScreen() {
    */
   const showDownloadCard =
     Boolean(download) &&
+    !(
+      speechPreferences.recognition === 'offline' &&
+      offlineLanguageStatus === 'missing' &&
+      offlineInstallResult === null
+    ) &&
     Boolean(
       route?.downloadSuggestion ||
         session.failure === 'offline_model_missing' ||
@@ -461,7 +643,7 @@ export default function PantryVoiceScreen() {
     if (session.failure === 'resolution_failed') return () => void finish();
     switch (label) {
       case 'Download a speech model':
-        return () => void startDownload();
+        return () => setSpeechModelsOpen(true);
       case 'Change language':
         return () => setPickingLanguage(true);
       case 'Type instead':
@@ -471,6 +653,10 @@ export default function PantryVoiceScreen() {
         return () => void startListening();
       case 'Use the keyboard microphone':
         return forceKeyboardFallback;
+      case 'Use Offline only':
+        return () => chooseRecognition('offline');
+      case 'Retry Phone speech':
+        return () => void startListening();
       case 'Open Settings':
         return () => void Linking.openSettings();
       default:
@@ -484,9 +670,14 @@ export default function PantryVoiceScreen() {
       footer={
         <View style={styles.footer}>
           <Button
-            label={processing ? 'Reading what you said' : 'Finish'}
+            label={processing
+              ? 'Reading what you said'
+              : lastSubmittedTranscript.current !== null &&
+                  lastSubmittedTranscript.current !== session.transcript
+                ? 'Parse corrected transcript'
+                : 'Finish'}
             onPress={() => void finish()}
-            disabled={!canFinish}
+            disabled={!canFinish || processing}
             loading={processing}
             accessibilityHint="Stops recording and opens the review. Nothing is added yet."
           />
@@ -529,6 +720,84 @@ export default function PantryVoiceScreen() {
         </Pressable>
       </Card>
 
+      <Card style={styles.modeCard}>
+        <SectionLabel muted>Speech mode</SectionLabel>
+        {([
+          {
+            id: 'phone' as const,
+            label: 'Phone speech',
+            detail: 'Best default. Your phone provider may process audio off-device.',
+          },
+          {
+            id: 'offline' as const,
+            label: 'Offline only',
+            detail: 'Android offline model, then a downloaded model if you choose one.',
+          },
+        ]).map((option) => {
+          const selected = speechPreferences.recognition === option.id && !forcedKeyboard;
+          const locked = ['listening', 'finishing', 'transcribing'].includes(session.status);
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => chooseRecognition(option.id)}
+              disabled={locked}
+              accessibilityRole="radio"
+              accessibilityState={{ selected, disabled: locked }}
+              style={({ pressed }) => [
+                styles.modeChoice,
+                pressed && !locked && { opacity: opacity.pressed },
+              ]}
+            >
+              <View style={styles.rowText}>
+                <RowTitle>{option.label}</RowTitle>
+                <Caption muted>{option.detail}</Caption>
+              </View>
+              <Feather
+                name={selected ? 'check-circle' : 'circle'}
+                size={20}
+                color={selected ? color.action : color.muted}
+              />
+            </Pressable>
+          );
+        })}
+      </Card>
+
+      {speechPreferences.recognition === 'offline' && offlineLanguageStatus === 'missing' ? (
+        <Card style={styles.downloadCard}>
+          <View style={styles.downloadHead}>
+            <Feather name="download" size={20} color={color.ink} />
+            <View style={styles.rowText}>
+              <RowTitle>Install Android offline language</RowTitle>
+              <Caption muted>{languageName(language)} is not installed for offline speech.</Caption>
+            </View>
+          </View>
+          <Button
+            label={installingOfflineLanguage ? 'Opening Android…' : 'Install with Android'}
+            variant="secondary"
+            loading={installingOfflineLanguage}
+            disabled={installingOfflineLanguage}
+            onPress={() => void installOfflineLanguage()}
+          />
+          {offlineInstallResult ? (
+            <Caption accessibilityLiveRegion="polite">
+              {offlineInstallCopy(offlineInstallResult)}
+            </Caption>
+          ) : null}
+          {offlineInstallResult?.recheck ? (
+            <Button
+              label="Recheck"
+              variant="ghost"
+              onPress={() => {
+                void getAndroidOfflineLanguageStatus(language).then((status) => {
+                  setOfflineLanguageStatus(status);
+                  setInstalledStamp((value) => value + 1);
+                });
+              }}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+
       {/*
         One focal control rather than a wall of status text. The status word
         only appears once there is something to say beyond "ready" — idle and
@@ -536,6 +805,19 @@ export default function PantryVoiceScreen() {
         card below instead of a redundant status line.
       */}
       <View style={styles.focal}>
+        {activeAdapter ? (
+          <View style={styles.activePath}>
+            <SectionLabel muted>Active speech path</SectionLabel>
+            <RowTitle>
+              {activeSpeechPathLabel(
+                activeAdapter,
+                language,
+                preferredModelId,
+                typedDirectly,
+              )}
+            </RowTitle>
+          </View>
+        ) : null}
         {!['idle', 'failed'].includes(session.status) ? (
           ['listening', 'paused'].includes(session.status) ? (
             <View style={styles.listeningRow}>
@@ -629,32 +911,47 @@ export default function PantryVoiceScreen() {
           <Caption muted>{download.detail}</Caption>
           <Caption muted>{download.caution}</Caption>
 
-          {downloading ? (
-            <>
-              <Caption muted accessibilityLiveRegion="polite">
-                {downloading.phase === 'extracting'
-                  ? `Unpacking… ${downloading.percent}%`
-                  : `Downloading… ${downloading.percent}%`}
-              </Caption>
-              <View
-                style={styles.progressTrack}
-                accessibilityRole="progressbar"
-                accessibilityValue={{ now: downloading.percent, min: 0, max: 100 }}
-              >
-                <View style={[styles.progressFill, { width: `${downloading.percent}%` }]} />
-              </View>
-              <Button label="Stop the download" variant="ghost" onPress={cancelDownload} />
-            </>
-          ) : (
-            <Button
-              label={`Download ${download.size}`}
-              variant="secondary"
-              onPress={() => void startDownload()}
-              accessibilityHint={`Downloads ${download.model.name} from ${download.model.publisher}. It runs on this device and nothing is sent anywhere.`}
-            />
-          )}
+          {modelChoices.length > 1 ? (
+            <View style={styles.modelChoices}>
+              <SectionLabel muted>Choose the model</SectionLabel>
+              {modelChoices.map((model) => {
+                const selected = model.id === download.model.id;
+                return (
+                  <Pressable
+                    key={model.id}
+                    onPress={() => {
+                      setSpeechPreferences(updateSpeechPreferences({
+                        preferredModelId: model.id,
+                      }));
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    style={({ pressed }) => [
+                      styles.modelChoice,
+                      pressed && { opacity: opacity.pressed },
+                    ]}
+                  >
+                    <View style={styles.rowText}>
+                      <RowTitle>{model.name}</RowTitle>
+                      <Caption muted>{model.sizeMb} MB · {model.summary}</Caption>
+                    </View>
+                    <Feather
+                      name={selected ? 'check-circle' : 'circle'}
+                      size={20}
+                      color={selected ? color.action : color.muted}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
 
-          {downloadError ? <Caption>{downloadError}</Caption> : null}
+          <Button
+            label="Choose or download speech models"
+            variant="secondary"
+            onPress={() => setSpeechModelsOpen(true)}
+            accessibilityHint="Opens durable Download, Pause, Resume, Repair, and Delete controls."
+          />
         </Card>
       ) : null}
 
@@ -663,7 +960,11 @@ export default function PantryVoiceScreen() {
         <TextInput
           ref={inputRef}
           value={session.transcript}
-          onChangeText={(text) => dispatch({ type: 'EDIT_TRANSCRIPT', text })}
+          onChangeText={(text) => {
+            if (processing) parseAbort.current?.abort();
+            if (session.status === 'idle' && session.elapsedMs === 0) setTypedDirectly(true);
+            dispatch({ type: 'EDIT_TRANSCRIPT', text });
+          }}
           editable={!driven || session.status !== 'listening'}
           multiline
           placeholder={
@@ -677,6 +978,9 @@ export default function PantryVoiceScreen() {
           style={styles.transcript}
           accessibilityLabel="Transcript. Edit anything that came out wrong."
         />
+        {parseStatus ? (
+          <Caption muted accessibilityLiveRegion="polite">{parseStatus}</Caption>
+        ) : null}
         <Caption muted>
           {livePartials
             ? 'Correct anything here before you finish — it is easier than fixing it in the review.'
@@ -751,13 +1055,48 @@ export default function PantryVoiceScreen() {
           </Pressable>
         ))}
       </Sheet>
+
+      <SpeechModelsSheet
+        visible={speechModelsOpen}
+        onClose={() => setSpeechModelsOpen(false)}
+        onChange={() => {
+          void refreshInstalledModels().then(() => setInstalledStamp((value) => value + 1));
+        }}
+      />
     </Screen>
   );
+}
+
+function activeSpeechPathLabel(
+  adapter: TranscriptionAdapter,
+  language: string,
+  preferredModelId: string | null,
+  typedDirectly: boolean,
+): string {
+  if (typedDirectly) return 'Type';
+  if (adapter.id === 'phone-speech') return 'Phone speech';
+  if (adapter.id === 'android-offline') return 'Android offline';
+  if (adapter.id === 'keyboard') return 'Keyboard microphone';
+  if (adapter.id === 'local-model') {
+    const model = chosenModelForLanguage(language, preferredModelId);
+    if (model?.id === 'parakeet-tdt-0.6b-v3') return 'Parakeet';
+    if (model?.id === 'sense-voice-small') return 'SenseVoice';
+    return 'Downloaded model';
+  }
+  return adapter.label;
 }
 
 const styles = StyleSheet.create({
   header: { marginTop: space.base, marginBottom: space.lg, gap: space.xs },
   contextCard: { gap: space.xs, marginBottom: space.md },
+  modeCard: { gap: space.xs, marginBottom: space.md },
+  modeChoice: {
+    minHeight: layout.minTouchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingVertical: space.xs,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,6 +1106,7 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, gap: 2 },
   focal: { alignItems: 'center', gap: space.md, marginVertical: space.lg },
+  activePath: { alignItems: 'center', gap: 2 },
   listeningRow: { alignItems: 'center', gap: space.xs },
   privacyBadge: {
     flexDirection: 'row',
@@ -785,6 +1125,14 @@ const styles = StyleSheet.create({
   },
   downloadCard: { gap: space.xs, marginBottom: space.md },
   downloadHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  modelChoices: { gap: space.xs, marginTop: space.xs },
+  modelChoice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: layout.minTouchTarget,
+    paddingVertical: space.xs,
+  },
   sizeRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' },
   sizeNote: { flexShrink: 1 },
   progressTrack: {
@@ -794,6 +1142,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: '100%', backgroundColor: color.ink },
+  downloadError: { color: color.paprika },
   transcriptBlock: { gap: space.xs, marginBottom: space.md },
   transcript: {
     ...type.body,

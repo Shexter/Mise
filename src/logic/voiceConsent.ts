@@ -21,7 +21,7 @@ export type { TranscriptionMode };
 
 /** Whether a mode can produce a transcript without any network request. */
 export function isLocalMode(mode: TranscriptionMode): boolean {
-  return mode !== 'cloud';
+  return !['cloud', 'phone'].includes(mode);
 }
 
 /**

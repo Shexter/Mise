@@ -10,7 +10,7 @@ import { KEY_CHECK_PROMPT, SYSTEM_PROMPT, USER_PROMPT } from '@/api/prompt';
 
 const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
-const MODEL = 'claude-sonnet-4-6';
+export const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 1500;
 export const VISION_TIMEOUT_MS = 45_000;
 
@@ -30,7 +30,7 @@ export async function estimateWithAnthropic(
   signal?: AbortSignal,
 ): Promise<string> {
   const body = {
-    model: MODEL,
+    model: ANTHROPIC_MODEL,
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: [
@@ -73,7 +73,7 @@ export async function completeVisionWithAnthropic(
   signal?: AbortSignal,
 ): Promise<string> {
   const body = {
-    model: MODEL,
+    model: ANTHROPIC_MODEL,
     max_tokens: MAX_TOKENS,
     system,
     messages: [
@@ -113,7 +113,7 @@ export async function completeWithAnthropic(
   signal?: AbortSignal,
 ): Promise<string> {
   const body = {
-    model: MODEL,
+    model: ANTHROPIC_MODEL,
     max_tokens: MAX_TOKENS,
     system,
     messages: [{ role: 'user', content: user }],
@@ -131,7 +131,7 @@ export async function verifyAnthropicKey(apiKey: string): Promise<void> {
   await post(
     apiKey,
     {
-      model: MODEL,
+      model: ANTHROPIC_MODEL,
       max_tokens: 1,
       messages: [{ role: 'user', content: KEY_CHECK_PROMPT }],
     },

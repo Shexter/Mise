@@ -111,7 +111,21 @@ export function primarySubtag(language: string): string {
  * their language, and the result reaches the pantry as confident nonsense.
  */
 export function modelForLanguage(language: string): SpeechModel | null {
-  return SPEECH_MODELS.find((model) => modelCovers(model, language)) ?? null;
+  return modelsForLanguage(language)[0] ?? null;
+}
+
+/** All compatible models, in registry order, so overlapping languages are a choice. */
+export function modelsForLanguage(language: string): SpeechModel[] {
+  return SPEECH_MODELS.filter((model) => modelCovers(model, language));
+}
+
+/** Honors a user's explicit choice only when that model can serve the language. */
+export function chosenModelForLanguage(
+  language: string,
+  preferredModelId?: string | null,
+): SpeechModel | null {
+  const models = modelsForLanguage(language);
+  return models.find((model) => model.id === preferredModelId) ?? models[0] ?? null;
 }
 
 /** Every language any registered model can serve, for the language picker. */
@@ -148,8 +162,9 @@ export interface DownloadOffer {
 export function describeDownload(
   language: string,
   languageName: string,
+  preferredModelId?: string | null,
 ): DownloadOffer | null {
-  const model = modelForLanguage(language);
+  const model = chosenModelForLanguage(language, preferredModelId);
   if (!model) return null;
 
   return {

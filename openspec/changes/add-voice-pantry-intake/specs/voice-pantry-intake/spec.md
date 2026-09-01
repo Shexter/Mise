@@ -222,34 +222,133 @@ Undo and MUST NOT read unconfirmed drafts.
 
 ### Requirement: Local-first processing and cloud use are explicit
 
-The system SHALL prefer on-device speech recognition where supported. Before any
-audio or transcript is sent to a provider, the system SHALL name the provider,
-state what data leaves the device, state why it is needed, and require explicit
-consent for that session.
+The system SHALL distinguish the phone's normal speech service from guaranteed
+offline recognition. Before first use of the phone speech service, the system
+SHALL disclose that the phone's speech provider may process audio off-device and
+SHALL offer an equally reachable Offline-only choice. It MUST NOT name Samsung,
+Google, Apple, or another vendor as the active recognizer unless runtime evidence
+identifies that vendor.
 
-Consent or credentials for image analysis MUST NOT be treated as consent or
-capability for speech transcription. A provider-assisted canonical resolution
-request SHALL send only the minimum relevant text and SHALL be disclosed
-separately from transcription.
+Before a transcript is sent to the configured AI provider, the system SHALL name
+the provider, state that only transcript text and the minimum parsing context
+leave the device, and require explicit consent. Transcript-parsing consent MAY be
+remembered, MUST be visible and revocable in Settings, and MUST NOT be inferred
+solely from a credential or consent for photographs. Turning it off SHALL restore
+local-only parsing immediately.
 
-#### Scenario: Local-only mode makes no provider call
+#### Scenario: Phone speech service is disclosed honestly
 
-- **GIVEN** on-device transcription and local alias resolution succeed
+- **GIVEN** the user has not accepted the phone speech disclosure
+- **WHEN** voice intake first offers the normal phone speech service
+- **THEN** the system states that the phone provider may process audio off-device
+- **AND** offers Offline only without claiming a specific vendor
+
+#### Scenario: Offline-only mode makes no provider call
+
+- **GIVEN** Offline only and local transcript parsing are enabled
 - **WHEN** the voice batch is reviewed
 - **THEN** no audio, transcript, or pantry data is sent to a provider
 
-#### Scenario: Cloud transcription asks first
+#### Scenario: Transcript parsing asks once and remains revocable
 
-- **GIVEN** local transcription is unavailable
-- **WHEN** cloud transcription is offered
-- **THEN** the provider and payload are explained before recording or upload
-- **AND** declining returns to typing or manual entry
+- **GIVEN** a configured API key and no remembered transcript consent
+- **WHEN** AI transcript parsing is offered
+- **THEN** the selected provider and transcript-only payload are explained
+- **AND** declining uses the local parser without losing the transcript
+- **AND** accepting may be remembered until revoked in Settings
 
 #### Scenario: A vision key is not speech consent
 
 - **GIVEN** the user configured a provider for food photographs
-- **WHEN** voice intake needs remote transcription
-- **THEN** the system still requires explicit voice-session consent
+- **WHEN** voice intake has a transcript to parse
+- **THEN** the system still requires transcript-parsing consent
+
+### Requirement: Transcript parsing is evidence-bound and provider-optional
+
+Speech recognition, keyboard dictation, and typed input SHALL converge on one
+editable transcript. With consent and a configured key, the system SHALL perform
+at most one logical structured parsing operation for a transcript revision using
+the user's selected provider and model. It SHALL send no audio, pantry contents,
+food catalogue, credentials, or raw household data.
+
+Every provider-derived item and field SHALL cite source text present in the
+transcript. The system MUST reject unsupported ingredients, numbers, quantities,
+locations, opened states, or dates. Provider output MUST NOT create canonical
+foods or aliases, merge or alter existing stock, or bypass the existing review
+and atomic confirmation boundary.
+
+No key, revoked consent, offline state, timeout, provider/model unavailability,
+authentication failure, or malformed output SHALL preserve the transcript and
+fall back to deterministic local parsing. One provider-directed rate-limit retry
+MAY occur within the same logical operation; other errors and malformed output
+MUST NOT trigger a repair request. Valid evidence-backed provider candidates MAY
+be combined with local parsing of rejected or unused spans.
+
+#### Scenario: One consented request structures a transcript
+
+- **GIVEN** transcript parsing consent and a configured provider/model
+- **WHEN** the user finishes or explicitly reparses an edited transcript
+- **THEN** one logical transcript-only parsing operation is started
+- **AND** resulting candidates are locally validated before review
+
+#### Scenario: Spoken instructions cannot grant authority
+
+- **GIVEN** the transcript contains instructions to ignore rules or modify stock
+- **WHEN** the provider response is validated
+- **THEN** the transcript is treated only as untrusted source data
+- **AND** no unsupported candidate or Pantry mutation is accepted
+
+#### Scenario: Provider failure falls back without losing work
+
+- **WHEN** the configured provider times out, rejects the request, or returns
+  malformed output
+- **THEN** the editable transcript remains intact
+- **AND** the deterministic local parser handles the remaining transcript
+- **AND** the UI states that parsing occurred locally
+
+#### Scenario: Late parsing results cannot replace newer work
+
+- **GIVEN** a parse operation is active
+- **WHEN** the transcript, provider, or model changes, or the user cancels or
+  leaves the flow
+- **THEN** the active operation is aborted or its result is discarded
+- **AND** it cannot overwrite a newer draft
+
+### Requirement: Offline speech models have durable truthful state
+
+The system SHALL offer Android's official offline-language installation before a
+third-party local model when the selected locale lacks platform offline support.
+Parakeet and SenseVoice downloads SHALL be explicit user choices, resumable, and
+recoverable across backgrounding, screen lock, process restart, interrupted
+download, and interrupted extraction. Changing language or model MUST NOT start
+a download or switch models automatically.
+
+A local model MUST NOT be shown as Ready until its checksum and required files,
+local manifest and ready marker, resolved path, native model detection, and
+bounded STT engine initialization have all succeeded. Installed-state checks
+MUST use local evidence and MUST NOT require a provider or remote registry call.
+Existing completed, partial, and corrupt installations SHALL be reconciled into
+Ready, Resume, Repair, or Delete states without silently redownloading bytes.
+
+#### Scenario: Completed progress is not yet Ready
+
+- **WHEN** a model download reaches 100 percent
+- **THEN** the system continues through extraction and runtime validation
+- **AND** shows Ready only after every local readiness check succeeds
+
+#### Scenario: A previous download survives reopening
+
+- **GIVEN** a valid model manifest and ready marker exist locally
+- **WHEN** Mise starts without network access
+- **THEN** the model is discovered without a registry request
+- **AND** the persisted compatible model choice can be used
+
+#### Scenario: An incompatible model has a repair path
+
+- **WHEN** downloaded files are corrupt or the STT engine cannot initialize
+- **THEN** the system does not label the model Ready
+- **AND** explains whether the user can Resume, Repair, Delete, choose another
+  model, or use the phone speech service
 
 ### Requirement: Audio and drafts have bounded retention
 
@@ -260,7 +359,11 @@ export, or analytics.
 By default, transcript and proposal drafts SHALL be deleted after confirmation
 or discard. If interruption recovery is enabled, the system SHALL retain only
 the local transcript and proposals for a disclosed bounded period and SHALL let
-the user delete that draft.
+the user delete that draft. Raw provider responses MUST NOT be retained after
+validated proposals are produced. Delete all data SHALL additionally remove
+downloaded speech models, partial archives, extraction state, model and consent
+preferences, recoverable voice drafts, redacted diagnostics, and pending parsing
+state.
 
 #### Scenario: Successful transcription removes audio
 
@@ -273,13 +376,21 @@ the user delete that draft.
 - **THEN** the user is told what was retained and for how long
 - **AND** can resume review or delete it
 
+#### Scenario: Delete all data clears the voice feature
+
+- **WHEN** the user invokes Delete all data
+- **THEN** no downloaded or partial speech model, voice preference, recoverable
+  transcript draft, provider response, diagnostic event, or pending parse remains
+
 ### Requirement: Interruptions and failures preserve user control
 
 Calls, audio-route changes, app backgrounding, permission changes, and microphone
 contention SHALL pause or stop capture and MUST NOT resume it automatically.
 Permission denial, microphone unavailability, no speech, heavy noise, offline
 speech service, provider failure, and food-resolution failure SHALL have distinct
-recovery guidance while preserving any safe partial transcript.
+recovery guidance while preserving any safe partial transcript. The system MUST
+NOT switch recognition engines during an active session. Duplicate Finish actions
+MUST NOT start concurrent transcription or parsing work.
 
 #### Scenario: A call interrupts a fridge sweep
 
@@ -294,6 +405,29 @@ recovery guidance while preserving any safe partial transcript.
 - **THEN** no pantry mutation occurs
 - **AND** the user can retry where privacy and retained evidence permit, edit or
   type the content, or cancel
+
+#### Scenario: Engine failure preserves the boundary
+
+- **WHEN** the active recognition engine fails after producing partial text
+- **THEN** the safe partial transcript remains editable
+- **AND** the system offers explicit retry, offline model, keyboard, or typing
+  choices without switching microphones automatically
+
+### Requirement: Speech failures are locally diagnosable without exposing content
+
+The system SHALL expose a bounded local speech diagnostic report containing the
+recognition mode, discoverable service state, native error code, local model
+identity/readiness, parser path, selected provider/model name, app version, and
+source revision. It MUST NOT contain transcript text, audio, API keys, pantry
+data, or raw provider responses. Sharing the redacted report SHALL require an
+explicit user action and no diagnostic telemetry SHALL upload automatically.
+
+#### Scenario: A user copies a safe diagnostic report
+
+- **WHEN** the user opens Speech diagnostics and chooses Copy report
+- **THEN** the report identifies the failed boundary and source revision
+- **AND** contains no credential, transcript, audio, pantry, or provider-response
+  content
 
 ### Requirement: Voice-created stock enters existing downstream contracts
 
@@ -313,4 +447,3 @@ depletion.
 
 - **WHEN** voice proposals are still under review
 - **THEN** no recommendation treats those proposals as owned ingredients
-

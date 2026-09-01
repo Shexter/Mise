@@ -116,6 +116,29 @@ export async function completeWithGemini(
 }
 
 /**
+ * Text completion pinned to the model captured when a logical operation
+ * starts. Voice parsing uses this instead of the estimate fallback ladder so
+ * a request can never silently switch model halfway through a revision.
+ */
+export async function completeWithGeminiModel(
+  apiKey: string,
+  model: GeminiModel,
+  system: string,
+  user: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const body = {
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts: [{ text: user }] }],
+    generationConfig: { responseMimeType: 'application/json' },
+  };
+  const response = await post(`${endpointFor(model)}?key=${apiKey}`, body, signal);
+  const text = firstPartText(response);
+  if (!text) throw new VisionError('malformed', 'The response came back empty.');
+  return text;
+}
+
+/**
  * Validates the key by listing models — no generate quota is spent, which
  * matters on the free tier where request-per-day limits are tight.
  */

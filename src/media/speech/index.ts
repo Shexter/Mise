@@ -1,11 +1,14 @@
 import { keyboardDictationAdapter } from '@/media/speech/adapters/keyboard';
 import { createLocalModelAdapter, type InstalledModels } from '@/media/speech/adapters/localModel';
-import { nativeRecognitionAdapter } from '@/media/speech/adapters/native';
+import {
+  androidOfflineRecognitionAdapter,
+  phoneSpeechAdapter,
+} from '@/media/speech/adapters/native';
 import { installedModels } from '@/media/speech/modelStore';
 import { selectRoute, type RouteCandidate, type TranscriptionRoute } from '@/media/speech/routing';
 
 export { keyboardDictationAdapter, KEYBOARD_START_HINT } from '@/media/speech/adapters/keyboard';
-export { nativeRecognitionAdapter } from '@/media/speech/adapters/native';
+export * from '@/media/speech/adapters/native';
 export {
   createLocalModelAdapter,
   hasLocalRuntime,
@@ -15,6 +18,8 @@ export {
 export { createCloudAdapter } from '@/media/speech/adapters/cloud';
 export * from '@/media/speech/models';
 export * from '@/media/speech/modelStore';
+export * from '@/media/speech/diagnostics';
+export * from '@/media/speech/preferences';
 export * from '@/media/speech/routing';
 export * from '@/media/speech/session';
 export * from '@/media/speech/types';
@@ -41,12 +46,16 @@ export async function resolveTranscriptionRoute(
   language: string,
   languageName: string,
   models: InstalledModels = installedModels,
+  preferredModelId?: string | null,
+  recognition: 'phone' | 'offline' = 'phone',
 ): Promise<TranscriptionRoute> {
-  const adapters = [
-    nativeRecognitionAdapter,
-    createLocalModelAdapter(models),
-    keyboardDictationAdapter,
-  ];
+  const adapters = recognition === 'phone'
+    ? [phoneSpeechAdapter, keyboardDictationAdapter]
+    : [
+        androidOfflineRecognitionAdapter,
+        createLocalModelAdapter(models, preferredModelId),
+        keyboardDictationAdapter,
+      ];
 
   const candidates: RouteCandidate[] = [];
   for (const adapter of adapters) {

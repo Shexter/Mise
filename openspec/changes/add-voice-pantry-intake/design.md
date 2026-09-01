@@ -110,24 +110,85 @@ acquisition date must not produce a precise expiry prediction.
 precision. The review can add detail later; the system cannot recover trust from
 a confidently false date or amount.
 
-### Interpretation is tiered and local-first
+### Phone speech and guaranteed-offline speech are separate modes
 
-The preferred pipeline is:
+The default Android path uses the system-default `SpeechRecognizer` without an
+explicit service package and without claiming guaranteed-offline processing. A
+one-time, revocable disclosure explains that the phone's speech provider may
+process audio off-device. This is the reliable, YouTube-like integration Android
+documents; it must not be labelled Samsung speech merely because the hardware is
+Samsung.
 
-1. on-device/OS speech recognition produces an editable transcript;
-2. deterministic local segmentation and quantity/unit parsing creates candidates;
-3. the existing local canonical resolver handles known aliases;
-4. only unresolved text may use the configured text provider, after explicit
-   disclosure and consent for that session.
+**Offline only** is a separate user choice. On Android it tries the platform's
+generic on-device recognizer and, when the selected locale is missing, invokes
+Android's official offline-language download flow. Only if that remains
+unavailable does Mise offer an explicitly chosen Sherpa model: Parakeet for
+European-language specialization or SenseVoice for the smaller multilingual
+English/CJK path. Keyboard dictation and typing remain the final floor. An
+engine failure never switches microphones mid-session: Mise preserves any safe
+partial transcript and asks the user which recovery path to take.
 
-Cloud audio transcription is a separate adapter and is unavailable unless its
-provider explicitly supports it. A vision-provider key does not imply consent or
-capability for audio. If a second text request is proposed for unresolved
-identity, the product states that separately and sends only the minimum relevant
-text, not the audio or full pantry.
+Targeting `com.samsung.android.bixby.agent` is rejected. The installed Expo
+module gives `requiresOnDeviceRecognition` precedence over an explicit package
+on Android 13+, while Bixby's capability query is not a reliable public contract.
+The app reports the engine mode it can prove, not the vendor it hopes Android
+selected.
 
-*Why:* it minimizes sensitive payloads, works better offline, and distinguishes
-speech service availability from food-resolution availability.
+### One provider request structures the finished transcript
+
+After Finish, speech recognition, keyboard dictation, and typing converge on one
+editable transcript. With remembered **AI transcript parsing** consent and a
+configured key, Mise sends one compact text request through the existing selected
+provider/model. The payload contains only the transcript as untrusted JSON data,
+the locale, visible location names/ids, and a strict output schema. It excludes
+audio, pantry contents, the food catalogue, credentials, and provider-irrelevant
+household context.
+
+The response supplies source spans and nullable structured fields. Local
+validation rejects any item, number, quantity, location, or state not supported
+by an exact transcript span. The provider cannot create a canonical or alias,
+merge stock, choose an existing container, or call a Pantry writer. The existing
+local resolver and review remain authoritative.
+
+One logical parse may use the shared transport's single provider-directed
+rate-limit retry. It does not retry malformed output, authentication failure,
+timeout, or a generic provider error. Valid evidence-backed candidates are kept;
+the deterministic parser handles rejected and unused spans. With no key,
+disabled consent, offline state, an eight-second foreground timeout, or provider
+failure, the entire transcript goes directly to the deterministic parser and the
+UI truthfully labels that fallback.
+
+### Downloaded-model state comes from local evidence
+
+The remote registry is used to discover and begin a download, never to decide
+whether an existing local model is installed. Startup and Settings enumerate the
+download manager's local manifests and `.ready` markers, reconcile old and
+partial installations, and retain the real registry id/local path returned by
+the download. A model becomes **Ready** only after checksum/file validation,
+local path resolution, native model detection, and a bounded STT engine
+initialize/destroy smoke test all succeed.
+
+Large downloads use Android's persistent background downloader with a visible
+system notification. Pause, resume, cancel, process restart, incomplete
+extraction, corrupt-model repair, and insufficient-memory initialization are
+durable states. A progress bar reaching 100% is never itself success. The model
+preference is persisted in `expo-sqlite/kv-store`; no model downloads or switches
+without the user choosing it.
+
+### Parsing work is revision-bound and diagnosable
+
+Each parse operation captures a transcript hash plus provider/model identity.
+Editing, changing provider/model, navigating away, or cancelling aborts the work
+and prevents a late response from overwriting a newer draft. Duplicate Finish is
+disabled. Editing a parsed transcript requires an explicit **Parse corrected
+transcript** action so it cannot create an unexpected second charge.
+
+`src/components/settings/SpeechDiagnosticsSheet.tsx` exposes a restrained local
+report: selected recognition mode, discoverable services, native error code,
+installed registry id, ready/manifest/runtime state, parser path, provider/model
+name, app version, and source commit. It never includes transcript text, API
+keys, pantry data, or raw provider responses. Diagnostic events are local,
+bounded, copyable by explicit action, and removed by Delete all data.
 
 ### Review optimizes the batch, not each line
 
@@ -181,8 +242,10 @@ influencing a meal plan.
 ```text
 Pantry / optional first-inventory invitation
   -> explicit microphone session + visible transcript
-  -> transcription adapter (on-device preferred; cloud explicitly consented)
-  -> local segmentation and quantity parser
+  -> phone speech OR explicit offline recognition OR keyboard/type
+  -> editable transcript
+  -> one consented provider parse OR deterministic local parser
+  -> transcript-evidence validator
   -> source-neutral PantryIntakeProposal[]
   -> existing local canonical resolver
   -> compact batch review + existing match confirmation
@@ -196,9 +259,16 @@ Expected touch points for a later implementation:
   recording, transcript, review, and recovery states.
 - `src/types.ts` — source-neutral draft/proposal, field evidence, transcription
   mode, and review-reason types.
-- `src/media/` — microphone lifecycle and on-device transcription adapter.
-- `src/api/` — optional capability-gated cloud transcription; existing text
-  transport only for explicitly approved unresolved text.
+- `src/media/speech/adapters/native.ts` and `src/media/speech/routing.ts` —
+  distinct system-default and offline recognizer modes with explicit recovery.
+- `src/media/speech/modelStore.ts` and
+  `src/media/speech/adapters/localModel.ts` — local-manifest reconciliation,
+  background transfer state, runtime smoke validation, and chosen-model routing.
+- `src/api/transport.ts` plus a voice-intake prompt/parser facade under
+  `src/api/` — one consented transcript-only structured request with bounded
+  retry, timeout, defensive parsing, and provider attribution.
+- `src/logic/voicePantryParser.ts` and `src/logic/voiceIntakeService.ts` — local
+  fallback, evidence validation, span reconciliation, and provider/local merge.
 - `src/logic/captureItems.ts` — extract/generalize source-neutral proposal
   planning rather than adding a parallel voice-only resolver.
 - `src/logic/resolution.ts` and alias types — add `voice` provenance.
@@ -254,8 +324,17 @@ Expected touch points for a later implementation:
   preselected clear items, grouped ambiguity, batch confirmation, and unknown
   quantity as non-blocking.
 - **A provider path weakens the privacy promise.** Mitigation: on-device first,
-  per-session consent, provider/payload disclosure, minimal text-only second
-  requests, and ephemeral audio.
+  remembered but revocable transcript-only consent, provider/payload disclosure,
+  no app-directed audio upload, minimal text, and ephemeral active drafts.
+- **The system-default speech service may process audio off-device.** Mitigation:
+  disclose that boundary once before use, keep Offline only equally available,
+  and never label an unverified vendor or processing location.
+- **Provider output can hallucinate or obey spoken prompt injection.** Mitigation:
+  treat the transcript as untrusted JSON data, expose no tools, require a strict
+  schema and exact source spans, reject unsupported fields, and retain review.
+- **Large local models may download but fail on limited hardware.** Mitigation:
+  run detection and bounded initialization before Ready, retain repair/delete
+  controls, and offer the phone service or the other model.
 - **Existing pantry dates may require false purchase timestamps.** Mitigation:
   treat unknown acquisition time as a release-blocking domain gap; do not ship
   voice first-inventory until the schema and expiry logic can preserve unknown.
@@ -268,18 +347,19 @@ Expected touch points for a later implementation:
 
 ## Migration Plan
 
-1. Research platform transcription and settle on-device/cloud capability gates.
-2. Introduce the source-neutral proposal and deterministic parser without any
-   microphone, provider, schema, or pantry write.
-3. Generalize existing capture proposal planning and canonical review behind the
-   neutral type.
-4. Add atomic batch materialization, idempotency, and Undo behind repository
-   tests.
-5. Add explicit recording/transcription adapters and transient draft state.
-6. Add the Pantry/optional first-inventory UI and interruption/accessibility
-   behavior.
-7. Verify local-only, cloud-consented, offline, multilingual, noisy, interrupted,
-   large-text, screen-reader, and process-restart scenarios on real devices.
+1. Preserve the existing parser, proposal, review, and atomic-write implementation
+   as the rollback floor.
+2. Correct the product decision ledger before code so system speech, remembered
+   transcript consent, provider parsing, and model readiness have one truth.
+3. Split system-default and Offline-only recognition and add Android's official
+   offline-language installation/recheck flow.
+4. Reconcile local/partial Sherpa installs without a registry fetch, add runtime
+   smoke validation, and persist the real chosen model identity.
+5. Add the transcript-only provider parser, evidence validator, local fallback,
+   revision binding, consent preference, and redacted diagnostics.
+6. Run static/provider-contract tests, build from a committed source revision,
+   then prove speech through Pantry review on the target Samsung before another
+   prerelease is described as fixed.
 
 Rollback is additive. Older builds ignore any new draft/idempotency metadata and
 continue to use camera, barcode, receipt, and manual Pantry intake. No migration
@@ -287,23 +367,6 @@ may weaken existing pantry rows or alter stored API keys.
 
 ## Open Questions
 
-1. Which platform speech APIs meet Mise's offline, language, APK-size, and Expo
-   development-build constraints? This requires a measured spike before choosing
-   a dependency.
-2. Should interrupted drafts survive process death? Recommendation: retain only
-   transcript/proposals locally for a short, user-visible recovery window; never
-   retain raw audio.
-3. How should legacy `purchased_at NOT NULL` represent stock already present when
-   its acquisition date is unknown? Recommendation: add explicit unknown/precision
-   semantics before this feature ships rather than pretending the capture date is
-   the purchase date.
-4. When speech states several loose units such as “three carrots,” does the
-   existing pantry domain materialize one lot with three pieces or three physical
-   rows? The answer must be shared by receipt, barcode, manual, and voice intake,
-   not decided in a voice-only parser.
-5. May a fully local deterministic parser preselect clear proposals without a
-   model call? Recommendation: yes, while still requiring the batch review.
-6. Which recognition languages and container vocabulary define v1, given Mise's
-   Asian pantry differentiation? Recommendation: choose from a real mixed-language
-   fixture corpus, not presumed market coverage.
-
+No implementation-shaping questions remain after the owner grilling session.
+Provider-specific live success and device performance are acceptance evidence to
+collect, not decisions an implementation may silently answer differently.

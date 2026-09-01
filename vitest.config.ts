@@ -34,6 +34,7 @@ export default defineConfig({
       { find: 'expo-crypto', replacement: join(root, 'test/stubs/expo-crypto.ts') },
       { find: 'expo-secure-store', replacement: join(root, 'test/stubs/expo-secure-store.ts') },
       { find: 'expo-location', replacement: join(root, 'test/stubs/expo-location.ts') },
+      { find: 'expo-network', replacement: join(root, 'test/stubs/expo-network.ts') },
       { find: 'expo-constants', replacement: join(root, 'test/stubs/expo-constants.ts') },
       { find: 'expo-file-system', replacement: join(root, 'test/stubs/expo-file-system.ts') },
       { find: 'expo-image-manipulator', replacement: join(root, 'test/stubs/expo-image-manipulator.ts') },

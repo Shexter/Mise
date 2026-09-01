@@ -1,5 +1,62 @@
 # Current implementation handoff
 
+## Voice pantry corrective implementation — 1 September 2026
+
+The 31 August claim below is superseded. The workstation checks and APK upload
+did not prove the installed Samsung flow, and the original adapter did not
+guarantee Samsung/Bixby: on Android 13+ the installed native module gives
+`requiresOnDeviceRecognition` precedence over an explicit package. The current
+contract is **Phone speech** (system default, possibly off-device) or an explicit
+**Offline only** path (Android on-device model/install, then a chosen Parakeet or
+SenseVoice model, then keyboard/type). Download progress is not Ready until local
+manifest/path evidence, model detection, and STT initialization all pass.
+
+After a transcript exists, one separately consented transcript-only request may
+use the user's selected AI provider/model. It never receives audio or Pantry and
+cannot create canonicals or mutate stock; exact-span validation, local parsing,
+review, and atomic confirmation remain authoritative. No further prerelease may
+be described as fixed until it is built from a committed source hash and the
+complete physical Samsung matrix passes.
+
+### Workstation proof for the corrective implementation
+
+The following checks passed on 1 September 2026:
+
+- `npm run typecheck`
+- Five focused speech test files: 89 tests passed.
+- Full Vitest suite: 160 files and 1,712 tests passed; the opt-in live test skipped.
+- `npx expo-doctor`: 18 of 18 checks passed.
+- Android `expo prebuild --no-install` with credential variables blank.
+- `openspec validate add-voice-pantry-intake --strict`
+- `git diff --check`
+
+Provider contract tests cover OpenAI, Anthropic, and Gemini with fake transports.
+They prove payload shape, retry bounds, timeout, cancel, and evidence rejection.
+
+One zero-copy live test also passed with Google Gemini and
+`gemini-3.1-flash-lite`. It reached evidence-validated candidates and the Pantry
+review model. The test logged only provider/model and result counts. It did not
+log the key, transcript, locations, candidate names, or raw response.
+
+The first live response exposed a contract mismatch. Gemini returned unsupported
+field values for otherwise valid exact spans. The validator now drops each bad
+field, keeps the exact-span candidate, and re-derives all accepted facts locally.
+
+The config requires `MISE_BUNDLE_DEV_API_KEY=true` before it bundles a
+development key. Release builds must keep that option false. Release builds must
+also set `MISE_SOURCE_REVISION` to the committed source hash.
+
+### Proof that is still required
+
+- Task 12.5 needs Android accessibility checks on a device.
+- Task 13.4 needs the complete physical Samsung test matrix.
+- Tasks 7.5 and 7.6 still need owner testing in a real kitchen.
+
+A local arm64-v8a release APK was built from the committed corrective source,
+then checked for its embedded source revision, ABI, signature, checksum, and
+absence of configured API-key material. It has not been published: task 13.4's
+physical Samsung matrix remains the prerelease acceptance gate.
+
 ## Voice pantry intake — 31 August 2026
 
 `add-voice-pantry-intake` is **33/35**. Everything implementable from a

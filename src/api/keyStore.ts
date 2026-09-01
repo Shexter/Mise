@@ -13,11 +13,10 @@ import * as SecureStore from 'expo-secure-store';
  *
  *   1. The user pastes it — during onboarding or in Settings. This is the path
  *      that matters for anyone running a published build.
- *   2. `MISE_DEV_API_KEY` in a local `.env`, surfaced through
- *      `app.config.ts` (see `.env.example`). This is a development convenience:
- *      the value is inlined into the JS bundle, so it must be left unset when
- *      publishing. On first launch it is copied into secure storage once and
- *      never read again.
+ *   2. `MISE_DEV_API_KEY` in a local `.env`, surfaced only when
+ *      `MISE_BUNDLE_DEV_API_KEY=true` explicitly opts into bundling it through
+ *      `app.config.ts` (see `.env.example`). On first launch it is copied into
+ *      secure storage once and never read again.
  */
 
 const STORAGE_KEY = 'provider_api_key';
@@ -134,9 +133,9 @@ async function secureDelete(key: string): Promise<void> {
 /**
  * Syncs the `.env` key (`MISE_DEV_API_KEY`, via app.config.ts) into
  * secure storage. When present it is treated as authoritative and written on
- * every launch, so a key baked into a development build "just works" with no
- * onboarding key step. Leave the env var unset when publishing — users then
- * supply their own key in-app, and this is a no-op.
+ * every launch, so an explicitly opted-in development build "just works" with
+ * no onboarding key step. Release builds leave the bundling opt-in false —
+ * users then supply their own key in-app, and this is a no-op.
  *
  * `SEEDED_FLAG` is still cleared/kept only for backwards compatibility with
  * older installs; the env key now wins whenever it is set.

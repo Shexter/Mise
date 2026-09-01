@@ -2731,3 +2731,56 @@ the keyboard adapter.
 — capped at ten minutes, about 38 MB — and is dropped when the session ends.
 This is stronger than decision 8's ephemeral-file rule rather than an exception
 to it: there is no `deleteAudio` call to forget, because there is no file.
+
+**193. Phone speech is the normal Android service, not a Samsung guarantee.**
+`SETTLED` *(supersedes the recognizer ordering and vendor assumptions in 189)*
+The default path asks Android for its system speech recognizer without naming a
+package and without claiming that recognition is offline. That is the public,
+YouTube-like integration Android supports. A Samsung phone may choose a Samsung,
+Google, or another compatible service; Mise reports **Phone speech** unless
+runtime evidence identifies more. Before first use, one remembered and revocable
+disclosure says the phone provider may process audio off-device. **Offline only**
+is equally reachable and is never selected in the middle of a session.
+
+**194. AI transcript parsing is one consented text operation, not audio
+transcription or food resolution by implication.** `SETTLED` *(supersedes 186)*
+A configured photo key authorizes neither microphone audio nor transcript text.
+After an editable transcript exists, Mise may send one compact text request to
+the user's selected provider/model only after a separate, remembered, revocable
+**AI transcript parsing** consent. The request contains the transcript, locale,
+visible location ids/names, and a strict schema; it contains no audio, Pantry,
+catalogue, credentials, or raw household context. Every returned field must cite
+an exact transcript span and is still subject to local identity resolution,
+review, and atomic confirmation. Failure or refusal preserves the transcript and
+uses the deterministic local parser.
+
+**195. Offline only tries the platform model, then an explicitly chosen Sherpa
+model, then keyboard or typing.** `SETTLED` *(supersedes 189)*
+On Android, Offline only first probes the generic on-device recognizer. If the
+selected locale is missing, Mise offers Android's official offline-language
+installation and rechecks it. Only then does it offer Parakeet or SenseVoice;
+the user chooses and starts the download, and Mise never downloads or changes a
+model merely because the language changed. A failure preserves safe partial
+text and offers explicit recovery choices rather than switching microphones
+inside the active session.
+
+**196. Download completion is transfer evidence; Ready requires the runtime.**
+`SETTLED` *(supersedes the readiness contract in 190 and 191)*
+The download manager's local manifest, `.ready` marker, and resolved path are the
+offline source of installed state. The app then detects the STT model and performs
+a bounded initialize/destroy smoke test. Only that full sequence may display
+**Ready**. Downloading, Paused, Extracting, Validating, Resume, Repair,
+Incompatible, and Delete are durable recovery states. The remote registry is
+used to discover a new download, never to rediscover an existing installation.
+Parakeet and SenseVoice still produce text at Finish rather than streaming it;
+that capability fact does not prove that downloaded bytes can initialize.
+
+**197. Speech audio and provider output have separate bounded lifetimes.**
+`SETTLED` *(supersedes 192 as the complete retention contract)*
+Sherpa capture remains an in-memory PCM buffer and is dropped on success,
+failure, or cancel. The phone service owns its capture and returns text; Mise
+does not persist its audio. The transcript-only provider receives no audio, and
+its raw response is discarded after evidence validation. Delete all data removes
+downloaded and partial models, extraction state, voice drafts, parsing state,
+speech preferences/consent, and redacted diagnostics in addition to the existing
+credential and app-data deletion contract.

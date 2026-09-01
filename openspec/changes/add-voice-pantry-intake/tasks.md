@@ -127,3 +127,123 @@
 > Tasks 7.5 and 7.6 need a physical device and a real kitchen; they cannot be
 > completed from a workstation. Their checks are written out in
 > `docs/owner-app-test-checklist.md` under "Voice pantry intake".
+
+## 8. Correct the speech architecture contract
+
+- [x] 8.1 Supersede product decisions 186 and 189 through 192 with the
+      owner-approved distinction between phone speech, Offline only,
+      transcript-only AI parsing, remembered/revocable consent, and runtime-
+      proven model readiness. Remove every Samsung-specific guarantee from docs
+      and user copy.
+- [x] 8.2 Define diagnostic event/result types for recognition mode, service
+      discovery, native error, model readiness, parser path, provider/model, app
+      version, and source revision. Add redaction tests proving transcript,
+      audio, API keys, pantry data, and raw provider responses cannot enter them.
+- [x] 8.3 Add a persisted speech-preference contract using
+      `expo-sqlite/kv-store` for phone-speech disclosure, Offline-only choice,
+      transcript-parsing consent, and preferred compatible model. Test invalid,
+      missing, revoked, and Delete-all-data states without network or a key.
+
+## 9. Repair Android recognition modes
+
+- [x] 9.1 Split Android system-default recognition from guaranteed-offline
+      recognition. The default path must omit an explicit service package and
+      must not claim a vendor; Offline only must use Android's on-device API.
+- [x] 9.2 Add Android's official offline-language availability and installation
+      flow for the visible selected locale, including installed, dialog opened,
+      completed, cancelled, unsupported, and recheck states.
+- [x] 9.3 Preserve safe partial text on native failure and offer explicit Retry,
+      Offline model, Keyboard microphone, and Type choices without switching an
+      active session automatically.
+- [x] 9.4 Add adapter tests against the installed native module's real precedence:
+      system default, on-device, explicit-package non-guarantee, permission,
+      language missing, start error, partial result, stop, cancel, and late event.
+
+## 10. Make local-model state truthful and durable
+
+- [x] 10.1 Replace registry-dependent installed checks with local downloaded-
+      manifest enumeration, ready-marker/path validation, and an app-model to
+      real-registry-id binding. Prove startup discovery works in airplane mode.
+- [x] 10.2 Add post-download checksum/file, model detection, and bounded STT
+      initialize/destroy validation. Map failure to Resume, Repair, Delete,
+      incompatible-device, or alternative-engine recovery rather than Ready.
+- [x] 10.3 Configure persistent Android background downloads with a visible
+      notification and restore Pause, Resume, Cancel, progress, download,
+      extraction, and validation state after backgrounding, screen lock, and
+      process restart.
+- [x] 10.4 Reconcile valid, partial, corrupt, and legacy installs on open without
+      silently redownloading. Persist a compatible user-selected Parakeet or
+      SenseVoice model and never download or switch one automatically.
+- [x] 10.5 Add deterministic model-store and local-adapter tests for fresh
+      download, stale/absent registry, completed offline discovery, interrupted
+      transfer/extraction, runtime incompatibility, restart, removal, and both
+      Parakeet and SenseVoice initialization option shapes.
+
+## 11. Add consented transcript-only AI parsing
+
+- [x] 11.1 Define one provider-neutral structured response schema with exact
+      source spans and nullable evidence fields. Build a validator that rejects
+      prompt injection, invented items, unsupported numbers/quantities/locations,
+      dates, canonicals, aliases, and stock mutation instructions.
+- [x] 11.2 Add a provider-neutral voice-intake prompt and defensive response
+      parser for OpenAI, Anthropic, and Gemini through the existing selected
+      provider/model transport. Send only transcript JSON, locale, visible
+      location ids/names, and schema; apply the shared single rate-limit retry
+      and an eight-second foreground timeout.
+- [x] 11.3 Add the one-time, remembered, revocable **AI transcript parsing**
+      disclosure and Settings control. Name the selected provider and say
+      transcript only, never audio; a configured photo key alone must not opt in.
+- [x] 11.4 Make Finish start one logical AI parse when eligible, validate its
+      candidates, and use the deterministic parser for rejected/unused spans.
+      No key, refusal, offline state, timeout, unavailable model, auth failure,
+      malformed output, or provider failure must preserve the transcript and
+      fall back locally with truthful status copy.
+- [x] 11.5 Bind parsing to a transcript hash plus provider/model identity. Abort
+      or discard stale work after edit, provider/model change, navigation, or
+      Cancel; disable duplicate Finish; require explicit **Parse corrected
+      transcript** before an edited draft spends another request.
+- [x] 11.6 Add provider-contract tests for valid, partial, hallucinated,
+      prompt-injected, malformed, rate-limited, timed-out, cancelled, and stale
+      responses across all three providers, plus local fallback and mixed
+      provider/local span reconciliation.
+
+## 12. Rebuild recovery, diagnostics, and deletion surfaces
+
+- [x] 12.1 Update voice intake to show the proven active mode—Phone speech,
+      Android offline, Parakeet, SenseVoice, Keyboard, or Type—plus explicit
+      processing/fallback state. Never label an unverified vendor.
+- [x] 12.2 Update model controls to show durable Downloading, Paused, Extracting,
+      Validating, Ready, Resume, Repair, Incompatible, and Delete states with
+      persisted user selection and no disappearing failure.
+- [x] 12.3 Add the Settings **Speech diagnostics** surface and explicit Copy
+      report action, including source commit and failed boundary while applying
+      the redaction contract and bounded local retention.
+- [x] 12.4 Extend Delete all data to remove models, partial archives, extraction
+      state, speech/model/consent preferences, recoverable drafts, diagnostics,
+      raw provider responses, and pending parse state while preserving the
+      existing credential-deletion contract.
+- [ ] 12.5 Verify TalkBack, 200% scaling, long provider/model/error names,
+      background-download notification controls, consent revocation, error
+      announcements, and reachable keyboard/type fallback on Android.
+
+## 13. Prove the committed Samsung pipeline before release
+
+- [x] 13.1 Run typecheck, focused speech/model/provider tests, the full test
+      suite, Expo config/prebuild checks, strict OpenSpec validation, and
+      `git diff --check`. Record static/provider-contract proof separately from
+      device and live-provider proof.
+- [x] 13.2 With the owner's configured provider and zero-copy credential flow,
+      prove one live transcript-only parse reaches validated candidates and
+      Pantry review. Record the provider/model and outcome without logging the
+      key, transcript, or pantry content; leave other providers labelled static
+      until live-tested.
+- [x] 13.3 Commit the exact intended repair before building, embed/display the
+      source hash, build the APK from that commit, verify archive/signature/ABI
+      and checksum, and name the prerelease/asset from the same hash. Do not
+      publish a working-tree-only binary as reproducible.
+- [ ] 13.4 **Owner plus agent — physical Samsung required.** Prove system-default
+      speech to editable transcript, Android offline-language install/recheck,
+      SenseVoice and Parakeet download/restart/initialize/transcribe, airplane-
+      mode local parsing, AI parsing and local fallback, edit/reparse, review,
+      atomic Pantry confirmation, Undo, interruption, and redacted diagnostics.
+      Do not call the prerelease fixed until this matrix passes.

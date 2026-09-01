@@ -80,7 +80,11 @@ export interface DrivenTranscriptionAdapter extends TranscriptionAdapter {
      * dropped. A dropped error looks like a microphone that has silently
      * stopped working, which is worse than any specific failure message.
      */
-    onError?: (kind: VoiceFailureKind) => void;
+    onError?: (
+      kind: VoiceFailureKind,
+      partialTranscript?: string,
+      nativeCode?: string,
+    ) => void;
   }): Promise<{ audioUri: string | null }>;
   stop(): Promise<TranscriptionResult>;
   cancel(): Promise<void>;

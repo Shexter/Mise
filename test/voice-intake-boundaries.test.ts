@@ -290,18 +290,22 @@ describe('no speech model ships inside Mise', () => {
       .split('\n')
       .filter((line) => /^(await\s+)?(void\s+)?(downloadSpeechModel|ensureModelByCategory)\(/.test(line));
     expect(topLevelCalls).toEqual([]);
-    expect(modelStore).toContain('export async function downloadSpeechModel');
+    expect(modelStore).toContain('export function downloadSpeechModel');
   });
 
   test('the screen states that the download is separate from installing Mise', () => {
     expect(voiceScreen).toContain('not part of installing Mise');
-    // And the size is on the button, so it cannot be missed.
-    expect(voiceScreen).toContain('label={`Download ${download.size}`}');
+    // The size stays visible beside the durable manager entry point; the
+    // manager owns Download/Pause/Resume rather than a transient inline button.
+    expect(voiceScreen).toContain('<RowTitle numeric>{download.size}</RowTitle>');
+    expect(voiceScreen).toContain('Choose or download speech models');
   });
 
-  test('a download can be stopped, and is resumable rather than restarted', () => {
-    expect(voiceScreen).toContain('Stop the download');
-    expect(voiceScreen).toContain('AbortController');
+  test('a download can be paused, resumed, and cancelled without losing its durable state', () => {
+    const sheet = read('src/components/settings/SpeechModelsSheet.tsx');
+    expect(sheet).toContain('pauseSpeechModelDownload');
+    expect(sheet).toContain('resumeSpeechModelDownload');
+    expect(sheet).toContain('cancelSpeechModelDownload');
     expect(modelStore).toContain('ensureModelByCategory');
     expect(modelStore).toMatch(/resumable/i);
   });
@@ -310,14 +314,8 @@ describe('no speech model ships inside Mise', () => {
     expect(modelStore).toContain('deleteArchiveAfterExtract: true');
   });
 
-  test('the registry is refreshed, not just read from a cache that may be empty', () => {
-    // Regression: `listModelsByCategory` alone only reads the download
-    // library's on-disk cache, which is empty until something populates it —
-    // so on a device that has never downloaded a model, every lookup failed
-    // with "not offered right now" even though the model genuinely exists
-    // upstream. `refreshModelsByCategory` is the call that actually fetches
-    // it; a bare `listModelsByCategory(` occurrence here would mean the fix
-    // regressed.
+  test('local manifests decide installed state; the registry is only refreshed for a new download', () => {
+    expect(modelStore).toContain("listDownloadedModelsByCategory('stt')");
     expect(modelStore).toContain('downloads.refreshModelsByCategory(');
     expect(modelStore).not.toContain('downloads.listModelsByCategory(');
   });
@@ -392,14 +390,18 @@ describe('Finish cannot re-invoke a torn-down adapter', () => {
   });
 });
 
-describe('a cancelled download does not masquerade as a failed one', () => {
-  test('the voice screen checks the abort signal before reporting an error', () => {
-    expect(voiceScreen).toContain('!controller.signal.aborted');
+describe('download recovery states remain distinct', () => {
+  test('the model store maps an abort to Paused instead of a generic failure', () => {
+    const modelStore = read('src/media/speech/modelStore.ts');
+    expect(modelStore).toContain('if (controller.signal.aborted)');
+    expect(modelStore).toContain("status: 'paused'");
   });
 
-  test('the Settings speech-models sheet checks it too', () => {
+  test('Settings renders Pause, Resume, Repair, Incompatible, and Delete separately', () => {
     const sheet = read('src/components/settings/SpeechModelsSheet.tsx');
-    expect(sheet).toContain('!controller.signal.aborted');
+    for (const label of ['Pause', 'Resume', 'Repair', 'Not supported on this device', 'Delete']) {
+      expect(sheet).toContain(label);
+    }
   });
 });
 

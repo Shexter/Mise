@@ -38,6 +38,8 @@ export interface ParsedVoiceItem {
   remaining: boolean;
   /** Stated opened state. Null when the user said nothing about it. */
   opened: boolean | null;
+  /** Explicit visible location id from separately validated transcript evidence. */
+  locationId?: string | null;
 }
 
 export interface ParsedTranscript {

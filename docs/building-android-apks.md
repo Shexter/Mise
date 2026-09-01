@@ -142,9 +142,10 @@ npx expo start --clear
 You can enter a vision key inside Mise through **Settings → API key**. This is
 safer than compiling a key into a build.
 
-If `MISE_DEV_API_KEY` exists in the local `.env`, Metro may include it as the
-development seed described by `app.config.ts`. Never share a build that embeds
-a personal key.
+`MISE_DEV_API_KEY` alone is ignored by Expo config. A local developer must also
+set `MISE_BUNDLE_DEV_API_KEY=true` to compile it as the development seed
+described by `app.config.ts`. Never enable that flag for a shared or release
+build. Set `MISE_SOURCE_REVISION` to the exact committed hash used for an APK.
 
 ### When Expo Go is enough
 

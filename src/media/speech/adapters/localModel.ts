@@ -1,4 +1,4 @@
-import { modelForLanguage, type SpeechModel } from '@/media/speech/models';
+import { chosenModelForLanguage, type SpeechModel } from '@/media/speech/models';
 import { installedModelPath } from '@/media/speech/modelStore';
 import type {
   DrivenTranscriptionAdapter,
@@ -152,6 +152,7 @@ export const MAX_SESSION_SECONDS = 600;
 
 export function createLocalModelAdapter(
   installed: InstalledModels = NO_MODELS_INSTALLED,
+  preferredModelId?: string | null,
 ): DrivenTranscriptionAdapter {
   let stream: PcmStream | null = null;
   let unsubscribe: (() => void)[] = [];
@@ -182,7 +183,7 @@ export function createLocalModelAdapter(
     sendsAudioOffDevice: false,
 
     async isAvailable(language: string): Promise<TranscriptionAvailability> {
-      const model = modelForLanguage(language);
+      const model = chosenModelForLanguage(language, preferredModelId);
       if (!model) {
         return {
           available: false,
@@ -209,7 +210,7 @@ export function createLocalModelAdapter(
     },
 
     async start({ language }) {
-      const model = modelForLanguage(language);
+      const model = chosenModelForLanguage(language, preferredModelId);
       if (!model) throw new Error('No on-device model covers that language.');
 
       const audio = loadAudio();

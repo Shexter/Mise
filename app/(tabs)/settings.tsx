@@ -11,8 +11,10 @@ import {
   getGeminiModelPreference,
   GEMINI_MODELS,
   maskedApiKey,
+  PROVIDERS,
   setGeminiModelPreference,
   type GeminiModel,
+  type Provider,
 } from '@/api/keyStore';
 import { Card } from '@/components/Card';
 import { Screen } from '@/components/Screen';
@@ -22,6 +24,7 @@ import { ModelSheet } from '@/components/settings/ModelSheet';
 import { ProfileSheet } from '@/components/settings/ProfileSheet';
 import { SettingsRow, SettingsToggleRow } from '@/components/settings/Row';
 import { SpeechModelsSheet } from '@/components/settings/SpeechModelsSheet';
+import { SpeechDiagnosticsSheet } from '@/components/settings/SpeechDiagnosticsSheet';
 import { ThemeSheet } from '@/components/settings/ThemeSheet';
 import { useToast } from '@/components/Toast';
 import { Caption, ScreenTitle } from '@/components/Type';
@@ -29,7 +32,16 @@ import { space, themeId } from '@/constants/theme';
 import { themeOptions } from '@/constants/themePalettes';
 import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
-import { SPEECH_MODELS, isModelInstalled, purgeAllAudio, removeAllSpeechModels } from '@/media/speech';
+import {
+  SPEECH_MODELS,
+  clearSpeechDiagnostics,
+  clearSpeechPreferences,
+  purgeAllAudio,
+  readSpeechPreferences,
+  refreshInstalledModels,
+  removeAllSpeechModels,
+  updateSpeechPreferences,
+} from '@/media/speech';
 import { useDbReadiness } from '@/db/readiness';
 import { populateDemoData } from '@/db/demoData';
 import {
@@ -53,6 +65,7 @@ import { useDayStore } from '@/store/dayStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { usePantryCaptureStore } from '@/store/pantryCaptureStore';
 import { useProfileStore } from '@/store/profileStore';
+import { useVoiceIntakeStore } from '@/store/voiceIntakeStore';
 import { TARGET_SOURCES, type BodyMeasurement, type Profile, type Units } from '@/types';
 
 type ProfileField = 'formula' | 'sex' | 'age' | 'height' | 'weight' | 'activity' | 'goal' | 'fibre';
@@ -78,10 +91,14 @@ export default function SettingsScreen() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [ocrCloudText, setOcrCloudText] = useState(false);
-  const [configuredProvider, setConfiguredProvider] = useState<string | null>(null);
+  const [configuredProvider, setConfiguredProvider] = useState<Provider | null>(null);
   const [geminiModel, setGeminiModel] = useState<GeminiModel>(DEFAULT_GEMINI_MODEL);
   const [speechModelsOpen, setSpeechModelsOpen] = useState(false);
+  const [speechDiagnosticsOpen, setSpeechDiagnosticsOpen] = useState(false);
   const [installedSpeechModels, setInstalledSpeechModels] = useState<number | null>(null);
+  const [aiTranscriptParsing, setAiTranscriptParsing] = useState(
+    () => readSpeechPreferences().aiTranscriptParsingConsent,
+  );
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
@@ -90,9 +107,7 @@ export default function SettingsScreen() {
   }, []);
 
   const loadInstalledSpeechModels = useCallback(() => {
-    void Promise.all(SPEECH_MODELS.map((model) => isModelInstalled(model.id))).then((flags) =>
-      setInstalledSpeechModels(flags.filter(Boolean).length),
-    );
+    void refreshInstalledModels().then((ids) => setInstalledSpeechModels(ids.length));
   }, []);
 
   const releasePendingCaptures = async () => {
@@ -192,6 +207,41 @@ export default function SettingsScreen() {
     });
   };
 
+  const changeAiTranscriptParsing = (next: boolean) => {
+    if (!next) {
+      setAiTranscriptParsing(false);
+      updateSpeechPreferences({ aiTranscriptParsingConsent: false });
+      toast.show({ message: 'Voice transcripts now parse locally.' });
+      return;
+    }
+    if (!configuredProvider) {
+      Alert.alert(
+        'Add an API key first',
+        'AI transcript parsing stays off. A key for photos never enables voice transcript sharing by itself.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Add API key', onPress: () => setKeyOpen(true) },
+        ],
+      );
+      return;
+    }
+    const providerName = PROVIDERS[configuredProvider].displayName;
+    Alert.alert(
+      'Allow AI transcript parsing?',
+      `${providerName} will receive only the transcript, language, and visible location names and ids—never audio, pantry contents, or your API key. You can turn this off here at any time.`,
+      [
+        { text: 'Keep local only', style: 'cancel' },
+        {
+          text: `Allow ${providerName}`,
+          onPress: () => {
+            setAiTranscriptParsing(true);
+            updateSpeechPreferences({ aiTranscriptParsingConsent: true });
+          },
+        },
+      ],
+    );
+  };
+
   // Optimistic, like the OCR toggle above: the row reflects the pick the
   // instant it's tapped, then reconciles if the write fails.
   const chooseGeminiModel = (model: GeminiModel) => {
@@ -210,7 +260,7 @@ export default function SettingsScreen() {
   };
 
   const removeKey = () => {
-    Alert.alert('Remove API key?', 'Photo estimates will stop until you add a new one.', [
+    Alert.alert('Remove API key?', 'Photo estimates and AI transcript parsing will stop until you add a new one.', [
       { text: 'Keep', style: 'cancel' },
       {
         text: 'Remove',
@@ -218,6 +268,9 @@ export default function SettingsScreen() {
         onPress: () => {
           void clearApiKey().then(() => {
             setMaskedKey(null);
+            setConfiguredProvider(null);
+            setAiTranscriptParsing(false);
+            updateSpeechPreferences({ aiTranscriptParsingConsent: false });
             toast.show({ message: 'Key removed.' });
           });
         },
@@ -234,7 +287,7 @@ export default function SettingsScreen() {
   const onDeleteAll = () => {
     Alert.alert(
       'Delete all data?',
-      'Every meal, photo, and your profile. This cannot be undone.',
+      'Every meal, photo, profile, voice draft, speech model, diagnostic, and speech preference. Your API key is managed separately under Remove key. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -263,6 +316,9 @@ export default function SettingsScreen() {
             // reclaim along with everything else.
             purgeAllAudio();
             await removeAllSpeechModels();
+            clearSpeechPreferences();
+            clearSpeechDiagnostics();
+            useVoiceIntakeStore.getState().clear();
             await resetDatabase();
             useProfileStore.setState({ profile: null });
             router.replace('/onboarding/welcome');
@@ -317,6 +373,9 @@ export default function SettingsScreen() {
   };
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const sourceRevision = typeof Constants.expoConfig?.extra?.['sourceRevision'] === 'string'
+    ? Constants.expoConfig.extra['sourceRevision']
+    : 'development';
 
   return (
     <Screen scroll>
@@ -468,10 +527,23 @@ export default function SettingsScreen() {
         </Card>
 
         <Card title="Speech models" padded={false}>
+          <SettingsToggleRow
+            label="AI transcript parsing"
+            description={configuredProvider
+              ? `${PROVIDERS[configuredProvider].displayName} · transcript only, never audio`
+              : 'Local only until an API key is configured'}
+            value={aiTranscriptParsing}
+            onValueChange={changeAiTranscriptParsing}
+          />
           <SettingsRow
             label="Manage downloaded models"
             value={speechModelsRowValue(installedSpeechModels)}
             onPress={() => setSpeechModelsOpen(true)}
+          />
+          <SettingsRow
+            label="Speech diagnostics"
+            value="Local · redacted"
+            onPress={() => setSpeechDiagnosticsOpen(true)}
           />
         </Card>
 
@@ -535,7 +607,7 @@ export default function SettingsScreen() {
 
         <View style={styles.about}>
           <Caption muted>
-            Mise {version}. Your diary is stored on this device. There is no Mise
+            Mise {version} · source {sourceRevision.slice(0, 12)}. Your diary is stored on this device. There is no Mise
             account or server. Photo analysis sends the selected photo to your
             configured provider.
           </Caption>
@@ -587,6 +659,11 @@ export default function SettingsScreen() {
         visible={speechModelsOpen}
         onClose={() => setSpeechModelsOpen(false)}
         onChange={loadInstalledSpeechModels}
+      />
+
+      <SpeechDiagnosticsSheet
+        visible={speechDiagnosticsOpen}
+        onClose={() => setSpeechDiagnosticsOpen(false)}
       />
 
       <ThemeSheet

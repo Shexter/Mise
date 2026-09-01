@@ -266,8 +266,13 @@ describe('each failure has its own words and its own way out', () => {
     expect(recoveryActions('offline_model_missing')).toContain('Download a speech model');
   });
 
-  test('an unavailable service points at the keyboard first', () => {
-    expect(recoveryActions('service_unavailable')[0]).toBe('Use the keyboard microphone');
+  test('an unavailable service offers explicit retry, offline, keyboard, and type choices', () => {
+    expect(recoveryActions('service_unavailable')).toEqual([
+      'Retry Phone speech',
+      'Use Offline only',
+      'Use the keyboard microphone',
+      'Type instead',
+    ]);
   });
 });
 
@@ -435,7 +440,7 @@ describe('the routing ladder', () => {
       'module_missing',
     ]);
     expect(chosen.skipped.map((entry) => entry.label)).toEqual([
-      'This device’s speech recognition',
+      'Android offline',
       'Downloaded speech model',
     ]);
   });

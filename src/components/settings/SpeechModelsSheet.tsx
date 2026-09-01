@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -8,112 +8,112 @@ import { Body, Caption, RowTitle } from '@/components/Type';
 import { color, radius, space } from '@/constants/theme';
 import {
   SPEECH_MODELS,
+  cancelSpeechModelDownload,
   downloadSpeechModel,
-  isModelInstalled,
-  refreshInstalledModels,
+  pauseSpeechModelDownload,
+  readSpeechPreferences,
+  reconcileSpeechModels,
   removeSpeechModel,
+  repairSpeechModel,
+  resumeSpeechModelDownload,
+  updateSpeechPreferences,
   type DownloadProgress,
+  type ModelInstallState,
   type SpeechModel,
 } from '@/media/speech';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  /** Bumps the caller's install count whenever a model is added or removed. */
   onChange: () => void;
 }
 
-type RowState =
-  | { kind: 'checking' }
-  | { kind: 'absent' }
-  | { kind: 'installed' }
-  | { kind: 'downloading'; progress: DownloadProgress }
-  | { kind: 'error'; message: string };
+type RowState = { status: 'checking' } | ModelInstallState;
 
-/**
- * Every registered speech model (`SPEECH_MODELS`), with its install state and
- * a Download or Delete action — the surface the voice intake screen's inline
- * offer never covered: downloading ahead of time, for a language not being
- * used this minute, or simply because there was nowhere else in the app to
- * see what had already been fetched.
- */
 export function SpeechModelsSheet({ visible, onClose, onChange }: Props) {
   const [rows, setRows] = useState<Record<string, RowState>>({});
-  const aborts = useRef<Record<string, AbortController>>({});
+  const [preferredModelId, setPreferredModelId] = useState<string | null>(
+    () => readSpeechPreferences().preferredModelId,
+  );
 
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
-    setRows(Object.fromEntries(SPEECH_MODELS.map((model) => [model.id, { kind: 'checking' }])));
-    void (async () => {
-      const entries = await Promise.all(
-        SPEECH_MODELS.map(async (model) => {
-          const installed = await isModelInstalled(model.id);
-          return [model.id, { kind: installed ? 'installed' : 'absent' } as RowState] as const;
-        }),
-      );
-      if (!cancelled) setRows(Object.fromEntries(entries));
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setPreferredModelId(readSpeechPreferences().preferredModelId);
+    setRows(Object.fromEntries(SPEECH_MODELS.map((model) => [model.id, { status: 'checking' }])));
+    void reconcileSpeechModels().then((states) => {
+      if (!cancelled) setRows(states);
+    });
+    return () => { cancelled = true; };
   }, [visible]);
 
-  const download = async (model: SpeechModel) => {
-    const controller = new AbortController();
-    aborts.current[model.id] = controller;
-    setRows((prev) => ({
-      ...prev,
-      [model.id]: { kind: 'downloading', progress: { percent: 0, phase: 'downloading' } },
-    }));
-    AccessibilityInfo.announceForAccessibility(`Downloading ${model.name}, ${model.sizeMb} MB.`);
-    try {
-      const result = await downloadSpeechModel(
-        model.id,
-        (progress) => setRows((prev) => ({ ...prev, [model.id]: { kind: 'downloading', progress } })),
-        controller.signal,
-      );
-      if (result.status === 'installed') {
-        await refreshInstalledModels();
-        onChange();
-        setRows((prev) => ({ ...prev, [model.id]: { kind: 'installed' } }));
-        AccessibilityInfo.announceForAccessibility(`${model.name} is ready.`);
-      } else if (result.status === 'failed' && !controller.signal.aborted) {
-        // An abort resolves this the same way a genuine failure does, so
-        // without the guard, tapping Cancel — which already reset this row —
-        // was immediately followed by an error message for a download the
-        // user stopped on purpose.
-        setRows((prev) => ({ ...prev, [model.id]: { kind: 'error', message: result.message } }));
-      } else if (!controller.signal.aborted) {
-        setRows((prev) => ({ ...prev, [model.id]: { kind: 'absent' } }));
-      }
-    } finally {
-      delete aborts.current[model.id];
+  const setRow = (modelId: string, state: ModelInstallState) => {
+    setRows((current) => ({ ...current, [modelId]: state }));
+  };
+
+  const onProgress = (modelId: string) => (progress: DownloadProgress) => {
+    setRow(modelId,
+      progress.phase === 'validating'
+        ? { status: 'validating', path: '' }
+        : progress.phase === 'extracting'
+          ? { status: 'extracting', percent: progress.percent }
+          : { status: 'downloading', phase: 'downloading', percent: progress.percent });
+  };
+
+  const run = async (
+    model: SpeechModel,
+    operation: 'download' | 'resume' | 'repair',
+  ) => {
+    setRow(model.id, { status: 'downloading', phase: 'downloading', percent: 0 });
+    AccessibilityInfo.announceForAccessibility(`${operation === 'resume' ? 'Resuming' : 'Downloading'} ${model.name}.`);
+    const progress = onProgress(model.id);
+    const result = operation === 'resume'
+      ? await resumeSpeechModelDownload(model.id, progress)
+      : operation === 'repair'
+        ? await repairSpeechModel(model.id, progress)
+        : await downloadSpeechModel(model.id, progress);
+    setRow(model.id, result);
+    onChange();
+    if (result.status === 'ready') {
+      AccessibilityInfo.announceForAccessibility(`${model.name} is ready.`);
+    } else if (result.status === 'incompatible') {
+      AccessibilityInfo.announceForAccessibility(`${model.name} is not supported on this device.`);
     }
   };
 
-  const cancelDownload = (modelId: string) => {
-    aborts.current[modelId]?.abort();
-    delete aborts.current[modelId];
-    setRows((prev) => ({ ...prev, [modelId]: { kind: 'absent' } }));
+  const pause = async (model: SpeechModel) => {
+    setRow(model.id, await pauseSpeechModelDownload(model.id));
+    AccessibilityInfo.announceForAccessibility(`${model.name} download paused.`);
+  };
+
+  const cancel = async (model: SpeechModel) => {
+    await cancelSpeechModelDownload(model.id);
+    setRow(model.id, { status: 'absent' });
+    onChange();
   };
 
   const remove = async (model: SpeechModel) => {
     await removeSpeechModel(model.id);
-    await refreshInstalledModels();
+    setRow(model.id, { status: 'absent' });
     onChange();
-    setRows((prev) => ({ ...prev, [model.id]: { kind: 'absent' } }));
+  };
+
+  const choose = (model: SpeechModel) => {
+    setPreferredModelId(model.id);
+    updateSpeechPreferences({ preferredModelId: model.id });
+    AccessibilityInfo.announceForAccessibility(`${model.name} selected.`);
+    onChange();
   };
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Speech models">
       <Body muted>
-        Downloaded once, used entirely on this device. Nothing here is sent
-        anywhere, before or after the download.
+        Downloads continue in Android with a visible notification. Ready means
+        the files, model detector, and speech engine all passed locally.
       </Body>
       <View style={styles.list}>
         {SPEECH_MODELS.map((model, index) => {
-          const row = rows[model.id] ?? { kind: 'checking' };
+          const row = rows[model.id] ?? { status: 'checking' };
           return (
             <View key={model.id}>
               {index > 0 ? <Divider /> : null}
@@ -124,44 +124,52 @@ export function SpeechModelsSheet({ visible, onClose, onChange }: Props) {
                     {model.publisher} · {model.licence} · {model.sizeMb} MB
                   </Caption>
                   <Caption muted>{model.summary}</Caption>
+                  <Caption accessibilityLiveRegion="polite" style={statusIsFailure(row) ? styles.error : undefined}>
+                    {modelStateCopy(row)}
+                  </Caption>
                 </View>
-
-                {row.kind === 'checking' ? null : row.kind === 'installed' ? (
-                  <Button
-                    label="Delete"
-                    variant="destructive"
-                    block={false}
-                    onPress={() => void remove(model)}
-                  />
-                ) : row.kind === 'downloading' ? (
-                  <Button
-                    label={`${row.progress.percent}%`}
-                    variant="ghost"
-                    block={false}
-                    onPress={() => cancelDownload(model.id)}
-                    accessibilityHint="Stops the download."
-                  />
-                ) : (
-                  <Button
-                    label="Download"
-                    variant="secondary"
-                    block={false}
-                    onPress={() => void download(model)}
-                    accessibilityHint={`Downloads ${model.name}, ${model.sizeMb} MB, from ${model.publisher}.`}
-                  />
-                )}
+                <View style={styles.actions}>
+                  {row.status === 'ready' ? (
+                    <Button label="Delete" variant="destructive" block={false} onPress={() => void remove(model)} />
+                  ) : row.status === 'downloading' ? (
+                    <Button label="Pause" variant="secondary" block={false} onPress={() => void pause(model)} />
+                  ) : row.status === 'paused' ? (
+                    <>
+                      <Button label="Resume" variant="secondary" block={false} onPress={() => void run(model, 'resume')} />
+                      <Button label="Cancel" variant="ghost" block={false} onPress={() => void cancel(model)} />
+                    </>
+                  ) : row.status === 'extracting' ? (
+                    <Button label="Cancel" variant="ghost" block={false} onPress={() => void cancel(model)} />
+                  ) : row.status === 'repair' || row.status === 'failed' ? (
+                    <>
+                      <Button label="Repair" variant="secondary" block={false} onPress={() => void run(model, 'repair')} />
+                      <Button label="Delete" variant="ghost" block={false} onPress={() => void remove(model)} />
+                    </>
+                  ) : row.status === 'incompatible' ? (
+                    <Button label="Delete" variant="destructive" block={false} onPress={() => void remove(model)} />
+                  ) : row.status === 'absent' ? (
+                    <Button label="Download" variant="secondary" block={false} onPress={() => void run(model, 'download')} />
+                  ) : null}
+                </View>
               </View>
 
-              {row.kind === 'downloading' ? (
+              {'percent' in row ? (
                 <View
                   style={styles.progressTrack}
                   accessibilityRole="progressbar"
-                  accessibilityValue={{ now: row.progress.percent, min: 0, max: 100 }}
+                  accessibilityValue={{ now: row.percent, min: 0, max: 100 }}
                 >
-                  <View style={[styles.progressFill, { width: `${row.progress.percent}%` }]} />
+                  <View style={[styles.progressFill, { width: `${row.percent}%` }]} />
                 </View>
               ) : null}
-              {row.kind === 'error' ? <Caption>{row.message}</Caption> : null}
+
+              <Button
+                label={preferredModelId === model.id ? 'Selected model' : 'Use this model'}
+                variant="ghost"
+                block={false}
+                disabled={preferredModelId === model.id}
+                onPress={() => choose(model)}
+              />
             </View>
           );
         })}
@@ -170,16 +178,36 @@ export function SpeechModelsSheet({ visible, onClose, onChange }: Props) {
   );
 }
 
+function statusIsFailure(state: RowState): boolean {
+  return ['repair', 'incompatible', 'failed'].includes(state.status);
+}
+
+function modelStateCopy(state: RowState): string {
+  switch (state.status) {
+    case 'checking': return 'Checking local files…';
+    case 'absent': return 'Not downloaded';
+    case 'downloading': return `Downloading · ${state.percent}%`;
+    case 'paused': return `Paused · ${state.percent}%`;
+    case 'extracting': return `Extracting · ${state.percent}%`;
+    case 'validating': return 'Validating model runtime…';
+    case 'ready': return 'Ready';
+    case 'repair': return `Repair needed · ${state.message}`;
+    case 'incompatible': return `Not supported on this device · ${state.message}`;
+    case 'failed': return `Download failed · ${state.message}`;
+  }
+}
+
 const styles = StyleSheet.create({
   list: { marginTop: space.sm },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: space.md,
     paddingVertical: space.md,
   },
   rowText: { flex: 1, gap: 2 },
+  actions: { gap: space.xs, alignItems: 'flex-end' },
   progressTrack: {
     height: 6,
     borderRadius: radius.full,
@@ -188,4 +216,5 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   progressFill: { height: '100%', backgroundColor: color.ink },
+  error: { color: color.paprika },
 });

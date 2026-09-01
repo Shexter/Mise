@@ -1,7 +1,11 @@
 import { getAllCanonicals, getLocations, listPantryItems } from '@/db/queries';
 import { planIntakeProposals, type IntakeCandidate } from '@/logic/intakeProposals';
 import { resolveIngredientReferences, resolveIngredientReferencesLocally } from '@/logic/resolution';
-import { parseVoiceTranscript, type ParsedVoiceItem } from '@/logic/voicePantryParser';
+import {
+  parseVoiceTranscript,
+  type ParsedTranscript,
+  type ParsedVoiceItem,
+} from '@/logic/voicePantryParser';
 import type {
   CanonicalItem,
   Location,
@@ -39,6 +43,8 @@ export interface BuildDraftOptions {
    * text-resolution disclosure and getting a yes.
    */
   allowProviderResolution?: boolean;
+  /** Evidence-validated segmentation; every fact has already been re-parsed locally. */
+  parsedTranscript?: ParsedTranscript;
   signal?: AbortSignal;
 }
 
@@ -51,7 +57,7 @@ export async function buildVoiceDraft(
     listPantryItems(),
   ]);
 
-  const parsed = parseVoiceTranscript(options.transcript, {
+  const parsed = options.parsedTranscript ?? parseVoiceTranscript(options.transcript, {
     knownNames: foodLexicon(canonicals),
   });
 
@@ -111,7 +117,7 @@ function toCandidate(
     statedName: item.name,
     sourceSpan: item.span,
     quantity: item.quantity,
-    locationId: item.location ? locationIdForKind(item.location, locations) : null,
+    locationId: item.locationId ?? (item.location ? locationIdForKind(item.location, locations) : null),
     fullness: item.fullness,
     opened: item.opened,
     // First inventory says nothing about when anything was bought, and the

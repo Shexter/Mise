@@ -19,7 +19,11 @@ locations and proposed location), 23 and 24 (fast progressive first-run capture
 without gating the app), and 25 through 28 (all food references pass through the
 identity layer). It complements decisions 33 through 40: confirmed stock may
 improve the existing dinner decision, but voice intake does not generate recipes
-itself.
+itself. The corrective work also supersedes the failed implementation assumptions
+in decisions 186 and 189 through 192: a configured vision key is not automatic
+transcript consent, but remembered transcript-only consent is allowed; Android's
+system speech service is distinct from guaranteed-offline recognition; and a
+download is not installed until the local runtime proves it can load the model.
 
 ## What Changes
 
@@ -46,9 +50,24 @@ itself.
   items to Fridge** is the only mutation boundary.
 - Commit accepted items atomically, prevent replay from creating duplicates, and
   provide a batch Undo action. Cancelled or abandoned drafts create no stock.
-- Prefer on-device speech recognition. Any cloud transcription or text extraction
-  requires explicit per-session disclosure of the provider and payload. Raw audio
-  is ephemeral and deleted after transcription or cancellation.
+- Default to the phone's normal speech service after a one-time, revocable
+  disclosure that the device provider may process audio off-device. Offer a
+  separate **Offline only** path: Android's official offline-language model,
+  then an explicitly chosen Parakeet or SenseVoice download, then keyboard or
+  typing. Never claim to force Samsung/Bixby when Android does not expose that
+  guarantee.
+- After an editable transcript exists, use one compact text request to the
+  user's configured AI provider when transcript parsing is enabled. Send no
+  audio, pantry contents, catalogue, or credentials; validate every structured
+  candidate against exact transcript evidence; and fall back locally without
+  losing the transcript.
+- Treat downloaded-model readiness as a runtime fact, not a completed progress
+  bar: reconcile existing/partial installs locally, validate the manifest and
+  ready marker, detect the model, initialize the STT engine, and only then show
+  **Ready**.
+- Keep redacted local speech diagnostics and bind every asynchronous result to
+  the transcript revision and provider/model identity. Publish no further
+  "fixed" APK until the exact committed build passes the full Samsung flow.
 - Invalidate pantry-dependent suggestions once after a successful batch. The
   existing dinner decision may then offer a meal based on confirmed stock and the
   user's owned appliances when that separate meal-prep capability exists.
@@ -96,7 +115,10 @@ authoritative when accepted proposals are materialized.
 `src/logic/resolution.ts`, `src/db/queries/pantry.ts`, `src/types.ts`, a new
 speech/transcription adapter under `src/media/` or `src/api/`, a source-neutral
 intake draft store, Pantry entry surfaces under `app/`, and the existing match
-and review components. Provider keys remain confined to
+and review components. Corrective work separates the system-default and
+guaranteed-offline recognizers, adds transcript-only provider parsing through
+the existing provider transport, derives model state from local manifests, and
+adds a redacted diagnostics surface. Provider keys remain confined to
 `src/api/keyStore.ts`.
 
 **Data.** Raw audio is not pantry data and is never retained after the active
@@ -124,6 +146,9 @@ dependency is selected.
   typical values when the user did not provide them.
 - Storing raw audio, training on user speech, or silently sending audio,
   transcripts, pantry history, or profile data to a provider.
+- Guaranteeing that Samsung/Bixby is the active recognition engine when Android
+  exposes only its system-default or generic on-device recognizer contract.
+- Giving an AI parser authority to create canonicals or aliases, merge or edit
+  existing stock, or write to Pantry without the existing review boundary.
 - Making voice intake mandatory during onboarding or requiring speech/hearing to
   use Pantry.
-

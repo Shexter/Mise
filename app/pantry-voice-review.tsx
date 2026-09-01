@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
 
+import { PROVIDERS, type Provider } from '@/api/keyStore';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { CanonicalPickerSheet } from '@/components/match/CanonicalPickerSheet';
@@ -29,7 +30,7 @@ import {
 import { materialise } from '@/logic/materialisation';
 import { usePantryStore } from '@/store/pantryStore';
 import { useVoiceIntakeStore } from '@/store/voiceIntakeStore';
-import type { PantryIntakeProposal } from '@/types';
+import type { PantryIntakeDraft, PantryIntakeProposal } from '@/types';
 
 /**
  * The mutation boundary. One screen, one button, one transaction.
@@ -229,6 +230,15 @@ export default function PantryVoiceReviewScreen() {
         <Caption muted>{reviewOpeningSummary(review.proposals)}</Caption>
       </View>
 
+      {draft.transcriptParsing ? (
+        <Card style={styles.parsingCard}>
+          <RowTitle>{parsingTitle(draft.transcriptParsing.path)}</RowTitle>
+          <Caption muted>
+            {parsingDetail(draft.transcriptParsing)}
+          </Caption>
+        </Card>
+      ) : null}
+
       {groups.clear.length > 0 ? (
         <View style={styles.group}>
           <SectionLabel muted>Clear</SectionLabel>
@@ -336,6 +346,7 @@ function formatAmount(amount: number): string {
 
 const styles = StyleSheet.create({
   header: { marginTop: space.base, marginBottom: space.lg, gap: space.xs },
+  parsingCard: { gap: space.xs, marginBottom: space.lg },
   group: { gap: space.sm, marginBottom: space.lg },
   itemCard: { gap: space.xs },
   itemRow: {
@@ -370,3 +381,22 @@ const styles = StyleSheet.create({
   },
   footer: { gap: space.sm },
 });
+
+function parsingTitle(path: NonNullable<PantryIntakeDraft['transcriptParsing']>['path']): string {
+  if (path === 'ai') return 'AI-separated, locally checked';
+  if (path === 'mixed') return 'AI and local parsing';
+  return 'Parsed locally';
+}
+
+function parsingDetail(parsing: NonNullable<PantryIntakeDraft['transcriptParsing']>): string {
+  if (parsing.path === 'local') {
+    return parsing.fallbackReason
+      ? 'The AI path was unavailable or unsupported, so Mise preserved your transcript and parsed it locally.'
+      : 'No transcript was sent to an AI provider.';
+  }
+  const provider = parsing.provider && parsing.provider in PROVIDERS
+    ? PROVIDERS[parsing.provider as Provider].displayName
+    : 'your selected provider';
+  const model = parsing.model ? ` (${parsing.model})` : '';
+  return `${provider}${model} separated exact transcript spans. Mise checked every accepted fact locally before showing it here.`;
+}

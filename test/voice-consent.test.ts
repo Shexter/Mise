@@ -72,11 +72,12 @@ describe('the two payloads are consented separately', () => {
 });
 
 describe('local modes never ask', () => {
-  test('every mode but cloud transcribes with no consent and no key', () => {
+  test('Phone speech and cloud are the only modes that can cross the device boundary', () => {
     for (const mode of TRANSCRIPTION_MODES) {
       const verdict = mayTranscribe(mode, NO_VOICE_CONSENT, false);
-      expect(verdict.allowed).toBe(mode !== 'cloud');
-      expect(isLocalMode(mode)).toBe(mode !== 'cloud');
+      const local = !['cloud', 'phone'].includes(mode);
+      expect(verdict.allowed).toBe(local);
+      expect(isLocalMode(mode)).toBe(local);
     }
   });
 });

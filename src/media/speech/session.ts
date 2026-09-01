@@ -345,14 +345,14 @@ export function recoveryActions(kind: VoiceFailureKind | null): readonly string[
     case 'too_noisy':
       return ['Start again', 'Type instead'];
     case 'service_unavailable':
-      return ['Use the keyboard microphone', 'Download a speech model', 'Type instead'];
+      return ['Retry Phone speech', 'Use Offline only', 'Use the keyboard microphone', 'Type instead'];
     case 'offline_model_missing':
       return ['Download a speech model', 'Change language', 'Type instead'];
     case 'provider_rejected':
     case 'provider_timeout':
       return ['Try again', 'Keep everything on this device', 'Type instead'];
     case 'transcription_failed':
-      return ['Try again', 'Type instead'];
+      return ['Try again', 'Use Offline only', 'Use the keyboard microphone', 'Type instead'];
     case 'resolution_failed':
       return ['Review what was found', 'Try again'];
     default:

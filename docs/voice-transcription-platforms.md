@@ -26,7 +26,7 @@ The OS keyboard's microphone key writing into a `TextInput` that Mise owns.
 | | |
 | --- | --- |
 | iOS engine | Apple's own dictation — on-device on Apple-silicon-class devices |
-| Android engine | Gboard voice typing, or Samsung's keyboard equivalent |
+| Android engine | The user's configured keyboard dictation service |
 | New dependencies | none |
 | Dev build required | no |
 | Permission strings | none — the keyboard holds the microphone permission, not Mise |
@@ -62,18 +62,20 @@ A community Expo module wrapping `SFSpeechRecognizer` on iOS and Android's
 | Continuous mode | Android 13+ and iOS 18+. Android 12 and below cannot do continuous recognition |
 | File input | yes — `audioSource: { uri }`, Android 13+ / iOS |
 
-This is "Apple Intelligence or Samsung's native alternative" in code. It is the
-best answer when it works, and it has three distinct ways not to work: the
+This is Android or iOS system speech recognition in code. It has two deliberately
+separate modes: the normal phone speech service, which may process audio
+off-device, and the platform's generic on-device recognizer. It has three
+distinct ways not to work: the
 module is absent (no dev build yet), the device has no on-device model for the
 chosen locale, or the platform is too old for continuous recognition. Those are
 three different recovery paths, which is why the adapter reports availability as
 a reason rather than a boolean.
 
 **Installed** (`expo-speech-recognition@sdk-54` → 3.1.3, MIT). The config plugin
-is declared in `app.config.ts` with both usage descriptions, `RECORD_AUDIO`, and
-`androidSpeechServicePackages: ['com.google.android.as']` — the on-device Android
-System Intelligence service, without which `requiresOnDeviceRecognition` cannot
-find a local model.
+is declared in `app.config.ts` with both usage descriptions and `RECORD_AUDIO`.
+The default recognizer does not name a vendor package. Offline only uses
+`requiresOnDeviceRecognition`; when a locale is missing it invokes
+`androidTriggerOfflineModelDownload({ locale })` and rechecks availability.
 
 The adapter still probes at runtime rather than importing statically. The
 package being a dependency does not mean its *native* side is present: Expo Go
@@ -145,25 +147,26 @@ ones, so no text appears until Finish. The adapter reports
 `providesLiveTranscript: false` and the surface says so, instead of showing an
 empty box that reads as a dead microphone.
 
-### D. Cloud transcription
+### D. Transcript-only AI parsing
 
-Sending audio to a provider.
-
-Rejected as a default and gated behind explicit per-session consent. The
-reasoning is in the spec, not here: a vision key is not speech consent, and a
-kitchen sweep records whatever else is audible in the kitchen. Kept as a
-capability slot so the refusal is a decision the code expresses, not an omission.
+No app-directed audio upload is part of this feature. After any speech or typed
+path produces an editable transcript, one separately consented text request may
+structure it through the user's selected provider/model. Exact source spans are
+validated locally and the deterministic parser handles failure and unsupported
+spans. A configured vision key is not consent for this request.
 
 ## The tiering that follows
 
-1. **Native OS recognition** (B) when its module is present and reports an
-   on-device model for the selected language.
-2. **A downloaded model** (C), once it is actually installed.
+1. **Phone speech** (B), after its one-time disclosure. Android chooses the
+   compatible service; Mise does not claim a vendor or guaranteed offline use.
+2. **Offline only**, chosen explicitly: Android's on-device recognizer and
+   official language-model install/recheck, then a user-selected downloaded
+   model (C) if needed.
 3. **Keyboard dictation** (A) — always available, and no audio touches Mise.
 4. **Typing** — always present, never a downgrade, and the only path that needs
    no microphone at all.
 
-Cloud (D) never enters this ladder automatically.
+Transcript parsing (D) happens after this ladder and only with its own consent.
 
 The downloaded model sits *above* the keyboard, which is not where this started.
 The keyboard reports itself available unconditionally — it has to, since Mise
@@ -209,11 +212,10 @@ Both dependencies are now installed, so every remaining item needs a device.
 - **`react-native-sherpa-onnx` is third-party, at 0.4.3, and unaudited here.**
   Early version numbers on a package that ships native code deserve a read of
   the diff before a release build.
-- **The registry id mapping is unverified at runtime.** `modelStore.ts` resolves
-  our models against the library's own registry by exact download URL, falling
-  back to the archive stem. If upstream changes either, the download reports
-  "not offered right now" rather than fetching something else — correct, but it
-  means the mapping needs one real check on a device.
+- **A new download still needs the remote registry, but installed state does
+  not.** `modelStore.ts` binds the selected app model to the downloaded local
+  manifest id/path. Startup must enumerate that local evidence in airplane mode;
+  registry availability is not proof for or against an existing installation.
 - **Neither model has been run on real speech here.** Recognition quality,
   first-run load time, and transcription latency on a mid-range Android are all
   unknown until someone speaks into it.

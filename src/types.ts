@@ -1295,10 +1295,18 @@ export type EvidenceStrength = 'stated' | 'approximate' | 'inferred' | 'unknown'
  * How a transcript was produced. Ordered least to most exposing; only `cloud`
  * sends anything off the device. See `src/logic/voiceConsent.ts`.
  */
-export type TranscriptionMode = 'keyboard' | 'on_device' | 'local_model' | 'cloud';
+export type TranscriptionMode =
+  | 'keyboard'
+  | 'phone'
+  | 'android_offline'
+  | 'on_device'
+  | 'local_model'
+  | 'cloud';
 
 export const TRANSCRIPTION_MODES: readonly TranscriptionMode[] = [
   'keyboard',
+  'phone',
+  'android_offline',
   'on_device',
   'local_model',
   'cloud',
@@ -1421,5 +1429,12 @@ export interface PantryIntakeDraft {
   proposals: readonly PantryIntakeProposal[];
   /** Phrases that produced no proposal, kept so the user can see the gap. */
   unusedPhrases: readonly string[];
+  /** Safe, content-free provenance shown on review after transcript parsing. */
+  transcriptParsing?: {
+    path: 'ai' | 'local' | 'mixed';
+    provider: string | null;
+    model: string | null;
+    fallbackReason: string | null;
+  };
   createdAt: string;
 }
