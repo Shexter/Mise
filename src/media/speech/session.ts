@@ -173,9 +173,18 @@ export function voiceSessionReducer(
       if (state.status !== 'paused') return state;
       return { ...state, status: 'listening' };
 
-    case 'FINISH':
-      if (!['listening', 'paused', 'interrupted'].includes(state.status)) return state;
+    case 'FINISH': {
+      // A failure normally ends the session, but not when the user typed a
+      // recovery — `EDIT_TRANSCRIPT` already permits editing from `failed`,
+      // and refusing Finish here as well left that transcript with no way
+      // out. Only reachable with something to finish, matching
+      // `hasSalvageableTranscript`.
+      const salvaging = state.status === 'failed' && state.transcript.trim().length > 0;
+      if (!['listening', 'paused', 'interrupted'].includes(state.status) && !salvaging) {
+        return state;
+      }
       return { ...state, status: 'finishing' };
+    }
 
     case 'TRANSCRIBING':
       if (state.status !== 'finishing') return state;

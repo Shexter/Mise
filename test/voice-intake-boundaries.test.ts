@@ -146,10 +146,17 @@ describe('the interface speaks in text, not in decoration', () => {
     expect(voiceScreen).not.toContain('announceForAccessibility(session.transcript)');
   });
 
-  test('the status dot is decoration; the status is a text role', () => {
-    expect(voiceScreen).toContain('<RowTitle accessibilityLiveRegion="polite">{statusLabel(session)}</RowTitle>');
-    expect(voiceScreen).toContain('styles.dot');
-    expect(voiceScreen).not.toMatch(/dot[\s\S]{0,120}accessibilityLabel/);
+  test('the status is a text role, not a decoration', () => {
+    // The redesigned screen dropped the decorative status dot entirely rather
+    // than risk it carrying meaning assistive technology can't read — the
+    // status word itself carries the live region instead, in whichever of its
+    // two sizes is showing (the big "Listening"/"Paused" treatment, or the
+    // quieter caption for every other transitional status).
+    expect(voiceScreen).toContain(
+      '<ScreenTitle accessibilityLiveRegion="polite">{statusLabel(session)}</ScreenTitle>',
+    );
+    expect(voiceScreen).toContain('<Caption muted accessibilityLiveRegion="polite">');
+    expect(voiceScreen).not.toContain('styles.dot');
   });
 
   test('the review announces how many items and how many need a look', () => {

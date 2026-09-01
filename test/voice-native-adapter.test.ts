@@ -120,6 +120,26 @@ describe('the real module is reached through its real methods', () => {
   });
 });
 
+describe('an unprovable locale probe is not read as a working one', () => {
+  test('isAvailable reports unavailable when getSupportedLocales throws, rather than falling through to available', async () => {
+    fake.module.getSupportedLocales.mockRejectedValueOnce(new Error('service not found'));
+
+    const availability = await adapter.isAvailable('en-GB');
+
+    // The bug this guards against: a device where Android System Intelligence
+    // doesn't back `com.google.android.as` throws here, and the old code
+    // treated that silence as proof the recogniser works — picking it in the
+    // ladder, then failing for real at start() with nowhere for
+    // `routing.ts`'s `downloadSuggestion` to attach, since the candidate had
+    // never actually been skipped.
+    expect(availability).toEqual({
+      available: false,
+      reason: 'no_offline_model',
+      detail: expect.any(String),
+    });
+  });
+});
+
 describe('permission failures are told apart from everything else', () => {
   test('a refused permission throws the dedicated error, before any listener is attached', async () => {
     fake = createFakeModule({ granted: false });

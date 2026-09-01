@@ -61,6 +61,29 @@ describe('nothing listens until the user starts', () => {
   });
 });
 
+describe('a typed recovery after a failure can still finish', () => {
+  const failed = (transcript: string) => ({
+    ...run(start(), { type: 'START' }, { type: 'PERMISSION_DENIED' }),
+    transcript,
+  });
+
+  test('Finish is reachable from failed once something has been typed', () => {
+    const state = run(failed('six eggs'), { type: 'FINISH' });
+    expect(state.status).toBe('finishing');
+    expect(hasSalvageableTranscript(failed('six eggs'))).toBe(true);
+  });
+
+  test('Finish from failed with nothing typed is a no-op — there is nothing to finish', () => {
+    const state = run(failed(''), { type: 'FINISH' });
+    expect(state.status).toBe('failed');
+  });
+
+  test('Finish from failed with only whitespace is also a no-op', () => {
+    const state = run(failed('   '), { type: 'FINISH' });
+    expect(state.status).toBe('failed');
+  });
+});
+
 describe('an interruption never resumes on its own', () => {
   test('a call stops capture and keeps what was heard', () => {
     const state = run(

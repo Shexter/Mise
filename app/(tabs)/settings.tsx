@@ -21,6 +21,7 @@ import { MacroSplitSheet } from '@/components/settings/MacroSplitSheet';
 import { ModelSheet } from '@/components/settings/ModelSheet';
 import { ProfileSheet } from '@/components/settings/ProfileSheet';
 import { SettingsRow, SettingsToggleRow } from '@/components/settings/Row';
+import { SpeechModelsSheet } from '@/components/settings/SpeechModelsSheet';
 import { ThemeSheet } from '@/components/settings/ThemeSheet';
 import { useToast } from '@/components/Toast';
 import { Caption, ScreenTitle } from '@/components/Type';
@@ -28,7 +29,7 @@ import { space, themeId } from '@/constants/theme';
 import { themeOptions } from '@/constants/themePalettes';
 import { activityLabel } from '@/constants/activityLevels';
 import { resetDatabase } from '@/db';
-import { purgeAllAudio, removeAllSpeechModels } from '@/media/speech';
+import { SPEECH_MODELS, isModelInstalled, purgeAllAudio, removeAllSpeechModels } from '@/media/speech';
 import { useDbReadiness } from '@/db/readiness';
 import { populateDemoData } from '@/db/demoData';
 import {
@@ -79,11 +80,19 @@ export default function SettingsScreen() {
   const [ocrCloudText, setOcrCloudText] = useState(false);
   const [configuredProvider, setConfiguredProvider] = useState<string | null>(null);
   const [geminiModel, setGeminiModel] = useState<GeminiModel>(DEFAULT_GEMINI_MODEL);
+  const [speechModelsOpen, setSpeechModelsOpen] = useState(false);
+  const [installedSpeechModels, setInstalledSpeechModels] = useState<number | null>(null);
 
   const loadKey = useCallback(() => {
     void maskedApiKey().then(setMaskedKey);
     void getConfiguredProvider().then(setConfiguredProvider);
     void getGeminiModelPreference().then(setGeminiModel);
+  }, []);
+
+  const loadInstalledSpeechModels = useCallback(() => {
+    void Promise.all(SPEECH_MODELS.map((model) => isModelInstalled(model.id))).then((flags) =>
+      setInstalledSpeechModels(flags.filter(Boolean).length),
+    );
   }, []);
 
   const releasePendingCaptures = async () => {
@@ -113,6 +122,7 @@ export default function SettingsScreen() {
   };
 
   useEffect(loadKey, [loadKey]);
+  useEffect(loadInstalledSpeechModels, [loadInstalledSpeechModels]);
   useEffect(() => { void getBodyMeasurements().then(setMeasurements); }, []);
   useEffect(() => {
     void getReceiptOcrPreference().then((preference) => setOcrCloudText(preference.cloudTextEnhancement));
@@ -457,6 +467,14 @@ export default function SettingsScreen() {
           ) : null}
         </Card>
 
+        <Card title="Speech models" padded={false}>
+          <SettingsRow
+            label="Manage downloaded models"
+            value={speechModelsRowValue(installedSpeechModels)}
+            onPress={() => setSpeechModelsOpen(true)}
+          />
+        </Card>
+
         <Card title="API key" padded={false}>
           <SettingsRow
             label="Key"
@@ -565,6 +583,12 @@ export default function SettingsScreen() {
         onSelect={chooseGeminiModel}
       />
 
+      <SpeechModelsSheet
+        visible={speechModelsOpen}
+        onClose={() => setSpeechModelsOpen(false)}
+        onChange={loadInstalledSpeechModels}
+      />
+
       <ThemeSheet
         visible={themeOpen}
         activeTheme={themeId}
@@ -585,6 +609,12 @@ const styles = StyleSheet.create({
 function modelRowValue(model: GeminiModel): string {
   const option = GEMINI_MODELS.find((candidate) => candidate.id === model);
   return option ? `${option.label} · ${option.quotaBadge}` : model;
+}
+
+function speechModelsRowValue(installedCount: number | null): string {
+  if (installedCount === null) return 'Checking…';
+  if (installedCount === 0) return 'None installed';
+  return `${installedCount} of ${SPEECH_MODELS.length} installed`;
 }
 
 function targetSourceLabel(source: Profile['targetSource']): string {

@@ -216,8 +216,19 @@ export const nativeRecognitionAdapter: DrivenTranscriptionAdapter = {
         };
       }
     } catch {
-      // A probe that throws tells us nothing about the language; fall through
-      // and let a real start surface a real error rather than guessing here.
+      // A probe that throws proves nothing works: on Android that happens
+      // whenever `com.google.android.as` (Android System Intelligence) isn't
+      // backing the requested service, which is common outside Pixel and
+      // Samsung. Reporting `available: true` here was optimism, not evidence
+      // — it let the ladder pick a recogniser that then failed at start()
+      // with no downgrade and no download offer, since routing only attaches
+      // a download suggestion to adapters it actually skipped. An unprovable
+      // probe is treated the same as a known-missing model.
+      return {
+        available: false,
+        reason: 'no_offline_model',
+        detail: 'This device could not confirm an offline speech model for this language.',
+      };
     }
     return { available: true, onDevice: true };
   },

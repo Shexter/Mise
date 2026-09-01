@@ -11,6 +11,7 @@ import {
 } from 'react';
 import {
   AccessibilityInfo,
+  Linking,
   Pressable,
   StyleSheet,
   TextInput,
@@ -19,6 +20,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { MicButton } from '@/components/MicButton';
 import { Screen } from '@/components/Screen';
 import { Sheet } from '@/components/Sheet';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
@@ -33,8 +35,10 @@ import {
   downloadSpeechModel,
   elapsedLabel,
   failureLabel,
+  hasSalvageableTranscript,
   initialVoiceSession,
   isDriven,
+  keyboardDictationAdapter,
   languageName,
   owesAudioDeletion,
   purgeAllAudio,
@@ -88,6 +92,12 @@ export default function PantryVoiceScreen() {
   const [downloading, setDownloading] = useState<DownloadProgress | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const downloadAbort = useRef<AbortController | null>(null);
+  /**
+   * Set by the "Use the keyboard microphone" recovery action. The keyboard is
+   * always available, so once the user picks it explicitly there is no
+   * reason to keep offering a path that just failed them.
+   */
+  const [forcedKeyboard, setForcedKeyboard] = useState(false);
 
   const [session, dispatch] = useReducer(
     voiceSessionReducer,
@@ -96,14 +106,16 @@ export default function PantryVoiceScreen() {
   const previous = useRef(session);
   const inputRef = useRef<TextInput>(null);
 
-  const driven = route?.chosen != null && isDriven(route.chosen);
+  const activeAdapter = forcedKeyboard ? keyboardDictationAdapter : route?.chosen ?? null;
+  const driven = activeAdapter != null && isDriven(activeAdapter);
   /**
    * The downloaded models are offline recognisers, not streaming ones, so they
    * produce nothing until Finish. Saying so beats an empty box that reads as a
    * dead microphone.
    */
-  const livePartials = route?.chosen?.providesLiveTranscript ?? true;
+  const livePartials = activeAdapter?.providesLiveTranscript ?? true;
   const sessionLocation = locations.find((entry) => entry.id === sessionLocationId) ?? null;
+  const explanation = forcedKeyboard ? keyboardDictationAdapter.privacyLine : route?.explanation;
 
   /* -- setup ------------------------------------------------------------- */
 
@@ -156,9 +168,9 @@ export default function PantryVoiceScreen() {
   const onInterrupt = useCallback(
     (kind: Parameters<typeof useVoiceInterruptions>[1] extends (k: infer K) => void ? K : never) => {
       dispatch({ type: 'INTERRUPT', kind });
-      if (route?.chosen && isDriven(route.chosen)) void route.chosen.cancel();
+      if (activeAdapter && isDriven(activeAdapter)) void activeAdapter.cancel();
     },
-    [route],
+    [activeAdapter],
   );
   useVoiceInterruptions(session.status === 'listening', onInterrupt);
 
@@ -184,7 +196,7 @@ export default function PantryVoiceScreen() {
   /* -- controls ---------------------------------------------------------- */
 
   const startListening = async () => {
-    const adapter = route?.chosen;
+    const adapter = activeAdapter;
     if (!adapter) return;
     dispatch({ type: 'START' });
     if (!isDriven(adapter)) {
@@ -219,11 +231,13 @@ export default function PantryVoiceScreen() {
   };
 
   const finish = async () => {
-    const adapter = route?.chosen;
+    const adapter = activeAdapter;
     dispatch({ type: 'FINISH' });
     let transcript = session.transcript;
 
-    if (adapter && isDriven(adapter)) {
+    // A `failed` session has nothing running to stop — this is a typed
+    // recovery, so the transcript already on screen is the whole answer.
+    if (adapter && isDriven(adapter) && session.status !== 'failed') {
       dispatch({ type: 'TRANSCRIBING' });
       try {
         transcript = (await adapter.stop()).text;
@@ -261,7 +275,7 @@ export default function PantryVoiceScreen() {
   };
 
   const cancel = () => {
-    const adapter = route?.chosen;
+    const adapter = activeAdapter;
     if (adapter && isDriven(adapter)) void adapter.cancel();
     dispatch({ type: 'CANCEL' });
     deleteAudio(session.audioUri);
@@ -317,11 +331,65 @@ export default function PantryVoiceScreen() {
     setDownloading(null);
   };
 
+  /** Bypasses whatever just failed and drops straight to the always-available path. */
+  const forceKeyboardFallback = () => {
+    setForcedKeyboard(true);
+    dispatch({ type: 'RESET' });
+    dispatch({ type: 'SET_MODE', mode: 'keyboard' });
+  };
+
   /* -- render ------------------------------------------------------------ */
 
   const canFinish =
-    ['listening', 'paused', 'interrupted'].includes(session.status) &&
-    session.transcript.trim().length > 0;
+    hasSalvageableTranscript(session) ||
+    (['listening', 'paused', 'interrupted'].includes(session.status) &&
+      session.transcript.trim().length > 0);
+
+  /**
+   * Shown whenever a model would genuinely help — not only when the preflight
+   * ladder happened to notice. A native recogniser that reports itself
+   * available and then fails at start() with `offline_model_missing` or
+   * `service_unavailable` deserves the same offer as one the ladder skipped
+   * up front.
+   */
+  const showDownloadCard =
+    Boolean(download) &&
+    Boolean(
+      route?.downloadSuggestion ||
+        session.failure === 'offline_model_missing' ||
+        session.failure === 'service_unavailable',
+    );
+
+  /**
+   * Every string `recoveryActions` can return, wired to something real.
+   *
+   * Keyed by failure kind first rather than by label alone: `resolution_failed`
+   * means recording and transcription already succeeded and only the
+   * ingredient lookup failed, so its "Try again" must retry that lookup
+   * (`finish()`), not discard the good transcript by starting a new
+   * recording — the same label means something different depending on what
+   * actually broke.
+   */
+  const recoveryHandlerFor = (label: string): (() => void) => {
+    if (session.failure === 'resolution_failed') return () => void finish();
+    switch (label) {
+      case 'Download a speech model':
+        return () => void startDownload();
+      case 'Change language':
+        return () => setPickingLanguage(true);
+      case 'Type instead':
+        return () => inputRef.current?.focus();
+      case 'Try again':
+      case 'Start again':
+        return () => void startListening();
+      case 'Use the keyboard microphone':
+        return forceKeyboardFallback;
+      case 'Open Settings':
+        return () => void Linking.openSettings();
+      default:
+        return () => inputRef.current?.focus();
+    }
+  };
 
   return (
     <Screen
@@ -341,10 +409,6 @@ export default function PantryVoiceScreen() {
     >
       <View style={styles.header}>
         <ScreenTitle>Speak your pantry</ScreenTitle>
-        <Caption muted>
-          Mise writes down what you say and shows you a draft. Nothing is added
-          until you confirm it.
-        </Caption>
       </View>
 
       <Card style={styles.contextCard}>
@@ -378,47 +442,91 @@ export default function PantryVoiceScreen() {
         </Pressable>
       </Card>
 
-      <Card style={styles.stateCard}>
-        <View style={styles.stateRow}>
-          <View
-            style={[
-              styles.dot,
-              session.status === 'listening' && styles.dotLive,
-            ]}
+      {/*
+        One focal control rather than a wall of status text. The status word
+        only appears once there is something to say beyond "ready" — idle and
+        failed states speak through the mic button's label and the problem
+        card below instead of a redundant status line.
+      */}
+      <View style={styles.focal}>
+        {!['idle', 'failed'].includes(session.status) ? (
+          ['listening', 'paused'].includes(session.status) ? (
+            <View style={styles.listeningRow}>
+              <ScreenTitle accessibilityLiveRegion="polite">{statusLabel(session)}</ScreenTitle>
+              <Caption muted numeric>{elapsedLabel(session.elapsedMs)}</Caption>
+            </View>
+          ) : (
+            <Caption muted accessibilityLiveRegion="polite">
+              {statusLabel(session)}
+            </Caption>
+          )
+        ) : null}
+
+        {driven ? (
+          session.status === 'listening' ? (
+            <MicButton label="Pause" icon="pause" onPress={() => dispatch({ type: 'PAUSE' })} />
+          ) : session.status === 'paused' ? (
+            <MicButton label="Resume" icon="mic" onPress={() => dispatch({ type: 'RESUME' })} />
+          ) : (
+            <MicButton
+              label={session.status === 'interrupted' ? 'Start again' : 'Start listening'}
+              icon="mic"
+              onPress={() => void startListening()}
+            />
+          )
+        ) : (
+          <MicButton
+            label="Use the keyboard microphone"
+            icon="mic"
+            onPress={() => void startListening()}
+            accessibilityHint="Opens the keyboard. Tap the microphone key on it to dictate."
           />
-          {/* Text carries the state. The dot is decoration and is hidden from
-              assistive technology so it cannot be read as a second status. */}
-          <RowTitle accessibilityLiveRegion="polite">{statusLabel(session)}</RowTitle>
-          <Caption muted numeric style={styles.elapsed}>
-            {elapsedLabel(session.elapsedMs)}
-          </Caption>
+        )}
+
+        {explanation ? (
+          <View style={styles.privacyBadge}>
+            <Feather name="shield" size={13} color={color.muted} />
+            <Caption muted>{explanation}</Caption>
+          </View>
+        ) : null}
+
+        <View style={styles.lockNote}>
+          <Feather name="lock" size={12} color={color.muted} />
+          <Caption muted>Nothing is added until you confirm it.</Caption>
         </View>
-        {route?.explanation ? <Caption muted>{route.explanation}</Caption> : null}
-      </Card>
+      </View>
 
       {session.status === 'failed' ? (
         <Card style={styles.problemCard}>
           <RowTitle>{failureLabel(session.failure)}</RowTitle>
           {recoveryActions(session.failure).map((action) => (
-            <Caption key={action} muted>
-              · {action}
-            </Caption>
+            <Pressable
+              key={action}
+              onPress={recoveryHandlerFor(action)}
+              accessibilityRole="button"
+              accessibilityLabel={action}
+              style={({ pressed }) => [
+                styles.recoveryRow,
+                pressed && { opacity: opacity.pressed },
+              ]}
+            >
+              <Body>{action}</Body>
+              <Feather name="chevron-right" size={16} color={color.muted} />
+            </Pressable>
           ))}
         </Card>
       ) : null}
 
       {/*
-        The download offer. Shown whenever the ladder says a model would do
-        better than what it settled for — not only after a failure, because the
-        keyboard "working" is exactly the case where someone would never think
-        to look for something better.
-
-        Nothing about this model ships inside Mise. The app download does not
-        carry it; this fetches it from NVIDIA's published release only when the
-        user taps, which is why the size is stated before the button and not
+        The download offer. Shown whenever a model would genuinely help — the
+        ladder skipping a candidate up front, or a preflight "available"
+        answer that turned out wrong once start() actually ran, land here the
+        same way. Nothing about this model ships inside Mise: this fetches it
+        from NVIDIA's or FunAudioLLM's published release only when the user
+        taps, which is why the size is stated before the button and not
         after it.
       */}
-      {route?.downloadSuggestion && download ? (
+      {showDownloadCard && download ? (
         <Card style={styles.downloadCard}>
           <View style={styles.downloadHead}>
             <Feather name="download-cloud" size={18} color={color.muted} />
@@ -489,31 +597,6 @@ export default function PantryVoiceScreen() {
         </Caption>
       </View>
 
-      {driven ? (
-        <View style={styles.controls}>
-          {session.status === 'listening' ? (
-            <Button label="Pause" variant="secondary" onPress={() => dispatch({ type: 'PAUSE' })} />
-          ) : session.status === 'paused' ? (
-            <Button label="Resume" variant="secondary" onPress={() => dispatch({ type: 'RESUME' })} />
-          ) : (
-            <Button
-              label={session.status === 'interrupted' ? 'Start again' : 'Start listening'}
-              variant="secondary"
-              onPress={() => void startListening()}
-            />
-          )}
-        </View>
-      ) : (
-        <View style={styles.controls}>
-          <Button
-            label="Use the keyboard microphone"
-            variant="secondary"
-            onPress={() => void startListening()}
-            accessibilityHint="Opens the keyboard. Tap the microphone key on it to dictate."
-          />
-        </View>
-      )}
-
       <Body muted>
         Would rather type? The field above is a normal text box — write your
         items the same way you would say them.
@@ -580,17 +663,23 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
   },
   rowText: { flex: 1, gap: 2 },
-  stateCard: { gap: space.xs, marginBottom: space.md },
-  stateRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: radius.full,
-    backgroundColor: color.muted,
+  focal: { alignItems: 'center', gap: space.md, marginVertical: space.lg },
+  listeningRow: { alignItems: 'center', gap: space.xs },
+  privacyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+    maxWidth: '85%',
   },
-  dotLive: { backgroundColor: color.paprika },
-  elapsed: { marginLeft: 'auto' },
+  lockNote: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   problemCard: { gap: space.xs, marginBottom: space.md },
+  recoveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: layout.minTouchTarget,
+    paddingVertical: space.xs,
+  },
   downloadCard: { gap: space.xs, marginBottom: space.md },
   downloadHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   sizeRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' },
@@ -613,7 +702,6 @@ const styles = StyleSheet.create({
     padding: space.md,
     textAlignVertical: 'top',
   },
-  controls: { gap: space.sm, marginBottom: space.md },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
