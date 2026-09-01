@@ -129,6 +129,36 @@ describe('containers versus amounts (3.2)', () => {
   });
 });
 
+describe('units the run-on splitter must not mistake for a second food (regression)', () => {
+  // `voiceIntakeService.ts` calls the parser with `knownNames` set to the
+  // catalogue, which is what makes the run-on splitter fire at all — these
+  // reproduce that shape rather than the bare `parse()` helper above, which
+  // never exercises `splitByKnownNames`.
+  const withCatalogue = (text: string) =>
+    parseVoiceTranscript(text, { knownNames: ['butter', 'milk'] });
+
+  test('"two butter sticks" is one item, not butter plus a stray "sticks"', () => {
+    const items = withCatalogue('two butter sticks').items;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      name: 'butter',
+      quantity: { containerCount: null, amount: 2, unit: 'piece', approximate: false },
+    });
+  });
+
+  test('"half a gallon of milk" is one item, not milk plus a stray "gallon"', () => {
+    const items = withCatalogue('half a gallon of milk').items;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ name: 'milk', quantity: { unit: 'ml' } });
+  });
+
+  test('a misheard "galon" (gallon) still reads as the unit, not an unknown food', () => {
+    const items = withCatalogue('half milk galon').items;
+    expect(items).toHaveLength(1);
+    expect(items[0]!.name).toBe('milk');
+  });
+});
+
 describe('approximation is preserved (3.4)', () => {
   test('half a container is approximate and carries no unit', () => {
     expect(first('half a carton of milk').quantity).toEqual({

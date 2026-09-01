@@ -47,7 +47,10 @@ interface RegistryModel {
 }
 
 interface DownloadModule {
-  listModelsByCategory(category: Category): Promise<RegistryModel[]>;
+  refreshModelsByCategory(
+    category: Category,
+    options?: { forceRefresh?: boolean },
+  ): Promise<RegistryModel[]>;
   isModelDownloadedByCategory(category: Category, id: string): Promise<boolean>;
   getLocalModelPathByCategory(category: Category, id: string): Promise<string | null>;
   deleteModelByCategory(category: Category, id: string): Promise<void>;
@@ -82,12 +85,21 @@ export function hasModelDownloader(): boolean {
  * fetched from upstream and its ids are not ours to assume; matching the exact
  * artefact means a rename upstream produces "not available" instead of
  * downloading a model with a similar name and a different language list.
+ *
+ * `listModelsByCategory` on its own only reads the library's on-disk cache —
+ * it never fetches anything, so on a device that has never downloaded a
+ * model that cache is empty and every match here (and every subsequent
+ * `ensureModelByCategory` call, which resolves ids the same way) fails with
+ * "not offered right now" even though the model genuinely exists upstream.
+ * `refreshModelsByCategory` is the library's own call to populate that cache
+ * from its GitHub release; it no-ops against a cache already fresh within its
+ * 24-hour TTL, so calling it here is cheap after the first real fetch.
  */
 async function registryIdFor(model: SpeechModel): Promise<string | null> {
   const downloads = loadDownloads();
   if (!downloads) return null;
   try {
-    const available = await downloads.listModelsByCategory('stt');
+    const available = await downloads.refreshModelsByCategory('stt');
     const exact = available.find((entry) => entry.downloadUrl === model.url);
     if (exact) return exact.id;
     // Second chance on the archive stem, which is how these ids are usually

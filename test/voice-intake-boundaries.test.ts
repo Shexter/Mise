@@ -309,6 +309,18 @@ describe('no speech model ships inside Mise', () => {
   test('the archive is deleted once it has been unpacked', () => {
     expect(modelStore).toContain('deleteArchiveAfterExtract: true');
   });
+
+  test('the registry is refreshed, not just read from a cache that may be empty', () => {
+    // Regression: `listModelsByCategory` alone only reads the download
+    // library's on-disk cache, which is empty until something populates it —
+    // so on a device that has never downloaded a model, every lookup failed
+    // with "not offered right now" even though the model genuinely exists
+    // upstream. `refreshModelsByCategory` is the call that actually fetches
+    // it; a bare `listModelsByCategory(` occurrence here would mean the fix
+    // regressed.
+    expect(modelStore).toContain('downloads.refreshModelsByCategory(');
+    expect(modelStore).not.toContain('downloads.listModelsByCategory(');
+  });
 });
 
 describe('a downloaded model is the user’s to reclaim', () => {

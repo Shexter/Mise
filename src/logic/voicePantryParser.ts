@@ -104,6 +104,13 @@ const UNIT_WORDS: Readonly<Record<string, UnitSpec>> = {
   teaspoons: { unit: 'tsp', factor: 1 },
   slice: { unit: 'slice', factor: 1 }, slices: { unit: 'slice', factor: 1 },
   piece: { unit: 'piece', factor: 1 }, pieces: { unit: 'piece', factor: 1 },
+  // A stick (of butter) is a count, not a weight this app tracks separately.
+  stick: { unit: 'piece', factor: 1 }, sticks: { unit: 'piece', factor: 1 },
+  // US gallon. Without this, "gallon" reads as an unrecognised food name —
+  // the same failure mode that "galon" (a common ASR mishearing of it) hits,
+  // so both are registered rather than only the correctly-spelled one.
+  gallon: { unit: 'ml', factor: 3785 }, gallons: { unit: 'ml', factor: 3785 },
+  galon: { unit: 'ml', factor: 3785 },
 };
 
 /**
