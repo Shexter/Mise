@@ -57,6 +57,15 @@ import { useVoiceIntakeStore } from '@/store/voiceIntakeStore';
 
 const TICK_MS = 250;
 
+/** Joins two transcript segments, tolerating either half being empty. */
+function joinTranscript(before: string, after: string): string {
+  const a = before.trim();
+  const b = after.trim();
+  if (!a) return b;
+  if (!b) return a;
+  return `${a} ${b}`;
+}
+
 /**
  * The sweep: one explicit session that produces a transcript and nothing else.
  *
@@ -105,6 +114,12 @@ export default function PantryVoiceScreen() {
   );
   const previous = useRef(session);
   const inputRef = useRef<TextInput>(null);
+  /**
+   * The transcript as of the most recent Resume, so a fresh capture segment's
+   * live partials can be appended onto what came before rather than replacing
+   * it. Set once, right before `adapter.start()` is called again.
+   */
+  const resumeBaseline = useRef('');
 
   const activeAdapter = forcedKeyboard ? keyboardDictationAdapter : route?.chosen ?? null;
   const driven = activeAdapter != null && isDriven(activeAdapter);
@@ -172,7 +187,11 @@ export default function PantryVoiceScreen() {
     },
     [activeAdapter],
   );
-  useVoiceInterruptions(session.status === 'listening', onInterrupt);
+  // Armed while paused too: the reducer's own INTERRUPT case already accepts
+  // 'paused' as a valid source status (session.ts) — a call arriving while
+  // the screen shows "Paused" still deserves to be flagged as an
+  // interruption, not silently ignored because the listener wasn't armed.
+  useVoiceInterruptions(['listening', 'paused'].includes(session.status), onInterrupt);
 
   /* -- audio hygiene ----------------------------------------------------- */
 
@@ -230,7 +249,70 @@ export default function PantryVoiceScreen() {
     }
   };
 
+  /**
+   * Stops the adapter for real. Pause used to only change the label on
+   * screen — the native recogniser or the local-model's PCM stream kept
+   * running underneath, so anything said while the screen read "Paused" was
+   * silently folded into the transcript on Resume or Finish. Now the
+   * microphone genuinely stops here.
+   *
+   * The native path already has an accurate transcript in `session.transcript`
+   * (its `onPartial` streams the cumulative text live), so it only needs
+   * `cancel()` — immediate, no result to wait for. The local-model path never
+   * transcribes until `stop()` is called, so whatever was captured since the
+   * last Resume has not been turned into text yet; `stop()` does that work
+   * and the result is merged in via `MERGE_TRANSCRIPT`, the one event the
+   * reducer accepts from `'paused'` rather than `'listening'`.
+   */
+  const pause = async () => {
+    const adapter = activeAdapter;
+    dispatch({ type: 'PAUSE' });
+    if (!adapter || !isDriven(adapter)) return;
+    if (adapter.providesLiveTranscript) {
+      void adapter.cancel();
+      return;
+    }
+    try {
+      const result = await adapter.stop();
+      dispatch({ type: 'MERGE_TRANSCRIPT', text: joinTranscript(session.transcript, result.text) });
+    } catch {
+      // Nothing captured since the last Resume — the transcript already on
+      // screen is everything there is.
+    }
+  };
+
+  /** Starts a fresh capture segment, appended onto what Pause already kept. */
+  const resume = async () => {
+    const adapter = activeAdapter;
+    dispatch({ type: 'RESUME' });
+    if (!adapter || !isDriven(adapter)) return;
+    resumeBaseline.current = session.transcript;
+    try {
+      const { audioUri } = await adapter.start({
+        language,
+        onPartial: (text) =>
+          dispatch({ type: 'TRANSCRIPT', text: joinTranscript(resumeBaseline.current, text) }),
+        onError: (kind) => dispatch({ type: 'FAIL', kind }),
+      });
+      dispatch({ type: 'AUDIO_STARTED', audioUri });
+    } catch (error) {
+      if (error instanceof SpeechPermissionDeniedError) {
+        dispatch({ type: 'PERMISSION_DENIED' });
+      } else {
+        dispatch({ type: 'FAIL', kind: 'microphone_unavailable' });
+      }
+    }
+  };
+
   const finish = async () => {
+    if (session.status === 'ready') {
+      // Already finished — a stale re-press from a screen instance left
+      // mounted under the review route (`router.push`, not `replace`). The
+      // draft is already in the store; calling adapter.stop() again here
+      // would hang, since its listeners were torn down by the first call.
+      router.push('/pantry-voice-review');
+      return;
+    }
     const adapter = activeAdapter;
     dispatch({ type: 'FINISH' });
     let transcript = session.transcript;
@@ -316,7 +398,12 @@ export default function PantryVoiceScreen() {
         AccessibilityInfo.announceForAccessibility(
           `${download.model.name} is ready. Mise will use it for ${languageName(language)}.`,
         );
-      } else if (result.status === 'failed') {
+      } else if (result.status === 'failed' && !controller.signal.aborted) {
+        // An abort resolves this the same way a genuine failure does (see
+        // `downloadSpeechModel`), so without this check, tapping "Stop the
+        // download" — which already cleared this state — was immediately
+        // followed by a "the download did not finish" error that had nothing
+        // to do with anything going wrong.
         setDownloadError(result.message);
       }
     } finally {
@@ -464,9 +551,9 @@ export default function PantryVoiceScreen() {
 
         {driven ? (
           session.status === 'listening' ? (
-            <MicButton label="Pause" icon="pause" onPress={() => dispatch({ type: 'PAUSE' })} />
+            <MicButton label="Pause" icon="pause" onPress={() => void pause()} />
           ) : session.status === 'paused' ? (
-            <MicButton label="Resume" icon="mic" onPress={() => dispatch({ type: 'RESUME' })} />
+            <MicButton label="Resume" icon="mic" onPress={() => void resume()} />
           ) : (
             <MicButton
               label={session.status === 'interrupted' ? 'Start again' : 'Start listening'}
@@ -635,13 +722,29 @@ export default function PantryVoiceScreen() {
           <Pressable
             key={entry.tag}
             onPress={() => {
+              // Changing `language` rebuilds the adapter ladder (a fresh
+              // local-model instance in particular — `resolveTranscriptionRoute`
+              // constructs a new one on every call). Doing that mid-recording
+              // would orphan the instance actually capturing audio: nothing
+              // left holding a reference to it, with no way to stop it.
+              if (session.status === 'listening') return;
               setLanguage(entry.tag);
               dispatch({ type: 'SET_LANGUAGE', language: entry.tag });
               setPickingLanguage(false);
             }}
             accessibilityRole="button"
-            accessibilityState={{ selected: entry.tag === language }}
-            style={({ pressed }) => [styles.option, pressed && { opacity: opacity.pressed }]}
+            accessibilityState={{
+              selected: entry.tag === language,
+              disabled: session.status === 'listening',
+            }}
+            accessibilityHint={
+              session.status === 'listening' ? 'Pause or finish before changing language.' : undefined
+            }
+            style={({ pressed }) => [
+              styles.option,
+              session.status === 'listening' && { opacity: opacity.disabled },
+              pressed && session.status !== 'listening' && { opacity: opacity.pressed },
+            ]}
           >
             <RowTitle>{entry.name}</RowTitle>
             {entry.tag === language ? <Feather name="check" size={18} color={color.ink} /> : null}

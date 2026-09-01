@@ -75,6 +75,16 @@ export type VoiceSessionEvent =
   | { type: 'PERMISSION_DENIED' }
   | { type: 'AUDIO_STARTED'; audioUri: string | null }
   | { type: 'TRANSCRIPT'; text: string }
+  /**
+   * Folds text captured up to the moment of pausing into the transcript.
+   *
+   * Distinct from `TRANSCRIPT`, which only applies while `listening`: a
+   * driven adapter has genuinely stopped by the time this arrives (Pause
+   * calls `stop()`/`cancel()` on it so the microphone is not left running
+   * under a screen that says "Paused"), and the result needs somewhere to
+   * land other than a status that no longer accepts live partials.
+   */
+  | { type: 'MERGE_TRANSCRIPT'; text: string }
   | { type: 'TICK'; ms: number }
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
@@ -156,6 +166,10 @@ export function voiceSessionReducer(
 
     case 'TRANSCRIPT':
       if (state.status !== 'listening') return state;
+      return { ...state, transcript: event.text };
+
+    case 'MERGE_TRANSCRIPT':
+      if (state.status !== 'paused') return state;
       return { ...state, transcript: event.text };
 
     case 'TICK':

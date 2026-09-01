@@ -78,9 +78,13 @@ export function SpeechModelsSheet({ visible, onClose, onChange }: Props) {
         onChange();
         setRows((prev) => ({ ...prev, [model.id]: { kind: 'installed' } }));
         AccessibilityInfo.announceForAccessibility(`${model.name} is ready.`);
-      } else if (result.status === 'failed') {
+      } else if (result.status === 'failed' && !controller.signal.aborted) {
+        // An abort resolves this the same way a genuine failure does, so
+        // without the guard, tapping Cancel — which already reset this row —
+        // was immediately followed by an error message for a download the
+        // user stopped on purpose.
         setRows((prev) => ({ ...prev, [model.id]: { kind: 'error', message: result.message } }));
-      } else {
+      } else if (!controller.signal.aborted) {
         setRows((prev) => ({ ...prev, [model.id]: { kind: 'absent' } }));
       }
     } finally {

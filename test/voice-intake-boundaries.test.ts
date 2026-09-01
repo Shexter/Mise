@@ -337,3 +337,77 @@ describe('a downloaded model is the user’s to reclaim', () => {
     expect(modelStore).toContain('export async function removeAllSpeechModels');
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/* Pause genuinely stops the microphone                                        */
+/* -------------------------------------------------------------------------- */
+
+describe('Pause stops capture rather than only relabelling it', () => {
+  // Regression: PAUSE/RESUME used to be bare dispatches with no adapter call
+  // at all, so the native recogniser or the local-model's PCM stream kept
+  // running the whole time the screen read "Paused" — anything said during
+  // that window was silently folded into the transcript on Resume or Finish.
+  test('pause() calls the adapter rather than only dispatching PAUSE', () => {
+    const pauseFn = voiceScreen.slice(
+      voiceScreen.indexOf('const pause = async'),
+      voiceScreen.indexOf('const resume = async'),
+    );
+    expect(pauseFn).toContain('adapter.cancel()');
+    expect(pauseFn).toContain('adapter.stop()');
+    expect(pauseFn).toContain("dispatch({ type: 'MERGE_TRANSCRIPT'");
+  });
+
+  test('resume() starts a fresh capture segment rather than only dispatching RESUME', () => {
+    const resumeFn = voiceScreen.slice(
+      voiceScreen.indexOf('const resume = async'),
+      voiceScreen.indexOf('const finish = async'),
+    );
+    expect(resumeFn).toContain('adapter.start(');
+  });
+
+  test('the Pause and Resume controls call the real functions, not a bare dispatch', () => {
+    expect(voiceScreen).toContain('onPress={() => void pause()}');
+    expect(voiceScreen).toContain('onPress={() => void resume()}');
+    expect(voiceScreen).not.toContain("onPress={() => dispatch({ type: 'PAUSE' })}");
+    expect(voiceScreen).not.toContain("onPress={() => dispatch({ type: 'RESUME' })}");
+  });
+
+  test('an interruption is still caught while paused, not only while listening', () => {
+    expect(voiceScreen).toContain(
+      "useVoiceInterruptions(['listening', 'paused'].includes(session.status), onInterrupt)",
+    );
+  });
+});
+
+describe('Finish cannot re-invoke a torn-down adapter', () => {
+  test('a stale press from an already-finished session is a no-op re-navigation', () => {
+    const finishFn = voiceScreen.slice(
+      voiceScreen.indexOf('const finish = async'),
+      voiceScreen.indexOf('const cancel = ()'),
+    );
+    expect(finishFn.indexOf("session.status === 'ready'")).toBeGreaterThan(-1);
+    expect(finishFn.indexOf("session.status === 'ready'")).toBeLessThan(
+      finishFn.indexOf('adapter.stop()'),
+    );
+  });
+});
+
+describe('a cancelled download does not masquerade as a failed one', () => {
+  test('the voice screen checks the abort signal before reporting an error', () => {
+    expect(voiceScreen).toContain('!controller.signal.aborted');
+  });
+
+  test('the Settings speech-models sheet checks it too', () => {
+    const sheet = read('src/components/settings/SpeechModelsSheet.tsx');
+    expect(sheet).toContain('!controller.signal.aborted');
+  });
+});
+
+describe('language cannot change out from under an active recording', () => {
+  test('the language picker refuses a change while listening', () => {
+    const picker = voiceScreen.slice(
+      voiceScreen.indexOf('Which language are you speaking?'),
+    );
+    expect(picker).toContain("if (session.status === 'listening') return;");
+  });
+});

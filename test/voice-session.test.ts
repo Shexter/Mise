@@ -165,6 +165,21 @@ describe('pause and resume are the user’s', () => {
     const stillListening = run(listening(), { type: 'EDIT_TRANSCRIPT', text: 'nope' });
     expect(stillListening.transcript).toBe('');
   });
+
+  test('MERGE_TRANSCRIPT lands what Pause captured while stopping the adapter', () => {
+    // The local-model path has no live partials, so what it heard between
+    // Resume and Pause is only known once `stop()` finishes transcribing it —
+    // arriving after the reducer has already moved to 'paused', which is why
+    // this is a distinct event from TRANSCRIPT rather than reusing it.
+    const paused = run(listening(), { type: 'PAUSE' });
+    expect(run(paused, { type: 'MERGE_TRANSCRIPT', text: 'six eggs' }).transcript).toBe(
+      'six eggs',
+    );
+  });
+
+  test('MERGE_TRANSCRIPT is a no-op outside paused', () => {
+    expect(run(listening(), { type: 'MERGE_TRANSCRIPT', text: 'six eggs' }).transcript).toBe('');
+  });
 });
 
 describe('cancelling leaves nothing behind', () => {
