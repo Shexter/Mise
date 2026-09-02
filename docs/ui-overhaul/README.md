@@ -7,6 +7,9 @@ agents one stable repository location for the selected screens.
 These images are visual references. They are not implemented screens, native
 device captures, or proof that the proposed behavior works.
 
+One folder is the exception and says so: `connected-illustrations/` holds native
+emulator captures of shipped behaviour, not concepts. See its own README.
+
 ## Contents
 
 ### App shell

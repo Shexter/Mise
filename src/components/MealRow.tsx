@@ -1,9 +1,17 @@
+import { Feather } from '@expo/vector-icons';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { Caption, MealCalories, RowTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
-import { capitalise, timeOfDay } from '@/logic/dates';
+import { capitalise, dayPart, timeOfDay } from '@/logic/dates';
+
+const DAY_PART_ICON = {
+  morning: 'sunrise',
+  midday: 'sun',
+  evening: 'sunset',
+  night: 'moon',
+} as const satisfies Record<ReturnType<typeof dayPart>, keyof typeof Feather.glyphMap>;
 import { macrosOfItems, roundCalories } from '@/logic/scaling';
 import type { MealWithItems } from '@/types';
 
@@ -51,17 +59,29 @@ export function MealRow({ meal, onPress, onDelete }: Props) {
         {meal.photoUri ? (
           <Image source={{ uri: meal.photoUri }} style={styles.thumb} />
         ) : (
-          <View style={[styles.thumb, styles.thumbEmpty]} />
+          // No photo is not a hole in the row: the hour the meal was eaten is
+          // the next most useful thing to show in the same space.
+          <View style={[styles.thumb, styles.thumbEmpty]}>
+            <Feather
+              name={DAY_PART_ICON[dayPart(meal.loggedAt)]}
+              size={20}
+              color={color.paprika}
+            />
+          </View>
         )}
 
         <View style={styles.text}>
+          <Caption style={styles.time} numeric>
+            {timeOfDay(meal.loggedAt)}
+          </Caption>
           <RowTitle numberOfLines={1}>{meal.name}</RowTitle>
-          <Caption muted>
-            {capitalise(meal.mealType)} · {timeOfDay(meal.loggedAt)}
+          <Caption muted numberOfLines={1}>
+            {capitalise(meal.mealType)}
           </Caption>
         </View>
 
         <MealCalories numeric>{calories === null ? '—' : calories}</MealCalories>
+        <Feather name="chevron-right" size={16} color={color.muted} />
       </Pressable>
     </Swipeable>
   );
@@ -78,12 +98,17 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   thumb: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.input,
     backgroundColor: color.ground,
   },
-  thumbEmpty: { borderWidth: 1, borderColor: color.line },
+  thumbEmpty: {
+    backgroundColor: color.tintPaprika,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  time: { color: color.paprika },
   text: { flex: 1, gap: space.xs },
   deleteAction: {
     width: 88,

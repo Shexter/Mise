@@ -1,0 +1,218 @@
+{
+  "workflowVersion": "2.0.0",
+  "description": "Locked Mise editorial illustration recipe. The approved broccoli is the gold master. Agents may edit subject briefs or add canonical subjects, but must not change the shared style, render settings, model, or sampler configuration without a new owner-reviewed pilot and workflow-version bump.",
+
+  "model": "flux_2_klein_4b_q8p.ckpt",
+  "modelSha256": "430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
+  "drawThingsCliVersion": "1.20260430.0",
+  "configFile": "assets/illustration-draw-things-config.json",
+  "render": {
+    "width": 1024,
+    "height": 1024,
+    "steps": 4,
+    "cfg": 1,
+    "stagedWebpSize": 512,
+    "stagedWebpQuality": 90,
+    "note": "The 1024px raw render preserves the quality of the approved broccoli. A 512px WebP review copy is derived without removing the paper background or grounding shadow."
+  },
+
+  "style": {
+    "suffixBySet": {
+      "ingredient": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "appliance": "refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "state": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "onboarding": "refined hand-painted 2D editorial wellness illustration, delicate dark ink outlines, natural muted colors with restrained Mise orange and sage accents, warm ivory paper background, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "technique": "refined hand-painted 2D editorial cooking-guide illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
+    }
+  },
+
+  "exactPrompts": {
+    "broccoli": "A single fresh broccoli crown, refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural deep green and sage colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no text, no label, no packaging, no plate, no utensils, no border, not photorealistic"
+  },
+
+  "seedOverrides": {
+    "broccoli": 240524
+  },
+
+  "goldMasters": {
+    "broccoli": {
+      "rawPngSha256": "9b7ad077379ee607378932fda394a9a9b85d3d4dbaa0dc7ffc889434c8043e7a",
+      "note": "Byte-identical reproduction verified locally with the pinned model, CLI, sampler config, prompt, seed, and 1024px render settings."
+    }
+  },
+
+  "ingredientSubjects": {
+    "soy-sauce-light": "a single unlabelled clear glass bottle of light soy sauce with translucent warm amber-brown liquid and a plain brown cap",
+    "soy-sauce-dark": "a glass bottle of dark soy sauce",
+    "tamari": "a small unlabelled clear glass bottle filled with deep mahogany-brown tamari soy sauce, plain dark brown cap, smooth strained liquid",
+    "doubanjiang": "a small glass jar of chili bean paste with a lid",
+    "gochujang": "a rectangular red tub of gochujang chili paste",
+    "gochugaru": "a small ceramic bowl of red chili flakes powder",
+    "fish-sauce": "a slender unlabelled clear glass bottle filled with perfectly clear translucent golden-amber fish sauce, plain cap, smooth strained liquid with nothing floating inside",
+    "oyster-sauce": "a squat unlabelled clear glass bottle filled with very thick opaque glossy dark chocolate-brown oyster sauce, plain brown cap",
+    "shaoxing-wine": "an unlabelled clear glass bottle filled with translucent rich amber-brown Shaoxing rice cooking wine, plain brown cap",
+    "mirin": "a glass bottle of mirin sweet cooking wine",
+    "miso": "a small open ceramic bowl of dense pale tan fermented miso paste with a textured scoop mark, three yellow soybeans beside the bowl",
+    "belacan": "a rectangular block of belacan shrimp paste",
+    "kecap-manis": "a glass bottle of sweet soy sauce kecap manis",
+    "sesame-oil": "a glass bottle of toasted sesame oil",
+    "rice-vinegar": "a glass bottle of rice vinegar",
+    "hoisin-sauce": "a glass jar of hoisin sauce",
+    "xo-sauce": "a small open glass jar of dark reddish-brown chunky XO seafood chili oil, visibly coarse with tiny dried shrimp and scallop flecks, glossy red oil at the edges",
+    "sriracha": "a squeeze bottle of sriracha chili sauce with a green cap",
+    "tamarind-paste": "a small block of tamarind paste",
+    "white-pepper": "a white ceramic spice shaker of ground white pepper",
+    "five-spice": "a small spice bowl of chinese five-spice powder",
+    "jasmine-rice": "a single ceramic bowl filled only with uncooked long-grain white jasmine rice, with individual slender ivory grains",
+    "dried-pasta": "a bundle of dried spaghetti pasta tied with string",
+    "all-purpose-flour": "a paper sack bag of baking flour with a wooden scoop",
+    "sugar": "a glass sugar bowl with lid and spoon",
+    "olive-oil": "a tall dark green glass bottle of extra virgin olive oil",
+    "vegetable-oil": "a clear bottle of vegetable cooking oil",
+    "butter": "a rectangular block stick of butter on a small plate",
+    "ghee": "a glass jar of golden clarified butter ghee",
+    "salt": "a small ceramic salt cellar dish with coarse salt crystals",
+    "black-pepper": "a wooden black pepper grinder mill",
+    "honey": "a glass honey jar with a wooden honey dipper stick",
+    "peanut-butter": "a glass jar of peanut butter with lid",
+    "ketchup": "a bottle of tomato ketchup",
+    "mayonnaise": "a glass jar of creamy mayonnaise with lid",
+    "dijon-mustard": "a small glass jar of dijon mustard",
+    "salad-dressing": "a glass bottle of vinaigrette salad dressing",
+    "cooking-spray": "an aerosol can of cooking oil spray",
+    "oats": "a ceramic bowl of dry rolled oats",
+    "coffee-beans": "a small pile of roasted dark brown coffee beans",
+    "green-onion": "a bunch of fresh green scallions spring onions",
+    "garlic": "a whole garlic bulb with a loose clove beside it",
+    "ginger": "a knobby fresh ginger root",
+    "yellow-onion": "a whole yellow onion with papery brown skin",
+    "banana": "a single ripe yellow banana",
+    "tomato": "a fresh round red ripe tomato with green calyx stem",
+    "cucumber": "a fresh whole green cucumber",
+    "cilantro": "a sprig of fresh green cilantro coriander leaves",
+    "lime": "a fresh whole green lime with a lime wedge slice",
+    "napa-cabbage": "a whole head of fresh napa cabbage",
+    "bok-choy": "a fresh baby bok choy cabbage with green leaves and white stalks",
+    "shiitake-mushroom": "two fresh shiitake mushrooms with brown caps",
+    "daikon": "a whole white daikon radish root with leafy green top",
+    "tofu-firm": "a rectangular block of firm white tofu",
+    "chicken-breast": "a raw boneless chicken breast fillet",
+    "chicken-thigh": "a raw chicken thigh with skin",
+    "ground-pork": "a mound of fresh raw ground pork mince",
+    "pork-belly": "a slab slice of layered raw pork belly",
+    "eggs": "two raw chicken eggs, one whole brown egg and one cracked eggshell half holding a glossy golden yolk",
+    "shrimp": "a raw peeled shrimp prawn with tail",
+    "salmon": "a fresh raw pink salmon fillet with skin",
+    "bacon": "two wavy cooked strips of breakfast bacon",
+    "milk": "a classic glass milk bottle with white milk",
+    "cheddar-cheese": "a triangular wedge of yellow cheddar cheese",
+    "parmesan": "a hard triangular wedge block of parmesan cheese",
+    "greek-yogurt": "a small ceramic bowl of creamy white yogurt",
+    "heavy-cream": "a small carton of liquid heavy cream",
+    "frozen-peas": "a small bowl of green sweet peas",
+    "frozen-dumplings": "three folded chinese dumplings potstickers",
+    "peanut": "two roasted peanuts in shell",
+    "tree-nut": "a small pile of whole shelled almonds and walnuts",
+    "wheat": "a sheaf stalk of ripe golden wheat grains",
+    "soy": "a small bowl of dried yellow soybeans",
+    "sesame": "a small bowl of toasted sesame seeds",
+    "fish": "a whole fresh scaled ocean fish",
+    "shellfish": "two closed clam shells or mussels",
+    "tahini": "a glass jar of tahini sesame paste",
+    "potato": "a whole brown russet potato",
+    "carrot": "a whole fresh orange carrot with green leafy top",
+    "celery": "a bunch of crisp green celery stalks",
+    "bell-pepper": "a whole fresh red bell pepper with green stem",
+    "spinach": "a bunch of fresh dark green spinach leaves",
+    "lettuce": "a round head of fresh crisp green lettuce",
+    "mushroom": "two fresh white button mushrooms",
+    "lemon": "a fresh whole yellow lemon with a lemon slice",
+    "apple": "a fresh crisp red apple with a small leaf stem",
+    "white-rice": "a ceramic bowl of uncooked white rice",
+    "canned-tomatoes": "a metal tin can of peeled whole tomatoes",
+    "canned-black-beans": "a metal tin can of black beans",
+    "ground-beef": "a mound of raw ground beef mince",
+    "bread": "a sliced loaf of crusty sourdough bread",
+    "sweet-potato": "a whole fresh reddish-brown sweet potato yam",
+    "broccoli": "a fresh green broccoli floret with thick stalk",
+    "cauliflower": "a head of fresh white cauliflower with green leaves",
+    "cabbage": "a round head of fresh green cabbage",
+    "orange": "a whole fresh round citrus orange fruit",
+    "avocado": "a fresh green avocado cut in half showing the pit",
+    "brown-rice": "a ceramic bowl of uncooked brown rice grains",
+    "red-lentils": "a small ceramic bowl of dry red lentils",
+    "canned-chickpeas": "a metal tin can of chickpeas",
+    "canned-tuna": "a round shallow metal tin can of tuna",
+    "chicken-stock": "a plain unlabelled clear glass pitcher filled with transparent golden chicken broth, a few carrot slices and herb leaves beside it, no package and nothing floating inside",
+    "tomato-paste": "a small tube of tomato paste",
+    "baking-powder": "a small metal tin can of baking powder",
+    "baking-soda": "a small open ceramic ramekin filled with fine bright white baking soda powder, a tiny neat pinch of powder beside it",
+    "vanilla-extract": "a small dark amber glass bottle of vanilla extract",
+    "brown-sugar": "a small ceramic bowl of brown sugar",
+    "cornstarch": "a small open ceramic bowl filled with silky fine white cornstarch, a soft powder mound with one delicate dusting beside the bowl",
+    "active-dry-yeast": "a small open ceramic ramekin filled with distinct tiny tan active dry yeast granules, a few beige granules scattered beside it",
+    "cocoa-powder": "a round tin container of baking cocoa powder",
+    "cream-cheese": "a rectangular foil-wrapped block of cream cheese",
+    "sour-cream": "a round plastic tub of sour cream with lid",
+    "mozzarella": "a fresh white round mozzarella cheese ball",
+    "plain-yogurt": "a plastic tub container of plain yogurt",
+    "tortilla": "a stack of round flat flour tortillas",
+    "beef-steak": "a raw marbled beef steak cut"
+  },
+
+  "sets": {
+    "appliance": {
+      "consumer": "app/onboarding/appliances.tsx",
+      "consumerWired": true,
+      "idsFrom": "APPLIANCE_CATALOGUE in src/types.ts",
+      "subjects": {
+        "cooktop": "a gas stovetop burner with a saucepan on it",
+        "oven": "a freestanding oven with its door closed and a window",
+        "microwave": "a countertop microwave oven",
+        "air_fryer": "a countertop air fryer with a pull-out basket",
+        "rice_cooker": "a compact warm-white electric rice cooker with its hinged lid open, showing a removable dark inner pot filled with fluffy white rice",
+        "slow_cooker": "an oval cream ceramic slow-cooker crock seated in a dark charcoal electric base, topped with a clear domed glass lid and two side handles",
+        "blender": "an upright blender jug on its base"
+      }
+    },
+    "state": {
+      "consumer": "src/components/StateIllustration.tsx",
+      "consumerWired": true,
+      "note": "These four roles are the ones docs/brand-system.md approves. Do not invent a fifth without an approved brief.",
+      "subjects": {
+        "empty-pantry": "a single half-empty kitchen shelf holding one jar, one bottle and one bowl",
+        "first-saved-meal": "a single plate with a folded napkin and a fork beside it",
+        "capture-needs-better-photo": "a camera with a soft focus ring, tilted slightly",
+        "no-dinner-suggestion": "an empty cooking pot with its lid resting beside it"
+      }
+    },
+    "onboarding": {
+      "consumer": "app/onboarding/goals.tsx",
+      "consumerWired": true,
+      "note": "These are large card illustrations, not functional micro-icons. Selection checks remain crisp vector UI.",
+      "subjects": {
+        "track-calories-goal": "a friendly semicircular nutrition progress gauge with four broad hand-painted bands in sage green, warm yellow, orange and coral, and a dark charcoal needle pointing upward-right, no numbers",
+        "meal-prep-goal": "a generous ceramic meal-prep bowl with sliced chicken breast, white rice, broccoli florets and roasted carrots arranged in clear appetizing sections"
+      }
+    },
+    "technique": {
+      "consumer": "app/recipe/[id].tsx",
+      "consumerWired": true,
+      "note": "A bounded vocabulary on purpose. Recipe steps are free text and unbounded, so per-step art is not generable; these map from keywords in the step.",
+      "subjects": {
+        "chop": "a chef's knife beside diced vegetables on a board",
+        "saute": "a frying pan with vegetables and motion lines",
+        "boil": "a pot of boiling water with rising steam",
+        "roast": "an oven tray holding roasted vegetables",
+        "steam": "a bamboo steamer basket with steam rising",
+        "simmer": "a saucepan at a low simmer with small bubbles",
+        "marinate": "a shallow bowl of food covered in marinade",
+        "blend": "a blender jug part-filled with a smooth mixture",
+        "bake": "a loaf tin holding a risen bake",
+        "grill": "a griddle pan with sear marks on food",
+        "rest": "a covered plate with a small clock beside it",
+        "serve": "a finished bowl of food with chopsticks resting across it"
+      }
+    }
+  }
+}

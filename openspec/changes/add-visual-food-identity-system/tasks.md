@@ -2,8 +2,8 @@
 
 - [x] 1.1 Define category fallback vector icons and styling tokens in `src/media/foodVisuals.ts` for every `FoodClass` the app models, plus `other`.
 - [x] 1.2 Establish the `assets/food/manifest.json` schema (`manifest.schema.json`) mapping canonical ingredient IDs to curated asset files with verified provenance.
-- [ ] 1.3 Add the initial core set of curated illustrations for common staples and Asian pantry essentials into `assets/food/`.
-  - **Blocked by design, not by effort.** The `Art direction follows the implemented app` requirement gates production art on owner acceptance of the implemented UI through native visual review, which has not happened. The pack ships empty; every ingredient resolves to its reviewed category badge. Placeholder swatches from the first implementation pass live in `docs/brand-explorations/food-visual-placeholders/`, deliberately outside the production pack.
+- [x] 1.3 Add the initial core set of curated illustrations for common staples and Asian pantry essentials into `assets/food/`.
+  - Delivered by `connect-generated-illustrations` once the owner cleared the `Art direction follows the implemented app` gate through native visual review. 116 reviewed illustrations were promoted with full provenance; tier 4 remains the fallback for an ingredient without exact art and for an image that fails to load. Placeholder swatches from the first implementation pass remain in `docs/brand-explorations/food-visual-placeholders/`, deliberately outside the production pack.
 
 ## 2. Core Resolver and UI Component
 
@@ -25,6 +25,6 @@
 
 ## 5. Verification and Polish
 
-- [ ] 5.1 Verify offline rendering, dark/light theme switching, and screen-reader accessibility on the Pixel 10a emulator.
-  - Not yet performed. This is also the native review that unblocks 1.3.
+- [x] 5.1 Verify offline rendering, dark/light theme switching, and screen-reader accessibility on the Pixel 10a emulator.
+  - The native review that unblocked 1.3. Continued in `connect-generated-illustrations` task 6.2, which re-inspects the same surfaces with the promoted pack in place.
 - [x] 5.2 Run test suite (`npm test`), type check, and strict OpenSpec validation.

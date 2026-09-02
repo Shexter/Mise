@@ -10,6 +10,7 @@ import { FoodVisual } from '@/components/FoodVisual';
 import { ConfirmMatchSheet, type PendingConfirmation } from '@/components/match/ConfirmMatchSheet';
 import { RecipeIngredientEditor } from '@/components/recipes/RecipeIngredientEditor';
 import { Screen } from '@/components/Screen';
+import { TechniqueIllustration } from '@/components/TechniqueIllustration';
 import { useToast } from '@/components/Toast';
 import { Body, Caption, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
 import { color, opacity, space } from '@/constants/theme';
@@ -18,6 +19,7 @@ import { localDateString } from '@/logic/dates';
 import { coverageForRecipe, mealFromRecipe, type RecipeCoverage } from '@/logic/recipe';
 import { itemKey } from '@/logic/shoppingList';
 import { confirmMatch, resolveIngredientReferencesLocally } from '@/logic/resolution';
+import { resolveTechnique } from '@/media/techniqueIllustrations';
 import { useCaptureStore } from '@/store/captureStore';
 import type { RecipeIngredient, RecipeWithIngredients } from '@/types';
 
@@ -190,7 +192,7 @@ export default function RecipeDetailScreen() {
               ))}
             </View>
           </Card>
-          {recipe.steps.length > 0 ? <Card title="Method"><Caption muted>The original method, kept for your own reference.</Caption><View style={styles.list}>{recipe.steps.map((step, index) => <Body key={`${step}-${index}`}>{index + 1}. {step}</Body>)}</View></Card> : null}
+          {recipe.steps.length > 0 ? <Card title="Method"><Caption muted>The original method, kept for your own reference.</Caption><View style={styles.steps}>{recipe.steps.map((step, index) => <MethodStep key={`${step}-${index}`} index={index} step={step} />)}</View></Card> : null}
         </>}
       </View>
       <ConfirmMatchSheet
@@ -210,6 +212,28 @@ export default function RecipeDetailScreen() {
   );
 }
 
+/**
+ * One method step, illustrated only when the step's own words earn it.
+ *
+ * `resolveTechnique` returns `null` for anything it cannot match safely — a step
+ * spanning two techniques, or none of the twelve — and the step then renders
+ * exactly as it always did. An approximately-related picture would assert
+ * something about the step that the step does not say.
+ */
+function MethodStep({ index, step }: { index: number; step: string }) {
+  const technique = resolveTechnique({ instruction: step });
+  const text = `${index + 1}. ${step}`;
+
+  if (technique === null) return <Body>{text}</Body>;
+
+  return (
+    <View style={styles.step}>
+      <TechniqueIllustration technique={technique} />
+      <Body style={styles.stepText}>{text}</Body>
+    </View>
+  );
+}
+
 function Coverage({ label, names, empty }: { label: string; names: readonly string[]; empty: string }) {
   return <View style={styles.coverage}><SectionLabel muted>{label}</SectionLabel><Caption>{names.length > 0 ? names.join(', ') : empty}</Caption></View>;
 }
@@ -221,6 +245,9 @@ const styles = StyleSheet.create({
   source: { gap: space.xs, paddingVertical: space.sm },
   coverage: { gap: space.xs, marginBottom: space.base },
   list: { gap: space.sm, marginTop: space.sm },
+  steps: { gap: space.base, marginTop: space.sm },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  stepText: { flex: 1 },
   ingredient: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   ingredientText: { flex: 1, gap: space.xs },
 });

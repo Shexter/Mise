@@ -2,6 +2,8 @@ import {
   Archivo_400Regular,
   Archivo_500Medium,
   Archivo_600SemiBold,
+  Archivo_700Bold,
+  Archivo_800ExtraBold,
 } from '@expo-google-fonts/archivo';
 import {
   Fraunces_500Medium,
@@ -35,6 +37,8 @@ export default function RootLayout() {
     Archivo_400Regular,
     Archivo_500Medium,
     Archivo_600SemiBold,
+    Archivo_700Bold,
+    Archivo_800ExtraBold,
   });
   const loadProfile = useProfileStore((state) => state.load);
   const loadCookingPreferences = useCookingPreferencesStore((state) => state.load);

@@ -47,6 +47,12 @@ export const MealCalories = make(type.mealCalories as TextStyle, {
   numeric: true,
 });
 
+/** A tab's own name. One per screen, at the top of the screen it owns. */
+export const DisplayTitle = make(type.displayTitle as TextStyle);
+
+/** The heading a sheet opens with. */
+export const DisplayLarge = make(type.displayLarge as TextStyle);
+
 export const ScreenTitle = make(type.screenTitle as TextStyle);
 export const SectionLabel = make(type.sectionLabel as TextStyle);
 export const Body = make(type.body as TextStyle);

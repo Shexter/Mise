@@ -15,7 +15,7 @@ describe('Today nutrition disclosure boundaries', () => {
     expect(today).toContain('<DailyTargetSummary');
     expect(today).toContain('<MealRow');
     expect(summary).toContain("['protein', 'Protein']");
-    expect(summary).toContain("['carbohydrate', 'Carbohydrate']");
+    expect(summary).toContain("['carbohydrate', 'Carbs']");
     expect(summary).toContain("['fat', 'Fat']");
     expect(summary).toContain("['fibre', 'Fibre']");
 
@@ -26,11 +26,21 @@ describe('Today nutrition disclosure boundaries', () => {
 
   test('uses large-text-safe wrapping and colour-independent progress copy', () => {
     const summary = read('src/components/DailyTargetSummary.tsx');
+    const meter = read('src/components/Meter.tsx');
 
-    expect(summary).toContain("flexWrap: 'wrap'");
     expect(summary).toContain("accessibilityRole=\"button\"");
-    expect(summary).toContain("Incomplete · ${target}");
     expect(summary).toContain('Shows the meals that contributed to this value.');
+
+    // The ruled row holds fixed leading columns so tracks align down the list.
+    // Those columns cannot survive scaled text, so past a threshold the row
+    // stacks and every width constraint is dropped.
+    expect(meter).toContain('PixelRatio.getFontScale()');
+    expect(meter).toContain('STACK_ABOVE_FONT_SCALE');
+    expect(meter).toContain("flexWrap: 'wrap'");
+
+    // Incompleteness is stated in words, not only by the dashed track and the
+    // withheld percentage.
+    expect(meter).toContain('Incomplete · some logged values are unknown');
   });
 
   test('labels unknown contributor exclusions and contains no score language', () => {

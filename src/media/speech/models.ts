@@ -123,8 +123,17 @@ export function modelsForLanguage(language: string): SpeechModel[] {
 export function chosenModelForLanguage(
   language: string,
   preferredModelId?: string | null,
+  installed?: { has(modelId: string): boolean },
 ): SpeechModel | null {
   const models = modelsForLanguage(language);
+  if (installed) {
+    if (preferredModelId) {
+      const preferred = models.find((m) => m.id === preferredModelId && installed.has(m.id));
+      if (preferred) return preferred;
+    }
+    const anyInstalled = models.find((m) => installed.has(m.id));
+    if (anyInstalled) return anyInstalled;
+  }
   return models.find((model) => model.id === preferredModelId) ?? models[0] ?? null;
 }
 

@@ -1,11 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { StepShell } from '@/components/StepShell';
 import { Body, Caption } from '@/components/Type';
 import { color, opacity, radius, space } from '@/constants/theme';
+import { APPLIANCE_ILLUSTRATIONS } from '@/media/onboardingIllustrations';
 import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { APPLIANCE_CATALOGUE, type ApplianceId } from '@/types';
@@ -76,6 +77,7 @@ export default function AppliancesStep() {
           return (
             <ApplianceRow
               key={app.id}
+              applianceId={app.id}
               label={app.label}
               detail={app.detail}
               selected={selected}
@@ -113,12 +115,19 @@ export default function AppliancesStep() {
   );
 }
 
+/**
+ * The illustration is added beside the tick, never in its place. A painted tick
+ * could not retint per theme or per state, and selection has to stay
+ * unmistakable at a glance.
+ */
 function ApplianceRow({
+  applianceId,
   label,
   detail,
   selected,
   onToggle,
 }: {
+  applianceId: ApplianceId;
   label: string;
   detail: string;
   selected: boolean;
@@ -136,6 +145,15 @@ function ApplianceRow({
         pressed && { opacity: opacity.pressed },
       ]}
     >
+      {/* Contained and unframed: the artwork's warm paper is the surface, so
+          the row does not nest one tile inside another. */}
+      <Image
+        source={APPLIANCE_ILLUSTRATIONS[applianceId]}
+        style={styles.illustration}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
       <View style={styles.rowText}>
         <Body style={[styles.label, selected && styles.labelSelected]}>{label}</Body>
         <Caption muted>{detail}</Caption>
@@ -175,6 +193,12 @@ const styles = StyleSheet.create({
   rowSelected: {
     borderColor: color.action,
     backgroundColor: color.surface,
+  },
+  illustration: {
+    width: 56,
+    height: 56,
+    marginRight: space.md,
+    borderRadius: radius.input,
   },
   rowText: {
     flex: 1,

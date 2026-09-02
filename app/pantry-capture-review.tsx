@@ -6,6 +6,8 @@ import { StyleSheet, View } from 'react-native';
 import { insertPantryItem } from '@/db/queries';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { EmptyState } from '@/components/EmptyState';
+import { StateIllustration } from '@/components/StateIllustration';
 import { useToast } from '@/components/Toast';
 import { ConfirmMatchSheet, type PendingConfirmation } from '@/components/match/ConfirmMatchSheet';
 import { Screen } from '@/components/Screen';
@@ -56,6 +58,13 @@ export default function PantryCaptureReviewScreen() {
     finished.current = true;
     deletePhoto(usePantryCaptureStore.getState().photoUri);
     finish();
+  };
+  /** Drops the unusable frame and returns to the camera for a better one. */
+  const retake = () => {
+    finished.current = true;
+    deletePhoto(usePantryCaptureStore.getState().photoUri);
+    clear();
+    router.replace('/pantry-capture');
   };
   const switchToReceipt = async () => {
     const photoUri = usePantryCaptureStore.getState().photoUri;
@@ -115,6 +124,23 @@ export default function PantryCaptureReviewScreen() {
         <ScreenTitle>Review pantry items</ScreenTitle>
         <Caption muted>Nothing is added until you confirm.</Caption>
       </View>
+      {proposals.length === 0 ? (
+        // The photo came back with nothing to review. That is a photo problem
+        // and says so — unlike a provider or network failure, which this screen
+        // is never reached for.
+        <EmptyState
+          title="Nothing recognisable in that photo"
+          detail="Try again with the items spread out in good light, or add them by hand."
+          illustration={
+            <StateIllustration
+              name="capture-needs-better-photo"
+              accessibilityLabel="A camera with a soft focus ring, tilted slightly"
+            />
+          }
+          actionLabel="Retake the photo"
+          onAction={retake}
+        />
+      ) : null}
       <View style={styles.list}>
         {proposals.map((proposal, index) => (
           <Card key={`${proposal.captured.name}-${index}`}>

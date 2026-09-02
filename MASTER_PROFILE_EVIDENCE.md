@@ -75,48 +75,50 @@ This evidence may support a standalone Mise project dossier. Whether it belongs 
 
 ## 4. Architecture and system boundaries
 
-### Application and state flow
+Mise is structured as a local-first mobile client application built on Expo and React Native for a single household user on a single physical device. The architecture deliberately decouples presentation, volatile client state, domain calculation, embedded relational storage, on-device media storage, and external provider transports.
 
-1. Expo Router maps file-based screens and four primary tabs. See [app/_layout.tsx](./app/_layout.tsx#L74-L110) and [app/(tabs)/_layout.tsx](./app/(tabs)/_layout.tsx#L23-L58).
-2. Screens use Zustand stores and service functions. The Today screen reads the day and capture stores in [app/(tabs)/index.tsx](./app/(tabs)/index.tsx#L56-L85).
-3. Logic modules resolve identities, calculate nutrition, plan depletion, reconcile receipts, score suggestions, and plan restocks. Meal depletion crosses these layers in [src/logic/depletionService.ts](./src/logic/depletionService.ts#L15-L20) and [src/logic/depletionService.ts](./src/logic/depletionService.ts#L116-L134).
-4. Modular query files own persistence operations and map SQLite rows into domain types. Their public surface is re-exported by [src/db/queries/index.ts](./src/db/queries/index.ts).
+### Major components and responsibilities
+
+- **Presentation and Navigation Root (`app/`)**: Expo Router file-based navigator managing the 4-tab shell (`Today`, `Pantry`, `Shop`, `Settings`), onboarding stack, full-screen capture modals, review flows, and maintenance screens in [app/_layout.tsx](./app/_layout.tsx#L86-L125) and [app/(tabs)/_layout.tsx](./app/(tabs)/_layout.tsx#L23-L59).
+- **Client State Stores (`src/store/`)**: Modular Zustand stores isolating volatile client state, including active capture drafts, timeline date navigation, pantry search filters, fasting timers, and user profile targets in [src/store/dayStore.ts](./src/store/dayStore.ts#L56-L85), [src/store/captureStore.ts](./src/store/captureStore.ts#L10-L40), and [src/store/profileStore.ts](./src/store/profileStore.ts#L12-L45).
+- **Domain and Business Logic Engine (`src/logic/`)**: Pure TypeScript calculation and coordination modules responsible for canonical ingredient matching, CJK alias resolution, nutritional target computation, reversible pantry depletion planning, multi-frame receipt reconciliation, suggestion scoring, and shopping restock derivation in [src/logic/depletionService.ts](./src/logic/depletionService.ts#L15-L20), [src/logic/match.ts](./src/logic/match.ts#L10-L50), [src/logic/dishScore.ts](./src/logic/dishScore.ts#L12-L48), and [src/logic/stockRestock.ts](./src/logic/stockRestock.ts#L15-L51).
+- **SQLite Persistence Engine (`src/db/`)**: Local-first embedded relational database (`snap.db`) managed via `expo-sqlite` with WAL mode, foreign keys, 36 append-only forward migrations, and domain query modules re-exported through [src/db/index.ts](./src/db/index.ts#L23-L50), [src/db/schema.ts](./src/db/schema.ts#L820-L858), and [src/db/queries/index.ts](./src/db/queries/index.ts).
+- **AI Vision and Provider Transport (`src/api/`)**: Client-side transport facade providing direct integration with Anthropic Claude, Google Gemini, and OpenAI-compatible endpoints, featuring key-shape detection and single bounded retry policies for rate limits and transient network errors in [src/api/transport.ts](./src/api/transport.ts#L36-L62), [src/api/transport.ts](./src/api/transport.ts#L90-L124), and [src/api/vision.ts](./src/api/vision.ts#L27-L52).
+- **Product Catalogue Integration Client (`src/api/openFoodFacts.ts`)**: HTTP client that queries the Open Food Facts API by GTIN barcode for packaged item names, brands, quantities, and nutritional breakdown in [src/api/openFoodFacts.ts](./src/api/openFoodFacts.ts#L22-L49).
+- **Media and File Storage Handler (`src/media/photos.ts`)**: Local filesystem storage managing compressed JPEG photos for meals, receipts, pantry captures, and recipe imports in dedicated document subdirectories rather than SQLite BLOBs in [src/media/photos.ts](./src/media/photos.ts#L6-L54) and [app/(tabs)/index.tsx](./app/(tabs)/index.tsx#L170-L174).
+
+### Request and data flows
+
+1. **Meal Capture and Depletion Flow**: Camera frame capture or photo picker selection -> Image resizing and compression to 800px JPEG in [src/media/photos.ts](./src/media/photos.ts#L16-L33) -> Vision prompt packaging and direct AI transport request in [src/api/vision.ts](./src/api/vision.ts#L27-L52) -> Review screen user validation and manual item adjustments in [app/review.tsx](./app/review.tsx) -> Meal and meal items persistence in SQLite in [src/db/queries/meals.ts](./src/db/queries/meals.ts#L155-L210) -> Canonical ingredient matching -> Reversible pantry depletion ledger entries committed for home meals in [src/logic/depletionService.ts](./src/logic/depletionService.ts#L116-L134).
+2. **Receipt Intake and Pantry Restock Flow**: Multi-frame receipt camera capture -> Local on-device OCR with optional cloud text enhancement in [src/db/schema.ts](./src/db/schema.ts#L733-L755) -> Text line parsing and candidate extraction -> Canonical ingredient and alias resolution in [src/logic/resolution.ts](./src/logic/resolution.ts) -> User review and price/quantity confirmation -> Approved items restocked in pantry table in [src/logic/receiptService.ts](./src/logic/receiptService.ts) and [src/db/queries/receipts.ts](./src/db/queries/receipts.ts).
+3. **Barcode Scanning and Product Intake Flow**: Camera scans GTIN barcode -> Local products table cache lookup -> Open Food Facts HTTPS API query fallback in [src/api/openFoodFacts.ts](./src/api/openFoodFacts.ts#L22-L49) -> Product nutrition, brand, and package unit parsing -> Barcode review modal -> Pantry inventory restock or direct meal logging in [app/barcode-review.tsx](./app/barcode-review.tsx).
+4. **Shopping Haul and Restock Flow**: Shopping list items marked purchased in Shop tab -> Grocery haul entry created -> Foreground coarse GPS coordinates matched to known shop locations in [src/logic/shopService.ts](./src/logic/shopService.ts) -> Restock planner resolves canonical item IDs and predicts shelf life -> Stock quantities incremented and out-of-stock items marked replaced in [app/(tabs)/shop.tsx](./app/(tabs)/shop.tsx), [src/logic/stockRestock.ts](./src/logic/stockRestock.ts#L15-L51), and [src/db/queries/shopping.ts](./src/db/queries/shopping.ts).
+5. **Dinner Suggestion Generation Flow**: Available pantry inventory and expiry dates queried -> Active dietary rules and venue preferences evaluated -> Remaining daily calorie and macronutrient gaps calculated in [src/logic/macroGap.ts](./src/logic/macroGap.ts) -> AI provider prompt constructed -> Structured dish suggestions ranked, cached, and displayed in UI in [src/logic/dishScore.ts](./src/logic/dishScore.ts), [src/logic/suggestionService.ts](./src/logic/suggestionService.ts), and [src/db/queries/suggestions.ts](./src/db/queries/suggestions.ts).
+6. **Data Export and Storage Reset Flow**: User initiates full export in Settings -> Modular queries aggregate profile, daily targets, meals, pantry items, recipes, and shopping list in [src/db/queries/analytics.ts](./src/db/queries/analytics.ts#L172-L220) -> Formatted JSON bundle written to device storage -> Optional database reset drops all tables, wipes photo directories, and re-executes migrations with initial seed data in [src/db/index.ts](./src/db/index.ts#L88-L104) and [app/(tabs)/index.tsx](./app/(tabs)/index.tsx#L167-L185).
+
+### System and security boundaries
+
+- **Local Application Trust Boundary**: Mise functions entirely as a single-device, local-first application without user accounts, login authentication, cloud synchronization backends, or multi-tenant authorization; all personal health, nutrition, fasting, meal, and pantry records remain in local device SQLite and filesystem storage in [README.md](./README.md#L165-L172) and [src/db/index.ts](./src/db/index.ts#L6-L12).
+- **Credential and Secret Key Isolation Boundary**: Provider API keys and custom OpenAI endpoint URLs are stored exclusively in Expo SecureStore (hardware Keychain / Keystore), isolated from SQLite tables and excluded from JSON exports; provider selection is determined purely by regex key-shape pattern matching rather than server authentication in [src/api/keyStore.ts](./src/api/keyStore.ts#L6-L20) and [src/api/keyStore.ts](./src/api/keyStore.ts#L68-L88).
+- **External Network and Transport Boundary**: Direct outbound HTTPS network requests leave the device only for user-configured AI vision endpoints (Anthropic, Google Gemini, OpenAI-compatible) and Open Food Facts barcode lookups; requests carry user-provided keys directly without an intermediate application proxy in [src/api/transport.ts](./src/api/transport.ts#L36-L62) and [src/api/openFoodFacts.ts](./src/api/openFoodFacts.ts#L4-L38).
+- **Device Hardware and Permission Isolation Boundary**: Operating system permissions are strictly scoped to foreground camera capture, photo library reading, microphone audio recording, on-device speech recognition, and foreground coarse location for shop recognition; background location tracking is not requested in [app.config.ts](./app.config.ts#L31-L65) and [app.config.ts](./app.config.ts#L98-L109).
+- **Cross-Domain Ledger Isolation Boundary**: Physical pantry stock depletion is isolated strictly to home-cooked meals; restaurant and takeaway meals update nutritional totals but never generate inventory ledger entries, ensuring explainable and reversible depletion records in [src/logic/depletionService.ts](./src/logic/depletionService.ts#L116-L134) and [src/logic/depletionService.ts](./src/logic/depletionService.ts#L212-L233).
+- **Build and Deployment Isolation Boundary**: Continuous integration in GitHub Actions compiles debug-signed sideloadable Android APK packages on Node 22 without access to release keystores or automated store publication pipelines in [.github/workflows/android-apk.yml](./.github/workflows/android-apk.yml#L1-L14) and [docs/pre-publish-checklist.md](./docs/pre-publish-checklist.md#L1-L6).
 
 ### Persistence and schema
 
-- SQLite stores the profile, targets, meals, pantry, receipts, shopping, recipes, suggestions, dietary rules, fasting records, and shop locations. The initial tables start in [src/db/schema.ts](./src/db/schema.ts#L8-L62), and the complete migration list is in [src/db/schema.ts](./src/db/schema.ts#L763-L799).
+- SQLite stores the profile, targets, meals, pantry, receipts, shopping, recipes, suggestions, dietary rules, fasting records, and shop locations. The initial tables start in [src/db/schema.ts](./src/db/schema.ts#L8-L62), and the complete migration list is in [src/db/schema.ts](./src/db/schema.ts#L820-L858).
 - Database startup enables WAL and foreign keys, applies forward migrations, and loads seed data in [src/db/index.ts](./src/db/index.ts#L21-L47).
 - The database retains the historical filename `snap.db` to avoid losing existing local installs after the rename. This rationale appears in [src/db/index.ts](./src/db/index.ts#L6-L12).
-- Photos use application file storage rather than SQLite. This boundary is suggested by photo deletion calls in [app/(tabs)/index.tsx](./app/(tabs)/index.tsx#L170-L174). Exact backup and operating-system protection behavior remains **uncertain**.
+- Photos use application file storage rather than SQLite. This boundary is suggested by photo deletion calls in [app/(tabs)/index.tsx](./app/(tabs)/index.tsx#L170-L174) and directory setup in [src/media/photos.ts](./src/media/photos.ts#L6-L54). Exact backup and operating-system protection behavior remains **uncertain**.
 - The JSON export includes profile, daily targets, meals, pantry items, recipes, and shopping items in [src/db/queries/analytics.ts](./src/db/queries/analytics.ts#L172-L220). It is sensitive personal data.
 
-### Authentication and authorization
+### Architectural uncertainties
 
-- No account, login, remote application backend, or multi-user authorization layer was found. The repository states this constraint in [README.md](./README.md#L165-L172).
-- Provider credentials live in Expo SecureStore. Their access boundary is [src/api/keyStore.ts](./src/api/keyStore.ts#L1-L20) and [src/api/keyStore.ts](./src/api/keyStore.ts#L107-L155).
-- This review did not inspect a real key or local environment value. The existence of ignored local `.env` state was treated as sensitive and excluded.
-
-### External integrations and trust boundaries
-
-- The application sends image or prompt payloads directly to Anthropic, Google Gemini, or an OpenAI-compatible endpoint through the transport map in [src/api/transport.ts](./src/api/transport.ts#L1-L62).
-- Provider selection depends on key shape in [src/api/keyStore.ts](./src/api/keyStore.ts#L68-L88) and [src/api/keyStore.ts](./src/api/keyStore.ts#L185-L204). Shape detection is not authentication.
-- Barcode lookups send the GTIN to Open Food Facts in [src/api/openFoodFacts.ts](./src/api/openFoodFacts.ts#L4-L38).
-- Foreground camera, photo-library, and coarse-location permissions are declared in [app.config.ts](./app.config.ts#L31-L57). Location is configured without background access in [app.config.ts](./app.config.ts#L90-L103).
-- A custom OpenAI-compatible endpoint is accepted without prior validation. That trust boundary is documented in [src/api/keyStore.ts](./src/api/keyStore.ts#L141-L150).
-
-### Import, reconciliation, and reporting pipelines
-
-- Meal capture flows from image selection or camera capture to provider estimation, review, meal persistence, and optional pantry depletion. Provider estimation is in [src/api/vision.ts](./src/api/vision.ts#L27-L52). Depletion is applied only after commit in [src/logic/depletionService.ts](./src/logic/depletionService.ts#L15-L20).
-- Receipt intake stores frames and lines, resolves canonical ingredients, and applies accepted changes. The service surface is shown by [src/logic/receiptService.ts](./src/logic/receiptService.ts).
-- Receipt OCR can use local recognition and optional cloud text enhancement. The preference defaults off in [src/db/schema.ts](./src/db/schema.ts#L733-L755).
-- Barcode intake checks local product data and Open Food Facts, then supports review and recovery. Source and tests exist, but no live lookup was observed.
-- Nutrition reporting aggregates stored meals and targets. Export assembly is in [src/db/queries/analytics.ts](./src/db/queries/analytics.ts#L184-L220).
-
-### Deployment and operational model
-
-- Local development uses Expo SDK 54 and Node 22.5 or later, as declared in [package.json](./package.json#L8-L20) and [README.md](./README.md#L66-L78).
-- GitHub Actions defines a sideloadable Android APK build on pushes to `main` and manual dispatches. It uses a debug keystore and explicitly excludes store readiness in [.github/workflows/android-apk.yml](./.github/workflows/android-apk.yml#L1-L14).
-- EAS configuration also defines internal preview APKs and production app bundles in [eas.json](./eas.json#L6-L24). Configuration does not prove that either build profile ran.
+- [Uncertain: Physical device photo filesystem protection, OS backup behavior, and camera hardware interaction were not verified at runtime.]
+- [Uncertain: Live AI provider response adherence, model deprecation, and billing behavior remain unobserved in this review.]
+- [Uncertain: Standalone APK installation, upgrade migration on existing user databases, and app store deployment were not verified.]
+- [Uncertain: Nutritional and medical accuracy of algorithmic macro calculations outside unit test fixtures is not established.]
 
 ## 5. Feature inventory
 

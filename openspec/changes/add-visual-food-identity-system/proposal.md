@@ -23,12 +23,16 @@ This proposal establishes the 4-tier visual hierarchy, the shared `<FoodVisual /
 ## Current state at implementation
 
 The hierarchy, resolver, component, and every surface integration are built and
-tested. **Tier 3 ships empty**: no Draw Things pipeline was ever run, so there is
-no reviewed art to bundle, and the `Art direction follows the implemented app`
-requirement gates that generation on owner acceptance of the implemented UI
-through native visual review. Until then every non-photographed food resolves to
-its reviewed category badge — an intentional, complete state rather than a
-missing one. `assets/food/README.md` records what a shipped asset must satisfy.
+tested. **Tier 3 now ships 116 reviewed illustrations.** The
+`Art direction follows the implemented app` requirement gated that art on owner
+acceptance of the implemented UI through native visual review; that gate was
+cleared, and the `connect-generated-illustrations` change ran the Draw Things
+pipeline and promoted the reviewed pack with full provenance.
+
+Tier 4 remains reachable and remains correct: an ingredient with no exact art,
+and an illustration that fails to load on the device, both fall through to the
+reviewed category badge. `assets/food/README.md` records what a shipped asset
+must satisfy, and `docs/asset-pipeline.md` records how one gets made.
 
 ## Capabilities
 

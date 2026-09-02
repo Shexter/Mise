@@ -41,3 +41,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Generated illustrations awaiting review. Only promoted art belongs in assets/food/.
+.art-staging/

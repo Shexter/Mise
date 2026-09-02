@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { DishVisual } from '@/components/DishVisual';
+import { StateIllustration } from '@/components/StateIllustration';
 import { Segmented } from '@/components/Choice';
 import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
 import { useToast } from '@/components/Toast';
@@ -269,7 +270,14 @@ export default function DinnerScreen() {
             <Button label="Try again" variant="secondary" block={false} onPress={() => void load(mode, true)} style={styles.emptyAction} />
           </Card>
         ) : suggestions.length === 0 ? (
+          // Only this branch. Loading, a missing key, a provider error, a met
+          // target, and insufficient catalogue data are all different states,
+          // and an empty pot would describe none of them honestly.
           <Card>
+            <StateIllustration
+              name="no-dinner-suggestion"
+              accessibilityLabel="An empty cooking pot with its lid resting beside it"
+            />
             <Body>Nothing to suggest right now</Body>
           </Card>
         ) : (

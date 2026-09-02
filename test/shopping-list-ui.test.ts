@@ -13,7 +13,8 @@ describe('shopping list UI contract', () => {
     const today = fs.readFileSync('app/(tabs)/index.tsx', 'utf8');
 
     expect(tabs).toContain('name="shop"');
-    expect(tabs).toContain('<Feather name="shopping-bag"');
+    // The bar draws its own glyphs now; Shop's is mapped by route name.
+    expect(tabs).toContain('shop: ShopIcon');
     expect(shop).toContain('<ShoppingListSection />');
     expect(pantry).not.toContain('ShoppingListSection');
     expect(today).not.toContain('ShoppingListSection');

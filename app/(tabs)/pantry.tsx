@@ -7,20 +7,34 @@ import { useFocusEffect } from 'expo-router';
 import { Card, Divider } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { FoodVisual } from '@/components/FoodVisual';
+import { Pill, PillRow } from '@/components/Pill';
+import { Sprig } from '@/components/icons/Sprig';
 import { Segmented } from '@/components/Choice';
 import { AddPantryItemSheet } from '@/components/pantry/AddPantryItemSheet';
 import { PantryItemSheet } from '@/components/pantry/PantryItemSheet';
 import { SavedRecipesSection } from '@/components/recipes/SavedRecipesSection';
 import { expiryLabel, statusLabel } from '@/components/pantry/labels';
 import { Screen } from '@/components/Screen';
-import { EmptyPantryIllustration } from '@/components/StateIllustration';
-import { Body, Caption, RowTitle, ScreenTitle } from '@/components/Type';
+import { StateIllustration } from '@/components/StateIllustration';
+import { Body, Caption, DisplayTitle, RowTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { listPendingCaptures, listRecipes } from '@/db/queries';
 import { EXPIRING_SOON_DAYS } from '@/logic/stockStatus';
 import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import { usePantryStore, type PantryEntry } from '@/store/pantryStore';
-import type { Recipe } from '@/types';
+import type { LocationKind, Recipe } from '@/types';
+
+/** A storage location's own icon and wash. Kind, not name — names are the
+ *  user's to change, and a renamed fridge is still a fridge. */
+const LOCATION_STYLE: Record<LocationKind, {
+  icon: keyof typeof Feather.glyphMap;
+  tint: 'tintPaprika' | 'tintBlue' | 'tintOlive' | 'tintWheat';
+}> = {
+  fridge: { icon: 'thermometer', tint: 'tintBlue' },
+  freezer: { icon: 'cloud-snow', tint: 'tintBlue' },
+  ambient: { icon: 'archive', tint: 'tintWheat' },
+  counter: { icon: 'grid', tint: 'tintOlive' },
+};
 
 type PantrySubsection = 'stock' | 'recipes';
 const SUBSECTIONS = [
@@ -37,7 +51,10 @@ const SUBSECTIONS = [
 export default function PantryScreen() {
   const router = useRouter();
   const groups = usePantryStore((state) => state.groups);
+  const pantryLoading = usePantryStore((state) => state.loading);
+  const locations = usePantryStore((state) => state.locations);
   const refresh = usePantryStore((state) => state.refresh);
+  const [locationFilter, setLocationFilter] = useState<string | null>(null);
   const cookingPreferences = useCookingPreferencesStore((state) => state.cookingPreferences);
   const [adding, setAdding] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -49,6 +66,32 @@ export default function PantryScreen() {
   const selected =
     groups.flatMap((group) => group.entries).find((e) => e.id === selectedId) ??
     null;
+
+  // Only locations that currently hold something get a pill. A filter that
+  // leads to a guaranteed empty list is a dead control.
+  const stockedLocationIds = new Set(
+    groups.flatMap((group) => group.entries).map((entry) => entry.locationId),
+  );
+  const filterLocations = locations.filter((location) =>
+    stockedLocationIds.has(location.id),
+  );
+
+  // A filter that no longer matches anything — the last jar in the fridge was
+  // used up — silently stops applying rather than showing an empty pantry.
+  const activeFilter =
+    locationFilter !== null && stockedLocationIds.has(locationFilter)
+      ? locationFilter
+      : null;
+
+  const visibleGroups = activeFilter === null
+    ? groups
+    : groups
+        .map((group) => ({
+          ...group,
+          entries: group.entries.filter((entry) => entry.locationId === activeFilter),
+        }))
+        .filter((group) => group.entries.length > 0)
+        .map((group) => ({ ...group, count: group.entries.length }));
 
   const checkPending = useCallback(async () => {
     setPendingCaptureCount((await listPendingCaptures()).length);
@@ -65,7 +108,7 @@ export default function PantryScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <ScreenTitle>Pantry</ScreenTitle>
+        <DisplayTitle>Pantry</DisplayTitle>
         {subsection === 'stock' ? (
           <View style={styles.headerActions}>
             <Pressable
@@ -92,35 +135,9 @@ export default function PantryScreen() {
             >
               <Feather name="search" size={20} color={color.ink} />
             </Pressable>
-            <Pressable
-              onPress={() => router.push('/pantry-capture')}
-              accessibilityRole="button"
-              accessibilityLabel="Add to pantry with camera"
-              hitSlop={space.sm}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed && { opacity: opacity.pressed },
-              ]}
-            >
-              <Feather name="camera" size={20} color={color.ink} />
-            </Pressable>
-            {/* A sibling of the camera, not a mode inside it: the camera
-                surface routes barcode, receipt, and item photographs on its
-                own, and putting speech behind that routing would make the
-                fastest way to catalogue a fridge the hardest one to find. */}
-            <Pressable
-              onPress={() => router.push('/pantry-voice')}
-              accessibilityRole="button"
-              accessibilityLabel="Speak items into the pantry"
-              accessibilityHint="Describe what is in your kitchen. You review a draft before anything is added."
-              hitSlop={space.sm}
-              style={({ pressed }) => [
-                styles.headerButton,
-                pressed && { opacity: opacity.pressed },
-              ]}
-            >
-              <Feather name="mic" size={20} color={color.ink} />
-            </Pressable>
+            {/* Photographing and speaking items moved into the centre add
+                surface, which reaches them from every tab rather than only
+                from this header. They are the same destinations. */}
             <Pressable
               onPress={() => setAdding(true)}
               accessibilityRole="button"
@@ -150,9 +167,36 @@ export default function PantryScreen() {
             </Pressable>
           </View>
         )}
+        <Sprig />
       </View>
 
       <Segmented options={SUBSECTIONS} value={subsection} onChange={setSubsection} style={styles.subsections} />
+
+      {subsection === 'stock' && filterLocations.length > 1 ? (
+        <PillRow style={styles.filters}>
+          <Pill
+            label="All"
+            icon="layers"
+            selected={activeFilter === null}
+            onPress={() => setLocationFilter(null)}
+          />
+          {filterLocations.map((location) => {
+            const style = LOCATION_STYLE[location.kind];
+            return (
+              <Pill
+                key={location.id}
+                label={location.name}
+                icon={style.icon}
+                tint={style.tint}
+                selected={activeFilter === location.id}
+                onPress={() =>
+                  setLocationFilter(activeFilter === location.id ? null : location.id)
+                }
+              />
+            );
+          })}
+        </PillRow>
+      ) : null}
 
       {subsection === 'stock' && pendingCaptureCount > 0 ? (
         <Pressable
@@ -183,13 +227,21 @@ export default function PantryScreen() {
 
       {subsection === 'recipes' ? (
         <SavedRecipesSection recipes={recipes} showHeaderAction={false} />
+      ) : pantryLoading && groups.length === 0 ? (
+        // Nothing yet, rather than an empty shelf: a half-empty shelf drawn
+        // while the query is still running says the kitchen is empty, which is
+        // a claim the app cannot make until the read comes back.
+        null
       ) : groups.length === 0 ? (
         <>
           <EmptyState
             title="Nothing catalogued yet"
             detail="Add what's already in your kitchen, or let a receipt do it."
             illustration={
-              <EmptyPantryIllustration accessibilityLabel="A half-empty kitchen shelf, ready for pantry items" />
+              <StateIllustration
+                name="empty-pantry"
+                accessibilityLabel="A half-empty kitchen shelf, ready for pantry items"
+              />
             }
             actionLabel="Add an item"
             onAction={() => setAdding(true)}
@@ -216,30 +268,47 @@ export default function PantryScreen() {
         </>
       ) : (
         <View style={styles.groups}>
-          {groups.map((group) => (
-            <Card key={group.canonicalId} padded={false}>
-              <View style={styles.groupHeader}>
-                <View style={styles.groupHeaderLeft}>
-                  <FoodVisual
-                    canonicalId={group.canonicalId}
-                    category={group.foodClass}
-                    photoUri={group.photoUri}
-                    size="md"
+          {visibleGroups.map((group) => {
+            // One of a thing is one row. A header naming the item above a
+            // single sub-row that repeats nothing is two rows of chrome for
+            // one jar of oats, and it is the common case by far.
+            const single = group.entries.length === 1 ? group.entries[0]! : null;
+
+            if (single) {
+              return (
+                <Card key={group.canonicalId} variant="outline" padded={false}>
+                  <EntryRow
+                    entry={single}
+                    name={group.name}
+                    onPress={() => setSelectedId(single.id)}
                   />
-                  <RowTitle>{group.name}</RowTitle>
-                </View>
-                {group.count > 1 ? (
+                </Card>
+              );
+            }
+
+            return (
+              <Card key={group.canonicalId} variant="outline" padded={false}>
+                <View style={styles.groupHeader}>
+                  <View style={styles.groupHeaderLeft}>
+                    <FoodVisual
+                      canonicalId={group.canonicalId}
+                      category={group.foodClass}
+                      photoUri={group.photoUri}
+                      size="lg"
+                    />
+                    <RowTitle>{group.name}</RowTitle>
+                  </View>
                   <Caption muted>×{group.count}</Caption>
-                ) : null}
-              </View>
-              {group.entries.map((entry, index) => (
-                <View key={entry.id}>
-                  {index >= 0 ? <Divider /> : null}
-                  <EntryRow entry={entry} onPress={() => setSelectedId(entry.id)} />
                 </View>
-              ))}
-            </Card>
-          ))}
+                {group.entries.map((entry) => (
+                  <View key={entry.id}>
+                    <Divider />
+                    <EntryRow entry={entry} onPress={() => setSelectedId(entry.id)} />
+                  </View>
+                ))}
+              </Card>
+            );
+          })}
         </View>
       )}
 
@@ -254,9 +323,12 @@ export default function PantryScreen() {
 
 function EntryRow({
   entry,
+  name,
   onPress,
 }: {
   entry: PantryEntry;
+  /** Given when this row stands alone; omitted under a group header. */
+  name?: string;
   onPress: () => void;
 }) {
   const urgent = entry.daysLeft !== null && entry.daysLeft <= EXPIRING_SOON_DAYS;
@@ -275,9 +347,10 @@ function EntryRow({
           photoUri={entry.photoUri}
           canonicalId={entry.canonicalId}
           category={entry.foodClass}
-          size="sm"
+          size={name ? 'lg' : 'sm'}
         />
         <View style={styles.entryText}>
+          {name ? <RowTitle numberOfLines={1}>{name}</RowTitle> : null}
           <Caption muted>
             {entry.locationName}
             {entry.opened ? ' · opened' : ''}
@@ -301,9 +374,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: space.sm,
   },
   headerActions: { flexDirection: 'row', gap: space.sm },
-  subsections: { marginBottom: space.lg },
+  subsections: { marginBottom: space.base },
+  filters: { marginBottom: space.lg },
   banner: {
     backgroundColor: color.surface,
     borderRadius: radius.card,

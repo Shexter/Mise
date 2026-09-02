@@ -21,7 +21,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { ScreenTitle } from '@/components/Type';
+import { DisplayLarge } from '@/components/Type';
 import { color, duration, fillParent, layout, radius, space, swipeTokens } from '@/constants/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
@@ -137,9 +137,16 @@ export function Sheet({ visible, onClose, title, children, footer, detents = fal
                   <View style={styles.handle} />
                 </Pressable>
               </GestureDetector>
-            ) : null}
+            ) : (
+              // A fixed-height sheet has nowhere to drag to, so its grabber is
+              // an affordance for the eye only — it says "this is a sheet", and
+              // assistive tech already knows that from the modal itself.
+              <View style={styles.handleTarget} importantForAccessibility="no-hide-descendants">
+                <View style={styles.handle} />
+              </View>
+            )}
             <View style={styles.header}>
-              <ScreenTitle style={styles.title}>{title}</ScreenTitle>
+              <DisplayLarge style={styles.title}>{title}</DisplayLarge>
               <Button
                 label="Close"
                 variant="ghost"
@@ -168,9 +175,9 @@ const styles = StyleSheet.create({
   scrim: { ...fillParent, backgroundColor: color.ink, opacity: 0.35 },
   keyboardArea: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: color.ground,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
+    backgroundColor: color.raised,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
   },
   /** The long-standing behaviour: as tall as the content, up to 88%. */
   sheetByContent: { maxHeight: '88%' },

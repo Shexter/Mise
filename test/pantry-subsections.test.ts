@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 const pantry = fs.readFileSync(path.join(root, 'app/(tabs)/pantry.tsx'), 'utf8');
 const shop = fs.readFileSync(path.join(root, 'app/(tabs)/shop.tsx'), 'utf8');
 const recipes = fs.readFileSync(path.join(root, 'src/components/recipes/SavedRecipesSection.tsx'), 'utf8');
+const addSheet = fs.readFileSync(path.join(root, 'src/components/AddSheet.tsx'), 'utf8');
 
 describe('Pantry Stock and Recipes subsections', () => {
   test('defaults to Stock and switches only harmless presentation state', () => {
@@ -22,7 +23,13 @@ describe('Pantry Stock and Recipes subsections', () => {
     expect(pantry).toContain("subsection === 'stock' && pendingCaptureCount > 0");
     expect(pantry).toMatch(/subsection === 'stock' \? \(\s*<View style=\{styles\.headerActions\}>/);
     expect(pantry).toContain("router.push('/locations')");
-    expect(pantry).toContain("router.push('/pantry-capture')");
+
+    // Photographing and speaking items are reached from the shared add surface
+    // now, not from this header. The subsection gate still holds for the
+    // controls that remain, which is what this test is actually protecting.
+    expect(addSheet).toContain("route: '/pantry-capture'");
+    expect(addSheet).toContain("route: '/pantry-voice'");
+    expect(pantry).not.toContain("router.push('/pantry-capture')");
     expect(shop).toContain('pendingReceipts()');
     expect(shop).toContain('await retryAllPending()');
   });

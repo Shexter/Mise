@@ -1,0 +1,12 @@
+{
+  "clipSkip": 2,
+  "sampler": 16,
+  "seedMode": 2,
+  "sharpness": 0,
+  "shift": 3,
+  "resolutionDependentShift": false,
+  "speedUpWithGuidanceEmbed": true,
+  "strength": 1,
+  "t5TextEncoder": true,
+  "teaCache": false
+}

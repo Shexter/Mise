@@ -53,10 +53,20 @@ function withIllustration(canonicalId: string): void {
   CURATED_FOOD_ILLUSTRATIONS[canonicalId] = { uri: `test://${canonicalId}` };
 }
 
+/**
+ * What the registry holds before any test touches it. Restoring to this rather
+ * than emptying matters once the pack is non-empty: clearing every key used to
+ * be harmless when tier 3 shipped empty, but it deletes genuinely shipped
+ * entries too, and the drift test below would then fail for the first asset
+ * anyone promotes rather than for any real drift.
+ */
+const SHIPPED = { ...CURATED_FOOD_ILLUSTRATIONS };
+
 afterEach(() => {
   for (const key of Object.keys(CURATED_FOOD_ILLUSTRATIONS)) {
     delete CURATED_FOOD_ILLUSTRATIONS[key];
   }
+  Object.assign(CURATED_FOOD_ILLUSTRATIONS, SHIPPED);
 });
 
 describe("4-Tier Food Visual Precedence Resolver", () => {
@@ -136,10 +146,20 @@ describe("4-Tier Food Visual Precedence Resolver", () => {
       .toMatchObject({ kind: "category", category: "other" });
   });
 
-  test("Tier 3 is empty until art direction is accepted, so every food still resolves", () => {
-    // The `Art direction follows the implemented app` requirement gates the
-    // production pack. Nothing may render broken while the pack is empty.
-    expect(Object.keys(CURATED_FOOD_ILLUSTRATIONS)).toHaveLength(0);
+  test("Tier 3 ships the reviewed pack, and every unshipped food still resolves", () => {
+    // `docs/asset-pipeline.md` names this test as the tripwire the owner clears
+    // when art direction is accepted. It asserted the pack was empty; the gate
+    // is cleared, so what it now holds is the other half of the same promise —
+    // a populated tier 3 must not break the fallback that used to catch
+    // everything.
+    const shipped = Object.keys(CURATED_FOOD_ILLUSTRATIONS);
+    expect(shipped.length).toBeGreaterThan(0);
+
+    for (const canonicalId of shipped) {
+      const visual = resolveFoodVisual({ canonicalId, category: "produce" });
+      expect(visual.kind, canonicalId).toBe("illustration");
+      expect(visual.source, canonicalId).toBeDefined();
+    }
 
     for (const foodClass of FOOD_CLASSES) {
       const visual = resolveFoodVisual({ canonicalId: "anything-at-all", category: foodClass });
@@ -147,6 +167,24 @@ describe("4-Tier Food Visual Precedence Resolver", () => {
       expect(visual.iconName, foodClass).toBeTruthy();
       expect(visual.label, foodClass).toBeTruthy();
     }
+  });
+
+  test("a user's own photograph outranks a genuinely shipped illustration", () => {
+    // Not `withIllustration`: the point is the real pack, because the tier that
+    // just gained 116 entries is the one that must still lose to the user's
+    // own evidence about their own item.
+    const canonicalId = Object.keys(CURATED_FOOD_ILLUSTRATIONS)[0];
+    expect(canonicalId).toBeDefined();
+
+    const visual = resolveFoodVisual({
+      photoUri: "file:///data/user/photos/my-jar.jpg",
+      canonicalId,
+      category: "produce",
+    });
+
+    expect(visual.kind).toBe("photo");
+    expect(visual.uri).toBe("file:///data/user/photos/my-jar.jpg");
+    expect(visual.source).toBeUndefined();
   });
 });
 

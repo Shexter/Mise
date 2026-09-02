@@ -127,8 +127,16 @@ describe('brand asset and component contracts', () => {
     expect(stateIllustration).toContain('accessibilityRole="image"');
     expect(stateIllustration).toContain('accessibilityLabel={accessibilityLabel}');
     expect(stateIllustration).toContain('color.olive');
-    expect(stateIllustration).not.toMatch(/Animated|useReducedMotion|Image\s/);
-    expect(pantry).toContain('<EmptyPantryIllustration');
+    // `connect-generated-illustrations` added the image-backed variant, so the
+    // file now holds an `<Image>`. What this assertion protects is unchanged:
+    // the artwork is static, so reduced motion needs no alternate rendering.
+    expect(stateIllustration).not.toMatch(/Animated|useReducedMotion/);
+    // And it degrades rather than breaking — a bundled image that fails to load
+    // falls back to the procedural shelf instead of a broken-image box.
+    expect(stateIllustration).toContain('STATE_ILLUSTRATIONS');
+    expect(stateIllustration).toContain('onError');
+    expect(pantry).toContain('<StateIllustration');
+    expect(pantry).toContain('name="empty-pantry"');
     expect(pantry).toContain("Add what's already in your kitchen, or let a receipt do it.");
   });
 });

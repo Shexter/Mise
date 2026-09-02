@@ -109,6 +109,7 @@ export default function MergeCanonicalsScreen() {
       <CanonicalPickerSheet
         visible={picking !== null}
         title={picking === 'survivor' ? 'Which one stays?' : 'Which one folds in?'}
+        allowCreate={false}
         excludedIds={
           picking === 'absorbed' && survivor
             ? [survivor.id]

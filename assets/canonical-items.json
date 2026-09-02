@@ -2583,5 +2583,704 @@
     "folateMcgPer100": 98,
     "vitaminAMcgPer100": 3,
     "potassiumMgPer100": 414
+  },
+  {
+    "id": "potato",
+    "displayName": "Potato",
+    "class": "produce",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 35,
+      "fridge": 60
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 150,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "carrot",
+    "displayName": "Carrot",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 21,
+      "pantry": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 2,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "celery",
+    "displayName": "Celery",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 14
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 40,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "bell-pepper",
+    "displayName": "Bell pepper",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 10
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "spinach",
+    "displayName": "Spinach",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 5
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 30,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "lettuce",
+    "displayName": "Lettuce",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 50,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "mushroom",
+    "displayName": "Mushroom",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 50,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "lemon",
+    "displayName": "Lemon",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 21,
+      "counter": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.counter": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "apple",
+    "displayName": "Apple",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 28,
+      "counter": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.counter": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "white-rice",
+    "displayName": "White rice",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1460
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 75,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "canned-tomatoes",
+    "displayName": "Canned tomatoes",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": 4,
+    "typicalUseQty": 400,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "canned-black-beans",
+    "displayName": "Canned black beans",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1095
+    },
+    "openLifeDays": 4,
+    "typicalUseQty": 240,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "ground-beef",
+    "displayName": "Ground beef",
+    "class": "protein",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 2,
+      "freezer": 120
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 200,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "bread",
+    "displayName": "Bread",
+    "class": "staple",
+    "defaultLocation": "counter",
+    "shelfLifeDays": {
+      "counter": 5,
+      "fridge": 14,
+      "freezer": 90
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 2,
+    "typicalUseUnit": "slice",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "sweet-potato",
+    "displayName": "Sweet potato",
+    "class": "produce",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 35
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 150,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "broccoli",
+    "displayName": "Broccoli",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 100,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "cauliflower",
+    "displayName": "Cauliflower",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 100,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "cabbage",
+    "displayName": "Cabbage",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 30
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 200,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "orange",
+    "displayName": "Orange",
+    "class": "produce",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 21,
+      "counter": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.counter": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "avocado",
+    "displayName": "Avocado",
+    "class": "produce",
+    "defaultLocation": "counter",
+    "shelfLifeDays": {
+      "counter": 5,
+      "fridge": 7
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.counter": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "brown-rice",
+    "displayName": "Brown rice",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 180
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 75,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "red-lentils",
+    "displayName": "Red lentils",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 75,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "canned-chickpeas",
+    "displayName": "Canned chickpeas",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1095
+    },
+    "openLifeDays": 4,
+    "typicalUseQty": 240,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "canned-tuna",
+    "displayName": "Canned tuna",
+    "class": "protein",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1095
+    },
+    "openLifeDays": 3,
+    "typicalUseQty": 140,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "chicken-stock",
+    "displayName": "Chicken stock",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": 4,
+    "typicalUseQty": 250,
+    "typicalUseUnit": "ml",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "tomato-paste",
+    "displayName": "Tomato paste",
+    "class": "condiment",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": 7,
+    "typicalUseQty": 2,
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "baking-powder",
+    "displayName": "Baking powder",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "baking-soda",
+    "displayName": "Baking soda",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "vanilla-extract",
+    "displayName": "Vanilla extract",
+    "class": "condiment",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1460
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "brown-sugar",
+    "displayName": "Brown sugar",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "cornstarch",
+    "displayName": "Cornstarch",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 730
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "active-dry-yeast",
+    "displayName": "Active dry yeast",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 365,
+      "fridge": 730
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "cocoa-powder",
+    "displayName": "Cocoa powder",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 1095
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "cream-cheese",
+    "displayName": "Cream cheese",
+    "class": "dairy",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 14
+    },
+    "openLifeDays": 10,
+    "typicalUseQty": 30,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "sour-cream",
+    "displayName": "Sour cream",
+    "class": "dairy",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 21
+    },
+    "openLifeDays": 14,
+    "typicalUseQty": 2,
+    "typicalUseUnit": "tbsp",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "mozzarella",
+    "displayName": "Mozzarella",
+    "class": "dairy",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 21
+    },
+    "openLifeDays": 7,
+    "typicalUseQty": 30,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "plain-yogurt",
+    "displayName": "Plain yogurt",
+    "class": "dairy",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 14
+    },
+    "openLifeDays": 10,
+    "typicalUseQty": 170,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "openLifeDays": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "tortilla",
+    "displayName": "Tortilla",
+    "class": "staple",
+    "defaultLocation": "pantry",
+    "shelfLifeDays": {
+      "pantry": 7,
+      "fridge": 30,
+      "freezer": 180
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 1,
+    "typicalUseUnit": "piece",
+    "sources": {
+      "shelfLifeDays.pantry": "hand-authored",
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
+  },
+  {
+    "id": "beef-steak",
+    "displayName": "Beef steak",
+    "class": "protein",
+    "defaultLocation": "fridge",
+    "shelfLifeDays": {
+      "fridge": 5,
+      "freezer": 180
+    },
+    "openLifeDays": null,
+    "typicalUseQty": 200,
+    "typicalUseUnit": "g",
+    "sources": {
+      "shelfLifeDays.fridge": "hand-authored",
+      "shelfLifeDays.freezer": "hand-authored",
+      "typicalUseQty": "hand-authored",
+      "typicalUseUnit": "hand-authored"
+    }
   }
 ]

@@ -41,6 +41,7 @@ import {
   failureLabel,
   hasSalvageableTranscript,
   initialVoiceSession,
+  installedModels,
   isDriven,
   keyboardDictationAdapter,
   languageName,
@@ -592,7 +593,13 @@ export default function PantryVoiceScreen() {
     () => describeDownload(language, languageName(language), preferredModelId),
     [language, preferredModelId],
   );
-  const modelChoices = useMemo(() => modelsForLanguage(language), [language]);
+  const activeLocalModel = useMemo(
+    () => chosenModelForLanguage(language, preferredModelId, installedModels),
+    [language, preferredModelId, installedStamp],
+  );
+  const hasInstalledModelForLanguage = Boolean(
+    activeLocalModel && installedModels.has(activeLocalModel.id),
+  );
 
   /** Bypasses whatever just failed and drops straight to the always-available path. */
   const forceKeyboardFallback = () => {
@@ -618,6 +625,7 @@ export default function PantryVoiceScreen() {
    */
   const showDownloadCard =
     Boolean(download) &&
+    !hasInstalledModelForLanguage &&
     !(
       speechPreferences.recognition === 'offline' &&
       offlineLanguageStatus === 'missing' &&
@@ -718,6 +726,26 @@ export default function PantryVoiceScreen() {
           </View>
           <Feather name="chevron-right" size={18} color={color.muted} />
         </Pressable>
+
+        {speechPreferences.recognition === 'offline' ? (
+          <Pressable
+            onPress={() => setSpeechModelsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Offline speech model: ${hasInstalledModelForLanguage && activeLocalModel ? activeLocalModel.name : 'Choose or download model'}`}
+            style={({ pressed }) => [styles.row, pressed && { opacity: opacity.pressed }]}
+          >
+            <Feather name="cpu" size={18} color={color.muted} />
+            <View style={styles.rowText}>
+              <SectionLabel muted>Speech model</SectionLabel>
+              <RowTitle>
+                {hasInstalledModelForLanguage && activeLocalModel
+                  ? activeLocalModel.name
+                  : 'Choose or download model'}
+              </RowTitle>
+            </View>
+            <Feather name="chevron-right" size={18} color={color.muted} />
+          </Pressable>
+        ) : null}
       </Card>
 
       <Card style={styles.modeCard}>
@@ -911,41 +939,6 @@ export default function PantryVoiceScreen() {
           <Caption muted>{download.detail}</Caption>
           <Caption muted>{download.caution}</Caption>
 
-          {modelChoices.length > 1 ? (
-            <View style={styles.modelChoices}>
-              <SectionLabel muted>Choose the model</SectionLabel>
-              {modelChoices.map((model) => {
-                const selected = model.id === download.model.id;
-                return (
-                  <Pressable
-                    key={model.id}
-                    onPress={() => {
-                      setSpeechPreferences(updateSpeechPreferences({
-                        preferredModelId: model.id,
-                      }));
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected }}
-                    style={({ pressed }) => [
-                      styles.modelChoice,
-                      pressed && { opacity: opacity.pressed },
-                    ]}
-                  >
-                    <View style={styles.rowText}>
-                      <RowTitle>{model.name}</RowTitle>
-                      <Caption muted>{model.sizeMb} MB · {model.summary}</Caption>
-                    </View>
-                    <Feather
-                      name={selected ? 'check-circle' : 'circle'}
-                      size={20}
-                      color={selected ? color.action : color.muted}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-
           <Button
             label="Choose or download speech models"
             variant="secondary"
@@ -1058,8 +1051,13 @@ export default function PantryVoiceScreen() {
 
       <SpeechModelsSheet
         visible={speechModelsOpen}
-        onClose={() => setSpeechModelsOpen(false)}
+        onClose={() => {
+          setSpeechModelsOpen(false);
+          setSpeechPreferences(readSpeechPreferences());
+          void refreshInstalledModels().then(() => setInstalledStamp((value) => value + 1));
+        }}
         onChange={() => {
+          setSpeechPreferences(readSpeechPreferences());
           void refreshInstalledModels().then(() => setInstalledStamp((value) => value + 1));
         }}
       />
@@ -1073,15 +1071,13 @@ function activeSpeechPathLabel(
   preferredModelId: string | null,
   typedDirectly: boolean,
 ): string {
-  if (typedDirectly) return 'Type';
+  if (typedDirectly) return 'Type directly';
   if (adapter.id === 'phone-speech') return 'Phone speech';
-  if (adapter.id === 'android-offline') return 'Android offline';
+  if (adapter.id === 'android-offline') return 'Android system offline';
   if (adapter.id === 'keyboard') return 'Keyboard microphone';
   if (adapter.id === 'local-model') {
-    const model = chosenModelForLanguage(language, preferredModelId);
-    if (model?.id === 'parakeet-tdt-0.6b-v3') return 'Parakeet';
-    if (model?.id === 'sense-voice-small') return 'SenseVoice';
-    return 'Downloaded model';
+    const model = chosenModelForLanguage(language, preferredModelId, installedModels);
+    return model?.name ?? 'Downloaded speech model';
   }
   return adapter.label;
 }

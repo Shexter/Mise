@@ -52,8 +52,8 @@ export async function resolveTranscriptionRoute(
   const adapters = recognition === 'phone'
     ? [phoneSpeechAdapter, keyboardDictationAdapter]
     : [
-        androidOfflineRecognitionAdapter,
         createLocalModelAdapter(models, preferredModelId),
+        androidOfflineRecognitionAdapter,
         keyboardDictationAdapter,
       ];
 

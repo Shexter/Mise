@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -15,15 +16,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { hasApiKey, maskedApiKey } from '@/api/keyStore';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { StateIllustration } from '@/components/StateIllustration';
 import { CountingNumber } from '@/components/CountingNumber';
 import { DailyTargetSummary } from '@/components/DailyTargetSummary';
 import { DateStrip } from '@/components/DateStrip';
 import { DayRail } from '@/components/DayRail';
-import { Fab } from '@/components/Fab';
 import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
 import { MealRow } from '@/components/MealRow';
-import { RecentMealsSheet } from '@/components/meals/RecentMealsSheet';
-import { Body, Caption, ScreenTitle, SectionLabel } from '@/components/Type';
+import { NavCoachMark } from '@/components/NavCoachMark';
+import { Body, Caption, DisplayTitle, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
 import { useToast } from '@/components/Toast';
 import {
   color,
@@ -43,19 +44,18 @@ import {
   listRecipes,
   listReceipts,
 } from '@/db/queries';
-import { friendlyDate, isToday, localDateString } from '@/logic/dates';
+import { friendlyDate, fullDate, isToday, localDateString } from '@/logic/dates';
 import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
 import { roundCalories } from '@/logic/scaling';
-import { cloneMealForLogging, type QuickRelogVenue } from '@/logic/mealCloning';
 import { deleteAllPhotos } from '@/media/photos';
 import { useDayStore } from '@/store/dayStore';
-import { useCaptureStore } from '@/store/captureStore';
 import { useProfileStore } from '@/store/profileStore';
 import type { MealWithItems, SuggestionTargetMacro } from '@/types';
 
 export default function TodayScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const toast = useToast();
   const params = useLocalSearchParams<{ savedMealId?: string }>();
 
@@ -81,8 +81,6 @@ export default function TodayScreen() {
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [recentMealsOpen, setRecentMealsOpen] = useState(false);
-  const setMealDraft = useCaptureStore((state) => state.setMealDraft);
 
   // The Today tab opens on today: sync (which resets `selectedDate` only
   // when `following` is true) before refreshing, so a day chosen earlier in
@@ -134,6 +132,11 @@ export default function TodayScreen() {
     : energy.target - roundCalories(energy.knownValue);
   const isOver = remaining !== null && remaining < 0;
 
+  // The coach mark floats over the scroll area, so the content has to end
+  // above it rather than scroll underneath and be covered.
+  const showAddHint = !loading && meals.length === 0;
+  const scrollBottom = tabBarHeight + space.lg;
+
   const onDelete = (mealId: string) => {
     void removeMeal(mealId);
     toast.show({
@@ -147,12 +150,6 @@ export default function TodayScreen() {
 
   const onMacroRequest = (macro: SuggestionTargetMacro) =>
     router.push({ pathname: '/dinner', params: { macro } });
-
-  const onQuickRelog = (meal: MealWithItems, venue: QuickRelogVenue) => {
-    setMealDraft(cloneMealForLogging(meal, localDateString(), venue));
-    setRecentMealsOpen(false);
-    router.push('/review');
-  };
 
   const onLoadDemoData = () => {
     Alert.alert(
@@ -255,12 +252,15 @@ export default function TodayScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + space.sm, paddingBottom: space.xxxl * 2 },
+          { paddingTop: insets.top + space.sm, paddingBottom: scrollBottom },
         ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <ScreenTitle>{friendlyDate(selectedDate)}</ScreenTitle>
+          <View style={styles.headerText}>
+            <DisplayTitle>{friendlyDate(selectedDate)}</DisplayTitle>
+            <Caption muted>{fullDate(selectedDate)}</Caption>
+          </View>
           <Pressable
             onPress={() => setCalendarOpen(true)}
             accessibilityRole="button"
@@ -273,6 +273,8 @@ export default function TodayScreen() {
             <Feather name="calendar" size={20} color={color.ink} />
           </Pressable>
         </View>
+
+        <View style={styles.rule} />
 
         <DateStrip
           selectedDate={selectedDate}
@@ -287,27 +289,48 @@ export default function TodayScreen() {
           accessibilityHint="Shows which meals contributed to today's energy."
           onPress={() => router.push({ pathname: '/analytics', params: { metric: 'energy', date: selectedDate } })}
         >
-          <SectionLabel muted>
-            {remaining === null ? 'Calories unavailable' : isOver ? 'Over target' : 'Remaining today'}
-          </SectionLabel>
-          {remaining === null ? (
-            <ScreenTitle>—</ScreenTitle>
-          ) : <CountingNumber
-            value={Math.abs(remaining)}
-            dimmed={isOver}
-            accessibilityLabel={isOver ? `${Math.abs(remaining)} calories over target` : `${remaining} calories remaining`}
-          />}
-          {remaining === null ? (
-            <Caption muted>One or more meals have unknown calories.</Caption>
-          ) : isOver ? (
-            <Caption muted numeric>
-              {Math.abs(remaining)} over — a fact, not a verdict.
-            </Caption>
-          ) : (
-            <Caption muted numeric>
-              of {targetCalories} target
-            </Caption>
-          )}
+          <View style={styles.heroFigure}>
+            <SectionLabel style={!isOver && remaining !== null ? styles.heroLabel : undefined}>
+              {remaining === null ? 'Calories unavailable' : isOver ? 'Over target' : 'Remaining'}
+            </SectionLabel>
+            {remaining === null ? (
+              <ScreenTitle>—</ScreenTitle>
+            ) : (
+              <View style={styles.heroNumber}>
+                <CountingNumber
+                  value={Math.abs(remaining)}
+                  dimmed={isOver}
+                  tint={isOver ? undefined : color.positive}
+                  accessibilityLabel={isOver ? `${Math.abs(remaining)} calories over target` : `${remaining} calories remaining`}
+                />
+                <Body style={!isOver ? styles.heroLabel : undefined}>kcal</Body>
+              </View>
+            )}
+            {remaining === null ? (
+              <Caption muted>One or more meals have unknown calories.</Caption>
+            ) : isOver ? (
+              <Caption muted numeric>
+                A fact, not a verdict.
+              </Caption>
+            ) : null}
+          </View>
+
+          {/* The context column. Target and consumed are the two figures that
+              make the headline mean anything, and they belong beside it rather
+              than compressed into a caption underneath. */}
+          <View style={styles.heroContext}>
+            <View style={styles.heroStat}>
+              <Caption muted>Daily target</Caption>
+              <Body numeric>{targetCalories} kcal</Body>
+            </View>
+            <View style={styles.heroDivider} />
+            <View style={styles.heroStat}>
+              <Caption muted>Consumed</Caption>
+              <Body numeric>
+                {energy.knownValue === null ? '—' : `${roundCalories(energy.knownValue)} kcal`}
+              </Body>
+            </View>
+          </View>
         </Pressable>
 
         <DayRail
@@ -331,10 +354,17 @@ export default function TodayScreen() {
           onPress={() => router.push('/dinner')}
           accessibilityRole="button"
           accessibilityLabel="What's for dinner?"
-          style={({ pressed }) => [styles.banner, pressed && { opacity: opacity.pressed }]}
+          style={({ pressed }) => [
+            styles.banner,
+            { backgroundColor: color.tintOlive },
+            pressed && { opacity: opacity.pressed },
+          ]}
         >
-          <Body>What's for dinner?</Body>
-          <Caption muted>Ideas from what's already in your pantry.</Caption>
+          <View style={styles.bannerText}>
+            <RowTitle>What's for dinner?</RowTitle>
+            <Caption muted>Ideas from what's already in your pantry.</Caption>
+          </View>
+          <Feather name="chevron-right" size={20} color={color.muted} />
         </Pressable>
 
         {maskedKey === null ? (
@@ -344,11 +374,15 @@ export default function TodayScreen() {
             accessibilityLabel="Discover demo data"
             style={({ pressed }) => [
               styles.banner,
+              { backgroundColor: color.tintWheat },
               pressed && { opacity: opacity.pressed },
-              { backgroundColor: color.olive, borderColor: color.olive }]}
+            ]}
           >
-            <Body>First time here? Try a quick demo.</Body>
-            <Caption>Load a rich dataset with meals, pantry, recipes, and more — no entry required.</Caption>
+            <View style={styles.bannerText}>
+              <RowTitle>First time here? Try a quick demo.</RowTitle>
+              <Caption muted>Load a rich dataset with meals, pantry, recipes, and more — no entry required.</Caption>
+            </View>
+            <Feather name="chevron-right" size={20} color={color.muted} />
           </Pressable>
         ) : null}
 
@@ -359,50 +393,69 @@ export default function TodayScreen() {
             accessibilityLabel="No API key set. Open Settings to add one."
             style={({ pressed }) => [
               styles.banner,
+              { backgroundColor: color.tintBlue },
               pressed && { opacity: opacity.pressed },
             ]}
           >
-            <Body>No API key set. You’re logging by hand.</Body>
-            <Caption muted>Add one in Settings for photo estimates.</Caption>
+            <View style={styles.bannerText}>
+              <RowTitle>No API key set. You’re logging by hand.</RowTitle>
+              <Caption muted>Add one in Settings for photo estimates.</Caption>
+            </View>
+            <Feather name="chevron-right" size={20} color={color.muted} />
           </Pressable>
         ) : null}
 
         <View style={styles.list}>
-          <SectionLabel muted style={styles.listLabel}>
-            {isToday(selectedDate) ? 'Today’s meals' : 'Meals'}
-          </SectionLabel>
+          <ScreenTitle>
+            {isToday(selectedDate) ? 'Recent meals' : 'Meals'}
+          </ScreenTitle>
 
           {loading && meals.length === 0 ? null : meals.length === 0 ? (
-            <Card>
+            // No action here on purpose. The coach mark below points at the
+            // one add control the app has; a button in this card would be the
+            // second way to do the same thing from the same screen.
+            <Card variant="outline">
+              <StateIllustration
+                name="first-saved-meal"
+                accessibilityLabel="A laid place setting, waiting for the day's first meal"
+              />
               <Body>Nothing logged yet</Body>
-              <Caption muted>Photograph your first meal to start the day.</Caption>
-              <Button label="Take a photo" variant="secondary" block={false} onPress={() => router.push('/capture')} style={styles.emptyAction} />
+              <Caption muted>Your first meal of the day starts here.</Caption>
             </Card>
           ) : (
-            <Card padded={false}>
-              {meals.map((meal, index) => (
-                <View key={meal.id}>
-                  {index > 0 ? <View style={styles.divider} /> : null}
-                  <MealRow
-                    meal={meal}
-                    onDelete={onDelete}
-                    onPress={(mealId) => router.push(`/meal/${mealId}`)}
-                  />
-                </View>
-              ))}
-            </Card>
+            <>
+              <Card variant="outline" padded={false}>
+                {meals.map((meal, index) => (
+                  <View key={meal.id}>
+                    {index > 0 ? <View style={styles.divider} /> : null}
+                    <MealRow
+                      meal={meal}
+                      onDelete={onDelete}
+                      onPress={(mealId) => router.push(`/meal/${mealId}`)}
+                    />
+                  </View>
+                ))}
+              </Card>
+              <Pressable
+                onPress={() => router.push({ pathname: '/analytics', params: { metric: 'energy', date: selectedDate } })}
+                accessibilityRole="button"
+                accessibilityLabel="See all meals"
+                style={({ pressed }) => [
+                  styles.seeAll,
+                  pressed && { opacity: opacity.pressed },
+                ]}
+              >
+                <Body style={styles.seeAllLabel}>See all meals</Body>
+                <Feather name="chevron-right" size={18} color={color.action} />
+              </Pressable>
+            </>
           )}
         </View>
-      </ScrollView>
 
-      <View style={[styles.fab, { bottom: insets.bottom + space.base }]}>
-        <Fab
-          onPress={() => router.push('/capture')}
-          onSecondary={() => router.push('/manual')}
-          onLongPress={() => setRecentMealsOpen(true)}
-          longPressHint="Long press to repeat a recent or favorite meal"
-        />
-      </View>
+        {/* The only add affordance on this screen is the one in the
+            navigation. When the day is empty, this says so and points at it. */}
+        <NavCoachMark visible={showAddHint}>Tap + to log a meal</NavCoachMark>
+      </ScrollView>
 
       <HistoryCalendarSheet
         visible={calendarOpen}
@@ -413,26 +466,25 @@ export default function TodayScreen() {
         onSelect={(date) => void selectDate(date)}
         onClose={() => setCalendarOpen(false)}
       />
-      <RecentMealsSheet
-        visible={recentMealsOpen}
-        onClose={() => setRecentMealsOpen(false)}
-        onSelect={onQuickRelog}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ground },
-  emptyAction: { marginTop: space.sm },
   content: {
     paddingHorizontal: layout.screenGutter,
     gap: space.lg,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+  },
+  headerText: { flex: 1, gap: space.xs },
+  rule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: color.line,
   },
   calendarButton: {
     width: layout.minTouchTarget,
@@ -441,22 +493,52 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.input,
   },
-  hero: { alignItems: 'center', gap: space.xs },
-  macros: {},
-  banner: {
-    backgroundColor: color.surface,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: color.line,
-    padding: layout.cardPadding,
+  // Figure and context side by side, not stacked and centred. The number is
+  // the point of the screen and it should not have to share the centre line
+  // with the two figures that merely qualify it.
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.base,
+  },
+  heroFigure: { flex: 1, gap: space.xs },
+  heroLabel: { color: color.positive },
+  heroNumber: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     gap: space.xs,
   },
-  list: { gap: space.sm },
-  listLabel: { marginLeft: space.xs },
+  heroContext: {
+    width: 128,
+    paddingTop: space.sm,
+    gap: space.sm,
+  },
+  heroStat: { gap: space.xs },
+  heroDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: color.line,
+  },
+  macros: {},
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    borderRadius: radius.card,
+    padding: layout.cardPadding,
+  },
+  bannerText: { flex: 1, gap: space.xs },
+  seeAll: {
+    minHeight: layout.minTouchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: space.xs,
+  },
+  seeAllLabel: { color: color.action },
+  list: { gap: space.md },
   divider: {
     height: 1,
     backgroundColor: color.line,
     marginLeft: layout.cardPadding + 44 + space.md,
   },
-  fab: { position: 'absolute', right: layout.screenGutter },
 });

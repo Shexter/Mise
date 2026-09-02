@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Caption, RowTitle, SectionLabel } from '@/components/Type';
-import { color, layout, radius, space } from '@/constants/theme';
+import { Meter } from '@/components/Meter';
+import { Caption } from '@/components/Type';
+import { color, layout, space } from '@/constants/theme';
 import type {
   DailyNutritionMetric,
   DailyNutritionMetricSummary,
@@ -15,11 +16,16 @@ interface Props {
   onRequest?: (macro: SuggestionTargetMacro) => void;
 }
 
+/**
+ * Fibre leads. It is the metric the app is opinionated about and the one every
+ * other tracker buries, so it gets the position the eye reaches first rather
+ * than the leftover slot after the three macros.
+ */
 const DISPLAY_METRICS = [
-  ['protein', 'Protein'],
-  ['carbohydrate', 'Carbohydrate'],
-  ['fat', 'Fat'],
   ['fibre', 'Fibre'],
+  ['protein', 'Protein'],
+  ['carbohydrate', 'Carbs'],
+  ['fat', 'Fat'],
 ] as const satisfies readonly [DailyNutritionMetric, string][];
 
 /** Compact, colour-independent daily nutrient targets for the Today overview. */
@@ -71,18 +77,18 @@ function MetricRow({
         accessibilityLabel={accessibilityLabel}
         accessibilityHint="Shows the meals that contributed to this value."
         onPress={onPress}
-        style={styles.metricAction}
       >
-        <View style={styles.header}>
-          <SectionLabel muted style={styles.label}>{label}</SectionLabel>
-          <RowTitle numeric style={styles.value}>{known}</RowTitle>
-        </View>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${ratio * 100}%` }]} />
-        </View>
-        <Caption muted>
-          {incomplete ? `Incomplete · ${target}` : target}
-        </Caption>
+        <Meter
+          label={label}
+          value={value.knownValue === null ? '—' : format(value.knownValue)}
+          target={
+            value.target === null ? '—' : `${format(value.target)}${value.unit}`
+          }
+          ratio={ratio}
+          percent={`${Math.round(ratio * 100)}%`}
+          fill={color.measure}
+          incomplete={incomplete}
+        />
       </Pressable>
       {canRequest ? (
         <Pressable
@@ -110,40 +116,17 @@ function format(value: number): string {
 }
 
 const styles = StyleSheet.create({
-  group: {
-    gap: space.sm,
-  },
+  group: {},
+  // Ruled rows, not bordered cards: four containers stacked is the pattern that
+  // made this screen read as a dashboard rather than as a day.
   row: {
-    borderWidth: 1,
-    borderColor: color.line,
-    borderRadius: radius.input,
-    padding: space.md,
-    gap: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: color.line,
   },
-  metricAction: { gap: space.xs },
-  requestAction: { minHeight: layout.minTouchTarget, justifyContent: 'center', alignSelf: 'flex-start' },
-  header: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    columnGap: space.sm,
-  },
-  label: {
-    flexShrink: 1,
-  },
-  value: {
-    flexShrink: 0,
-  },
-  track: {
-    height: space.sm,
-    borderWidth: 1,
-    borderColor: color.line,
-    borderRadius: radius.input,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    backgroundColor: color.ink,
+  requestAction: {
+    minHeight: layout.minTouchTarget,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingBottom: space.sm,
   },
 });

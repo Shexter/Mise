@@ -8,6 +8,12 @@ interface Props {
   value: number;
   /** Renders in ink at reduced opacity — used when the day goes over target. */
   dimmed?: boolean;
+  /**
+   * Overrides ink. Used for the on-track `positive` figure; deliberately not
+   * applied when the day is over target, where `dimmed` ink is the honest
+   * treatment and a colour change would read as a verdict.
+   */
+  tint?: string;
   accessibilityLabel?: string;
 }
 
@@ -16,7 +22,7 @@ interface Props {
  * Reduce Motion is on. Tabular figures come from the Hero role, so the digits
  * never shift horizontally while it runs.
  */
-export function CountingNumber({ value, dimmed, accessibilityLabel }: Props) {
+export function CountingNumber({ value, dimmed, tint, accessibilityLabel }: Props) {
   const reduceMotion = useReducedMotion();
   const [displayed, setDisplayed] = useState(value);
   const frame = useRef<number | null>(null);
@@ -59,6 +65,7 @@ export function CountingNumber({ value, dimmed, accessibilityLabel }: Props) {
   return (
     <Hero
       dimmed={dimmed}
+      style={tint ? { color: tint } : undefined}
       accessibilityLabel={accessibilityLabel}
       accessibilityLiveRegion="polite"
     >

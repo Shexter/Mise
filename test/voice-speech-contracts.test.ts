@@ -119,3 +119,17 @@ describe('speech support and deletion surfaces', () => {
     expect(deleteBlock).not.toContain('clearApiKey()');
   });
 });
+
+describe('offline speech route ladder', () => {
+  const voiceScreen = readFileSync('app/pantry-voice.tsx', 'utf8');
+
+  test('the recording screen does not duplicate model choices inside the download card', () => {
+    expect(voiceScreen).not.toContain('styles.modelChoices');
+    expect(voiceScreen).toContain('Choose or download speech models');
+  });
+
+  test('offline mode includes a speech model row in the context card', () => {
+    expect(voiceScreen).toContain("speechPreferences.recognition === 'offline'");
+    expect(voiceScreen).toContain('Speech model');
+  });
+});

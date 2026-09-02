@@ -1,10 +1,63 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { color, radius, space } from '@/constants/theme';
+import {
+  STATE_ILLUSTRATIONS,
+  type StateIllustrationId,
+} from '@/media/stateIllustrations';
 
 interface Props {
   /** Describes the state conveyed by the artwork, not its decorative shapes. */
   accessibilityLabel: string;
+}
+
+interface StateIllustrationProps extends Props {
+  /**
+   * The state the artwork depicts. Only ever a state the app is genuinely in:
+   * an empty shelf drawn while a query is still running, or after it failed,
+   * tells the user something untrue.
+   */
+  name: StateIllustrationId;
+}
+
+/**
+ * The reviewed painted illustration for one named state.
+ *
+ * Falls back rather than breaking. If the bundled image cannot resolve, an
+ * empty Pantry still gets its approved procedural shelf, and the other three
+ * roles render nothing at all — their surfaces already carry a title, a detail
+ * line, and an action, so the artwork is the one part that can be absent
+ * without the state becoming incomplete. No broken-image placeholder is ever
+ * shown.
+ */
+export function StateIllustration({ name, accessibilityLabel }: StateIllustrationProps) {
+  const [failed, setFailed] = useState(false);
+  const source = STATE_ILLUSTRATIONS[name];
+
+  if (failed || source === undefined) {
+    return name === 'empty-pantry' ? (
+      <EmptyPantryIllustration accessibilityLabel={accessibilityLabel} />
+    ) : null;
+  }
+
+  return (
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel}
+      style={styles.imageFrame}
+    >
+      {/* Contained and unbacked: the artwork's own warm paper is the surface,
+          so the painted tile is not nested inside a second tinted panel. */}
+      <Image
+        source={source}
+        style={styles.art}
+        resizeMode="contain"
+        onError={() => setFailed(true)}
+      />
+    </View>
+  );
 }
 
 /**
@@ -40,6 +93,17 @@ export function EmptyPantryIllustration({ accessibilityLabel }: Props) {
 }
 
 const styles = StyleSheet.create({
+  imageFrame: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: space.sm,
+  },
+  art: {
+    width: space.xxxl * 3,
+    height: space.xxxl * 3,
+    borderRadius: radius.card,
+  },
   frame: {
     width: '100%',
     minHeight: space.xxxl * 2,

@@ -1,9 +1,10 @@
 import { chosenModelForLanguage, type SpeechModel } from '@/media/speech/models';
 import { installedModelPath } from '@/media/speech/modelStore';
-import type {
-  DrivenTranscriptionAdapter,
-  TranscriptionAvailability,
-  TranscriptionResult,
+import {
+  SpeechPermissionDeniedError,
+  type DrivenTranscriptionAdapter,
+  type TranscriptionAvailability,
+  type TranscriptionResult,
 } from '@/media/speech/types';
 
 /**
@@ -147,8 +148,17 @@ const SAMPLE_RATE = 16_000;
 export const MAX_SESSION_SECONDS = 600;
 
 /* -------------------------------------------------------------------------- */
-/* The adapter                                                                 */
-/* -------------------------------------------------------------------------- */
+function loadSpeechModule(): { requestPermissionsAsync?(): Promise<{ granted: boolean }> } | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const module = require('expo-speech-recognition') as {
+      ExpoSpeechRecognitionModule?: { requestPermissionsAsync?(): Promise<{ granted: boolean }> };
+    };
+    return module.ExpoSpeechRecognitionModule ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function createLocalModelAdapter(
   installed: InstalledModels = NO_MODELS_INSTALLED,
@@ -158,6 +168,9 @@ export function createLocalModelAdapter(
   let unsubscribe: (() => void)[] = [];
   let samples: number[] = [];
   let activeModel: SpeechModel | null = null;
+
+  const getActiveModel = (language: string): SpeechModel | null =>
+    chosenModelForLanguage(language, preferredModelId, installed);
 
   const teardown = async () => {
     for (const off of unsubscribe) off();
@@ -183,7 +196,7 @@ export function createLocalModelAdapter(
     sendsAudioOffDevice: false,
 
     async isAvailable(language: string): Promise<TranscriptionAvailability> {
-      const model = chosenModelForLanguage(language, preferredModelId);
+      const model = getActiveModel(language);
       if (!model) {
         return {
           available: false,
@@ -209,9 +222,15 @@ export function createLocalModelAdapter(
       return { available: true, onDevice: true };
     },
 
-    async start({ language }) {
-      const model = chosenModelForLanguage(language, preferredModelId);
+    async start({ language, onError }) {
+      const model = getActiveModel(language);
       if (!model) throw new Error('No on-device model covers that language.');
+
+      const speech = loadSpeechModule();
+      if (speech?.requestPermissionsAsync) {
+        const { granted } = await speech.requestPermissionsAsync();
+        if (!granted) throw new SpeechPermissionDeniedError();
+      }
 
       const audio = loadAudio();
       if (!audio) throw new Error('This build cannot record for on-device models.');
@@ -236,6 +255,7 @@ export function createLocalModelAdapter(
         }),
         live.onError(() => {
           void teardown();
+          onError?.('microphone_unavailable');
         }),
       ];
 

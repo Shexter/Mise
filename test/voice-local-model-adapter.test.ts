@@ -189,3 +189,38 @@ describe('no audio file is ever written', () => {
     expect(audioUri).toBeNull();
   });
 });
+
+describe('local model adapter selection and error handling', () => {
+  test('adapter selects available installed model when preferred is not downloaded', async () => {
+    const pcm = createFakePcmStream();
+    __setAudioModuleForTesting(createFakeAudio(pcm));
+    __setSherpaModuleForTesting(createFakeSherpa());
+
+    // User preferred parakeet, but only sense-voice-small is installed
+    const installed = { has: (id: string) => id === 'sense-voice-small' };
+    const adapter = createLocalModelAdapter(installed, 'parakeet-tdt-0.6b-v3');
+    const available = await adapter.isAvailable('en-GB');
+
+    expect(available).toEqual({ available: true, onDevice: true });
+  });
+
+  test('live error forwards to onError callback and tears down', async () => {
+    const pcm = createFakePcmStream();
+    __setAudioModuleForTesting(createFakeAudio(pcm));
+    __setSherpaModuleForTesting(createFakeSherpa());
+
+    const adapter = createLocalModelAdapter({ has: () => true });
+    const errors: string[] = [];
+    await adapter.start({
+      language: 'en-GB',
+      onPartial: () => {},
+      onError: (kind) => errors.push(kind),
+    });
+
+    for (const handler of pcm.stream.onError.mock.calls) {
+      handler[0]('mic error');
+    }
+
+    expect(errors).toEqual(['microphone_unavailable']);
+  });
+});

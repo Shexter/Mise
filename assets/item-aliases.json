@@ -101,6 +101,7 @@
   { "alias": "pasta", "canonicalId": "dried-pasta" },
   { "alias": "dried pasta", "canonicalId": "dried-pasta" },
   { "alias": "spaghetti", "canonicalId": "dried-pasta" },
+  { "alias": "penne", "canonicalId": "dried-pasta" },
   { "alias": "flour", "canonicalId": "all-purpose-flour" },
   { "alias": "all purpose flour", "canonicalId": "all-purpose-flour" },
   { "alias": "ap flour", "canonicalId": "all-purpose-flour" },

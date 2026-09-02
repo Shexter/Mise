@@ -76,8 +76,30 @@ export function friendlyDate(localDate: string): string {
   return format(parseLocalDate(localDate), 'EEEE d MMMM');
 }
 
+/**
+ * The full weekday and date, for the line beneath a screen title that already
+ * says "Today". `friendlyDate` collapses to a relative word and so cannot say
+ * which day that actually is; both are shown together.
+ */
+export function fullDate(localDate: string): string {
+  return format(parseLocalDate(localDate), 'EEEE, d MMMM');
+}
+
 export function timeOfDay(isoTimestamp: string): string {
   return format(parseISO(isoTimestamp), 'HH:mm');
+}
+
+/**
+ * Which quarter of the day a timestamp falls in, for the icon beside a logged
+ * meal. Deliberately the same boundaries as `mealTypeForTime`, so the sun a
+ * row shows agrees with the meal type the review screen defaulted to.
+ */
+export function dayPart(isoTimestamp: string): 'morning' | 'midday' | 'evening' | 'night' {
+  const hour = parseISO(isoTimestamp).getHours();
+  if (hour < 11) return 'morning';
+  if (hour < 15) return 'midday';
+  if (hour < 21) return 'evening';
+  return 'night';
 }
 
 /** Meal type suggested by the clock, used as the review screen default. */

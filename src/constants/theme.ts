@@ -59,6 +59,14 @@ export const font = {
   regular: 'Archivo_400Regular',
   medium: 'Archivo_500Medium',
   semibold: 'Archivo_600SemiBold',
+  /**
+   * Screen and sheet headings. The landed concept's headings are a heavy
+   * grotesque, not a serif — Fraunces is now reserved for the hero numeral
+   * alone, where its figures still earn their place. Both weights ship in
+   * `@expo-google-fonts/archivo`; see `app/_layout.tsx`.
+   */
+  bold: 'Archivo_700Bold',
+  extrabold: 'Archivo_800ExtraBold',
 } as const;
 
 /**
@@ -72,14 +80,29 @@ export const type = {
     lineHeight: 76,
     letterSpacing: -1.44,
   },
+  /** A tab's own name, at the top of the screen it owns. One per screen. */
+  displayTitle: {
+    fontFamily: font.extrabold,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -1.0,
+  },
+  /** The heading a sheet opens with. */
+  displayLarge: {
+    fontFamily: font.bold,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+  },
   mealCalories: {
     fontFamily: font.displayMedium,
     fontSize: 22,
     lineHeight: 26,
     letterSpacing: -0.22,
   },
+  /** Secondary screens, pushed onto a tab rather than owning one. */
   screenTitle: {
-    fontFamily: font.semibold,
+    fontFamily: font.bold,
     fontSize: 28,
     lineHeight: 32,
     letterSpacing: -0.42,
@@ -157,6 +180,16 @@ export const layout = {
    */
   contentMaxWidth: 560,
   dayRailHeight: 72,
+  /** Bottom navigation, above the safe-area inset. */
+  navBarHeight: 60,
+  /** The raised centre add button, and the ground-coloured ring around it. */
+  navAddSize: 60,
+  navAddRing: 4,
+  /**
+   * How far the add button rises above the bar's top edge. The bar reserves
+   * this much headroom so the button overlaps content, never the labels.
+   */
+  navAddLift: 18,
   nutritionChartHeight: 192,
   nutritionChartPoint: 12,
   nutritionChartStrokeWidth: 2,
@@ -165,9 +198,16 @@ export const layout = {
 export const radius = {
   /** Inputs and chips. */
   input: 8,
-  /** Cards and sheets. */
+  /** Cards. */
   card: 16,
-  /** The FAB, and nothing else. */
+  /** A sheet's top corners, which are rounder than a card's. */
+  sheet: 28,
+  /**
+   * Compact selectable controls and status tags — filter pills, and nothing
+   * that holds more than a line of text.
+   */
+  pill: 999,
+  /** Circular controls: the centre add button and its ring. */
   full: 999,
 } as const;
 
