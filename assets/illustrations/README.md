@@ -21,6 +21,7 @@ assets/illustrations/
   state/<state-role>.webp
   technique/<technique-id>.webp
   action/<action-id>.webp
+  dish/<meal-prep-template-id>.webp
 ```
 
 Manifest keys are `<set>/<id>`, because the id spaces overlap — `blender` is an
@@ -49,6 +50,7 @@ human gate.
 | `state` | `STATE_ILLUSTRATIONS` in `src/media/stateIllustrations.ts` |
 | `technique` | `TECHNIQUE_ILLUSTRATIONS` in `src/media/techniqueIllustrations.ts` |
 | `action` | `ACTION_ILLUSTRATIONS` in `src/media/actionIllustrations.ts` |
+| `dish` | `DISH_ILLUSTRATIONS` in `src/media/dishIllustrations.ts` |
 
 ## Provenance is a factual record
 
@@ -63,6 +65,14 @@ npm run art:make -- --set appliance --promote all --reviewer "Your Name"
 Copying a file in by hand and writing the entry yourself produces a record that
 looks identical and is not true. `assets/food/README.md` is explicit that a
 fabricated provenance record is worse than no entry at all.
+
+## The dish set is bounded on purpose
+
+`dish/` holds one illustration per authored meal-prep template, keyed by
+template id. Dishes in general are unbounded and keep the procedural
+`DishVisual` plate — a saved recipe or a provider's suggestion could be anything.
+Do not add a dish subject for a title that has no template id behind it;
+`test/illustration-registries.test.ts` fails if you do.
 
 ## What is deliberately not here
 

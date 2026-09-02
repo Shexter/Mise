@@ -14,7 +14,7 @@
     "assets": {
       "type": "object",
       "description": "Keyed '<set>/<id>'. The set is part of the key because id spaces overlap across sets — 'blender' is both an appliance and a plausible technique subject.",
-      "propertyNames": { "pattern": "^(appliance|state|onboarding|technique)/[a-z0-9]+([-_][a-z0-9]+)*$" },
+      "propertyNames": { "pattern": "^(appliance|state|onboarding|technique|action|dish)/[a-z0-9]+([-_][a-z0-9]+)*$" },
       "additionalProperties": { "$ref": "#/definitions/asset" }
     }
   },
@@ -38,7 +38,7 @@
       "properties": {
         "set": {
           "type": "string",
-          "enum": ["appliance", "state", "onboarding", "technique"],
+          "enum": ["appliance", "state", "onboarding", "technique", "action", "dish"],
           "description": "Must match the set segment of this entry's key."
         },
         "assetId": {
@@ -48,7 +48,7 @@
         },
         "fileName": {
           "type": "string",
-          "pattern": "^(appliance|state|onboarding|technique)/[a-z0-9]+([-_][a-z0-9]+)*\\.(png|webp)$",
+          "pattern": "^(appliance|state|onboarding|technique|action|dish)/[a-z0-9]+([-_][a-z0-9]+)*\\.(png|webp)$",
           "description": "Path relative to assets/illustrations/."
         },
         "sourceModel": {

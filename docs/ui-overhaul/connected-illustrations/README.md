@@ -31,6 +31,8 @@ illustrated the add sheet after the owner's review of the captures above:
 | --- | --- | --- |
 | 12 | [Appliance grid](12-appliance-grid-coloured-cookware.png) | The recoloured cookware in a two-column grid — cream stovetop and oven, olive microwave, sage air fryer, cream rice cooker, slate slow cooker. Tick in the corner, short name, no explanatory line. Two tiles selected. |
 | 13 | [Add sheet](13-add-sheet-illustrated-methods.png) | The four ways into Mise as painted objects, with vector viewfinder corners around the meal. "Cook something" keeps its Feather glyph, which is the registry's designed fallback for a method with no promoted artwork. |
+| 15 | [First plan dish](15-first-plan-dish-artwork.png) | The plan header renders the authored template's own artwork instead of the procedural wedge plate. Only the seven meal-prep templates get art; dinner suggestions and saved recipes keep `DishVisual`, which is what every unbounded dish will always fall back to. |
+| 14 | [Starting point](14-starting-point-goal-artwork.png) | The first step now shares the goals step's artwork instead of a Feather pulse and coffee cup — the two cards are the same two intents, so they carry the same picture. Cards sit on `ground` rather than `surface`, which all but closes the seam where the artwork's warm paper met a darker card fill. |
 
 ## What 10 and 11 are really showing
 

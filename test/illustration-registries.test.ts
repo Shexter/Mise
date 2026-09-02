@@ -14,6 +14,11 @@ import {
   ACTION_ILLUSTRATION_IDS,
 } from '@/media/actionIllustrations';
 import {
+  DISH_ILLUSTRATIONS,
+  dishIllustrationFor,
+} from '@/media/dishIllustrations';
+import { STARTER_MEAL_PREP_TEMPLATES } from '@/logic/mealPrepTemplates';
+import {
   STATE_ILLUSTRATIONS,
   STATE_ILLUSTRATION_IDS,
 } from '@/media/stateIllustrations';
@@ -74,6 +79,7 @@ const REGISTRIES: readonly { set: string; keys: readonly string[] }[] = [
   { set: 'state', keys: Object.keys(STATE_ILLUSTRATIONS) },
   { set: 'technique', keys: Object.keys(TECHNIQUE_ILLUSTRATIONS) },
   { set: 'action', keys: Object.keys(ACTION_ILLUSTRATIONS) },
+  { set: 'dish', keys: Object.keys(DISH_ILLUSTRATIONS) },
 ];
 
 describe('Bundled illustration provenance', () => {
@@ -157,6 +163,42 @@ describe('Bundled illustration provenance', () => {
     expect(Object.keys(TECHNIQUE_LABELS).sort()).toEqual([...TECHNIQUE_IDS].sort());
   });
 
+  test('every dish illustration names a real meal-prep template', () => {
+    // The boundary this change turns on: authored templates are a bounded set
+    // and can be drawn; any other dish cannot. A dish id with no template
+    // behind it means someone generated art for a dish nobody wrote down.
+    const templateIds = new Set(STARTER_MEAL_PREP_TEMPLATES.map((template) => template.id));
+    for (const id of Object.keys(DISH_ILLUSTRATIONS)) {
+      expect(templateIds.has(id), id).toBe(true);
+    }
+  });
+
+  test('an unauthored dish gets nothing rather than a near match', () => {
+    expect(dishIllustrationFor(null)).toBeNull();
+    expect(dishIllustrationFor(undefined)).toBeNull();
+    expect(dishIllustrationFor('')).toBeNull();
+    // A provider-proposed dinner, which could be titled anything.
+    expect(dishIllustrationFor('spicy-peanut-noodles')).toBeNull();
+    // Not addressable by title, only by id — a retitle must not detach the art.
+    expect(dishIllustrationFor('Classic Egg & Veggie Fried Rice')).toBeNull();
+  });
+
+  test('an authored template resolves to its own artwork', () => {
+    for (const id of Object.keys(DISH_ILLUSTRATIONS)) {
+      expect(dishIllustrationFor(id), id).not.toBeNull();
+    }
+  });
+
+  test('unbounded dish surfaces keep the procedural plate', () => {
+    // Dinner suggestions and saved recipes are unbounded, so they must not
+    // reach for dish artwork at all.
+    for (const path of ['app/dinner.tsx', 'src/components/recipes/SavedRecipesSection.tsx']) {
+      const source = readFileSync(path, 'utf8');
+      expect(source, path).toContain('<DishVisual');
+      expect(source, path).not.toContain('dishIllustrationFor');
+    }
+  });
+
   test('staging is never a runtime dependency', () => {
     const modules = [
       'src/media/foodVisuals.ts',
@@ -164,6 +206,7 @@ describe('Bundled illustration provenance', () => {
       'src/media/stateIllustrations.ts',
       'src/media/techniqueIllustrations.ts',
       'src/media/actionIllustrations.ts',
+      'src/media/dishIllustrations.ts',
       'src/components/AddSheet.tsx',
       'src/components/StateIllustration.tsx',
       'src/components/TechniqueIllustration.tsx',
@@ -187,6 +230,7 @@ describe('Bundled illustration provenance', () => {
       'app/(tabs)/index.tsx',
       'app/dinner.tsx',
       'app/pantry-capture-review.tsx',
+      'app/onboarding/first-plan.tsx',
       'src/components/StateIllustration.tsx',
       'src/components/TechniqueIllustration.tsx',
       'src/components/AddSheet.tsx',

@@ -146,7 +146,11 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   card: {
-    backgroundColor: color.surface,
+    // `ground`, not `surface`: the artwork's warm paper is lighter than a
+    // card fill, so on `surface` it reads as a pale square inside a darker
+    // one. On the screen's own ground the seam all but disappears and the
+    // hairline border still says "card" — matching the appliance tiles.
+    backgroundColor: color.ground,
     borderRadius: radius.card,
     borderWidth: 1.5,
     borderColor: color.line,
@@ -157,7 +161,6 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderColor: color.action,
-    backgroundColor: color.surface,
   },
   /**
    * Both cards use one square, so the gauge and the bowl carry the same visual

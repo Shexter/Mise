@@ -32,6 +32,7 @@ table is the map.
 | Onboarding goal illustrations | 2 | `app/onboarding/goals.tsx` | `GOAL_ILLUSTRATIONS` in `src/media/onboardingIllustrations.ts` |
 | Cooking technique illustrations | 12 | `app/recipe/[id].tsx` | `TECHNIQUE_ILLUSTRATIONS` in `src/media/techniqueIllustrations.ts` |
 | Add-sheet action illustrations | 4 | `src/components/AddSheet.tsx` | `ACTION_ILLUSTRATIONS` in `src/media/actionIllustrations.ts` |
+| Authored dish illustrations | 7 | `app/onboarding/first-plan.tsx` | `DISH_ILLUSTRATIONS` in `src/media/dishIllustrations.ts` |
 
 ### Never generated (vector, stays vector)
 
@@ -45,8 +46,22 @@ table is the map.
 - **Category fallback badges** — `CATEGORY_FALLBACK_TOKENS` in
   `src/media/foodVisuals.ts`. Tier 4 is a *reviewed* state, not a missing one:
   it is what every food falls back to, so it must theme cleanly.
-- **Dish plates** — `DishVisual` composes a plate procedurally from a dish's
-  food-class mix. Dishes are unbounded; per-dish art is not generable.
+- **Dish plates for unbounded dishes** — `DishVisual` composes a plate
+  procedurally from a dish's food-class mix. A saved recipe or a provider's
+  dinner suggestion could be titled anything, so per-dish art is not generable
+  for them and never will be.
+
+  **The one exception is the authored meal-prep templates.**
+  `STARTER_MEAL_PREP_TEMPLATES` is a fixed list the project wrote down, so it is
+  bounded in exactly the way the twelve techniques are, and each entry has its
+  own illustration in the `dish` set. The boundary is enforced, not just
+  documented: `DISH_ILLUSTRATIONS` is keyed by template id so a free-text title
+  cannot address it, `dishIllustrationFor()` returns `null` rather than a near
+  match, and `test/illustration-registries.test.ts` fails if a dish id has no
+  template behind it.
+
+  If you are about to generate art for a dish name that is not a template id,
+  stop — that is the case this rule exists for.
 
 If you are about to generate something in the second list, stop.
 

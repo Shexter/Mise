@@ -21,7 +21,8 @@
       "state": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "onboarding": "refined hand-painted 2D editorial wellness illustration, delicate dark ink outlines, natural muted colors with restrained Mise orange and sage accents, warm ivory paper background, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "technique": "refined hand-painted 2D editorial cooking-guide illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "action": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
+      "action": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "dish": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
     }
   },
   "exactPrompts": {
@@ -218,6 +219,21 @@
         "scan-receipt": "a long curled paper shop receipt with a torn zigzag bottom edge and faint grey ruled lines",
         "photograph-pantry": "a tall glass storage jar of preserved green vegetables standing beside a plain tin can with a single red band",
         "speak-pantry": "a warm terracotta-red retro table microphone on a round base, with small ink motion lines radiating from it"
+      }
+    },
+    "dish": {
+      "consumer": "app/onboarding/first-plan.tsx",
+      "consumerWired": true,
+      "idsFrom": "STARTER_MEAL_PREP_TEMPLATES in src/logic/mealPrepTemplates.ts",
+      "note": "One per authored meal-prep template, and only those. A dish the app wrote down is a bounded set; a dish a person saved or a provider proposed is not, and those keep the procedural DishVisual plate. Do not add a subject here for a dish that has no template id.",
+      "subjects": {
+        "rice-cooker-chicken-rice": "a generous cream ceramic bowl of fluffy white rice topped with sliced poached chicken breast and a scattering of fresh green herbs, arranged in clear sections",
+        "sheet-pan-roasted-chicken-veg": "a dark metal sheet pan holding golden roasted chicken breast pieces and lightly charred broccoli florets with a few whole garlic cloves",
+        "air-fryer-crispy-tofu-bowl": "a cream ceramic bowl of golden crisp-fried tofu cubes with bright green broccoli florets and a dark glossy sauce drizzled over",
+        "stovetop-egg-fried-rice": "a cream ceramic bowl of egg fried rice flecked with golden scrambled egg, sliced spring onion and small diced vegetables",
+        "slow-cooker-chicken-stew": "a deep cream ceramic bowl of rustic chicken and potato stew in a rich brown broth with soft onion pieces",
+        "no-cook-tofu-cucumber-bowl": "a cream ceramic bowl of cold white tofu cubes with fresh sliced cucumber and a dark sesame-soy dressing",
+        "microwave-steamed-salmon-greens": "a cream ceramic plate holding a steamed salmon fillet beside bright green steamed broccoli florets"
       }
     }
   }

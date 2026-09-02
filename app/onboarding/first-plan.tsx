@@ -1,11 +1,12 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { DishVisual } from '@/components/DishVisual';
+import { dishIllustrationFor } from '@/media/dishIllustrations';
 import { FoodVisual } from '@/components/FoodVisual';
 import { Sheet } from '@/components/Sheet';
 import { StepShell } from '@/components/StepShell';
@@ -196,10 +197,10 @@ export default function FirstPlanStep() {
         <Card>
           <View style={styles.planHeader}>
             <View style={styles.planHeaderTop}>
-              <DishVisual
-                dish={currentPlan.title}
+              <PlanDishVisual
+                templateId={currentPlan.templateId}
+                title={currentPlan.title}
                 foodClasses={planFoodClasses}
-                size="lg"
               />
               <View style={styles.planTitleWrap}>
                 <ScreenTitle style={styles.planTitle}>{currentPlan.title}</ScreenTitle>
@@ -396,7 +397,48 @@ function applianceLabel(id: ApplianceId): string {
   }
 }
 
+/**
+ * The plan's dish: its own artwork when the plan came from an authored
+ * meal-prep template, and the procedural plate otherwise.
+ *
+ * The authored templates are a bounded set, so each one could be drawn. Every
+ * other dish is not — a saved recipe or a provider's suggestion could be
+ * anything — so `dishIllustrationFor` returns `null` for them and `DishVisual`
+ * composes a plate from the food classes the dish's own ingredients belong to.
+ * That fallback is a reviewed state, not a degraded one.
+ */
+function PlanDishVisual({
+  templateId,
+  title,
+  foodClasses,
+}: {
+  templateId: string;
+  title: string;
+  foodClasses: readonly (FoodClass | null)[];
+}) {
+  const artwork = dishIllustrationFor(templateId);
+
+  if (artwork === null) {
+    return <DishVisual dish={title} foodClasses={foodClasses} size="lg" />;
+  }
+
+  return (
+    <Image
+      source={artwork}
+      style={styles.planDish}
+      resizeMode="contain"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
+}
+
 const styles = StyleSheet.create({
+  /**
+   * Matches `DishVisual`'s `lg` dimension so the header does not reflow when a
+   * plan falls back to the procedural plate.
+   */
+  planDish: { width: 64, height: 64 },
   container: {
     gap: space.md,
   },

@@ -1,12 +1,16 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Sheet } from '@/components/Sheet';
 import { StepShell } from '@/components/StepShell';
 import { Body, Caption, RowTitle } from '@/components/Type';
 import { color, opacity, radius, space } from '@/constants/theme';
+import {
+  GOAL_ILLUSTRATIONS,
+  GOAL_ILLUSTRATION_BY_INTENT,
+} from '@/media/onboardingIllustrations';
 import { ONBOARDING_ENTRY_ROUTES, useOnboardingStore } from '@/store/onboardingStore';
 import type { OnboardingIntent, TargetSource } from '@/types';
 
@@ -60,7 +64,6 @@ export default function Welcome() {
           <StartingPointCard
             intent="calories"
             selected={startingPoint === 'calories'}
-            icon="activity"
             title="Daily calorie & macro target"
             onSelect={() => setStartingPoint('calories')}
             methodLabel={SOURCE_LABEL[targetSource]}
@@ -72,7 +75,6 @@ export default function Welcome() {
           <StartingPointCard
             intent="meal_prep"
             selected={startingPoint === 'meal_prep'}
-            icon="coffee"
             title="Kitchen & meal prep"
             onSelect={() => setStartingPoint('meal_prep')}
           />
@@ -111,10 +113,14 @@ export default function Welcome() {
   );
 }
 
+/**
+ * The two starting points are the same two intents the goals step offers, so
+ * they carry the same reviewed artwork. A glyph here and a painting there would
+ * make one choice look like a different kind of thing from the other.
+ */
 function StartingPointCard({
   intent,
   selected,
-  icon,
   title,
   onSelect,
   methodLabel,
@@ -122,7 +128,6 @@ function StartingPointCard({
 }: {
   intent: OnboardingIntent;
   selected: boolean;
-  icon: keyof typeof Feather.glyphMap;
   title: string;
   onSelect: () => void;
   methodLabel?: string;
@@ -142,7 +147,16 @@ function StartingPointCard({
           {selected ? <Feather name="check" size={18} color={color.onAction} /> : null}
         </View>
         <View style={styles.illustrationSlot}>
-          <Feather name={icon} size={64} color={selected ? color.action : color.muted} />
+          {/* Contained and unframed: the artwork's own warm paper is the
+              surface, so the card does not nest one painted square inside
+              another. Selection stays on the tick and the border. */}
+          <Image
+            source={GOAL_ILLUSTRATIONS[GOAL_ILLUSTRATION_BY_INTENT[intent]]}
+            style={styles.illustration}
+            resizeMode="contain"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
         </View>
         <RowTitle style={styles.cardTitle}>{title}</RowTitle>
       </Pressable>
@@ -200,7 +214,11 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: 0,
-    backgroundColor: color.surface,
+    // `ground`, not `surface`: the artwork's warm paper is lighter than a
+    // card fill, so on `surface` it reads as a pale square inside a darker
+    // one. On the screen's own ground the seam all but disappears and the
+    // hairline border still says "card" — matching the appliance tiles.
+    backgroundColor: color.ground,
     borderWidth: 1.5,
     borderColor: color.line,
     borderRadius: radius.card,
@@ -219,6 +237,7 @@ const styles = StyleSheet.create({
   },
   checkSelected: { backgroundColor: color.action, borderColor: color.action },
   illustrationSlot: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  illustration: { width: 128, height: 128 },
   cardTitle: { textAlign: 'center', fontWeight: '600' },
   methodButton: {
     minHeight: 48,
