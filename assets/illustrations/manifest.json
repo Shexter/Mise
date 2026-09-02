@@ -9,12 +9,12 @@
       "fileName": "appliance/cooktop.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A gas stovetop burner with a saucepan on it, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "promptRecipe": "A four-burner gas cooktop with a warm cream enamel surface, matte black cast-iron pan supports, and small brass control knobs, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "seed": 3925186134,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:252227712c8204e900275315a1a28c6ad84ee01351eb2b53b7156b53d40ef065"
+      "outputChecksum": "sha256:6fbd491e589a9d167c199ba807dc70ff12b5ee7b6e6046f307951c7acad828e4"
     },
     "appliance/oven": {
       "set": "appliance",
@@ -22,12 +22,12 @@
       "fileName": "appliance/oven.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A freestanding oven with its door closed and a window, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "promptRecipe": "A freestanding oven with a warm cream enamel body, a dark smoked glass door, and a slim brass handle rail, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "seed": 3974243835,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:442c2885e8a45236cb9a5fefe944b198968b32751464ddb5cca5ad77442a79b9"
+      "outputChecksum": "sha256:a346ebe5aa074cd9c1242634657a1a04ea0fb7ae534eec1b820208e8248b241a"
     },
     "appliance/microwave": {
       "set": "appliance",
@@ -35,12 +35,12 @@
       "fileName": "appliance/microwave.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A countertop microwave oven, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "promptRecipe": "A countertop microwave oven with a soft olive-green body, a dark smoked glass door, and a cream control strip, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "seed": 1380078008,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:c6b091177b00ca37e2a0689b7866e029da5175f5309a866a8821b2f8d0c09adb"
+      "outputChecksum": "sha256:161eca27c4aa4ef146ac0287fd0f99c7f86ad3d9f725850e6954b729a53d997d"
     },
     "appliance/air_fryer": {
       "set": "appliance",
@@ -48,12 +48,12 @@
       "fileName": "appliance/air_fryer.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A countertop air fryer with a pull-out basket, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "seed": 3232842290,
+      "promptRecipe": "A countertop air fryer with a tall boxy sage-green body and a square front pull-out drawer basket with a wide cream bar handle, a small dark control panel on the sloped top, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 2956551712,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:c22ba7fe99d7677046af87426f990bd71e1fb0d8cae1dfe9b656ad58666c400d"
+      "outputChecksum": "sha256:254d9ff90b94380ec4867859774f276cc659d0670e3d0e22598cce78bf9fa713"
     },
     "appliance/rice_cooker": {
       "set": "appliance",
@@ -61,12 +61,12 @@
       "fileName": "appliance/rice_cooker.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A compact warm-white electric rice cooker with its hinged lid open, showing a removable dark inner pot filled with fluffy white rice, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "seed": 1554054588,
+      "promptRecipe": "A compact electric rice cooker with a warm cream body, a domed cream lid with a dark knob, and a small control panel, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 456515781,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:8714f7da4d8dea80c3ae56b70078b6ab0726db087fef135e4af4ac55930192a2"
+      "outputChecksum": "sha256:45c301b5313012c91c87d8d159c5b1056ab1d82f3a87feccc096cc30eedb4540"
     },
     "appliance/slow_cooker": {
       "set": "appliance",
@@ -74,12 +74,12 @@
       "fileName": "appliance/slow_cooker.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "An oval cream ceramic slow-cooker crock seated in a dark charcoal electric base, topped with a clear domed glass lid and two side handles, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "seed": 3720217106,
+      "promptRecipe": "An oval slow cooker with a slate blue-grey ceramic crock, a clear domed glass lid, and a dark charcoal base with one control dial, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 366596521,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:e342fc063a77002bf20203fe4317a445eff0964919ac6503f42497262aca594c"
+      "outputChecksum": "sha256:5f86c399778a8025839d5f2abad69d1d2be10f0d7425214a3ad622d799a78c12"
     },
     "appliance/blender": {
       "set": "appliance",
@@ -87,12 +87,12 @@
       "fileName": "appliance/blender.webp",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "An upright blender jug on its base, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "promptRecipe": "An upright blender with a clear glass jug of pale green puree on a warm terracotta base with a dark dial, refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "seed": 342120315,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:0f5c50e2e8516c9afc5c5e5e24dc5f7fefd861fc52e04d56c83f6a1bfc987fa1"
+      "outputChecksum": "sha256:22656b10fa12c1254eda39113f26c3a8b60fc6552bc24ea1f50c43b2d8240c02"
     },
     "state/empty-pantry": {
       "set": "state",
@@ -327,6 +327,58 @@
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
       "outputChecksum": "sha256:ef3641cc8519a6c1c63625b8370e7f0d61b1c9678bb7a085f068270cc0b03757"
+    },
+    "action/log-meal": {
+      "set": "action",
+      "assetId": "log-meal",
+      "fileName": "action/log-meal.webp",
+      "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
+      "license": "Generated locally for this project; no third-party asset rights claimed.",
+      "promptRecipe": "A single round plate of spaghetti with cherry tomatoes and fresh basil, a fork resting beside it, refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 3954376702,
+      "workflowVersion": "2.0.0",
+      "reviewDate": "2026-09-02",
+      "reviewedBy": "Timothy Lauw",
+      "outputChecksum": "sha256:464a18f001e94fc16b940a19de0e378a31e535e34de91a74a77961751edc9bd9"
+    },
+    "action/scan-receipt": {
+      "set": "action",
+      "assetId": "scan-receipt",
+      "fileName": "action/scan-receipt.webp",
+      "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
+      "license": "Generated locally for this project; no third-party asset rights claimed.",
+      "promptRecipe": "A long curled paper shop receipt with a torn zigzag bottom edge and faint grey ruled lines, refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 186420439,
+      "workflowVersion": "2.0.0",
+      "reviewDate": "2026-09-02",
+      "reviewedBy": "Timothy Lauw",
+      "outputChecksum": "sha256:60687ffcde655fdb1ddff2f880c948208f0f3ef10c82fe2894d11d7b53c89deb"
+    },
+    "action/photograph-pantry": {
+      "set": "action",
+      "assetId": "photograph-pantry",
+      "fileName": "action/photograph-pantry.webp",
+      "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
+      "license": "Generated locally for this project; no third-party asset rights claimed.",
+      "promptRecipe": "A tall glass storage jar of preserved green vegetables standing beside a plain tin can with a single red band, refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 3290521895,
+      "workflowVersion": "2.0.0",
+      "reviewDate": "2026-09-02",
+      "reviewedBy": "Timothy Lauw",
+      "outputChecksum": "sha256:bc32b9e91402187a53293e3ec2e8ececc8173242843d616f0c2e753653dae028"
+    },
+    "action/speak-pantry": {
+      "set": "action",
+      "assetId": "speak-pantry",
+      "fileName": "action/speak-pantry.webp",
+      "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
+      "license": "Generated locally for this project; no third-party asset rights claimed.",
+      "promptRecipe": "A warm terracotta-red retro table microphone on a round base, with small ink motion lines radiating from it, refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 2952285523,
+      "workflowVersion": "2.0.0",
+      "reviewDate": "2026-09-02",
+      "reviewedBy": "Timothy Lauw",
+      "outputChecksum": "sha256:ef3bedc756f6e98ce768d995b0517519e87b6dd452fed69e2e23a884d4be6f7c"
     }
   },
   "generatedAt": "2026-09-02"

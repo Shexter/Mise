@@ -335,7 +335,13 @@ function main(): void {
   const salt = Number(arg('salt') ?? '0');
   const force = process.argv.includes('--force');
 
-  let slots = inventory().filter((s) => s.set === set && s.status !== 'done');
+  // `--force` is the documented way to re-roll. Without this, an already
+  // promoted slot could never be regenerated: it reports `done`, so it was
+  // filtered out before `--force` ever applied, and the only way to change
+  // shipped art would have been to hand-delete it first.
+  let slots = inventory().filter(
+    (s) => s.set === set && (force || s.status !== 'done'),
+  );
   if (only) slots = slots.filter((s) => only.includes(s.id));
 
   const blocked = slots.find((s) => s.blockedBy);

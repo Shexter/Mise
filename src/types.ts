@@ -1169,18 +1169,24 @@ export const APPLIANCE_IDS: readonly ApplianceId[] = [
 
 export interface ApplianceInfo {
   id: ApplianceId;
+  /** The full name, for prose: "Use: Cooktop / Stovetop" in a cooking guide. */
   label: string;
+  /**
+   * The name under a grid tile, where the picture has already done the
+   * identifying and "Slow cooker / Pressure cooker" would wrap to three lines.
+   */
+  shortLabel: string;
   detail: string;
 }
 
 export const APPLIANCE_CATALOGUE: readonly ApplianceInfo[] = [
-  { id: 'cooktop', label: 'Cooktop / Stovetop', detail: 'Gas, induction, or electric' },
-  { id: 'oven', label: 'Oven', detail: 'Baking, roasting & broiling' },
-  { id: 'microwave', label: 'Microwave', detail: 'Quick reheating & steaming' },
-  { id: 'air_fryer', label: 'Air fryer', detail: 'Crisping & quick batch cooking' },
-  { id: 'rice_cooker', label: 'Rice cooker', detail: 'Grains & one-pot steaming' },
-  { id: 'slow_cooker', label: 'Slow cooker / Pressure cooker', detail: 'Stews, broths & braising' },
-  { id: 'blender', label: 'Blender / Food processor', detail: 'Sauces, purees & smoothies' },
+  { id: 'cooktop', label: 'Cooktop / Stovetop', shortLabel: 'Stovetop', detail: 'Gas, induction, or electric' },
+  { id: 'oven', label: 'Oven', shortLabel: 'Oven', detail: 'Baking, roasting & broiling' },
+  { id: 'microwave', label: 'Microwave', shortLabel: 'Microwave', detail: 'Quick reheating & steaming' },
+  { id: 'air_fryer', label: 'Air fryer', shortLabel: 'Air fryer', detail: 'Crisping & quick batch cooking' },
+  { id: 'rice_cooker', label: 'Rice cooker', shortLabel: 'Rice cooker', detail: 'Grains & one-pot steaming' },
+  { id: 'slow_cooker', label: 'Slow cooker / Pressure cooker', shortLabel: 'Slow cooker', detail: 'Stews, broths & braising' },
+  { id: 'blender', label: 'Blender / Food processor', shortLabel: 'Blender', detail: 'Sauces, purees & smoothies' },
 ];
 
 export function isApplianceId(value: unknown): value is ApplianceId {

@@ -1,7 +1,6 @@
 {
   "workflowVersion": "2.0.0",
   "description": "Locked Mise editorial illustration recipe. The approved broccoli is the gold master. Agents may edit subject briefs or add canonical subjects, but must not change the shared style, render settings, model, or sampler configuration without a new owner-reviewed pilot and workflow-version bump.",
-
   "model": "flux_2_klein_4b_q8p.ckpt",
   "modelSha256": "430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
   "drawThingsCliVersion": "1.20260430.0",
@@ -15,32 +14,28 @@
     "stagedWebpQuality": 90,
     "note": "The 1024px raw render preserves the quality of the approved broccoli. A 512px WebP review copy is derived without removing the paper background or grounding shadow."
   },
-
   "style": {
     "suffixBySet": {
       "ingredient": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "appliance": "refined hand-painted 2D editorial kitchen-tool illustration, delicate dark ink outlines, natural material-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "state": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "onboarding": "refined hand-painted 2D editorial wellness illustration, delicate dark ink outlines, natural muted colors with restrained Mise orange and sage accents, warm ivory paper background, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "technique": "refined hand-painted 2D editorial cooking-guide illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
+      "technique": "refined hand-painted 2D editorial cooking-guide illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "action": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
     }
   },
-
   "exactPrompts": {
     "broccoli": "A single fresh broccoli crown, refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural deep green and sage colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no text, no label, no packaging, no plate, no utensils, no border, not photorealistic"
   },
-
   "seedOverrides": {
     "broccoli": 240524
   },
-
   "goldMasters": {
     "broccoli": {
       "rawPngSha256": "9b7ad077379ee607378932fda394a9a9b85d3d4dbaa0dc7ffc889434c8043e7a",
       "note": "Byte-identical reproduction verified locally with the pinned model, CLI, sampler config, prompt, seed, and 1024px render settings."
     }
   },
-
   "ingredientSubjects": {
     "soy-sauce-light": "a single unlabelled clear glass bottle of light soy sauce with translucent warm amber-brown liquid and a plain brown cap",
     "soy-sauce-dark": "a glass bottle of dark soy sauce",
@@ -159,21 +154,21 @@
     "tortilla": "a stack of round flat flour tortillas",
     "beef-steak": "a raw marbled beef steak cut"
   },
-
   "sets": {
     "appliance": {
       "consumer": "app/onboarding/appliances.tsx",
       "consumerWired": true,
       "idsFrom": "APPLIANCE_CATALOGUE in src/types.ts",
       "subjects": {
-        "cooktop": "a gas stovetop burner with a saucepan on it",
-        "oven": "a freestanding oven with its door closed and a window",
-        "microwave": "a countertop microwave oven",
-        "air_fryer": "a countertop air fryer with a pull-out basket",
-        "rice_cooker": "a compact warm-white electric rice cooker with its hinged lid open, showing a removable dark inner pot filled with fluffy white rice",
-        "slow_cooker": "an oval cream ceramic slow-cooker crock seated in a dark charcoal electric base, topped with a clear domed glass lid and two side handles",
-        "blender": "an upright blender jug on its base"
-      }
+        "cooktop": "a four-burner gas cooktop with a warm cream enamel surface, matte black cast-iron pan supports, and small brass control knobs",
+        "oven": "a freestanding oven with a warm cream enamel body, a dark smoked glass door, and a slim brass handle rail",
+        "microwave": "a countertop microwave oven with a soft olive-green body, a dark smoked glass door, and a cream control strip",
+        "air_fryer": "a countertop air fryer with a tall boxy sage-green body and a square front pull-out drawer basket with a wide cream bar handle, a small dark control panel on the sloped top",
+        "rice_cooker": "a compact electric rice cooker with a warm cream body, a domed cream lid with a dark knob, and a small control panel",
+        "slow_cooker": "an oval slow cooker with a slate blue-grey ceramic crock, a clear domed glass lid, and a dark charcoal base with one control dial",
+        "blender": "an upright blender with a clear glass jug of pale green puree on a warm terracotta base with a dark dial"
+      },
+      "note": "Colour is part of the brief. The shared appliance style asks for material-accurate colour, which resolves every appliance to brushed steel unless the subject names its own palette. The concept calls for coloured cookware in the Mise palette — sage, olive, cream, slate, terracotta."
     },
     "state": {
       "consumer": "src/components/StateIllustration.tsx",
@@ -212,6 +207,17 @@
         "grill": "a griddle pan with sear marks on food",
         "rest": "a covered plate with a small clock beside it",
         "serve": "a finished bowl of food with chopsticks resting across it"
+      }
+    },
+    "action": {
+      "consumer": "src/components/AddSheet.tsx",
+      "consumerWired": true,
+      "note": "One per way into Mise. The scan framing corners on the meal row are vector chrome drawn by the component, not painted into the artwork — they have to stay crisp and retint per theme.",
+      "subjects": {
+        "log-meal": "a single round plate of spaghetti with cherry tomatoes and fresh basil, a fork resting beside it",
+        "scan-receipt": "a long curled paper shop receipt with a torn zigzag bottom edge and faint grey ruled lines",
+        "photograph-pantry": "a tall glass storage jar of preserved green vegetables standing beside a plain tin can with a single red band",
+        "speak-pantry": "a warm terracotta-red retro table microphone on a round base, with small ink motion lines radiating from it"
       }
     }
   }

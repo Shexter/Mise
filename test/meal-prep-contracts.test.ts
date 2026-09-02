@@ -56,6 +56,11 @@ describe('Meal-prep contracts', () => {
       for (const item of APPLIANCE_CATALOGUE) {
         expect(item.label.length).toBeGreaterThan(0);
         expect(item.detail.length).toBeGreaterThan(0);
+        // A grid tile has one line to name the appliance in. The short label
+        // has to be genuinely shorter, and never longer than the full one.
+        expect(item.shortLabel.length, item.id).toBeGreaterThan(0);
+        expect(item.shortLabel.length, item.id).toBeLessThanOrEqual(item.label.length);
+        expect(item.shortLabel, item.id).not.toContain('/');
       }
     });
   });

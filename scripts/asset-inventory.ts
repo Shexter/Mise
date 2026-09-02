@@ -18,7 +18,7 @@ import { pathToFileURL } from 'node:url';
 
 const ROOT = resolvePath(__dirname, '..');
 
-export type SetName = 'ingredient' | 'appliance' | 'state' | 'onboarding' | 'technique';
+export type SetName = 'ingredient' | 'appliance' | 'state' | 'onboarding' | 'technique' | 'action';
 
 export const SET_NAMES: readonly SetName[] = [
   'ingredient',
@@ -26,6 +26,7 @@ export const SET_NAMES: readonly SetName[] = [
   'state',
   'onboarding',
   'technique',
+  'action',
 ];
 
 /**
@@ -93,6 +94,14 @@ export const SET_TARGETS: Record<SetName, SetTarget> = {
     registryConst: 'TECHNIQUE_ILLUSTRATIONS',
     manifestKey: (id) => `technique/${id}`,
     requirePath: (id) => `../../assets/illustrations/technique/${id}.webp`,
+  },
+  action: {
+    assetDir: 'assets/illustrations/action',
+    manifest: 'assets/illustrations/manifest.json',
+    registryFile: 'src/media/actionIllustrations.ts',
+    registryConst: 'ACTION_ILLUSTRATIONS',
+    manifestKey: (id) => `action/${id}`,
+    requirePath: (id) => `../../assets/illustrations/action/${id}.webp`,
   },
 };
 
@@ -188,7 +197,7 @@ export function inventory(): Slot[] {
     });
   }
 
-  for (const setName of ['appliance', 'state', 'onboarding', 'technique'] as const) {
+  for (const setName of ['appliance', 'state', 'onboarding', 'technique', 'action'] as const) {
     const set = briefs.sets[setName];
     const files = filesOnDisk(setName);
     const manifest = manifestIds(setName);

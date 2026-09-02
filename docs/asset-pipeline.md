@@ -31,6 +31,7 @@ table is the map.
 | Named state illustrations | 4 | `StateIllustration` | `STATE_ILLUSTRATIONS` in `src/media/stateIllustrations.ts` |
 | Onboarding goal illustrations | 2 | `app/onboarding/goals.tsx` | `GOAL_ILLUSTRATIONS` in `src/media/onboardingIllustrations.ts` |
 | Cooking technique illustrations | 12 | `app/recipe/[id].tsx` | `TECHNIQUE_ILLUSTRATIONS` in `src/media/techniqueIllustrations.ts` |
+| Add-sheet action illustrations | 4 | `src/components/AddSheet.tsx` | `ACTION_ILLUSTRATIONS` in `src/media/actionIllustrations.ts` |
 
 ### Never generated (vector, stays vector)
 
@@ -58,8 +59,9 @@ accepted the surrounding UI through native visual review**. Art direction
 follows the implemented app; it does not lead it.
 
 **That gate has been cleared.** The owner accepted the implemented surfaces
-through native review, and `connect-generated-illustrations` promoted all 141
-reviewed candidates. The tripwire test that asserted an empty pack —
+through native review, and `connect-generated-illustrations` promoted the first 141
+reviewed candidates, and `enliven-illustrated-surfaces` recoloured the appliance
+set and added the four add-sheet actions. The tripwire test that asserted an empty pack —
 `test/food-visuals.test.ts`, "Tier 3 is empty until art direction is accepted" —
 now reads "Tier 3 ships the reviewed pack, and every unshipped food still
 resolves", holding the other half of the same promise: a populated tier 3 must
@@ -172,7 +174,9 @@ Open the contact sheet. Reject anything that:
 - uses one dead fill instead of hand-painted tonal variation
 - is not recognisably the ingredient
 
-Re-roll rejects with `--only <id> --force --salt N`.
+Re-roll rejects with `--only <id> --force --salt N`. `--force` re-rolls a slot
+that has already been promoted too, so shipped art can be revised without
+hand-deleting anything.
 
 ### 4. Promote what passed
 
@@ -218,6 +222,12 @@ Agents may change only the subject phrase for an ingredient. They must not
 replace “hand-painted editorial food illustration” with “flat vector”, remove
 paper grain or the grounding shadow, add a separate negative prompt, or reduce
 the 1024px generation size. Those changes produced the rejected clip-art look.
+
+**Colour lives in the subject.** The appliance suffix asks for
+material-accurate colour, which is why every appliance first came out brushed
+steel: a stainless air fryer *is* grey. Naming a palette in the subject — "a
+rounded sage-green body", "a slate blue-grey crock" — is the sanctioned lever
+and needs no workflow bump. Reaching for the style suffix instead does.
 
 Edit briefs there, never inline in the script. If you change `style`, bump
 `workflowVersion` so already-shipped assets remain traceable to the wording that

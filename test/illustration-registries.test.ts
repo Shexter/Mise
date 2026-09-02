@@ -10,6 +10,10 @@ import {
   GOAL_ILLUSTRATION_IDS,
 } from '@/media/onboardingIllustrations';
 import {
+  ACTION_ILLUSTRATIONS,
+  ACTION_ILLUSTRATION_IDS,
+} from '@/media/actionIllustrations';
+import {
   STATE_ILLUSTRATIONS,
   STATE_ILLUSTRATION_IDS,
 } from '@/media/stateIllustrations';
@@ -69,6 +73,7 @@ const REGISTRIES: readonly { set: string; keys: readonly string[] }[] = [
   { set: 'onboarding', keys: Object.keys(GOAL_ILLUSTRATIONS) },
   { set: 'state', keys: Object.keys(STATE_ILLUSTRATIONS) },
   { set: 'technique', keys: Object.keys(TECHNIQUE_ILLUSTRATIONS) },
+  { set: 'action', keys: Object.keys(ACTION_ILLUSTRATIONS) },
 ];
 
 describe('Bundled illustration provenance', () => {
@@ -143,6 +148,10 @@ describe('Bundled illustration provenance', () => {
     );
   });
 
+  test('the action registry covers exactly the ways into Mise', () => {
+    expect(Object.keys(ACTION_ILLUSTRATIONS).sort()).toEqual([...ACTION_ILLUSTRATION_IDS].sort());
+  });
+
   test('the technique registry covers exactly the bounded vocabulary', () => {
     expect(Object.keys(TECHNIQUE_ILLUSTRATIONS).sort()).toEqual([...TECHNIQUE_IDS].sort());
     expect(Object.keys(TECHNIQUE_LABELS).sort()).toEqual([...TECHNIQUE_IDS].sort());
@@ -154,6 +163,8 @@ describe('Bundled illustration provenance', () => {
       'src/media/onboardingIllustrations.ts',
       'src/media/stateIllustrations.ts',
       'src/media/techniqueIllustrations.ts',
+      'src/media/actionIllustrations.ts',
+      'src/components/AddSheet.tsx',
       'src/components/StateIllustration.tsx',
       'src/components/TechniqueIllustration.tsx',
       'app/onboarding/goals.tsx',
@@ -178,6 +189,7 @@ describe('Bundled illustration provenance', () => {
       'app/pantry-capture-review.tsx',
       'src/components/StateIllustration.tsx',
       'src/components/TechniqueIllustration.tsx',
+      'src/components/AddSheet.tsx',
     ];
 
     for (const path of screens) {

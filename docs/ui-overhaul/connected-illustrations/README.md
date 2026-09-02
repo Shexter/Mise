@@ -24,6 +24,14 @@ debug build over Metro, 1 September 2026.
 | 10 | [Recipe technique steps](10-recipe-technique-steps.png) | Seven of nine method steps illustrated — chop, sauté, simmer, boil, grill, rest, serve. |
 | 11 | [Dinner error, no artwork](11-dinner-error-has-no-illustration.png) | Counter-evidence: the suggestion **error** branch renders its existing copy with no illustration. Artwork is wired to the empty branch only. |
 
+From `enliven-illustrated-surfaces`, which recoloured the appliance set and
+illustrated the add sheet after the owner's review of the captures above:
+
+| # | Screenshot | What it shows |
+| --- | --- | --- |
+| 12 | [Appliance grid](12-appliance-grid-coloured-cookware.png) | The recoloured cookware in a two-column grid — cream stovetop and oven, olive microwave, sage air fryer, cream rice cooker, slate slow cooker. Tick in the corner, short name, no explanatory line. Two tiles selected. |
+| 13 | [Add sheet](13-add-sheet-illustrated-methods.png) | The four ways into Mise as painted objects, with vector viewfinder corners around the meal. "Cook something" keeps its Feather glyph, which is the registry's designed fallback for a method with no promoted artwork. |
+
 ## What 10 and 11 are really showing
 
 Screenshot 10 is as much about the two steps with **no** picture as the seven

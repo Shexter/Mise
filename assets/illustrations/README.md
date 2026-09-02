@@ -20,6 +20,7 @@ assets/illustrations/
   onboarding/<goal-id>.webp
   state/<state-role>.webp
   technique/<technique-id>.webp
+  action/<action-id>.webp
 ```
 
 Manifest keys are `<set>/<id>`, because the id spaces overlap — `blender` is an
@@ -47,6 +48,7 @@ human gate.
 | `onboarding` | `GOAL_ILLUSTRATIONS` in `src/media/onboardingIllustrations.ts` |
 | `state` | `STATE_ILLUSTRATIONS` in `src/media/stateIllustrations.ts` |
 | `technique` | `TECHNIQUE_ILLUSTRATIONS` in `src/media/techniqueIllustrations.ts` |
+| `action` | `ACTION_ILLUSTRATIONS` in `src/media/actionIllustrations.ts` |
 
 ## Provenance is a factual record
 
@@ -65,6 +67,7 @@ fabricated provenance record is worse than no entry at all.
 ## What is deliberately not here
 
 Feather glyphs, the bottom-navigation icons, the Pantry sprig, the category
-fallback badges, and dish plates are vector and stay vector. They are functional
+fallback badges, dish plates, selection ticks, and the add sheet's scan-framing
+corners are vector and stay vector. They are functional
 micro-UI that has to retint per theme and per state, and a diffusion model cannot
 produce a crisp, recolourable 16px chevron. See `docs/asset-pipeline.md`.

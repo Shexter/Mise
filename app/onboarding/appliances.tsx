@@ -1,11 +1,11 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, PixelRatio, Pressable, StyleSheet, View } from 'react-native';
 
 import { StepShell } from '@/components/StepShell';
 import { Body, Caption } from '@/components/Type';
-import { color, opacity, radius, space } from '@/constants/theme';
+import { color, opacity, radius, space, type } from '@/constants/theme';
 import { APPLIANCE_ILLUSTRATIONS } from '@/media/onboardingIllustrations';
 import { useCookingPreferencesStore } from '@/store/cookingPreferencesStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -63,23 +63,27 @@ export default function AppliancesStep() {
   return (
     <StepShell
       step="appliances"
-      title="What appliances do you have?"
-      detail="Select what is available in your kitchen. Mise will suggest plans that fit what you own."
+      title="What do you cook with?"
+      detail="Pick everything you have. Recipes will fit your kitchen."
       primaryLabel="Continue"
       primaryLoading={saving}
       onPrimary={onContinue}
       secondaryLabel="Skip for now"
       onSecondary={onSkip}
     >
-      <View style={styles.list}>
+      {/* A grid, because this is a recognition task. Someone knows their own
+          rice cooker by sight, so the picture does the identifying and the name
+          only confirms it — a paragraph explaining what a microwave is for is
+          reading work in place of looking. */}
+      <View style={styles.grid}>
         {APPLIANCE_CATALOGUE.map((app) => {
           const selected = !noAppliancesChosen && draftAppliances.includes(app.id);
           return (
-            <ApplianceRow
+            <ApplianceTile
               key={app.id}
               applianceId={app.id}
-              label={app.label}
-              detail={app.detail}
+              label={app.shortLabel}
+              accessibilityLabel={app.label}
               selected={selected}
               onToggle={() => {
                 if (noAppliancesChosen) setNoAppliances(false);
@@ -88,122 +92,173 @@ export default function AppliancesStep() {
             />
           );
         })}
-
-        <Pressable
-          onPress={() => setNoAppliances(!noAppliancesChosen)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: noAppliancesChosen }}
-          accessibilityLabel={`No appliances, no cook ideas, ${noAppliancesChosen ? 'selected' : 'not selected'}`}
-          style={({ pressed }) => [
-            styles.noApplianceRow,
-            noAppliancesChosen && styles.rowSelected,
-            pressed && { opacity: opacity.pressed },
-          ]}
-        >
-          <View style={styles.rowText}>
-            <Body style={[styles.label, noAppliancesChosen && styles.labelSelected]}>
-              No appliances / no-cook ideas
-            </Body>
-            <Caption muted>Only show salads, cold bowls, and assembly recipes.</Caption>
-          </View>
-          <View style={[styles.checkbox, noAppliancesChosen && styles.checkboxSelected]}>
-            {noAppliancesChosen ? <Feather name="check" size={16} color={color.surface} /> : null}
-          </View>
-        </Pressable>
       </View>
+
+      {/* Full width and wordier on purpose: this is the opt-out, not an eighth
+          appliance to compare, and it is the one choice whose consequence is
+          not obvious from a picture. */}
+      <Pressable
+        onPress={() => setNoAppliances(!noAppliancesChosen)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: noAppliancesChosen }}
+        accessibilityLabel={`No appliances, no cook ideas, ${noAppliancesChosen ? 'selected' : 'not selected'}`}
+        style={({ pressed }) => [
+          styles.noApplianceRow,
+          noAppliancesChosen && styles.rowSelected,
+          pressed && { opacity: opacity.pressed },
+        ]}
+      >
+        <View style={[styles.checkbox, noAppliancesChosen && styles.checkboxSelected]}>
+          {noAppliancesChosen ? <Feather name="check" size={14} color={color.onAction} /> : null}
+        </View>
+        <View style={styles.rowText}>
+          <Body style={[styles.label, noAppliancesChosen && styles.labelSelected]}>
+            No appliances / no-cook ideas
+          </Body>
+          <Caption muted>Only show salads, cold bowls, and assembly recipes.</Caption>
+        </View>
+      </Pressable>
     </StepShell>
   );
 }
 
 /**
- * The illustration is added beside the tick, never in its place. A painted tick
- * could not retint per theme or per state, and selection has to stay
- * unmistakable at a glance.
+ * One appliance as a tile: a tick in the corner, its illustration, its name.
+ *
+ * The tick stays vector. Selection has to read at a glance and retint per theme
+ * and per state, which a painted mark cannot do — and the artwork is what the
+ * person is choosing, so it must not also be the control.
  */
-function ApplianceRow({
+function ApplianceTile({
   applianceId,
   label,
-  detail,
+  accessibilityLabel,
   selected,
   onToggle,
 }: {
   applianceId: ApplianceId;
   label: string;
-  detail: string;
+  accessibilityLabel: string;
   selected: boolean;
   onToggle: () => void;
 }) {
+  // React Native scales font size but not line height, so a fixed line box
+  // clips its own glyphs at a large system text size.
+  const fontScale = PixelRatio.getFontScale();
+
   return (
     <Pressable
       onPress={onToggle}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${label}, ${selected ? 'selected' : 'not selected'}`}
+      accessibilityLabel={`${accessibilityLabel}, ${selected ? 'selected' : 'not selected'}`}
       style={({ pressed }) => [
-        styles.row,
-        selected && styles.rowSelected,
+        styles.tile,
+        selected && styles.tileSelected,
         pressed && { opacity: opacity.pressed },
       ]}
     >
-      {/* Contained and unframed: the artwork's warm paper is the surface, so
-          the row does not nest one tile inside another. */}
+      <View style={[styles.checkbox, styles.tileCheckbox, selected && styles.checkboxSelected]}>
+        {selected ? <Feather name="check" size={14} color={color.onAction} /> : null}
+      </View>
+
+      {/* Contained and unframed: the artwork's own warm paper is the surface,
+          so the tile does not nest one painted square inside another. */}
       <Image
         source={APPLIANCE_ILLUSTRATIONS[applianceId]}
-        style={styles.illustration}
+        style={styles.art}
         resizeMode="contain"
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       />
-      <View style={styles.rowText}>
-        <Body style={[styles.label, selected && styles.labelSelected]}>{label}</Body>
-        <Caption muted>{detail}</Caption>
-      </View>
-      <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-        {selected ? <Feather name="check" size={16} color={color.surface} /> : null}
-      </View>
+
+      <Body
+        style={[
+          styles.tileLabel,
+          { lineHeight: type.body.lineHeight * fontScale },
+          selected && styles.labelSelected,
+        ]}
+      >
+        {label}
+      </Body>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {
-    gap: space.sm,
-  },
-  row: {
+  grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.md,
+  },
+  /**
+   * Two to a row, sized by the leftover width rather than a fixed number, so
+   * the pair still fits when the gutter changes.
+   */
+  tile: {
+    flexGrow: 1,
+    flexBasis: '45%',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: space.md,
-    backgroundColor: color.surface,
+    paddingTop: space.base,
+    paddingBottom: space.md,
+    paddingHorizontal: space.sm,
+    // `ground`, not `surface`: the artwork's warm paper is lighter than a card
+    // fill, and on `surface` it reads as a pale square sitting inside a darker
+    // one. On the screen's own ground the seam all but disappears and the
+    // hairline border still says "tile" — which is how the concept draws it.
+    backgroundColor: color.ground,
     borderRadius: radius.card,
     borderWidth: 1.5,
     borderColor: color.line,
+    overflow: 'hidden',
+  },
+  tileSelected: {
+    borderColor: color.action,
+  },
+  tileCheckbox: {
+    position: 'absolute',
+    top: space.sm,
+    left: space.sm,
+    // Above the artwork it overlaps, so the tick stays the thing you can see.
+    zIndex: 1,
+  },
+  /**
+   * Full-bleed to the tile's edges. The artwork carries its own warm paper, so
+   * letting it reach the border means there is no lighter square inside a
+   * darker one — the paper simply is the top of the tile.
+   */
+  art: {
+    // A definite square. A percentage width or a bare `aspectRatio` leaves the
+    // box indefinite inside this centred column, and the image falls back to
+    // its own 512px intrinsic size and overruns the tile.
+    width: 120,
+    height: 120,
+    marginBottom: space.sm,
+  },
+  tileLabel: {
+    textAlign: 'center',
+    fontWeight: '500',
+    color: color.ink,
+    paddingHorizontal: space.sm,
   },
   noApplianceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: space.md,
     padding: space.md,
     backgroundColor: color.surface,
     borderRadius: radius.card,
     borderWidth: 1.5,
     borderColor: color.line,
-    marginTop: space.sm,
+    marginTop: space.base,
   },
   rowSelected: {
     borderColor: color.action,
     backgroundColor: color.surface,
   },
-  illustration: {
-    width: 56,
-    height: 56,
-    marginRight: space.md,
-    borderRadius: radius.input,
-  },
   rowText: {
     flex: 1,
     gap: space.xs,
-    marginRight: space.md,
   },
   label: {
     fontWeight: '500',
