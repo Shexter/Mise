@@ -1,38 +1,34 @@
 **Planning only.** These tasks are deliberately unchecked. Nothing here is
-authorized for implementation until the open questions in `proposal.md` and the
+authorized for implementation until the open question in `proposal.md` and the
 decisions in `design.md` are settled with the owner.
 
-## 1. Settle the open questions
+**Reconciled 2026-09-07.** The persistence and hand-off sections that used to
+stand here — settle where a plan lives, add the plan migration and queries,
+persist on completion, replace the finish action with a two-door bridge, widen
+the Pantry banner — were removed, not completed. They are owned by
+[`lead-with-weekly-meal-planning`](../lead-with-weekly-meal-planning/) §3.1–3.4
+and §7.4–7.5, and `design.md` records where each one landed. Nothing in this
+file has been ticked.
 
-- [ ] 1.1 Decide where a first plan is persisted, and whether that carries a forward-only migration.
-- [ ] 1.2 Decide whether the cooking guide stays an onboarding sheet or becomes its own route.
-- [ ] 1.3 Decide what a saved plan says once the pantry no longer matches it.
+## 1. Settle the remaining question
 
-## 2. Persistence
+- [ ] 1.1 Decide whether authored template steps carry a `techniqueId`, and if so add it to `CookingGuideStep` before planner snapshots start being written.
 
-- [ ] 2.1 Add the plan schema as a forward-only migration appended to `MIGRATIONS`.
-- [ ] 2.2 Add plan read and write queries in `src/db/queries/`, with unit tests over the real SQL.
-- [ ] 2.3 Persist the plan when the kitchen branch completes, and expose it through `cookingPreferencesStore`.
+## 2. Step 3 — start with what you already have
 
-## 3. Hand-off
+- [ ] 2.1 Rebuild the screen camera-led: framed scan area with vector viewfinder corners, **Scan ingredients** primary into the existing `/pantry-capture` route.
+- [ ] 2.2 Add suggested starter chips over broad canonical ingredients, using their existing tier-3 art; selecting one adds reviewable stock, not a stated fact about the kitchen.
+- [ ] 2.3 Keep **Add by hand** and the catalogue path reachable, so no key and no camera still finishes the step.
+- [ ] 2.4 Keep the microphone action a visible sibling of camera and manual entry per decision 180; verify it needs no scroll at 411 dp.
 
-- [ ] 3.1 Replace `first-plan`'s finish action with the two-door bridge: start cooking now, or look around first.
-- [ ] 3.2 Widen the Pantry resume banner to cover a completed setup holding an unstarted plan, and make it dismissible.
-- [ ] 3.3 Make the banner disappear once the plan is started or discarded.
+## 3. Step 4 — your first prep plan
 
-## 4. Step 3 — start with what you already have
+- [ ] 3.1 Rebuild as hero dish, meta chips (appliance, portions, time), ingredient summary, numbered guide.
+- [ ] 3.2 Render technique illustrations per step through `resolveTechnique()`, and make a mix of illustrated and text-only steps look deliberate rather than half-loaded.
+- [ ] 3.3 Build the layout against fields present on both the current in-memory plan and a planner-supplied scheduled meal, so the data source can be swapped without a second rewrite.
 
-- [ ] 4.1 Rebuild the screen camera-led: framed scan area with vector viewfinder corners, **Scan ingredients** primary.
-- [ ] 4.2 Add suggested starter chips over broad canonical ingredients, using their existing tier-3 art.
-- [ ] 4.3 Keep **Add by hand** and the catalogue path reachable, so no key and no camera still finishes the step.
+## 4. Verification
 
-## 5. Step 4 — your first prep plan
-
-- [ ] 5.1 Rebuild as hero dish, meta chips, ingredient summary, numbered guide.
-- [ ] 5.2 Render technique illustrations per step through `resolveTechnique()`, and make a mix of illustrated and text-only steps look deliberate.
-- [ ] 5.3 Consider a `techniqueId` on authored template steps so step art is exact rather than inferred.
-
-## 6. Verification
-
-- [ ] 6.1 `openspec validate guide-into-first-prep-plan --strict`, `npm run typecheck`, `npm test`.
-- [ ] 6.2 Native review of both steps and the hand-off, including the no-key and no-camera paths.
+- [ ] 4.1 `openspec validate guide-into-first-prep-plan --strict`, `npm run typecheck`, `npm test`. Record exact results.
+- [ ] 4.2 Native review of both steps, including the no-key and no-camera paths, at 411 dp and at large text, in a light and the dark palette.
+- [ ] 4.3 Confirm no plan storage, no migration, and no change to the kitchen branch's destination or the Pantry resume banner was introduced here.

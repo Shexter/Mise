@@ -124,6 +124,9 @@ export default function RootLayout() {
             <Stack.Screen name="recipes" />
             <Stack.Screen name="recipe-intake" options={{ presentation: 'modal' }} />
             <Stack.Screen name="recipe/[id]" />
+            <Stack.Screen name="plan/picker" />
+            <Stack.Screen name="plan/recipe" />
+            <Stack.Screen name="plan/meal" />
             <Stack.Screen name="debug/tokens" options={{ presentation: 'modal' }} />
           </Stack>
           )}

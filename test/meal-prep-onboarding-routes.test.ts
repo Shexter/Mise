@@ -141,8 +141,8 @@ describe('Meal-prep onboarding routes, states and accessibility', () => {
     test('welcome starting-point cards are accessible radio choices', () => {
       expect(welcomeScreen).toContain('accessibilityRole="radio"');
       expect(welcomeScreen).toContain('accessibilityState={{ checked: selected }}');
-      expect(welcomeScreen).toContain('Daily calorie & macro target');
-      expect(welcomeScreen).toContain('Kitchen & meal prep');
+      expect(welcomeScreen).toContain('Set my calorie & macro target');
+      expect(welcomeScreen).toContain('Plan my meals');
     });
 
     test('appliances screen has accessible roles, no-appliance toggle, and skip action', () => {

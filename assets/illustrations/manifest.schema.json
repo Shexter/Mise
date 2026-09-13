@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://mise.local/schemas/illustration-manifest-1.json",
   "title": "Mise non-food illustration manifest",
-  "description": "Provenance record for every appliance, state, onboarding, and technique illustration shipped inside assets/illustrations/. An asset that is not listed here is not approved for distribution. Food illustrations are keyed by canonical ingredient id and carry a FoodClass, so they keep their own manifest in assets/food/.",
+  "description": "Provenance record for every appliance, state, onboarding, technique, action, dish, and cuisine illustration shipped inside assets/illustrations/. An asset that is not listed here is not approved for distribution. Food illustrations are keyed by canonical ingredient id and carry a FoodClass, so they keep their own manifest in assets/food/.",
   "type": "object",
   "required": ["schemaVersion", "description", "assets"],
   "additionalProperties": false,
@@ -14,7 +14,7 @@
     "assets": {
       "type": "object",
       "description": "Keyed '<set>/<id>'. The set is part of the key because id spaces overlap across sets — 'blender' is both an appliance and a plausible technique subject.",
-      "propertyNames": { "pattern": "^(appliance|state|onboarding|technique|action|dish)/[a-z0-9]+([-_][a-z0-9]+)*$" },
+      "propertyNames": { "pattern": "^(appliance|state|onboarding|technique|action|dish|cuisine)/[a-z0-9]+([-_][a-z0-9]+)*$" },
       "additionalProperties": { "$ref": "#/definitions/asset" }
     }
   },
@@ -38,7 +38,7 @@
       "properties": {
         "set": {
           "type": "string",
-          "enum": ["appliance", "state", "onboarding", "technique", "action", "dish"],
+          "enum": ["appliance", "state", "onboarding", "technique", "action", "dish", "cuisine"],
           "description": "Must match the set segment of this entry's key."
         },
         "assetId": {
@@ -48,7 +48,7 @@
         },
         "fileName": {
           "type": "string",
-          "pattern": "^(appliance|state|onboarding|technique|action|dish)/[a-z0-9]+([-_][a-z0-9]+)*\\.(png|webp)$",
+          "pattern": "^(appliance|state|onboarding|technique|action|dish|cuisine)/[a-z0-9]+([-_][a-z0-9]+)*\\.(png|webp)$",
           "description": "Path relative to assets/illustrations/."
         },
         "sourceModel": {

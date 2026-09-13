@@ -143,10 +143,43 @@ export async function matchShoppingItemToReceipt(
     [shoppingItemId, receiptLineId],
   );
   if (existing && existing.undone_at === null) return toShoppingListReceiptMatch(existing);
+  const planDemand = await db().getFirstAsync<{
+    total_qty: number | null;
+    min_unit: string | null;
+    max_unit: string | null;
+    unknown_count: number;
+  }>(
+    `SELECT SUM(pgc.requested_qty) AS total_qty,
+            MIN(pgc.requested_unit) AS min_unit,
+            MAX(pgc.requested_unit) AS max_unit,
+            SUM(pgc.has_unknown_qty) AS unknown_count
+       FROM plan_grocery_contributions pgc
+       JOIN plan_grocery_applications pga ON pga.id = pgc.application_id
+      WHERE pgc.shopping_item_id = ? AND pga.undone_at IS NULL`,
+    [shoppingItemId],
+  );
+  const receiptQuantity = await db().getFirstAsync<{ qty: number | null; unit: string | null }>(
+    'SELECT qty, unit FROM receipt_lines WHERE id = ?', [receiptLineId],
+  );
+  const hasPlanDemand = planDemand?.total_qty !== null || (planDemand?.unknown_count ?? 0) > 0;
+  const planFullyCovered = !hasPlanDemand || (
+    planDemand!.unknown_count === 0 &&
+    planDemand!.total_qty !== null &&
+    planDemand!.min_unit === planDemand!.max_unit &&
+    receiptQuantity?.qty !== null && receiptQuantity?.qty !== undefined &&
+    receiptQuantity.unit === planDemand!.min_unit &&
+    receiptQuantity.qty >= planDemand!.total_qty
+  );
   const id = randomUUID();
   const now = new Date().toISOString();
   await db().withExclusiveTransactionAsync(async (txn) => {
-    await txn.runAsync("UPDATE shopping_list_items SET status = 'purchased', completed_at = ?, updated_at = ? WHERE id = ?", [now, now, shoppingItemId]);
+    if (planFullyCovered) {
+      await txn.runAsync("UPDATE shopping_list_items SET status = 'purchased', completed_at = ?, updated_at = ? WHERE id = ?", [now, now, shoppingItemId]);
+    } else {
+      // Identity alone cannot prove a weekly quantity. Keep the outstanding
+      // plan row open while retaining this receipt match as purchase history.
+      await txn.runAsync("UPDATE shopping_list_items SET status = 'open', completed_at = NULL, updated_at = ? WHERE id = ?", [now, shoppingItemId]);
+    }
     await txn.runAsync(
       `INSERT OR REPLACE INTO shopping_list_receipt_matches
         (id, shopping_item_id, receipt_id, receipt_line_id, previous_status, matched_at, undone_at)

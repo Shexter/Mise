@@ -4,12 +4,14 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { PlanGrocerySection } from '@/components/planner/PlanGrocerySection';
 import { ShoppingListSection } from '@/components/pantry/ShoppingListSection';
 import { Screen } from '@/components/Screen';
 import { Body, Caption, ScreenTitle } from '@/components/Type';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
 import { listReceipts } from '@/db/queries';
 import { pendingReceipts, retryAllPending } from '@/logic/receiptService';
+import { useMealScheduleStore } from '@/store/mealScheduleStore';
 
 /** Grocery planning and receipt tools, kept together as one purchase loop. */
 export default function ShopScreen() {
@@ -29,6 +31,7 @@ export default function ShopScreen() {
   useFocusEffect(
     useCallback(() => {
       void (async () => {
+        await useMealScheduleStore.getState().load();
         await retryAllPending();
         await refreshReceiptState();
       })();
@@ -102,6 +105,8 @@ export default function ShopScreen() {
           <Caption muted>No key or connection yet — tap to try again.</Caption>
         </Pressable>
       ) : null}
+
+      <PlanGrocerySection />
 
       <ShoppingListSection />
     </Screen>

@@ -1,86 +1,62 @@
-import { Feather } from '@expo/vector-icons';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import {
-  AppState,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  type AppStateStatus,
-} from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { hasApiKey, maskedApiKey } from '@/api/keyStore';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { StateIllustration } from '@/components/StateIllustration';
-import { CountingNumber } from '@/components/CountingNumber';
-import { DailyTargetSummary } from '@/components/DailyTargetSummary';
-import { DateStrip } from '@/components/DateStrip';
-import { DayRail } from '@/components/DayRail';
-import { HistoryCalendarSheet } from '@/components/HistoryCalendarSheet';
-import { MealRow } from '@/components/MealRow';
-import { NavCoachMark } from '@/components/NavCoachMark';
-import { Body, Caption, DisplayTitle, RowTitle, ScreenTitle, SectionLabel } from '@/components/Type';
-import { useToast } from '@/components/Toast';
+import { CaloriesPage } from '@/components/today/CaloriesPage';
+import { MealPlanPage } from '@/components/today/MealPlanPage';
+import { TodayTaskSelector } from '@/components/today/TodayTaskSelector';
 import {
-  color,
-  duration,
-  layout,
-  opacity,
-  radius,
-  space,
-} from '@/constants/theme';
-import { resetDatabase } from '@/db';
-import { populateDemoData } from '@/db/demoData';
-import {
-  getBodyMeasurements,
-  getLoggedDates,
-  listPendingCaptures,
-  listPantryItems,
-  listRecipes,
-  listReceipts,
-} from '@/db/queries';
-import { friendlyDate, fullDate, isToday, localDateString } from '@/logic/dates';
+  readTodayPagePreference,
+  writeTodayPagePreference,
+} from '@/components/today/todayPagePreference';
+import { color, duration, space } from '@/constants/theme';
 import { dailyNutritionSummary } from '@/logic/dailyNutritionSummary';
-import { roundCalories } from '@/logic/scaling';
-import { deleteAllPhotos } from '@/media/photos';
+import {
+  clearedRouteParams,
+  resolveTodayPage,
+  resolveTodayRouteIntent,
+  type PlannerView,
+  type TodayPage,
+} from '@/logic/todayRoute';
 import { useDayStore } from '@/store/dayStore';
-import { useProfileStore } from '@/store/profileStore';
-import type { MealWithItems, SuggestionTargetMacro } from '@/types';
+import { useMealScheduleStore } from '@/store/mealScheduleStore';
+import type { PlannerNutrition } from '@/types';
 
+/**
+ * Today, which holds two tasks: planning the week, and reviewing what was eaten.
+ *
+ * This screen is the shell for both. It owns the task selector, which page is
+ * showing, and the one-time resolution of an arrival's intent — nothing else.
+ * Each page owns its own content, its own scroll position and its own date, so
+ * a plan for next Tuesday and a logged Monday can be on screen in turn without
+ * either heading describing the other's day.
+ */
 export default function TodayScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
-  const toast = useToast();
-  const params = useLocalSearchParams<{ savedMealId?: string }>();
+  const params = useLocalSearchParams<{
+    todayPage?: string;
+    savedMealId?: string;
+    date?: string;
+    plannerView?: string;
+  }>();
 
-  const {
-    selectedDate,
-    loading,
-    meals,
-    target,
-    consumed,
-    loggedDateSet,
-    earliestLoggedDate,
-    loadMonthSummaries,
-    selectDate,
-    syncToToday,
-    resumeFollowing,
-    refresh,
-    removeMeal,
-    undoRemove,
-  } = useDayStore();
+  const selectedDate = useDayStore((state) => state.selectedDate);
+  const meals = useDayStore((state) => state.meals);
+  const target = useDayStore((state) => state.target);
+  const syncToToday = useDayStore((state) => state.syncToToday);
+  const refresh = useDayStore((state) => state.refresh);
+  const resumeFollowing = useDayStore((state) => state.resumeFollowing);
+  const plannerDate = useMealScheduleStore((state) => state.selectedDate);
 
+  const [page, setPage] = useState<TodayPage>(() =>
+    resolveTodayPage(resolveTodayRouteIntent(params), readTodayPagePreference()));
+  const [view, setView] = useState<PlannerView>('day');
   const [keyMissing, setKeyMissing] = useState(false);
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [highlightMealId, setHighlightMealId] = useState<string | null>(null);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
 
   // The Today tab opens on today: sync (which resets `selectedDate` only
   // when `following` is true) before refreshing, so a day chosen earlier in
@@ -90,6 +66,12 @@ export default function TodayScreen() {
   useFocusEffect(
     useCallback(() => {
       void syncToToday().then(() => refresh());
+      // The planner reloads the week it is already showing rather than the
+      // logged day's week, so returning to a plan for next Tuesday does not
+      // silently snap it back to this week. A pending draft survives: the store
+      // persists every edit as it is made and reads it back on load.
+      const planner = useMealScheduleStore.getState();
+      void planner.load(planner.selectedDate);
       void (async () => {
         const keyPresent = await hasApiKey();
         setKeyMissing(!keyPresent);
@@ -110,435 +92,91 @@ export default function TodayScreen() {
     return () => subscription.remove();
   }, [syncToToday]);
 
-  // A meal saved from the review flow arrives as a route param; highlight its
-  // new segment for the entering animation, then clear so revisits don't replay.
+  /**
+   * One arrival, applied once.
+   *
+   * Route intent outranks the stored preference, and clearing the parameters
+   * afterwards is what stops a later manual tab switch from being undone by a
+   * replay of the save that brought the person here.
+   */
+  const appliedIntent = useRef<string | null>(null);
   useEffect(() => {
-    if (params.savedMealId) {
-      setHighlightMealId(params.savedMealId);
-      const timer = setTimeout(() => {
-        setHighlightMealId(null);
-        router.setParams({ savedMealId: undefined });
-      }, duration.count);
-      return () => clearTimeout(timer);
+    const intent = resolveTodayRouteIntent(params);
+    if (intent.consumed.length === 0) return;
+    const signature = JSON.stringify(intent);
+    if (appliedIntent.current === signature) return;
+    appliedIntent.current = signature;
+
+    if (intent.page) setPage(intent.page);
+    if (intent.plannerView) setView(intent.plannerView);
+    if (intent.plannerDate) {
+      const planner = useMealScheduleStore.getState();
+      void planner.load(intent.plannerDate);
     }
-    return undefined;
-  }, [params.savedMealId]);
+    if (intent.highlightMealId) setHighlightMealId(intent.highlightMealId);
+
+    // A meal saved from the review flow arrives as a route param; the highlight
+    // runs for the entering animation, then the parameters clear so revisits
+    // do not replay them.
+    const timer = setTimeout(() => {
+      setHighlightMealId(null);
+      router.setParams(clearedRouteParams(intent));
+      appliedIntent.current = null;
+    }, duration.count);
+    return () => clearTimeout(timer);
+  }, [params.todayPage, params.savedMealId, params.date, params.plannerView]);
+
+  const onSelectPage = (next: TodayPage) => {
+    setPage(next);
+    // Only a deliberate tap becomes the remembered default. Landing on Calories
+    // because a meal was saved must not make Calories the page a planner opens
+    // on tomorrow.
+    writeTodayPagePreference(next);
+  };
 
   const nutritionSummary = dailyNutritionSummary(selectedDate, meals, target);
-  const energy = nutritionSummary.metrics.energy;
-  const targetCalories = energy.target ?? 0;
-  const remaining = energy.knownValue === null || energy.target === null
-    ? null
-    : energy.target - roundCalories(energy.knownValue);
-  const isOver = remaining !== null && remaining < 0;
-
-  // The coach mark floats over the scroll area, so the content has to end
-  // above it rather than scroll underneath and be covered.
-  const showAddHint = !loading && meals.length === 0;
-  const scrollBottom = tabBarHeight + space.lg;
-
-  const onDelete = (mealId: string) => {
-    void removeMeal(mealId);
-    toast.show({
-      kind: 'success',
-      message: 'Meal removed.',
-      actionLabel: 'Undo',
-      onAction: () => void undoRemove(),
-      durationMs: 5_000,
-    });
-  };
-
-  const onMacroRequest = (macro: SuggestionTargetMacro) =>
-    router.push({ pathname: '/dinner', params: { macro } });
-
-  const onLoadDemoData = () => {
-    Alert.alert(
-      'Replace with rich demo data?',
-      'This replaces your current local profile with 57 meals across 28 days (with accurate calories, macros, and fibre trends), 24 pantry items across fridge/freezer/pantry/counter, recipes, categorized shopping list, and body composition data.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Load demo dataset',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              setDemoLoading(true);
-              try {
-                deleteAllPhotos('meals');
-                deleteAllPhotos('receipts');
-                deleteAllPhotos('pantry-captures');
-                deleteAllPhotos('recipes');
-                await resetDatabase();
-                const summary = await populateDemoData();
-                await useProfileStore.getState().load();
-                useDayStore.setState({
-                  selectedDate: localDateString(),
-                  following: true,
-                  monthSummaries: {},
-                  pendingUndo: null,
-                  lastDepletion: null,
-                });
-                await useDayStore.getState().refresh();
-                router.replace('/(tabs)');
-                toast.show({ message: `Demo loaded: ${summary.meals} meals, ${summary.pantryItems} pantry items, ${summary.recipes} recipes, and ${summary.shoppingItems} shopping items.` });
-              } catch (error) {
-                console.warn('Demo data load failed.', error);
-                const detail = error instanceof Error ? error.message : String(error);
-                toast.show({ kind: 'recoverable-error', message: `Demo data could not be loaded: ${detail}` });
-              } finally {
-                setDemoLoading(false);
-              }
-            })();
-          },
-        },
-      ],
-    );
-  };
-
-  const onConfirmDemoData = () => {
-    Alert.alert(
-      'Replace your logged data with demo data?',
-      'You already have meals, pantry items, or saved recipes on this device. Loading the demo dataset will replace them — your existing records cannot be recovered from this action.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Replace with demo',
-          style: 'destructive',
-          onPress: () => void onLoadDemoData(),
-        },
-      ],
-    );
-  };
-
-  const hasExistingUserRecords = async () => {
-    try {
-      const loggedDates = await getLoggedDates();
-      if (loggedDates.length > 0) return true;
-
-      const pantryItems = await listPantryItems();
-      if (pantryItems.length > 0) return true;
-
-      const recipes = await listRecipes();
-      if (recipes.length > 0) return true;
-
-      const receipts = await listReceipts();
-      if (receipts.length > 0) return true;
-
-      const pendingCaptures = await listPendingCaptures();
-      if (pendingCaptures.length > 0) return true;
-
-      const bodyMeasurements = await getBodyMeasurements();
-      if (bodyMeasurements.length > 0) return true;
-
-      return false;
-    } catch (error) {
-      console.warn('Failed to check for existing user records:', error);
-      return true;
-    }
-  };
-
-  const onDemoCardPress = () => {
-    void (async () => {
-      if (await hasExistingUserRecords()) {
-        onConfirmDemoData();
-      } else {
-        onLoadDemoData();
-      }
-    })();
-  };
+  // What is already eaten, as one entry the planner can compare a proposed
+  // portion against — and only when the plan is looking at the same day the
+  // meals were logged on. For any other date the app has not read that day's
+  // meals, and claiming zero eaten would be an invention.
+  const eatenEntries: PlannerNutrition[] = plannerDate === selectedDate && nutritionSummary.hasMeals
+    ? [{
+      calories: nutritionSummary.metrics.energy.knownValue,
+      proteinG: nutritionSummary.metrics.protein.knownValue,
+      carbsG: nutritionSummary.metrics.carbohydrate.knownValue,
+      fatG: nutritionSummary.metrics.fat.knownValue,
+      fibreG: nutritionSummary.metrics.fibre.knownValue,
+      source: null,
+    }]
+    : [];
 
   return (
-    <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + space.sm, paddingBottom: scrollBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <DisplayTitle>{friendlyDate(selectedDate)}</DisplayTitle>
-            <Caption muted>{fullDate(selectedDate)}</Caption>
-          </View>
-          <Pressable
-            onPress={() => setCalendarOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open meal history calendar"
-            style={({ pressed }) => [
-              styles.calendarButton,
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <Feather name="calendar" size={20} color={color.ink} />
-          </Pressable>
-        </View>
+    <View style={[styles.root, { paddingTop: insets.top + space.sm }]}>
+      <TodayTaskSelector page={page} onSelect={onSelectPage} />
 
-        <View style={styles.rule} />
-
-        <DateStrip
-          selectedDate={selectedDate}
-          loggedDates={loggedDateSet}
-          earliestLoggedDate={earliestLoggedDate}
-          onSelect={(date) => void selectDate(date)}
+      {/* Only the selected page is mounted. A hidden tree would keep its
+          controls in the accessibility order, so the scroll position is what is
+          remembered instead — see `useRememberedScroll`. Planner drafts live in
+          the schedule store, not in this tree, so switching tasks cannot lose
+          an edit. */}
+      {page === 'meal-plan' ? (
+        <MealPlanPage
+          view={view}
+          onChangeView={setView}
+          target={target}
+          eatenEntries={eatenEntries}
         />
-
-        <Pressable
-          style={styles.hero}
-          accessibilityRole="button"
-          accessibilityHint="Shows which meals contributed to today's energy."
-          onPress={() => router.push({ pathname: '/analytics', params: { metric: 'energy', date: selectedDate } })}
-        >
-          <View style={styles.heroFigure}>
-            <SectionLabel style={!isOver && remaining !== null ? styles.heroLabel : undefined}>
-              {remaining === null ? 'Calories unavailable' : isOver ? 'Over target' : 'Remaining'}
-            </SectionLabel>
-            {remaining === null ? (
-              <ScreenTitle>—</ScreenTitle>
-            ) : (
-              <View style={styles.heroNumber}>
-                <CountingNumber
-                  value={Math.abs(remaining)}
-                  dimmed={isOver}
-                  tint={isOver ? undefined : color.positive}
-                  accessibilityLabel={isOver ? `${Math.abs(remaining)} calories over target` : `${remaining} calories remaining`}
-                />
-                <Body style={!isOver ? styles.heroLabel : undefined}>kcal</Body>
-              </View>
-            )}
-            {remaining === null ? (
-              <Caption muted>One or more meals have unknown calories.</Caption>
-            ) : isOver ? (
-              <Caption muted numeric>
-                A fact, not a verdict.
-              </Caption>
-            ) : null}
-          </View>
-
-          {/* The context column. Target and consumed are the two figures that
-              make the headline mean anything, and they belong beside it rather
-              than compressed into a caption underneath. */}
-          <View style={styles.heroContext}>
-            <View style={styles.heroStat}>
-              <Caption muted>Daily target</Caption>
-              <Body numeric>{targetCalories} kcal</Body>
-            </View>
-            <View style={styles.heroDivider} />
-            <View style={styles.heroStat}>
-              <Caption muted>Consumed</Caption>
-              <Body numeric>
-                {energy.knownValue === null ? '—' : `${roundCalories(energy.knownValue)} kcal`}
-              </Body>
-            </View>
-          </View>
-        </Pressable>
-
-        <DayRail
-          meals={meals}
-          targetCalories={targetCalories}
+      ) : (
+        <CaloriesPage
           highlightMealId={highlightMealId}
-          onSelectMeal={(mealId) => router.push(`/meal/${mealId}`)}
+          keyMissing={keyMissing}
+          maskedKey={maskedKey}
         />
-
-        {target ? (
-          <View style={styles.macros}>
-            <DailyTargetSummary
-              summary={nutritionSummary}
-              onSelect={(metric) => router.push({ pathname: '/analytics', params: { metric, date: selectedDate } })}
-              onRequest={onMacroRequest}
-            />
-          </View>
-        ) : null}
-
-        <Pressable
-          onPress={() => router.push('/dinner')}
-          accessibilityRole="button"
-          accessibilityLabel="What's for dinner?"
-          style={({ pressed }) => [
-            styles.banner,
-            { backgroundColor: color.tintOlive },
-            pressed && { opacity: opacity.pressed },
-          ]}
-        >
-          <View style={styles.bannerText}>
-            <RowTitle>What's for dinner?</RowTitle>
-            <Caption muted>Ideas from what's already in your pantry.</Caption>
-          </View>
-          <Feather name="chevron-right" size={20} color={color.muted} />
-        </Pressable>
-
-        {maskedKey === null ? (
-          <Pressable
-            onPress={onDemoCardPress}
-            accessibilityRole="button"
-            accessibilityLabel="Discover demo data"
-            style={({ pressed }) => [
-              styles.banner,
-              { backgroundColor: color.tintWheat },
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <View style={styles.bannerText}>
-              <RowTitle>First time here? Try a quick demo.</RowTitle>
-              <Caption muted>Load a rich dataset with meals, pantry, recipes, and more — no entry required.</Caption>
-            </View>
-            <Feather name="chevron-right" size={20} color={color.muted} />
-          </Pressable>
-        ) : null}
-
-        {keyMissing ? (
-          <Pressable
-            onPress={() => router.push('/(tabs)/settings')}
-            accessibilityRole="button"
-            accessibilityLabel="No API key set. Open Settings to add one."
-            style={({ pressed }) => [
-              styles.banner,
-              { backgroundColor: color.tintBlue },
-              pressed && { opacity: opacity.pressed },
-            ]}
-          >
-            <View style={styles.bannerText}>
-              <RowTitle>No API key set. You’re logging by hand.</RowTitle>
-              <Caption muted>Add one in Settings for photo estimates.</Caption>
-            </View>
-            <Feather name="chevron-right" size={20} color={color.muted} />
-          </Pressable>
-        ) : null}
-
-        <View style={styles.list}>
-          <ScreenTitle>
-            {isToday(selectedDate) ? 'Recent meals' : 'Meals'}
-          </ScreenTitle>
-
-          {loading && meals.length === 0 ? null : meals.length === 0 ? (
-            // No action here on purpose. The coach mark below points at the
-            // one add control the app has; a button in this card would be the
-            // second way to do the same thing from the same screen.
-            <Card variant="outline">
-              <StateIllustration
-                name="first-saved-meal"
-                accessibilityLabel="A laid place setting, waiting for the day's first meal"
-              />
-              <Body>Nothing logged yet</Body>
-              <Caption muted>Your first meal of the day starts here.</Caption>
-            </Card>
-          ) : (
-            <>
-              <Card variant="outline" padded={false}>
-                {meals.map((meal, index) => (
-                  <View key={meal.id}>
-                    {index > 0 ? <View style={styles.divider} /> : null}
-                    <MealRow
-                      meal={meal}
-                      onDelete={onDelete}
-                      onPress={(mealId) => router.push(`/meal/${mealId}`)}
-                    />
-                  </View>
-                ))}
-              </Card>
-              <Pressable
-                onPress={() => router.push({ pathname: '/analytics', params: { metric: 'energy', date: selectedDate } })}
-                accessibilityRole="button"
-                accessibilityLabel="See all meals"
-                style={({ pressed }) => [
-                  styles.seeAll,
-                  pressed && { opacity: opacity.pressed },
-                ]}
-              >
-                <Body style={styles.seeAllLabel}>See all meals</Body>
-                <Feather name="chevron-right" size={18} color={color.action} />
-              </Pressable>
-            </>
-          )}
-        </View>
-
-        {/* The only add affordance on this screen is the one in the
-            navigation. When the day is empty, this says so and points at it. */}
-        <NavCoachMark visible={showAddHint}>Tap + to log a meal</NavCoachMark>
-      </ScrollView>
-
-      <HistoryCalendarSheet
-        visible={calendarOpen}
-        selectedDate={selectedDate}
-        earliestLoggedDate={earliestLoggedDate}
-        loggedDates={loggedDateSet}
-        loadSummaries={loadMonthSummaries}
-        onSelect={(date) => void selectDate(date)}
-        onClose={() => setCalendarOpen(false)}
-      />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ground },
-  content: {
-    paddingHorizontal: layout.screenGutter,
-    gap: space.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerText: { flex: 1, gap: space.xs },
-  rule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: color.line,
-  },
-  calendarButton: {
-    width: layout.minTouchTarget,
-    height: layout.minTouchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.input,
-  },
-  // Figure and context side by side, not stacked and centred. The number is
-  // the point of the screen and it should not have to share the centre line
-  // with the two figures that merely qualify it.
-  hero: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.base,
-  },
-  heroFigure: { flex: 1, gap: space.xs },
-  heroLabel: { color: color.positive },
-  heroNumber: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: space.xs,
-  },
-  heroContext: {
-    width: 128,
-    paddingTop: space.sm,
-    gap: space.sm,
-  },
-  heroStat: { gap: space.xs },
-  heroDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: color.line,
-  },
-  macros: {},
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    borderRadius: radius.card,
-    padding: layout.cardPadding,
-  },
-  bannerText: { flex: 1, gap: space.xs },
-  seeAll: {
-    minHeight: layout.minTouchTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: space.xs,
-  },
-  seeAllLabel: { color: color.action },
-  list: { gap: space.md },
-  divider: {
-    height: 1,
-    backgroundColor: color.line,
-    marginLeft: layout.cardPadding + 44 + space.md,
-  },
 });

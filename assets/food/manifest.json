@@ -808,12 +808,12 @@
       "category": "protein",
       "sourceModel": "Draw Things CLI 1.20260430.0 · flux_2_klein_4b_q8p.ckpt · sha256:430ba0f94ee0851a7f95c1383527f931afa6219898a51c5aa8e37979e9e4c86a",
       "license": "Generated locally for this project; no third-party asset rights claimed.",
-      "promptRecipe": "A slab slice of layered raw pork belly, refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "seed": 3372576095,
+      "promptRecipe": "A single thick rectangular slab of raw pork belly seen from the side so its cut face is fully visible, with clearly separated horizontal layers: a pale cream skin along the top edge, then alternating broad bands of deep rosy-red meat and thick ivory-white fat running the length of the slab, refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "seed": 134655842,
       "workflowVersion": "2.0.0",
       "reviewDate": "2026-09-02",
       "reviewedBy": "Timothy Lauw",
-      "outputChecksum": "sha256:295b8785a737590cf34f653c5d2976f394ebe30154742c2be5b4497ec92e011f"
+      "outputChecksum": "sha256:0dcf7410bd703818418ab63777abb8804e59bb49354500df501adce5dea2da61"
     },
     "eggs": {
       "canonicalId": "eggs",

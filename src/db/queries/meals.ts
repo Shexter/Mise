@@ -54,6 +54,13 @@ export interface NewMeal {
 
 
 export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
+  const stored = prepareMeal(meal);
+  await writeMeal(stored);
+  return stored;
+}
+
+
+function prepareMeal(meal: NewMeal): MealWithItems {
   const mealId = randomUUID();
   const createdAt = new Date().toISOString();
 
@@ -92,7 +99,6 @@ export async function insertMeal(meal: NewMeal): Promise<MealWithItems> {
     items,
   };
 
-  await writeMeal(stored);
   return stored;
 }
 
@@ -105,6 +111,12 @@ export async function restoreMeal(meal: MealWithItems): Promise<void> {
 
 async function writeMeal(meal: MealWithItems): Promise<void> {
   await db().withExclusiveTransactionAsync(async (txn) => {
+    await writeMealRows(txn, meal);
+  });
+}
+
+
+async function writeMealRows(txn: TransactionHandle, meal: MealWithItems): Promise<void> {
     await txn.runAsync(
       `INSERT INTO meals
          (id, logged_at, local_date, meal_type, name, photo_uri, source, confidence,
@@ -148,7 +160,6 @@ async function writeMeal(meal: MealWithItems): Promise<void> {
         ],
       );
     }
-  });
 }
 
 
@@ -293,7 +304,91 @@ export async function getRecentAndFavoriteMeals(
 
 
 export async function deleteMeal(id: string): Promise<void> {
-  await db().runAsync('DELETE FROM meals WHERE id = ?', [id]);
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    await txn.runAsync("UPDATE planned_meal_slots SET linked_meal_id = NULL, status = 'planned' WHERE linked_meal_id = ?", [id]);
+    await txn.runAsync('UPDATE planned_batches SET linked_first_meal_id = NULL WHERE linked_first_meal_id = ?', [id]);
+    await txn.runAsync('DELETE FROM meals WHERE id = ?', [id]);
+  });
+}
+
+
+export interface PlannedMealCommitInput {
+  slotId: string;
+  idempotencyKey: string;
+  eatenPortions: number;
+  productionPortions: number;
+  meal: NewMeal;
+  decrements: readonly Decrement[];
+}
+
+
+/** Saves the ordinary meal, depletion and planner linkage in one transaction. */
+export async function insertPlannedMeal(input: PlannedMealCommitInput): Promise<MealWithItems> {
+  if (![input.eatenPortions, input.productionPortions].every((value) => Number.isFinite(value) && value > 0)) {
+    throw new Error('Consumed and produced portions must be positive');
+  }
+  let mealId: string | null = null;
+  await db().withExclusiveTransactionAsync(async (txn) => {
+    const existing = await txn.getFirstAsync<{ meal_id: string }>(
+      'SELECT meal_id FROM planner_meal_commits WHERE idempotency_key = ? OR slot_id = ?',
+      [input.idempotencyKey, input.slotId],
+    );
+    if (existing) {
+      mealId = existing.meal_id;
+      return;
+    }
+    const slot = await txn.getFirstAsync<{ batch_id: string; linked_meal_id: string | null }>(
+      'SELECT batch_id, linked_meal_id FROM planned_meal_slots WHERE id = ?', [input.slotId],
+    );
+    if (!slot) throw new Error('Planned meal slot no longer exists');
+    if (slot.linked_meal_id) {
+      mealId = slot.linked_meal_id;
+      return;
+    }
+    const batch = await txn.getFirstAsync<{ produced_portions: number; linked_first_meal_id: string | null }>(
+      'SELECT produced_portions, linked_first_meal_id FROM planned_batches WHERE id = ?', [slot.batch_id],
+    );
+    if (!batch) throw new Error('Planned batch no longer exists');
+    if (input.productionPortions !== batch.produced_portions) throw new Error('Batch production changed — review before logging');
+    const venue: MealVenue = input.meal.venue === 'out'
+      ? 'out'
+      : batch.linked_first_meal_id ? 'leftovers' : 'home';
+    const stored = prepareMeal({
+      ...input.meal,
+      venue,
+      servingsMult: venue === 'home' ? input.productionPortions : 1,
+    });
+    await writeMealRows(txn, stored);
+    const now = new Date().toISOString();
+    if (venue === 'home') {
+      for (const decrement of input.decrements) {
+        const applied = decrement.pantryItemId ? await applyToItem(txn, decrement, now) : decrement.qty;
+        await txn.runAsync(
+          `INSERT INTO consumption_events
+             (id, pantry_item_id, canonical_id, meal_id, qty, unit, uses,
+              servings_mult, kind, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [randomUUID(), decrement.pantryItemId, decrement.canonicalId, stored.id,
+            applied, decrement.unit, decrement.uses, stored.servingsMult, decrement.kind, now],
+        );
+      }
+      await txn.runAsync(
+        'UPDATE planned_batches SET linked_first_meal_id = COALESCE(linked_first_meal_id, ?) WHERE id = ?',
+        [stored.id, slot.batch_id],
+      );
+    }
+    await txn.runAsync("UPDATE planned_meal_slots SET linked_meal_id = ?, status = 'logged' WHERE id = ?", [stored.id, input.slotId]);
+    await txn.runAsync(
+      `INSERT INTO planner_meal_commits
+         (idempotency_key, slot_id, batch_id, meal_id, eaten_portions, production_portions, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [input.idempotencyKey, input.slotId, slot.batch_id, stored.id, input.eatenPortions, input.productionPortions, now],
+    );
+    mealId = stored.id;
+  });
+  const saved = mealId ? await getMeal(mealId) : null;
+  if (!saved) throw new Error('Saved planned meal could not be read');
+  return saved;
 }
 
 

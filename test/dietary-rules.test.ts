@@ -245,8 +245,9 @@ describe('the fixture corpus, against the real seeded derivative edges (task 1.2
     expect(await excludedUnder('heavilyRestricted', 'noDerivativeInvolved')).toBe(false);
   });
 
-  test('tamari is deliberately not linked to wheat — the wheat-free alternative stays available', async () => {
+  test('tamari remains wheat-free but is excluded for a soy allergen', async () => {
     expect(await excludedUnder('wheatAllergen', 'tamariIsNotWheat')).toBe(false);
+    expect(await excludedUnder('soyAllergen', 'tamariIsNotWheat')).toBe(true);
   });
 
   describe('Asian derivatives (decision 4\'s audience — task 1.4)', () => {

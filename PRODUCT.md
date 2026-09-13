@@ -8,19 +8,19 @@ adaptive
 
 ## Users
 
-Home cooks who want one dependable place to understand what food they have, what needs attention, what they spend, and what they eat. They use Mise in short, repeated moments around shopping, cooking, eating, and putting groceries away.
+Home cooks who want one dependable place to decide what they are going to eat, understand what food they have, what needs attention, what they spend, and what they ate. They use Mise in short, repeated moments around planning, shopping, cooking, eating, and putting groceries away.
 
 ## Product Purpose
 
-Mise connects pantry stock, meal logging, receipts, nutrition, and dinner decisions on one device. Success means the app becomes more useful through ordinary food routines without demanding a second inventory-maintenance habit.
+Mise connects a week's meal plan, pantry stock, meal logging, receipts, nutrition, and dinner decisions on one device. Success means the app becomes more useful through ordinary food routines without demanding a second inventory-maintenance habit — or a second planning habit.
 
 ## Positioning
 
-Meal logging doubles as evidence of pantry depletion, while later receipts reset uncertain estimates to known purchases. Mise is differentiated by honest uncertainty, a dinner decision rather than a recipe browser, and deep Asian pantry coverage that preserves ingredient names in their original scripts.
+Mise leads with planning a week of meals and turning it into the groceries to buy, then keeps that plan honest as the week is actually cooked and eaten. Meal logging doubles as evidence of pantry depletion, while later receipts reset uncertain estimates to known purchases. Mise is differentiated by honest uncertainty, a plan that ends in a defensible shopping list rather than a recipe browser, a pantry-led dinner decision retained for spontaneous cooking, and deep Asian coverage that preserves ingredient names in their original scripts.
 
 ## Operating Context
 
-People use Mise while handling food and receipts, often one-handed and in short bursts. Important flows include capturing a meal or receipt, correcting inferred results, saving a meal, checking today's nutrition, reviewing pantry attention, and choosing what to cook.
+People use Mise while handling food and receipts, often one-handed and in short bursts — choosing meals on the sofa, checking a list in a shop, opening a cooking guide at the stove. Important flows include planning meals into dated slots, reviewing the groceries a plan requires, capturing a meal or receipt, correcting inferred results, saving a meal, checking today's nutrition, reviewing pantry attention, and choosing what to cook tonight.
 
 ## Capabilities and Constraints
 
@@ -40,6 +40,7 @@ The current warm organic visual system is evidence, not binding authority for th
 ## Evidence on Hand
 
 - Implemented product flows and copy in `app/` and `src/components/`.
+- Native captures of the incumbent Today, Shop, recipe and dinner surfaces in `docs/ui-overhaul/planner-baseline/`, with their build and device provenance.
 - Product decisions in `docs/product-decisions.md`.
 - Interaction quality constraints in `docs/premium-experience-playbook.md`.
 - Existing semantic tokens in `src/constants/theme.ts` and `src/constants/themePalettes.ts`.

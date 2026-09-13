@@ -85,6 +85,20 @@ export function fullDate(localDate: string): string {
   return format(parseLocalDate(localDate), 'EEEE, d MMMM');
 }
 
+/**
+ * The week a planning date sits in, written for a heading: `7 – 13 September`,
+ * or `28 September – 4 October` when it straddles two months. The month is
+ * printed once when both ends share it, because repeating it reads as two
+ * separate dates rather than one range.
+ */
+export function weekRangeLabel(localDate: string): string {
+  const days = weekOf(localDate);
+  const start = parseLocalDate(days[0]!);
+  const end = parseLocalDate(days[6]!);
+  const sameMonth = format(start, 'MM yyyy') === format(end, 'MM yyyy');
+  return `${format(start, sameMonth ? 'd' : 'd MMMM')} – ${format(end, 'd MMMM')}`;
+}
+
 export function timeOfDay(isoTimestamp: string): string {
   return format(parseISO(isoTimestamp), 'HH:mm');
 }

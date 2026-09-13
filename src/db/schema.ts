@@ -817,6 +817,118 @@ CREATE TABLE pantry_intake_batch_items (
 CREATE INDEX idx_intake_batch_items ON pantry_intake_batch_items(pantry_item_id);
 `;
 
+/** Migration 37: durable weekly meal schedules and immutable recipe snapshots. */
+const WEEKLY_MEAL_PLANNING = `
+CREATE TABLE meal_schedules (
+  id TEXT PRIMARY KEY,
+  week_start TEXT NOT NULL UNIQUE,
+  revision INTEGER NOT NULL DEFAULT 1 CHECK (revision > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE planner_recipe_snapshots (
+  id TEXT PRIMARY KEY,
+  schedule_id TEXT NOT NULL REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  source_kind TEXT NOT NULL,
+  source_id TEXT NOT NULL,
+  source_version TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE planned_batches (
+  id TEXT PRIMARY KEY,
+  schedule_id TEXT NOT NULL REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  snapshot_id TEXT NOT NULL REFERENCES planner_recipe_snapshots(id),
+  cook_date TEXT NOT NULL,
+  produced_portions REAL NOT NULL CHECK (produced_portions > 0),
+  linked_first_meal_id TEXT REFERENCES meals(id) ON DELETE SET NULL
+);
+
+CREATE TABLE planned_meal_slots (
+  id TEXT PRIMARY KEY,
+  schedule_id TEXT NOT NULL REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  local_date TEXT NOT NULL,
+  meal_type TEXT NOT NULL CHECK (meal_type IN ('breakfast', 'lunch', 'dinner')),
+  batch_id TEXT NOT NULL REFERENCES planned_batches(id),
+  eaten_portions REAL NOT NULL CHECK (eaten_portions > 0),
+  status TEXT NOT NULL CHECK (status IN ('planned', 'skipped', 'logged')),
+  linked_meal_id TEXT REFERENCES meals(id) ON DELETE SET NULL,
+  UNIQUE (schedule_id, local_date, meal_type),
+  UNIQUE (linked_meal_id)
+);
+
+CREATE TABLE week_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  entries_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE planner_drafts (
+  week_start TEXT PRIMARY KEY,
+  schedule_id TEXT REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  base_revision INTEGER,
+  payload_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_planned_slots_date ON planned_meal_slots(local_date, meal_type);
+CREATE INDEX idx_planned_batches_schedule ON planned_batches(schedule_id);
+`;
+
+/** Migration 38: revision-bound grocery demand, optional coverage and reversible apply history. */
+const PLAN_GROCERY_REVISIONS = `
+CREATE TABLE plan_grocery_coverage (
+  schedule_id TEXT NOT NULL REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  schedule_revision INTEGER NOT NULL,
+  demand_key TEXT NOT NULL,
+  covered_qty REAL,
+  unit TEXT,
+  have_enough INTEGER NOT NULL DEFAULT 0,
+  reviewed_at TEXT NOT NULL,
+  PRIMARY KEY (schedule_id, schedule_revision, demand_key)
+);
+
+CREATE TABLE plan_grocery_applications (
+  id TEXT PRIMARY KEY,
+  schedule_id TEXT NOT NULL REFERENCES meal_schedules(id) ON DELETE CASCADE,
+  schedule_revision INTEGER NOT NULL,
+  revision_key TEXT NOT NULL UNIQUE,
+  applied_at TEXT NOT NULL,
+  undone_at TEXT
+);
+
+CREATE TABLE plan_grocery_contributions (
+  application_id TEXT NOT NULL REFERENCES plan_grocery_applications(id) ON DELETE CASCADE,
+  source_key TEXT NOT NULL,
+  demand_key TEXT NOT NULL,
+  shopping_item_id TEXT NOT NULL REFERENCES shopping_list_items(id) ON DELETE CASCADE,
+  requested_qty REAL,
+  requested_unit TEXT,
+  has_unknown_qty INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (application_id, source_key)
+);
+
+CREATE INDEX idx_plan_grocery_schedule ON plan_grocery_applications(schedule_id, applied_at);
+CREATE INDEX idx_plan_grocery_item ON plan_grocery_contributions(shopping_item_id);
+`;
+
+/** Migration 39: idempotent atomic linkage between ordinary meals and planned slots. */
+const PLANNER_MEAL_COMMITS = `
+CREATE TABLE planner_meal_commits (
+  idempotency_key TEXT PRIMARY KEY,
+  slot_id TEXT NOT NULL UNIQUE REFERENCES planned_meal_slots(id) ON DELETE CASCADE,
+  batch_id TEXT NOT NULL REFERENCES planned_batches(id) ON DELETE CASCADE,
+  meal_id TEXT NOT NULL UNIQUE REFERENCES meals(id) ON DELETE CASCADE,
+  eaten_portions REAL NOT NULL CHECK (eaten_portions > 0),
+  production_portions REAL NOT NULL CHECK (production_portions > 0),
+  created_at TEXT NOT NULL
+);
+`;
+
 export const MIGRATIONS: readonly string[] = [
   INITIAL_SCHEMA,
   IDENTITY_LAYER,
@@ -853,12 +965,25 @@ export const MIGRATIONS: readonly string[] = [
   QUICK_RELOG,
   COOKING_PREFERENCES_AND_APPLIANCES,
   UNKNOWN_ACQUISITION_AND_INTAKE_BATCHES,
+  WEEKLY_MEAL_PLANNING,
+  PLAN_GROCERY_REVISIONS,
+  PLANNER_MEAL_COMMITS,
 ];
 
 export const LATEST_VERSION = MIGRATIONS.length;
 
 /** Drops every table. Used by "Delete all data" and by the debug reset helper. */
 export const DROP_ALL = `
+DROP TABLE IF EXISTS planner_meal_commits;
+DROP TABLE IF EXISTS plan_grocery_contributions;
+DROP TABLE IF EXISTS plan_grocery_applications;
+DROP TABLE IF EXISTS plan_grocery_coverage;
+DROP TABLE IF EXISTS planner_drafts;
+DROP TABLE IF EXISTS week_templates;
+DROP TABLE IF EXISTS planned_meal_slots;
+DROP TABLE IF EXISTS planned_batches;
+DROP TABLE IF EXISTS planner_recipe_snapshots;
+DROP TABLE IF EXISTS meal_schedules;
 DROP TABLE IF EXISTS pantry_intake_batch_items;
 DROP TABLE IF EXISTS pantry_intake_batches;
 DROP TABLE IF EXISTS owned_appliances;

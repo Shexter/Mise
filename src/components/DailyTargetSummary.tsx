@@ -97,7 +97,7 @@ function MetricRow({
           onPress={() => onRequest(macro)}
           style={styles.requestAction}
         >
-          <Caption>Dinner ideas</Caption>
+          <Caption style={styles.requestLabel}>Dinner ideas</Caption>
         </Pressable>
       ) : null}
     </View>
@@ -129,4 +129,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingBottom: space.sm,
   },
+  // It reads as body text otherwise, sitting under a nutrient row with nothing
+  // to say it can be tapped.
+  requestLabel: { color: color.action },
 });

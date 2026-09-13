@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 const root = resolve(__dirname, '..');
 const macroBars = readFileSync(resolve(root, 'src/components/MacroBars.tsx'), 'utf8');
-const today = readFileSync(resolve(root, 'app/(tabs)/index.tsx'), 'utf8');
+const today = readFileSync(resolve(root, 'src/components/today/CaloriesPage.tsx'), 'utf8');
 
 describe('macro-gap pull-only entry point', () => {
   test('exposes a below-target bar only as an explicit press action', () => {

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
-const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
+const today = readFileSync('src/components/today/CaloriesPage.tsx', 'utf8');
 const row = readFileSync('src/components/MealRow.tsx', 'utf8');
 const editor = readFileSync('app/meal/[id].tsx', 'utf8');
 const manual = readFileSync('app/manual.tsx', 'utf8');

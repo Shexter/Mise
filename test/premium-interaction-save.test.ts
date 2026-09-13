@@ -9,6 +9,7 @@ const dinner = readFileSync('app/dinner.tsx', 'utf8');
 const pantryReview = readFileSync('app/pantry-capture-review.tsx', 'utf8');
 const receiptReview = readFileSync('app/receipt-review.tsx', 'utf8');
 const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
+const routeIntent = readFileSync('src/logic/todayRoute.ts', 'utf8');
 
 describe('premium interaction save confirmation', () => {
   test('meal feedback names only actual pantry effects', () => {
@@ -40,9 +41,22 @@ describe('premium interaction save confirmation', () => {
   });
 
   test('Today clears a saved-meal route signal after the visible confirmation', () => {
-    expect(today).toContain('setHighlightMealId(params.savedMealId)');
+    // The signal is now read through the shared route-intent resolver, which
+    // also names Calories as the page a logged meal belongs on.
+    expect(routeIntent).toContain("savedMealId");
+    expect(routeIntent).toContain("highlightMealId !== null ? 'calories'");
+    expect(today).toContain('setHighlightMealId(intent.highlightMealId)');
     expect(today).toContain('setHighlightMealId(null)');
-    expect(today).toContain('router.setParams({ savedMealId: undefined })');
+    expect(today).toContain('router.setParams(clearedRouteParams(intent))');
     expect(today).toContain('duration.count');
+  });
+
+  test('a save names the page it finished on, without replacing the remembered one', () => {
+    for (const source of [review, manual, dinner]) {
+      expect(source).toContain("todayPage: 'calories'");
+    }
+    // Only a deliberate tap writes the preference.
+    expect(today).toContain('writeTodayPagePreference(next)');
+    expect(today).not.toContain('writeTodayPagePreference(intent');
   });
 });

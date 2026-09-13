@@ -206,7 +206,7 @@ export default function ManualScreen() {
       message: mealSavedMessage(depleted?.names ?? []),
     });
     router.dismissAll();
-    router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
+    router.replace({ pathname: '/(tabs)', params: { todayPage: 'calories', savedMealId: stored.id } });
   };
 
   const onQuickRelog = (meal: MealWithItems, venue: QuickRelogVenue) => {

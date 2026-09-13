@@ -17,6 +17,13 @@ import {
   DISH_ILLUSTRATIONS,
   dishIllustrationFor,
 } from '@/media/dishIllustrations';
+import {
+  CUISINE_ILLUSTRATIONS,
+  cuisineIllustrationFor,
+} from '@/media/cuisineIllustrations';
+import { cuisineFilters } from '@/logic/cuisines';
+import { AUTHORED_DISH_IDS } from '@/media/plannerRecipeVisuals';
+import { PLANNER_CATALOGUE } from '@/logic/plannerCatalogue';
 import { STARTER_MEAL_PREP_TEMPLATES } from '@/logic/mealPrepTemplates';
 import {
   STATE_ILLUSTRATIONS,
@@ -80,6 +87,7 @@ const REGISTRIES: readonly { set: string; keys: readonly string[] }[] = [
   { set: 'technique', keys: Object.keys(TECHNIQUE_ILLUSTRATIONS) },
   { set: 'action', keys: Object.keys(ACTION_ILLUSTRATIONS) },
   { set: 'dish', keys: Object.keys(DISH_ILLUSTRATIONS) },
+  { set: 'cuisine', keys: Object.keys(CUISINE_ILLUSTRATIONS) },
 ];
 
 describe('Bundled illustration provenance', () => {
@@ -163,14 +171,71 @@ describe('Bundled illustration provenance', () => {
     expect(Object.keys(TECHNIQUE_LABELS).sort()).toEqual([...TECHNIQUE_IDS].sort());
   });
 
-  test('every dish illustration names a real meal-prep template', () => {
-    // The boundary this change turns on: authored templates are a bounded set
-    // and can be drawn; any other dish cannot. A dish id with no template
-    // behind it means someone generated art for a dish nobody wrote down.
-    const templateIds = new Set(STARTER_MEAL_PREP_TEMPLATES.map((template) => template.id));
+  test('every dish illustration names a real authored recipe', () => {
+    // The boundary this change turns on: authored recipes are a bounded set and
+    // can be drawn; any other dish cannot. A dish id with no recipe behind it
+    // means someone generated art for a dish nobody wrote down. The set is the
+    // union of the starter templates and the reviewed planner catalogue, both
+    // of which are fixed in source with stable ids.
+    const authored = new Set([
+      ...STARTER_MEAL_PREP_TEMPLATES.map((template) => template.id),
+      ...PLANNER_CATALOGUE.map((recipe) => recipe.id),
+    ]);
+    expect([...AUTHORED_DISH_IDS].sort()).toEqual([...authored].sort());
     for (const id of Object.keys(DISH_ILLUSTRATIONS)) {
-      expect(templateIds.has(id), id).toBe(true);
+      expect(authored.has(id), id).toBe(true);
     }
+  });
+
+  test('an earlier acceptance is never rewritten by a later promotion', () => {
+    // The seven starter dish illustrations were accepted on 2 September. The ten
+    // planner ones came later. Promoting the second batch must not restamp the
+    // first with today's date — a provenance record that moves is not one.
+    const assets = readManifest().assets;
+    const starters = STARTER_MEAL_PREP_TEMPLATES.map((template) => template.id);
+    for (const id of starters) {
+      const meta = assets[`dish/${id}`];
+      if (!meta) continue;
+      expect(meta.reviewDate, id).toBe('2026-09-02');
+    }
+    // And the later batch carries its own, later date rather than inheriting one.
+    const planner = Object.entries(assets)
+      .filter(([key]) => key.startsWith('dish/planner-'));
+    expect(planner.length).toBeGreaterThan(0);
+    for (const [key, meta] of planner) {
+      expect(meta.reviewDate > '2026-09-02', key).toBe(true);
+    }
+  });
+
+  test('the cuisine schema, manifest, files and registry agree', () => {
+    const schema = JSON.parse(readFileSync(join(ASSET_DIR, 'manifest.schema.json'), 'utf8'));
+    // The schema must accept a cuisine entry, or a promotion would write a
+    // manifest its own validator rejects.
+    expect(schema.definitions.asset.properties.set.enum).toContain('cuisine');
+    expect(schema.properties.assets.propertyNames.pattern).toContain('cuisine');
+    expect(schema.definitions.asset.properties.fileName.pattern).toContain('cuisine');
+
+    // Registry, manifest and bytes on disk name the same ids.
+    const registered = Object.keys(CUISINE_ILLUSTRATIONS).sort();
+    expect(registered).toEqual(manifestIds('cuisine'));
+    const dir = join(ASSET_DIR, 'cuisine');
+    const onDisk = existsSync(dir)
+      ? readdirSync(dir).filter((name) => /\.(png|webp)$/i.test(name)).map((name) => name.replace(/\.(png|webp)$/i, '')).sort()
+      : [];
+    expect(onDisk).toEqual(registered);
+  });
+
+  test('a shipped cuisine id is one the reviewed recipes actually support', () => {
+    const supported = new Set(cuisineFilters().map((filter) => filter.id));
+    for (const id of Object.keys(CUISINE_ILLUSTRATIONS)) {
+      expect(supported.has(id), id).toBe(true);
+    }
+    // An accepted cuisine resolves; an unaccepted one gets nothing rather than
+    // a near match, and is addressed by stable id, never by display label.
+    expect(cuisineIllustrationFor('chinese')).not.toBeNull();
+    expect(cuisineIllustrationFor(null)).toBeNull();
+    expect(cuisineIllustrationFor('korean')).toBeNull();
+    expect(cuisineIllustrationFor('Chinese')).toBeNull();
   });
 
   test('an unauthored dish gets nothing rather than a near match', () => {
@@ -207,6 +272,8 @@ describe('Bundled illustration provenance', () => {
       'src/media/techniqueIllustrations.ts',
       'src/media/actionIllustrations.ts',
       'src/media/dishIllustrations.ts',
+      'src/media/cuisineIllustrations.ts',
+      'src/media/plannerRecipeVisuals.ts',
       'src/components/AddSheet.tsx',
       'src/components/StateIllustration.tsx',
       'src/components/TechniqueIllustration.tsx',
@@ -228,6 +295,9 @@ describe('Bundled illustration provenance', () => {
       'app/recipe/[id].tsx',
       'app/(tabs)/pantry.tsx',
       'app/(tabs)/index.tsx',
+      'app/plan/picker.tsx',
+      'src/components/planner/CuisineRail.tsx',
+      'src/components/planner/PlannerRecipeVisual.tsx',
       'app/dinner.tsx',
       'app/pantry-capture-review.tsx',
       'app/onboarding/first-plan.tsx',

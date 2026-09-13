@@ -23,7 +23,7 @@ const SOURCE_LABEL: Readonly<Record<TargetSource, string>> = {
 
 export default function Welcome() {
   const router = useRouter();
-  const [startingPoint, setStartingPoint] = useState<OnboardingIntent>('calories');
+  const [startingPoint, setStartingPoint] = useState<OnboardingIntent>('meal_prep');
   const [targetSource, setTargetSource] = useState<TargetSource>('estimated');
   const [methodSheetOpen, setMethodSheetOpen] = useState(false);
   const set = useOnboardingStore((state) => state.set);
@@ -62,21 +62,21 @@ export default function Welcome() {
       >
         <View style={styles.cards}>
           <StartingPointCard
+            intent="meal_prep"
+            selected={startingPoint === 'meal_prep'}
+            title="Plan my meals"
+            onSelect={() => setStartingPoint('meal_prep')}
+          />
+          <StartingPointCard
             intent="calories"
             selected={startingPoint === 'calories'}
-            title="Daily calorie & macro target"
+            title="Set my calorie & macro target"
             onSelect={() => setStartingPoint('calories')}
             methodLabel={SOURCE_LABEL[targetSource]}
             onChooseMethod={() => {
               setStartingPoint('calories');
               setMethodSheetOpen(true);
             }}
-          />
-          <StartingPointCard
-            intent="meal_prep"
-            selected={startingPoint === 'meal_prep'}
-            title="Kitchen & meal prep"
-            onSelect={() => setStartingPoint('meal_prep')}
           />
         </View>
       </StepShell>

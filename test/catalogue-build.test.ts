@@ -233,6 +233,27 @@ describe('catalogue build pipeline', () => {
     });
   });
 
+  test('extracts named nutrient amounts from the abridged Branded shape', () => {
+    expect(
+      nutritionFromFdc({
+        dataType: 'Branded',
+        foodNutrients: [
+          { number: '208', name: 'Energy', unitName: 'KCAL', amount: 225 },
+          { number: '203', name: 'Protein', unitName: 'G', amount: 5 },
+          { number: '205', name: 'Carbohydrate, by difference', unitName: 'G', amount: 50 },
+          { number: '204', name: 'Total lipid (fat)', unitName: 'G', amount: 0 },
+          { number: '291', name: 'Fiber, total dietary', unitName: 'G', amount: 5 },
+        ],
+      }),
+    ).toEqual(expect.objectContaining({
+      kcalPer100: 225,
+      proteinPer100: 5,
+      carbsPer100: 50,
+      fatPer100: 0,
+      fibrePer100: 5,
+    }));
+  });
+
   test('extracts all eight micronutrients when FoodData Central reports them all', () => {
     expect(
       nutritionFromFdc({

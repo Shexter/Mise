@@ -242,6 +242,7 @@ export type ShoppingListSourceKind =
   | 'pantry_out'
   | 'recipe_missing'
   | 'suggestion_missing'
+  | 'meal_plan'
   | 'manual';
 
 export const SHOPPING_LIST_SOURCE_KINDS: readonly ShoppingListSourceKind[] = [
@@ -249,6 +250,7 @@ export const SHOPPING_LIST_SOURCE_KINDS: readonly ShoppingListSourceKind[] = [
   'pantry_out',
   'recipe_missing',
   'suggestion_missing',
+  'meal_plan',
   'manual',
 ];
 
@@ -1254,6 +1256,140 @@ export interface MealPrepTemplate {
   ingredients: readonly MealPrepTemplateIngredient[];
   steps: readonly CookingGuideStep[];
   dietaryTags?: readonly string[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Weekly meal planning                                                       */
+/* -------------------------------------------------------------------------- */
+
+export type PlannedMealType = Exclude<MealType, 'snack'>;
+export type PlannerNutritionSource = 'canonical_catalogue' | 'user_entered' | 'source_recipe';
+export type PlannerSlotStatus = 'planned' | 'skipped' | 'logged';
+
+/** Null means unknown. Planner calculations must never coerce it to zero. */
+export interface PlannerNutrition {
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  fibreG: number | null;
+  source: PlannerNutritionSource | null;
+}
+
+/** Quantity and nutrition are stated for the recipe's base yield. */
+export interface PlannerRecipeIngredientSnapshot {
+  id: string;
+  canonicalId: string | null;
+  name: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  preparation: string | null;
+  optional: boolean;
+  included: boolean;
+  nutrition: PlannerNutrition;
+}
+
+/** Immutable recipe facts copied into a schedule. */
+export interface PlannerRecipeSnapshot {
+  id: string;
+  sourceKind: 'starter' | 'saved_recipe';
+  sourceId: string;
+  sourceVersion: string;
+  title: string;
+  mealTypes: readonly PlannedMealType[];
+  cuisines: readonly string[];
+  baseYield: number;
+  durationMinutes: number | null;
+  requiredAppliances: readonly ApplianceId[];
+  ingredients: readonly PlannerRecipeIngredientSnapshot[];
+  steps: readonly CookingGuideStep[];
+  nutritionPerPortion: PlannerNutrition;
+  createdAt: string;
+}
+
+export interface PlannedBatch {
+  id: string;
+  scheduleId: string;
+  snapshotId: string;
+  cookDate: string;
+  producedPortions: number;
+  linkedFirstMealId: string | null;
+}
+
+export interface PlannedMealSlot {
+  id: string;
+  scheduleId: string;
+  localDate: string;
+  mealType: PlannedMealType;
+  batchId: string;
+  eatenPortions: number;
+  status: PlannerSlotStatus;
+  linkedMealId: string | null;
+}
+
+export interface MealSchedule {
+  id: string;
+  weekStart: string;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+  slots: readonly PlannedMealSlot[];
+  batches: readonly PlannedBatch[];
+  snapshots: readonly PlannerRecipeSnapshot[];
+}
+
+export interface WeekTemplateEntry {
+  id: string;
+  weekday: number;
+  mealType: PlannedMealType;
+  snapshot: PlannerRecipeSnapshot;
+  eatenPortions: number;
+  producedPortions: number;
+}
+
+export interface WeekTemplate {
+  id: string;
+  name: string;
+  entries: readonly WeekTemplateEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlannerDraft {
+  scheduleId: string | null;
+  weekStart: string;
+  baseRevision: number | null;
+  slots: readonly PlannedMealSlot[];
+  batches: readonly PlannedBatch[];
+  snapshots: readonly PlannerRecipeSnapshot[];
+}
+
+export interface PlanGroceryContribution {
+  sourceKey: string;
+  batchId: string;
+  snapshotIngredientId: string;
+  canonicalId: string | null;
+  displayName: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+}
+
+export interface PlanGroceryDemand {
+  key: string;
+  canonicalId: string | null;
+  displayName: string;
+  quantity: number | null;
+  unit: MeasureUnit | null;
+  hasUnknownQuantity: boolean;
+  contributions: readonly PlanGroceryContribution[];
+}
+
+export interface PlanPantryCoverage {
+  demandKey: string;
+  scheduleRevision: number;
+  coveredQuantity: number | null;
+  unit: MeasureUnit | null;
+  haveEnough: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

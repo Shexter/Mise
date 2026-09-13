@@ -7,8 +7,13 @@ agents one stable repository location for the selected screens.
 These images are visual references. They are not implemented screens, native
 device captures, or proof that the proposed behavior works.
 
-One folder is the exception and says so: `connected-illustrations/` holds native
-emulator captures of shipped behaviour, not concepts. See its own README.
+Two folders are exceptions and say so. `connected-illustrations/` holds native
+emulator captures of shipped behaviour, not concepts. `planner-baseline/` holds
+native emulator captures of the incumbent Today, Shop, recipe and dinner
+surfaces, taken before the weekly planner in
+[`lead-with-weekly-meal-planning`](../../openspec/changes/lead-with-weekly-meal-planning/)
+changes Today's hierarchy. Both have their own README stating build, device and
+fixture provenance.
 
 ## Contents
 

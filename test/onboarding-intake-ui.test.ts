@@ -21,8 +21,8 @@ const exporter = readFileSync('src/logic/export.ts', 'utf8');
 describe('the welcome screen offers both starting points', () => {
   test('the two product paths are first-class choices', () => {
     expect(welcome).toContain('Where would you like to start?');
-    expect(welcome).toContain('Daily calorie & macro target');
-    expect(welcome).toContain('Kitchen & meal prep');
+    expect(welcome).toContain('Set my calorie & macro target');
+    expect(welcome).toContain('Plan my meals');
     expect(welcome).toContain('testID={`starting-point-${intent}`}');
   });
 

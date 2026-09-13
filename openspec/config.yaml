@@ -23,7 +23,11 @@ context: |
 
   ## Non-negotiable conventions
 
-  - All SQL lives in `src/db/queries.ts`. No SQL anywhere else.
+  - All SQL lives in the `src/db/queries/` modules. `src/db/queries/index.ts`
+    re-exports them and `src/db/queries.ts` is the one-line facade callers
+    import, so `@/db/queries` remains the single entry point. A new area of
+    persistence gets its own module there and a line in `index.ts`; it never
+    gets SQL of its own outside `src/db/`.
   - Schema changes are forward-only migrations appended to `MIGRATIONS` in
     `src/db/schema.ts`. Never edit a migration that has shipped.
   - The API key is confined to `src/api/keyStore.ts`. It never reaches the

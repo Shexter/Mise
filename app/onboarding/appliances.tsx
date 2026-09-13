@@ -39,7 +39,7 @@ export default function AppliancesStep() {
         intents,
         mealPrepStatus: 'not_started',
       });
-      router.push('/onboarding/starter-pantry');
+      router.push('/onboarding/first-schedule');
     } finally {
       setSaving(false);
     }

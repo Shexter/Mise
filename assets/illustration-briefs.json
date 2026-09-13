@@ -22,7 +22,8 @@
       "onboarding": "refined hand-painted 2D editorial wellness illustration, delicate dark ink outlines, natural muted colors with restrained Mise orange and sage accents, warm ivory paper background, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "technique": "refined hand-painted 2D editorial cooking-guide illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
       "action": "refined hand-painted 2D editorial kitchen illustration, delicate dark ink outlines, natural muted colors, warm ivory paper background, centered composition, restrained depth, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
-      "dish": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
+      "dish": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic",
+      "cuisine": "refined hand-painted 2D editorial food illustration, delicate dark ink outlines, natural ingredient-accurate muted colors, warm ivory paper background, three-quarter view, centered composition, soft oval grounding shadow, generous negative space, charming premium cookbook artwork, no readable text, no label, no logo, no branding, no border, not photorealistic"
     }
   },
   "exactPrompts": {
@@ -95,7 +96,7 @@
     "chicken-breast": "a raw boneless chicken breast fillet",
     "chicken-thigh": "a raw chicken thigh with skin",
     "ground-pork": "a mound of fresh raw ground pork mince",
-    "pork-belly": "a slab slice of layered raw pork belly",
+    "pork-belly": "a single thick rectangular slab of raw pork belly seen from the side so its cut face is fully visible, with clearly separated horizontal layers: a pale cream skin along the top edge, then alternating broad bands of deep rosy-red meat and thick ivory-white fat running the length of the slab",
     "eggs": "two raw chicken eggs, one whole brown egg and one cracked eggshell half holding a glossy golden yolk",
     "shrimp": "a raw peeled shrimp prawn with tail",
     "salmon": "a fresh raw pink salmon fillet with skin",
@@ -221,11 +222,25 @@
         "speak-pantry": "a warm terracotta-red retro table microphone on a round base, with small ink motion lines radiating from it"
       }
     },
-    "dish": {
-      "consumer": "app/onboarding/first-plan.tsx",
+    "cuisine": {
+      "consumer": "CuisineRail in app/plan/picker.tsx (src/components/planner/CuisineRail.tsx)",
       "consumerWired": true,
-      "idsFrom": "STARTER_MEAL_PREP_TEMPLATES in src/logic/mealPrepTemplates.ts",
-      "note": "One per authored meal-prep template, and only those. A dish the app wrote down is a bounded set; a dish a person saved or a provider proposed is not, and those keep the procedural DishVisual plate. Do not add a subject here for a dish that has no template id.",
+      "blockedBy": null,
+      "note": "Labelled filter illustrations for the chooser's cuisine rail, not pictures of particular catalogue recipes. The suffix is byte-identical to the existing dish suffix; no shared style or render recipe changes. All, selection rings, labels and scroll controls remain native/vector. Ids are the stable cuisine ids in src/logic/cuisines.ts, and the set follows the reviewed PLANNER_CATALOGUE rather than concept artwork. Korean joined after nine reviewed recipes established real filter coverage on 13 September 2026; Thai and Vietnamese remain absent. The rail renders a labelled fallback tile for any cuisine with no accepted artwork, so promotion stays a separate, named human decision rather than a rendering requirement.",
+      "subjects": {
+        "chinese": "a small sage-green ceramic bowl holding a generous nest of golden wheat noodles, a pair of dark red wooden chopsticks resting diagonally across the rim",
+        "japanese": "two pieces of salmon nigiri with coral-orange salmon over short white rice mounds beside one upright dark nori sushi roll with a visible rice center",
+        "korean": "a shallow charcoal-black stone bowl of bibimbap with white rice, dark green spinach, fine orange carrot strips and pale bean sprouts arranged in distinct sections around one sunny-side egg, a small dab of deep red gochujang beside the yolk",
+        "italian": "a shallow cream ceramic bowl of long golden spaghetti wound into a neat nest, a spoonful of deep red tomato sauce in the centre and two small green basil leaves resting on top",
+        "mediterranean": "a small white ceramic bowl of green and black olives with cubes of white feta and a wedge of lemon, one sprig of fresh oregano laid beside the rim",
+        "international": "a cream ceramic bowl holding white grains, dark green leaves and orange roasted vegetable pieces arranged in clear sections, a plain wooden spoon resting beside it"
+      }
+    },
+    "dish": {
+      "consumer": "app/onboarding/first-plan.tsx, app/plan/picker.tsx, app/plan/recipe.tsx, app/plan/meal.tsx",
+      "consumerWired": true,
+      "idsFrom": "STARTER_MEAL_PREP_TEMPLATES in src/logic/mealPrepTemplates.ts and PLANNER_CATALOGUE in src/logic/plannerCatalogue.ts",
+      "note": "One per authored dish, and only those. A dish the app wrote down is a bounded set; a dish a person saved or a provider proposed is not, and those keep the procedural DishVisual plate. Two lists qualify: the seven meal-prep templates, and the ten planner catalogue recipes, which is fixed in source with stable ids for exactly the same reason. Do not add a subject here for a dish that has no id in one of those two lists. Each subject describes only the ingredients its recipe actually lists — the picture is a claim about the dish, so it may not invent a garnish.",
       "subjects": {
         "rice-cooker-chicken-rice": "a generous cream ceramic bowl of fluffy white rice topped with sliced poached chicken breast and a scattering of fresh green herbs, arranged in clear sections",
         "sheet-pan-roasted-chicken-veg": "a dark metal sheet pan holding golden roasted chicken breast pieces and lightly charred broccoli florets with a few whole garlic cloves",
@@ -233,7 +248,17 @@
         "stovetop-egg-fried-rice": "a cream ceramic bowl of egg fried rice flecked with golden scrambled egg, sliced spring onion and small diced vegetables",
         "slow-cooker-chicken-stew": "a deep cream ceramic bowl of rustic chicken and potato stew in a rich brown broth with soft onion pieces",
         "no-cook-tofu-cucumber-bowl": "a cream ceramic bowl of cold white tofu cubes with fresh sliced cucumber and a dark sesame-soy dressing",
-        "microwave-steamed-salmon-greens": "a cream ceramic plate holding a steamed salmon fillet beside bright green steamed broccoli florets"
+        "microwave-steamed-salmon-greens": "a cream ceramic plate holding a steamed salmon fillet beside bright green steamed broccoli florets",
+        "planner-overnight-oats-banana-peanut": "a cream ceramic bowl of thick soaked rolled oats, a fan of fresh banana slices across one side, a dark spoonful of peanut butter beside it and a thin drizzle of honey",
+        "planner-miso-tofu-morning-soup": "a cream ceramic bowl of clear golden-brown miso broth holding pale soft tofu cubes, sliced shiitake mushrooms and bright green bok choy leaves, fine ginger strips on top",
+        "planner-savoury-oat-porridge-shiitake": "a cream ceramic bowl of thick savoury oat porridge topped with sliced browned shiitake mushrooms, fine strips of ginger and a few fresh coriander leaves",
+        "planner-smashed-cucumber-tofu-salad": "a shallow cream ceramic dish of roughly smashed cucumber pieces and white tofu cubes scattered with chopped peanuts and sesame seeds in a dark glossy dressing, a few coriander leaves",
+        "planner-ginger-chicken-bok-choy": "a wide cream ceramic bowl of sliced seared chicken breast with halved bok choy and sliced shiitake mushrooms in a glossy brown sauce, fine ginger strips on top",
+        "planner-garlic-shrimp-tomato": "a shallow cream ceramic dish of pink shrimp in a loose roma tomato and olive oil sauce with thinly sliced garlic, scattered coriander leaves and a lime wedge at the edge",
+        "planner-pork-belly-bok-choy-braise": "a deep cream ceramic bowl of glossy dark soy-braised pork belly cubes with halved bok choy and ginger coins in a rich reduced braising glaze",
+        "planner-miso-glazed-salmon": "a cream ceramic plate holding a lacquered miso-glazed salmon fillet beside roasted bok choy halves, scattered with sesame seeds",
+        "planner-braised-tofu-ginger-pork": "a cream ceramic bowl of soft white tofu cubes in a glossy brown braise with crumbled ground pork and minced ginger spooned over",
+        "planner-chicken-thigh-tomato-parmesan": "a dark metal roasting dish of golden roast chicken thighs with slumped roma tomato halves, sliced garlic and a light dusting of finely grated parmesan"
       }
     }
   }

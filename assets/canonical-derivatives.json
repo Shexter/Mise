@@ -14,6 +14,7 @@
   { "parent": "wheat", "child": "soy-sauce-dark" },
   { "parent": "soy", "child": "tofu-firm" },
   { "parent": "soy", "child": "miso" },
+  { "parent": "soy", "child": "tamari" },
   { "parent": "soy", "child": "soy-sauce-light" },
   { "parent": "soy", "child": "soy-sauce-dark" },
   { "parent": "soy", "child": "hoisin-sauce" },

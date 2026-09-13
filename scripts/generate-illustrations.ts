@@ -209,6 +209,17 @@ function promote(set: SetName, ids: string[], reviewer: string): void {
       .filter((slot) => slot.set === set)
       .map((slot) => [slot.id, slot]),
   );
+  // A staging-only set can be generated deliberately, but cannot be shipped
+  // before its consumer exists. Check before creating directories or copying
+  // any files so an unwired registry cannot leave a half-promoted pack.
+  for (const id of ids) {
+    const slot = slots.get(id);
+    if (!slot) throw new Error(`${id} is not a known ${set} slot`);
+    if (slot.blockedBy) throw new Error(`Cannot promote ${set}/${id}: ${slot.blockedBy}`);
+  }
+  if (!existsSync(resolvePath(ROOT, target.registryFile))) {
+    throw new Error(`Cannot promote ${set}: registry ${target.registryFile} is missing`);
+  }
   const manifestPath = resolvePath(ROOT, target.manifest);
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const assetDir = resolvePath(ROOT, target.assetDir);

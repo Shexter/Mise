@@ -56,7 +56,11 @@ import {
 import { formatGrams, macrosOfItems, roundCalories } from '@/logic/scaling';
 import { deletePhoto } from '@/media/photos';
 import type { NewMeal } from '@/db/queries';
-import { useCaptureStore } from '@/store/captureStore';
+import { useCaptureStore, type PlannerCommitContext } from '@/store/captureStore';
+import { useMealScheduleStore } from '@/store/mealScheduleStore';
+import { useProfileStore } from '@/store/profileStore';
+import { ensureDailyTarget, insertPlannedMeal } from '@/db/queries';
+import { planMealDepletion } from '@/logic/depletionService';
 import { useDayStore } from '@/store/dayStore';
 import { lastServingsForDish } from '@/db/queries';
 import { saveDishVenueDefault } from '@/db/queries';
@@ -66,6 +70,7 @@ import { getCanonicalById } from '@/db/queries';
 import { resolveIngredientReferencesLocally } from '@/logic/resolution';
 import type {
   Confidence,
+  MealWithItems,
   EstimatedItem,
   MealItem,
   VenueAssessment,
@@ -81,7 +86,7 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const toast = useToast();
-  const { photoUri, base64, estimate, mealDraft, clear } = useCaptureStore();
+  const { photoUri, base64, estimate, mealDraft, plannerCommit, clear } = useCaptureStore();
   const draftSource = mealDraft?.source ?? 'photo';
 
   const [selectedDate, setSelectedDate] = useState(
@@ -249,6 +254,34 @@ export default function ReviewScreen() {
     router.back();
   };
 
+  /**
+   * Commits a planned meal. Depletion is planned outside the transaction from
+   * the same `planMealDepletion` the ordinary path uses, so a leftover portion
+   * and a first cook produce identical ingredient maths; `insertPlannedMeal`
+   * then decides venue and whether to apply them at all.
+   */
+  const saveFromPlan = async (meal: NewMeal, context: PlannerCommitContext) => {
+    const profile = useProfileStore.getState().profile;
+    if (profile) await ensureDailyTarget(meal.localDate, profile);
+    const { decrements } = await planMealDepletion({
+      ...meal,
+      id: 'pending',
+      items: meal.items.map((item, index) => ({ ...item, id: `pending-${index}`, mealId: 'pending' })),
+    } as unknown as MealWithItems);
+    const commit = await insertPlannedMeal({
+      slotId: context.slotId,
+      idempotencyKey: context.idempotencyKey,
+      eatenPortions: context.eatenPortions,
+      productionPortions: context.productionPortions,
+      meal,
+      decrements,
+    });
+    await useMealScheduleStore.getState().load();
+    useDayStore.setState({ selectedDate: commit.localDate, following: true });
+    await useDayStore.getState().refresh();
+    return commit;
+  };
+
   const save = async () => {
     if (items.length === 0) return;
     setSaving(true);
@@ -287,7 +320,13 @@ export default function ReviewScreen() {
         canonicalId: item.canonicalId,
       })),
     };
-    const stored = await addMeal(meal);
+    // A meal cooked from a planned slot commits through the planner path: the
+    // meal, its depletion and the slot's linkage land in one transaction, keyed
+    // by an idempotency token minted when the guide opened. Every other entry
+    // point keeps the ordinary save it has always used.
+    const stored = plannerCommit
+      ? await saveFromPlan(meal, plannerCommit)
+      : await addMeal(meal);
     if (draftSource === 'photo' && venueChangedRef.current) {
       try {
         await saveDishVenueDefault(meal.name, modifiers.venue);
@@ -308,7 +347,7 @@ export default function ReviewScreen() {
       message: mealSavedMessage(depleted?.names ?? []),
     });
     router.dismissAll();
-    router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
+    router.replace({ pathname: '/(tabs)', params: { todayPage: 'calories', savedMealId: stored.id } });
   };
 
   /* ----------------------------- Analyzing ----------------------------- */

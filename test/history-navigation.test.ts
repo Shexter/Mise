@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
-const today = readFileSync('app/(tabs)/index.tsx', 'utf8');
+// The logged-date navigator moved with the calorie content when Today split
+// into its two task pages (decision 201). It is still exactly one navigator.
+const today = readFileSync('src/components/today/CaloriesPage.tsx', 'utf8');
 const strip = readFileSync('src/components/DateStrip.tsx', 'utf8');
 const calendar = readFileSync('src/components/HistoryCalendarSheet.tsx', 'utf8');
 const store = readFileSync('src/store/dayStore.ts', 'utf8');

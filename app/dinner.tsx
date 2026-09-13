@@ -15,6 +15,8 @@ import { MealSwipeDeck } from '@/components/suggestions/MealSwipeDeck';
 import { MealSuggestionSkeleton } from '@/components/skeleton/SkeletonLayouts';
 import { SuggestionPreferenceSheet } from '@/components/suggestions/PreferenceSheet';
 import { color, layout, opacity, radius, space } from '@/constants/theme';
+import { AddSuggestionToPlanSheet } from '@/components/planner/AddSuggestionToPlanSheet';
+import { useMealScheduleStore } from '@/store/mealScheduleStore';
 import { addShoppingListSource, getAllCanonicals, insertShoppingListItem, listShoppingItems, clearSuggestionPreference, saveSuggestionPreference } from '@/db/queries';
 import { localDateString } from '@/logic/dates';
 import { mealSavedMessage } from '@/logic/feedback';
@@ -68,6 +70,7 @@ export default function DinnerScreen() {
   });
   const [canonicals, setCanonicals] = useState<Map<string, CanonicalItem>>(new Map());
   const [tuning, setTuning] = useState(false);
+  const [planningSuggestion, setPlanningSuggestion] = useState<Suggestion | null>(null);
   const [tonightPreference, setTonightPreference] = useState<TonightSuggestionPreference | null>(null);
   const [recommendedIntent, setRecommendedIntent] = useState<SuggestionBaseIntent>('balanced');
 
@@ -122,7 +125,7 @@ export default function DinnerScreen() {
       message: mealSavedMessage(depleted?.names ?? []),
     });
     router.dismissAll();
-    router.replace({ pathname: '/(tabs)', params: { savedMealId: stored.id } });
+    router.replace({ pathname: '/(tabs)', params: { todayPage: 'calories', savedMealId: stored.id } });
   };
 
   const addSuggestionGaps = async (suggestion: Suggestion, suggestionId: string) => {
@@ -182,6 +185,7 @@ export default function DinnerScreen() {
   };
 
   const openTuning = async () => {
+    void useMealScheduleStore.getState().load();
     const [resolved, recommended] = await Promise.all([
       tonightPreference ? Promise.resolve(tonightPreference) : getResolvedTonightPreference(),
       getRecommendedTonightBaseIntent(),
@@ -302,7 +306,7 @@ export default function DinnerScreen() {
               </Caption>
             ) : null}
             {mode === 'stretch' ? suggestions.map((suggestion, index) => (
-              <SuggestionCard key={`${suggestion.dish}-${index}`} suggestion={suggestion} canonicals={canonicals} remaining={remaining} onCook={() => void confirmCooked(suggestion, suggestion.servings, 1)} onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)} />
+              <SuggestionCard key={`${suggestion.dish}-${index}`} suggestion={suggestion} canonicals={canonicals} remaining={remaining} onCook={() => void confirmCooked(suggestion, suggestion.servings, 1)} onAddToPlan={() => setPlanningSuggestion(suggestion)} onAddMissing={() => void addSuggestionGaps(suggestion, `${localDateString()}:${mode}:${index}:${suggestion.dish}`)} />
             )) : (
               <MealSwipeDeck
                 meals={deckSuggestions}
@@ -333,6 +337,15 @@ export default function DinnerScreen() {
           </Card>
         ) : null}
 
+        {outcome.status === 'ready' && mode !== 'stretch' && deckSuggestions.length > 0 ? (
+          <Button
+            label="Add this idea to a day"
+            detail="Schedules it. Logs nothing."
+            variant="ghost"
+            onPress={() => setPlanningSuggestion(deckSuggestions[0] ?? null)}
+          />
+        ) : null}
+
         {outcome.status === 'ready' ? (
           <Pressable
             onPress={() => void load(mode, true)}
@@ -346,6 +359,13 @@ export default function DinnerScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+
+      <AddSuggestionToPlanSheet
+        visible={planningSuggestion !== null}
+        onClose={() => setPlanningSuggestion(null)}
+        suggestion={planningSuggestion}
+        canonicals={canonicals}
+      />
 
       {tonightPreference ? (
         <SuggestionPreferenceSheet
@@ -366,12 +386,14 @@ function SuggestionCard({
   canonicals,
   remaining,
   onCook,
+  onAddToPlan,
   onAddMissing,
 }: {
   suggestion: Suggestion;
   canonicals: Map<string, CanonicalItem>;
   remaining: number | null;
   onCook: () => void;
+  onAddToPlan?: () => void;
   onAddMissing: () => void;
 }) {
   const kcal = roundCalories(suggestion.kcalPerServing);
@@ -443,6 +465,14 @@ function SuggestionCard({
         onPress={onCook}
         style={styles.cookButton}
       />
+      {onAddToPlan ? (
+        <Button
+          label="Add to a day"
+          detail="Schedules it. Logs nothing."
+          variant="ghost"
+          onPress={onAddToPlan}
+        />
+      ) : null}
     </Card>
   );
 }

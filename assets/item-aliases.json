@@ -316,5 +316,21 @@
   { "alias": "冷凍餃子", "canonicalId": "frozen-dumplings", "locale": "ja" },
   { "alias": "냉동 만두", "canonicalId": "frozen-dumplings", "locale": "ko" },
   { "alias": "만두", "canonicalId": "frozen-dumplings", "locale": "ko" },
-  { "alias": "mandu", "canonicalId": "frozen-dumplings" }
+  { "alias": "mandu", "canonicalId": "frozen-dumplings" },
+  { "alias": "김치", "canonicalId": "kimchi", "locale": "ko" },
+  { "alias": "된장", "canonicalId": "doenjang", "locale": "ko" },
+  { "alias": "떡", "canonicalId": "tteok", "locale": "ko" },
+  { "alias": "가래떡", "canonicalId": "tteok", "locale": "ko" },
+  { "alias": "떡국떡", "canonicalId": "tteok", "locale": "ko" },
+  { "alias": "미역", "canonicalId": "dried-miyeok", "locale": "ko" },
+  { "alias": "마른 미역", "canonicalId": "dried-miyeok", "locale": "ko" },
+  { "alias": "김", "canonicalId": "gim", "locale": "ko" },
+  { "alias": "kochukaru", "canonicalId": "gochugaru" },
+  { "alias": "gimchi", "canonicalId": "kimchi" },
+  { "alias": "dwenjang", "canonicalId": "doenjang" },
+  { "alias": "ddeok", "canonicalId": "tteok" },
+  { "alias": "dduk", "canonicalId": "tteok" },
+  { "alias": "baechu", "canonicalId": "napa-cabbage" },
+  { "alias": "wakame", "canonicalId": "dried-miyeok" },
+  { "alias": "laver", "canonicalId": "gim" }
 ]

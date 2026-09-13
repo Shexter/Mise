@@ -210,18 +210,28 @@ export default function PantryScreen() {
         </Pressable>
       ) : null}
 
-      {subsection === 'stock' && cookingPreferences?.mealPrepStatus === 'deferred' ? (
+      {/* One prompt, pointing at the shared planner. Planning lives on Today,
+          so this sends people there rather than starting a second place a plan
+          could be kept — and it appears whether setup was skipped or finished,
+          which is the case that used to get no guidance at all. */}
+      {subsection === 'stock'
+        && (cookingPreferences?.mealPrepStatus === 'deferred'
+          || cookingPreferences?.mealPrepStatus === 'completed') ? (
         <Pressable
-          onPress={() => router.push('/onboarding/appliances')}
+          onPress={() => router.push('/(tabs)')}
           accessibilityRole="button"
-          accessibilityLabel="Resume meal prep setup"
+          accessibilityLabel="Plan your meals on Today"
+          accessibilityHint="Opens Today, where the week is planned"
           style={({ pressed }) => [styles.banner, styles.resumeBanner, pressed && { opacity: opacity.pressed }]}
         >
           <View style={styles.resumeHeader}>
             <Feather name="layers" size={18} color={color.action} />
-            <Body style={styles.resumeTitle}>Set up your meal prep plan</Body>
+            <Body style={styles.resumeTitle}>Plan your meals on Today</Body>
           </View>
-          <Caption muted>Select your kitchen tools and starter stock to get practical cooking guides.</Caption>
+          <Caption muted>
+            Choose meals for the week and Mise makes the grocery list. Your stock here is an optional refinement, never
+            a requirement.
+          </Caption>
         </Pressable>
       ) : null}
 

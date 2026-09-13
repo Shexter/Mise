@@ -275,6 +275,7 @@ const SOURCE_LABELS: Record<ShoppingListSourceKind, string> = {
   pantry_out: 'Out in your pantry',
   recipe_missing: 'Missing for a saved recipe',
   suggestion_missing: "Missing for tonight's suggestion",
+  meal_plan: 'Needed for your meal plan',
   manual: 'Added manually',
 };
 

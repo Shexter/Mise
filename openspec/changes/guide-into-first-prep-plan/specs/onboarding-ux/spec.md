@@ -1,39 +1,3 @@
-## MODIFIED Requirements
-
-### Requirement: Post-milestone bridges offer next setup or direct app entry
-Upon completing the chosen starting-point setup milestone, the system SHALL offer a clear choice to continue with the remaining setup or head straight to the app. When the completed milestone produced a first meal-prep plan, that plan SHALL be persisted, and the choice SHALL include starting it.
-
-#### Scenario: Person finishes calorie target calculation and continues to kitchen
-- **WHEN** a person finishes the calorie calculation on the results screen and taps "Set up kitchen & meal prep"
-- **THEN** the system SHALL navigate into the kitchen setup path (appliances, starter pantry, first plan)
-- **AND** preserve the calculated nutrition profile
-
-#### Scenario: Person finishes calorie target calculation and heads straight to app
-- **WHEN** a person finishes the calorie calculation on the results screen and taps "Head straight to the app"
-- **THEN** the system SHALL persist the profile and navigate into the main app tabs
-- **AND** the pantry tab SHALL display a resumable prompt to configure kitchen appliances and stock later
-
-#### Scenario: Person finishes first meal prep plan and continues to calorie setup
-- **WHEN** a person completes the first cooking plan and taps "Set up daily calorie target"
-- **THEN** the system SHALL navigate into the calorie setup path
-- **AND** preserve the confirmed kitchen appliances and pantry inventory
-
-#### Scenario: Person finishes first meal prep plan and starts cooking it
-- **WHEN** a person completes the first cooking plan and chooses to start cooking
-- **THEN** the system SHALL persist the plan and open its cooking guide
-- **AND** the person SHALL NOT be returned to an unrelated tab to find it again
-
-#### Scenario: Person finishes first meal prep plan and heads straight to app
-- **WHEN** a person completes the first cooking plan and taps "Head straight to the app"
-- **THEN** the system SHALL persist the plan and cooking preferences and navigate into the main app tabs
-- **AND** the pantry tab SHALL display a resumable prompt that opens the saved plan
-- **AND** the today tab SHALL display a resumable prompt to configure calorie targets later
-
-#### Scenario: A saved plan is started or discarded
-- **WHEN** a person starts or discards their saved first plan
-- **THEN** the resumable prompt for it SHALL stop appearing
-- **AND** the prompt SHALL NOT reappear on a later launch
-
 ## ADDED Requirements
 
 ### Requirement: Starter pantry intake leads with the camera and never depends on it
@@ -63,10 +27,19 @@ no camera and no provider key.
 - **AND** selecting one SHALL add it as reviewable stock rather than as a fact
   about the person's kitchen
 
+#### Scenario: Speech intake remains a sibling of the camera
+
+- **WHEN** the step presents its intake choices
+- **THEN** the speech action SHALL remain directly available on the step
+  alongside the camera and manual entry
+- **AND** it SHALL NOT be reachable only from inside the camera capture flow
+
 ### Requirement: The first plan presents its cooking guide as illustrated steps
 
-The first prep plan SHALL present the dish, the appliance it uses, its portions
-and its time, and a numbered cooking guide.
+The first prep plan screen SHALL present the dish, the appliance it uses, its
+portions and its time, and a numbered cooking guide. This requirement governs
+how that screen presents whatever plan it is given; it does not decide where a
+plan is stored or what happens after the screen is finished.
 
 #### Scenario: A plan step names a recognised technique
 

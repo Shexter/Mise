@@ -260,7 +260,8 @@ receipts flow through the scanner.
 
 Full design in [`dinner-decision.md`](./dinner-decision.md).
 
-**33. It is a decision, not a recipe browser.** `SETTLED`
+**33. It is a decision, not a recipe browser.** `SETTLED` — narrowed by 200 to
+the dinner engine, which is the surface this was written about
 "What could I make" is free from any chatbot and goes generic by day four. "What
 should I cook tonight" needs pantry, expiry, personal history, and remaining
 calories at once — and nothing else has all four.
@@ -319,8 +320,9 @@ In:
 
 Out, deliberately:
 - Household sharing (decision 6)
-- Meal planning `DEFERRED`
-- Recipe browsing as a browsable library `DEFERRED`
+- ~~Meal planning `DEFERRED`~~ `SUPERSEDED BY 198`
+- Recipe browsing as a browsable library `DEFERRED` — still deferred as a
+  *browsable library*; a small reviewed planning collection is not one, see 200
 - Spending dashboards `DEFERRED` — the data accrues from day one, the surface
   comes later
 
@@ -469,7 +471,8 @@ These came out of arguing the strongest case *against* the product. The full
 argument and the responses to it are in [`bear-case.md`](./bear-case.md). Three
 criticisms survived and produced changes; the rest were answerable.
 
-**58. Pantry is a byproduct, not the primary.** `SETTLED`
+**58. Pantry is a byproduct, not the primary.** `SETTLED` — its ordering of the
+home screen is superseded by 199; its reasoning about the pantry is unchanged
 Mise is a calorie tracker whose pantry happens to be accurate — not a pantry app
 with calories bolted on. The calorie tracker is the daily habit that keeps
 people opening the app; the pantry accrues from that habit and from receipts.
@@ -1885,6 +1888,8 @@ So cooking one reuses `suggestionService`'s meal construction unchanged: same
 quantity is skipped rather than guessed.
 
 **156. Decision 33 is not violated by the user bringing their own recipes.** `SETTLED`
+— extended by 200, which adds a second non-violating case: a small reviewed
+collection the app supplies for planning
 Decision 33 rejected a recipe library because *"'what could I make' is free from
 any chatbot and goes generic by the fourth day."* That reasoning is about the
 **app supplying** recipes. A collection of things this person chose is the
@@ -2784,3 +2789,209 @@ its raw response is discarded after evidence validation. Delete all data removes
 downloaded and partial models, extraction state, voice drafts, parsing state,
 speech preferences/consent, and redacted diagnostics in addition to the existing
 credential and app-data deletion contract.
+
+## Planning a week
+
+**198. Meal planning leaves 42's deferred list. Mise plans a week and turns it
+into a grocery list.** `SETTLED` *(supersedes the `Meal planning DEFERRED` line
+in 42)*
+
+42 deferred meal planning while the MVP was proving that a meal log could
+maintain a pantry. That proof is in: capture, receipts, depletion, expiry, the
+dinner decision and the shopping list all exist. The deferral was about
+sequencing, not about meal planning being wrong for this product, and it has
+outlived its reason.
+
+What the owner asked for is narrower than "a meal planner" and points the other
+way round from the pantry: **choose the meals you want to eat, then Mise
+produces the ingredients to buy.** Scheduling anticipates a grocery haul. That
+inverts the dinner engine's premise — dinner starts from what is already in the
+kitchen; planning starts from what someone wants to cook and ends at a shop.
+Both are legitimate and both stay.
+
+The consequence that matters for implementation: **planner selection must not
+inherit the dinner engine's pantry-coverage gate, its use-first constraint, or
+its missing-ingredient limit.** A recipe requiring every ingredient to be bought
+is a normal planning choice, not an error state. Pantry coverage becomes an
+optional list-reduction step after selection — a person with an empty,
+unconfigured or deliberately ignored pantry must be able to plan a week and
+apply the full grocery list without answering a single stock question.
+
+Still out, and not reopened by this: automatic logging of scheduled food,
+consuming stock on scheduling, grocery ordering, price promises, external
+calendars, notifications, and any promise that a plan will be eaten.
+
+**199. The week's plan leads Today; the calorie total keeps its place below
+it.** `SETTLED` *(supersedes 58's ordering of the home screen; 58's reasoning
+about the pantry stands)*
+
+58 settled that the pantry is a byproduct of a calorie habit rather than the
+primary, and it was right about the pantry. It also fixed calories as the thing
+that owns the top of Today, and native capture of the incumbent
+(`docs/ui-overhaul/planner-baseline/01-today-top.png`) shows what that costs
+now: the first viewport at 411 dp is title, date strip, a Fraunces
+`REMAINING 470 kcal`, target and consumed. `What's for dinner?` is not reachable
+without scrolling, and a schedule would land below that.
+
+A person who has planned their week opens the app to find out what they are
+cooking, not to re-read a number they have already seen. So Today opens on the
+selected day's breakfast/lunch/dinner agenda with a Today/Week switch, and one
+main action that follows state: the next scheduled meal, otherwise **Plan your
+week**, otherwise **Continue planning**, and **View week** on a finished day.
+Actual nutrition and history stay clearly labelled below the schedule and keep
+Fibre. `What's for dinner?` stays visible as a secondary action, one tap away.
+
+58's underlying point survives intact and is worth restating, because it is the
+thing that keeps this from becoming a meal-planning app that dies the way pantry
+apps die: **the planner is not allowed to become a second habit someone must
+maintain.** Planning is optional. Skipping it leaves usable empty slots, the
+dinner fallback, Add and ordinary logging. Nothing about calorie tracking,
+pantry, receipts or the dinner decision is removed, and a person who never
+plans a single meal keeps the app they have today.
+
+Rejected: a fifth tab, and a second dashboard stacked above the existing hero
+cards. Four destinations plus the central Add stay exactly as they are. This is
+a change of emphasis inside Today, not a new destination.
+
+**200. The app may supply a small reviewed planning collection. 33 and 156
+still hold — they are about the dinner engine and about browsing.** `SETTLED`
+*(narrows 33; extends 156)*
+
+33 rejected a recipe library because *"'what could I make' is free from any
+chatbot and goes generic by the fourth day"*, and it is still right about that
+surface. 156 already carved out recipes the user brings, on the grounds that a
+collection someone chose is the least substitutable content in the app.
+
+Planning needs a third case. Someone opening a fresh install with no saved
+recipes, no pantry and no API key has nothing to schedule, and telling them to
+go find recipes elsewhere before they can use the feature is not a product. So
+Mise bundles **a small reviewed collection with at least three distinct options
+per meal type, including a no-cook breakfast and meaningful Asian coverage**,
+selectable beside saved recipes, filtered by meal type and cuisine.
+
+The boundary that keeps 33 true: this is a **picker with a finite, reviewed
+collection**, not a browsable library, not a discovery feed, not a
+recommendation engine, and not a second place recipes live. There is no
+seven-recipe quota and no endless scroll. The app does not rank these for you;
+you choose. 33's "it is a decision, not a recipe browser" continues to govern
+`app/dinner.tsx`, which is the surface it was written about.
+
+The reviewed part is load-bearing and is where the real cost sits. Auditing the
+seven existing `STARTER_MEAL_PREP_TEMPLATES` against the shipped catalogue found
+that none of them carry any nutrition — `MealPrepTemplate` has no nutrition
+field at all — that instructions name ingredients absent from ingredient lists,
+and that **all seven would display as nutritionally incomplete** for two
+independent reasons: four canonicals they depend on (`jasmine-rice`, `broccoli`,
+`eggs`, `potato`) have no catalogue nutrition, and no canonical anywhere in the
+catalogue carries a weight per piece, so every `piece` amount is unconvertible.
+The audit and its recommendation are in
+`docs/planner-recipe-nutrition-audit.md`; the short version is **compute recipe
+nutrition from the catalogue rather than authoring it**, since the catalogue
+already carries per-field provenance from FoodData Central and CoFID and
+`src/logic/nutrition.ts` already refuses to launder a missing figure into zero.
+
+**No recipe enters the collection on the strength of a plausible-looking
+number.** Unknown nutrition stays unknown and is disclosed; it is never filled
+in with zero and never invented. The same applies to eligibility: the templates'
+existing `dietaryTags` are read by nothing and at least one is unverifiable from
+repository data, so dietary compatibility is derived from resolved canonical
+ids or not claimed at all.
+
+---
+
+## Two tasks inside Today
+
+**201. Today holds two task pages, `Meal plan` and `Calories`. The planner no
+longer sits above the calorie total in one scroll.** `SETTLED` *(supersedes
+199's vertical ordering only; 199's reasoning about planning leading the product
+stands, and 198 and 200 are untouched)*
+
+199 put the week's plan above the calorie figure inside one Today scroll. That
+ordering was right about which task the product leads with and wrong about how
+two tasks share one screen. Choosing what to cook and checking what you have
+eaten are different jobs done at different moments, and stacking them meant a
+populated week pushed every nutrient summary below the fold. The owner asked for
+them to be separated.
+
+Today therefore exposes two subpages, labelled exactly **`Meal plan`** and
+**`Calories`**. Never "Nutrition" — the page shows the energy, fibre, protein,
+carbohydrate and fat this app can defend from logged meals, not a nutrition
+dashboard, and the label may not promise more than the data does. The selector
+sits outside the page scroll so it stays reachable from anywhere in either page,
+and each page keeps its own scroll position.
+
+The four bottom destinations and the central Add action are unchanged. This is
+still a change of emphasis inside one destination, not a fifth tab.
+
+**Each page owns its own date.** `mealScheduleStore.selectedDate` drives Meal
+plan, which may point at a future day; `dayStore.selectedDate` drives Calories,
+which keeps its existing refusal of future dates. A future plan must never
+appear under a logged-day heading, and planning a Tuesday must never make
+Tuesday loggable. Switching pages preserves both dates independently.
+
+Ordinary entry restores the last manually selected page, defaulting to Meal plan
+on an install with no stored preference. Explicit navigation outranks it: saving
+a logged meal opens Calories on that meal's date, scheduling a recipe opens Meal
+plan on the scheduled date, and the onboarding handoff opens Meal plan in Week.
+That intent is consumed once, so a later manual page switch is not overridden by
+a stale route parameter. The preference is presentation state in key-value
+storage; it is not a meal record and it changes neither page's date-following
+policy.
+
+Rejected: three peer tabs for Today, Week and Calories. Today and Week are two
+views of one task, so Day/Week stays a compact view control inside Meal plan
+rather than a second segmented control stacked above the first.
+
+
+---
+
+## Nutrition sources
+
+**202. The catalogue may cite a USDA Branded record when no generic record
+exists for the same food, once reviewed and marked as branded.** `SETTLED`
+*(extends 200)*
+
+`scripts/build-catalogue.ts` searched Foundation and SR Legacy only. That is the
+right default — those are laboratory composites — but it meant FoodData Central
+was reported as having "no record" for foods it does in fact carry. `gochujang`,
+`gochugaru`, `doenjang` and `tteok` all came back unmatched on 13 September 2026
+and held six reviewed Korean recipes out of the collection, when the real
+situation was that nobody had looked outside two of FDC's five data types.
+
+Three grades of evidence are now recognised, and which grade an ingredient rests
+on is recorded per ingredient in `docs/planner-catalogue-provenance.md`:
+
+- **Foundation and SR Legacy** — laboratory composites. The default, and what
+  the automatic search still queries.
+- **Survey (FNDDS)** — USDA's generic composites for dietary studies. Not
+  brand-specific, and it flows through the existing pipeline unchanged.
+- **Branded** — one manufacturer's declared label for one product. Allowed only
+  as an explicit, hand-reviewed entry in
+  `assets/catalogue-fdc-selections.json`, never as an automatic search result.
+
+**200's rule is unchanged and is what makes this safe: no recipe enters on the
+strength of a plausible-looking number.** A branded record is not a plausible
+number; it is a cited one, from the same public database under the same CC0
+licence, for the actual food rather than a substitute. What it is not is a
+composite: it carries one brand's sugar level, and gochujang ranges from 167 to
+300 kcal/100 g across the brands FDC holds. That spread is disclosed rather than
+averaged, because averaging it would invent a figure no record supports.
+
+Two consequences a reader should know:
+
+- **A branded figure is usually back-calculated from a small serving.** FDC
+  marks these `LCCS`, "calculated from value per serving size measure", so a
+  label rounded to the nearest gram on a 6 g teaspoon is multiplied by sixteen.
+  A record whose own macros do not reconcile with its own calorie figure is
+  therefore ordinary, not exceptional, and each one that ships is named in the
+  provenance doc with the discrepancy stated.
+- **The app cannot yet tell a user which grade it is showing.** `SourceId` has
+  one value for all of FoodData Central, so `nutritionSourceLabel` says
+  "Nutrition from USDA FoodData Central" for a laboratory composite and for a
+  manufacturer's label alike. That is accurate but not complete. Splitting the
+  source id is not done here and is worth doing before the collection ships.
+
+Rejected: citing a near neighbour instead. Miso for doenjang, cayenne for
+gochugaru, or a puffed rice snack cracker for tteok would each have produced a
+figure with a citation attached to a different food, which is worse than a
+branded label of the right one and much worse than an honest gap.

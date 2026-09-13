@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import { DAILY_NUTRITION_METRICS, type DailyNutritionMetric } from '@/logic/dailyNutritionSummary';
 import { bucketNutritionValues, customNutritionPeriod, nutritionTrend, type NutritionAggregation, type NutritionBucket, type NutritionDayValue, type NutritionPeriod } from '@/logic/nutritionRange';
-import type { DailyTarget, DaySummary, MealItem, MealWithItems, PantryItem, Profile, RecipeWithIngredients, ShoppingListItem } from '@/types';
+import type { DailyTarget, DaySummary, MealItem, MealSchedule, MealWithItems, PantryItem, Profile, RecipeWithIngredients, ShoppingListItem, WeekTemplate } from '@/types';
 import {
   MealRow,
   MealItemRow,
@@ -16,6 +16,7 @@ import { getProfile } from './profile';
 import { getRecipe, listRecipes } from './recipes';
 import { listPantryItems } from './pantry';
 import { listShoppingItems } from './shopping';
+import { listMealSchedules, listWeekTemplates } from './planner';
 
 
 
@@ -178,6 +179,8 @@ export interface ExportBundle {
   pantryItems: PantryItem[];
   recipes: RecipeWithIngredients[];
   shoppingList: ShoppingListItem[];
+  mealSchedules: MealSchedule[];
+  weekTemplates: WeekTemplate[];
 }
 
 
@@ -197,6 +200,7 @@ export async function exportEverything(
   const shoppingList = await listShoppingItems(true);
   const pantryItems = await listPantryItems();
   const recipes = (await listRecipes()).map((recipe) => getRecipe(recipe.id));
+  const [mealSchedules, weekTemplates] = await Promise.all([listMealSchedules(), listWeekTemplates()]);
 
   const itemsByMeal = new Map<string, MealItem[]>();
   for (const row of itemRows) {
@@ -217,5 +221,7 @@ export async function exportEverything(
     pantryItems,
     recipes: (await Promise.all(recipes)).filter((recipe): recipe is RecipeWithIngredients => recipe !== null),
     shoppingList,
+    mealSchedules,
+    weekTemplates,
   };
 }

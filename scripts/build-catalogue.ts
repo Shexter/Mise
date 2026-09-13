@@ -149,6 +149,14 @@ interface FdcFoodNutrient {
   value?: number;
   nutrient?: { id?: number; name?: string; unitName?: string };
   amount?: number;
+  /**
+   * The `format=abridged` shape, which is the only one that names a Branded
+   * record's nutrients — the full response returns them as anonymous rows
+   * carrying an amount and nothing else. `number` is the nutrient number as a
+   * string ("208"), not the `nutrientId` the other two shapes use.
+   */
+  number?: string;
+  name?: string;
 }
 
 export interface FdcFood {
@@ -554,7 +562,7 @@ function nutrientValue(food: FdcFood, id: number, name: RegExp): number | null {
   const nutrient =
     nutrients.find((candidate) => (candidate.nutrientId ?? candidate.nutrient?.id) === id) ??
     nutrients.find((candidate) => {
-      const candidateName = candidate.nutrientName ?? candidate.nutrient?.name ?? '';
+      const candidateName = candidate.nutrientName ?? candidate.nutrient?.name ?? candidate.name ?? '';
       const unit = candidate.unitName ?? candidate.nutrient?.unitName ?? '';
       return name.test(candidateName) && (id !== 1008 || unit.toLowerCase() === 'kcal');
     });
@@ -719,9 +727,12 @@ async function searchFdc(entry: CatalogueEntry, apiKey: string): Promise<FdcFood
   return body.foods ?? [];
 }
 
-async function fetchReviewedFdcFoods(apiKey: string): Promise<Map<number, FdcFood>> {
-  const ids = [...new Set(Object.values(fdcSelections as Record<string, number>))];
-  const foods = new Map<number, FdcFood>();
+async function fetchFdcBatch(
+  ids: readonly number[],
+  apiKey: string,
+  format?: 'abridged',
+): Promise<FdcFood[]> {
+  const foods: FdcFood[] = [];
   for (let index = 0; index < ids.length; index += 20) {
     const chunk = ids.slice(index, index + 20);
     const url = new URL(FDC_FOODS_URL);
@@ -729,13 +740,50 @@ async function fetchReviewedFdcFoods(apiKey: string): Promise<Map<number, FdcFoo
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ fdcIds: chunk }),
+      body: JSON.stringify(format ? { fdcIds: chunk, format } : { fdcIds: chunk }),
     });
     if (!response.ok) throw new Error(`FoodData Central batch returned HTTP ${response.status}`);
-    const batch = (await response.json()) as FdcFood[];
-    for (const food of batch) {
-      if (food.fdcId != null) foods.set(food.fdcId, food);
-    }
+    foods.push(...((await response.json()) as FdcFood[]));
+  }
+  return foods;
+}
+
+/**
+ * The hand-reviewed selections in `assets/catalogue-fdc-selections.json`.
+ *
+ * Generic records — Foundation, SR Legacy and Survey (FNDDS) — come back from
+ * the default full response with their nutrients named, and are used as-is.
+ *
+ * **Branded records do not.** The full response returns a Branded food's
+ * nutrients as anonymous `{ id, amount }` rows with no nutrient identity at
+ * all, so every figure would read as null and the ingredient would silently
+ * stay unresolved. `format=abridged` is the one shape that names them, so
+ * Branded ids are fetched a second time that way. The re-fetch is deliberately
+ * narrow: a generic record's numbers cannot change as a side effect of this
+ * path, because a generic record never enters it.
+ *
+ * A Branded figure is a manufacturer's declared label for one product, not a
+ * laboratory composite, and `docs/planner-catalogue-provenance.md` records
+ * which ingredients rest on one.
+ */
+async function fetchReviewedFdcFoods(apiKey: string): Promise<Map<number, FdcFood>> {
+  const ids = [...new Set(Object.values(fdcSelections as Record<string, number>))];
+  const foods = new Map<number, FdcFood>();
+  for (const food of await fetchFdcBatch(ids, apiKey)) {
+    if (food.fdcId != null) foods.set(food.fdcId, food);
+  }
+
+  const branded = [...foods.values()]
+    .filter((food) => food.dataType === 'Branded')
+    .map((food) => food.fdcId!)
+    .filter((id) => id != null);
+  if (branded.length === 0) return foods;
+
+  for (const food of await fetchFdcBatch(branded, apiKey, 'abridged')) {
+    const existing = food.fdcId == null ? undefined : foods.get(food.fdcId);
+    // The abridged response carries no `foodCategory`, so keep the full
+    // record and take only the nutrients from this one.
+    if (existing) foods.set(food.fdcId!, { ...existing, foodNutrients: food.foodNutrients });
   }
   return foods;
 }

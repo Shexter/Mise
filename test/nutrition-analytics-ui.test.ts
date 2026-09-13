@@ -8,7 +8,7 @@ const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'u
 
 describe('Today nutrition disclosure boundaries', () => {
   test('keeps Today compact and hands supported metrics to Nutrition Analytics', () => {
-    const today = read('app/(tabs)/index.tsx');
+    const today = read('src/components/today/CaloriesPage.tsx');
     const summary = read('src/components/DailyTargetSummary.tsx');
 
     expect(today).toContain("pathname: '/analytics'");
@@ -52,7 +52,7 @@ describe('Today nutrition disclosure boundaries', () => {
   });
 
   test('preserves selected metric and date across the Today handoff and ordinary back navigation', () => {
-    const today = read('app/(tabs)/index.tsx');
+    const today = read('src/components/today/CaloriesPage.tsx');
     const analytics = read('app/analytics.tsx');
     expect(today).toContain("params: { metric, date: selectedDate }");
     expect(today).toContain("params: { metric: 'energy', date: selectedDate }");
