@@ -11,7 +11,7 @@ The name is from *mise en place*: everything in its place.
 > OpenSpec tracks the remaining work and device checks in `openspec/changes/`.
 
 <p align="center">
-  <img src="docs/screenshots/today.png" width="180" alt="Today: your meal plan" />
+  <img src="docs/screenshots/today-plan.png" width="180" alt="Today: your meal plan" />
   <img src="docs/screenshots/calories.png" width="180" alt="Calories and macros remaining" />
   <img src="docs/screenshots/dinner-plan.png" width="180" alt="Dinner plan with batch ingredients" />
   <img src="docs/screenshots/shop.png" width="180" alt="Groceries for your plan" />
@@ -21,7 +21,7 @@ The name is from *mise en place*: everything in its place.
 <p align="center">
   <img src="docs/screenshots/onboarding-start.png" width="180" alt="Onboarding: where to start" />
   <img src="docs/screenshots/onboarding-age.png" width="180" alt="Onboarding: birth date" />
-  <img src="docs/screenshots/onboarding-kitchen.png" width="180" alt="Onboarding: pick your cookware" />
+  <img src="docs/screenshots/onboarding-cookware.png" width="180" alt="Onboarding: pick your cookware" />
   <img src="docs/screenshots/onboarding-results.png" width="180" alt="Onboarding: your daily target" />
 </p>
 <p align="center"><sub>Onboarding: start · age · kitchen · daily target.</sub></p>
