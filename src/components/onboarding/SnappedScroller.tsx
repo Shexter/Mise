@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   type AccessibilityActionEvent,
@@ -60,39 +60,49 @@ export function SnappedScroller({
   visibleTicks = 2,
   style,
 }: Props) {
-  const listRef = useRef<FlatList<ScrollerItem>>(null);
-  const readyRef = useRef(false);
-  const ignoreNextMomentumRef = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  /** Where the list actually is, so a settled gesture is never "corrected" back. */
+  const offsetRef = useRef(0);
   const reduceMotion = useReducedMotion();
   const horizontal = orientation === 'horizontal';
   const tick = horizontal ? TICK_HORIZONTAL : TICK_VERTICAL;
   const extent = tick * (visibleTicks * 2 + 1);
   const selected = items[selectedIndex];
-
-  const contentPadding = tick * visibleTicks;
+  // Vertical frames are exactly `extent` tall; horizontal ones span their
+  // container, so centre the first/last tick under the caret from the width.
+  const [width, setWidth] = useState(0);
+  const contentPadding = horizontal && width > 0 ? Math.max(0, (width - tick) / 2) : tick * visibleTicks;
 
   /**
-   * The first row starts after `contentPadding`, but the caret is also that
-   * far from the viewport edge. Consequently item n is centred at scroll
-   * offset n*tick (the padding cancels on both sides). Keeping this conversion
-   * in one place prevents the padding from being counted twice.
+   * With the padding on both sides, item n is centred under the caret at
+   * scroll offset n*tick.
+   *
+   * A plain ScrollView, not a FlatList: this sits inside the step's own
+   * ScrollView, and a virtualized list nested in one fights it for the
+   * gesture (and React Native warns about exactly that).
    */
-  const centeredOffset = useCallback(
-    (index: number) => Math.max(0, index * tick),
-    [tick],
+  const scrollTo = useCallback(
+    (index: number, animated: boolean) => {
+      const offset = index * tick;
+      offsetRef.current = offset;
+      scrollRef.current?.scrollTo(horizontal ? { x: offset, animated } : { y: offset, animated });
+    },
+    [horizontal, tick],
   );
 
   /** Keeps the list under the caret when the value changes from elsewhere. */
   useEffect(() => {
-    if (!readyRef.current || selectedIndex < 0 || selectedIndex >= items.length) return;
-    // An animated programmatic jump emits momentum; an immediate jump does
-    // not, so there is no event to suppress in reduced-motion mode.
-    ignoreNextMomentumRef.current = !reduceMotion;
-    listRef.current?.scrollToOffset({
-      offset: centeredOffset(selectedIndex),
-      animated: !reduceMotion,
-    });
-  }, [centeredOffset, items.length, reduceMotion, selectedIndex]);
+    if (selectedIndex < 0 || selectedIndex >= items.length) return;
+    // A gesture that just settled on this index is already there: leave it.
+    if (Math.abs(offsetRef.current - selectedIndex * tick) < 1) return;
+    scrollTo(selectedIndex, !reduceMotion);
+  }, [items.length, reduceMotion, scrollTo, selectedIndex, tick]);
+
+  // Padding changes with the measured width; re-seat the list without animating.
+  useEffect(() => {
+    scrollTo(selectedIndex, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentPadding]);
 
   const step = useCallback(
     (delta: number) => {
@@ -110,31 +120,21 @@ export function SnappedScroller({
     [step],
   );
 
-  const onSettled = useCallback(
+  const settle = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (!readyRef.current) return;
-      if (ignoreNextMomentumRef.current) {
-        ignoreNextMomentumRef.current = false;
-        return;
-      }
-      const offset = horizontal
-        ? event.nativeEvent.contentOffset.x
-        : event.nativeEvent.contentOffset.y;
-      // contentOffset is measured from the padded content origin. Expressing
-      // the calculation via the caret centre makes that contract explicit and
-      // avoids treating the leading padding as an extra item.
-      const viewportCenter = contentPadding + extent / 2;
-      const contentCenter = offset + viewportCenter;
-      const index = Math.round((contentCenter - contentPadding - tick / 2) / tick);
-      const boundedIndex = Math.min(items.length - 1, Math.max(0, index));
-      if (boundedIndex !== selectedIndex) onSelectIndex(boundedIndex);
+      const { contentOffset } = event.nativeEvent;
+      const offset = horizontal ? contentOffset.x : contentOffset.y;
+      offsetRef.current = offset;
+      const index = Math.min(items.length - 1, Math.max(0, Math.round(offset / tick)));
+      if (index !== selectedIndex) onSelectIndex(index);
     },
-    [contentPadding, extent, horizontal, items.length, onSelectIndex, selectedIndex, tick],
+    [horizontal, items.length, onSelectIndex, selectedIndex, tick],
   );
 
   return (
     <View
       style={[styles.frame, horizontal ? { height: TICK_HORIZONTAL } : { height: extent }, style]}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
@@ -143,31 +143,25 @@ export function SnappedScroller({
       onAccessibilityAction={onAction}
     >
       <View pointerEvents="none" style={[styles.caret, horizontal ? styles.caretHorizontal : styles.caretVertical]} />
-      <FlatList
-        ref={listRef}
-        data={items}
+      <ScrollView
+        ref={scrollRef}
         horizontal={horizontal}
-        keyExtractor={(item) => item.key}
+        nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
         snapToInterval={tick}
         decelerationRate="fast"
-        disableIntervalMomentum
-        getItemLayout={(_, index) => ({ length: tick, offset: contentPadding + tick * index, index })}
-        onMomentumScrollEnd={onSettled}
-        onScrollBeginDrag={() => {
-          // A real gesture owns the next settle event, even if an earlier
-          // animated state sync has not finished dispatching its callback.
-          ignoreNextMomentumRef.current = false;
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          const { contentOffset } = event.nativeEvent;
+          offsetRef.current = horizontal ? contentOffset.x : contentOffset.y;
         }}
-        onScrollToIndexFailed={() => undefined}
-        onLayout={() => {
-          if (readyRef.current) return;
-          readyRef.current = true;
-          listRef.current?.scrollToOffset({
-            offset: centeredOffset(selectedIndex),
-            animated: false,
-          });
+        onMomentumScrollEnd={settle}
+        onScrollEndDrag={(event) => {
+          // A slow release can land on a tick with no momentum phase at all.
+          const { velocity } = event.nativeEvent;
+          const speed = velocity ? Math.abs(horizontal ? velocity.x : velocity.y) : 0;
+          if (speed < 0.05) settle(event);
         }}
         importantForAccessibility="no-hide-descendants"
         contentContainerStyle={
@@ -175,8 +169,10 @@ export function SnappedScroller({
             ? { paddingHorizontal: contentPadding }
             : { paddingVertical: contentPadding }
         }
-        renderItem={({ item, index }) => (
+      >
+        {items.map((item, index) => (
           <Pressable
+            key={item.key}
             onPress={() => onSelectIndex(index)}
             style={({ pressed }) => [
               horizontal ? { width: tick, height: TICK_HORIZONTAL } : { width: '100%', height: tick },
@@ -190,8 +186,8 @@ export function SnappedScroller({
               <Caption muted>{item.label}</Caption>
             )}
           </Pressable>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -211,5 +207,6 @@ const styles = StyleSheet.create({
   tick: { alignItems: 'center', justifyContent: 'center' },
   caret: { position: 'absolute', backgroundColor: color.action, opacity: opacity.over },
   caretHorizontal: { top: 0, bottom: 0, left: '50%', width: 2 },
-  caretVertical: { left: 0, right: 0, top: '50%', height: 2 },
+  // A band behind the selected row rather than a line through its text.
+  caretVertical: { left: 0, right: 0, top: '50%', height: TICK_VERTICAL, marginTop: -TICK_VERTICAL / 2, opacity: 0.12 },
 });

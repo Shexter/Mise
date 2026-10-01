@@ -11,20 +11,20 @@ The name is from *mise en place*: everything in its place.
 > OpenSpec tracks the remaining work and device checks in `openspec/changes/`.
 
 <p align="center">
-  <img src="docs/screenshots/today.png" width="180" alt="Today: plan your week" />
-  <img src="docs/screenshots/week.png" width="180" alt="Week view with planned meals" />
-  <img src="docs/screenshots/choose-meals.png" width="180" alt="Choose meals by cuisine" />
-  <img src="docs/screenshots/cooking-guide.png" width="180" alt="Recipe with illustrated cooking guide" />
+  <img src="docs/screenshots/today.png" width="180" alt="Today: your meal plan" />
+  <img src="docs/screenshots/calories.png" width="180" alt="Calories and macros remaining" />
+  <img src="docs/screenshots/dinner-plan.png" width="180" alt="Dinner plan with batch ingredients" />
+  <img src="docs/screenshots/shop.png" width="180" alt="Groceries for your plan" />
 </p>
-<p align="center"><sub>Android, light theme. Today · Week · Choose meals · Cooking guide.</sub></p>
+<p align="center"><sub>Android, light theme. Today · Calories · Dinner plan · Shop.</sub></p>
 
 <p align="center">
-  <img src="docs/screenshots/onboarding-goals.png" width="180" alt="Onboarding: choose your goals" />
+  <img src="docs/screenshots/onboarding-start.png" width="180" alt="Onboarding: where to start" />
+  <img src="docs/screenshots/onboarding-age.png" width="180" alt="Onboarding: birth date" />
   <img src="docs/screenshots/onboarding-kitchen.png" width="180" alt="Onboarding: pick your cookware" />
-  <img src="docs/screenshots/onboarding-pantry.png" width="180" alt="Onboarding: scan your first ingredients" />
-  <img src="docs/screenshots/onboarding-plan.png" width="180" alt="Onboarding: your first prep plan" />
+  <img src="docs/screenshots/onboarding-results.png" width="180" alt="Onboarding: your daily target" />
 </p>
-<p align="center"><sub>Onboarding design concept: goals · kitchen · pantry · first prep plan.</sub></p>
+<p align="center"><sub>Onboarding: start · age · kitchen · daily target.</sub></p>
 
 ---
 

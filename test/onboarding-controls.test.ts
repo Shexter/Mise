@@ -244,7 +244,7 @@ describe('control accessibility floor', () => {
 
   test('ticks meet the touch target and reduced motion snaps immediately', () => {
     expect(scroller).toContain('const TICK_VERTICAL = layout.minTouchTarget;');
-    expect(scroller).toContain('animated: !reduceMotion');
+    expect(scroller).toContain('scrollTo(selectedIndex, !reduceMotion)');
     expect(scroller).toContain('useReducedMotion()');
   });
 

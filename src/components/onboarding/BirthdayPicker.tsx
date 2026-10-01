@@ -60,7 +60,7 @@ export function BirthdayPicker({
   today = todayCalendarDate(),
 }: Props) {
   const bounds = useMemo(() => supportedBirthdayRange(today), [today]);
-  const [year, setYear] = useState(bounds.latest.year);
+  const [year, setYear] = useState(Math.max(bounds.earliest.year, bounds.latest.year - 30)); // anchor near 30, not the youngest allowed
   const [month, setMonth] = useState(1);
   const [day, setDay] = useState(1);
   const [touched, setTouched] = useState(false);
