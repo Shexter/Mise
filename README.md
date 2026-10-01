@@ -10,6 +10,22 @@ The name is from *mise en place*: everything in its place.
 > photo capture, barcode lookup, and dinner suggestions are implemented.
 > OpenSpec tracks the remaining work and device checks in `openspec/changes/`.
 
+<p align="center">
+  <img src="docs/screenshots/today.png" width="180" alt="Today: plan your week" />
+  <img src="docs/screenshots/week.png" width="180" alt="Week view with planned meals" />
+  <img src="docs/screenshots/choose-meals.png" width="180" alt="Choose meals by cuisine" />
+  <img src="docs/screenshots/cooking-guide.png" width="180" alt="Recipe with illustrated cooking guide" />
+</p>
+<p align="center"><sub>Android, light theme. Today · Week · Choose meals · Cooking guide.</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/onboarding-goals.png" width="180" alt="Onboarding: choose your goals" />
+  <img src="docs/screenshots/onboarding-kitchen.png" width="180" alt="Onboarding: pick your cookware" />
+  <img src="docs/screenshots/onboarding-pantry.png" width="180" alt="Onboarding: scan your first ingredients" />
+  <img src="docs/screenshots/onboarding-plan.png" width="180" alt="Onboarding: your first prep plan" />
+</p>
+<p align="center"><sub>Onboarding design concept: goals · kitchen · pantry · first prep plan.</sub></p>
+
 ---
 
 ## The idea
